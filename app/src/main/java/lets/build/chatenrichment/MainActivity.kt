@@ -12,7 +12,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ChatEnrichmentTheme {
-
             }
         }
     }

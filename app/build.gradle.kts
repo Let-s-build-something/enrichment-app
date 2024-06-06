@@ -69,6 +69,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":Squadris"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 

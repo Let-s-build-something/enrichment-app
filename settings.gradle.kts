@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ChatEnricher"
 include(":app")
- 
+include (":Squadris")
