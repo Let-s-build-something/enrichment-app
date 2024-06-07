@@ -2,6 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.gms.google.services)
+    alias(libs.plugins.compose.compiler)
+    id("com.google.dagger.hilt.android")
+    id("org.jetbrains.kotlin.kapt")
+
+    kotlin("plugin.serialization") version "2.0.0"
 }
 
 android {
@@ -9,7 +14,21 @@ android {
     compileSdk = 34
 
     packaging.run {
-        resources.excludes.add("META-INF/gradle/incremental.annotation.processors")
+        resources.excludes.addAll(
+            listOf(
+                "META-INF/gradle/incremental.annotation.processors",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*",
+                "META-INF/*.kotlin_module"
+            )
+        )
     }
 
     defaultConfig {
@@ -18,6 +37,8 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -61,6 +82,10 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
+    // Allow references to generated code
+    kapt {
+        correctErrorTypes = true
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -89,14 +114,16 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material)
     implementation(libs.androidx.material3)
     implementation(libs.material3.window.size)
     implementation(libs.material.icons)
+
     //Dagger, Hilt, Navigation, ViewModel
     implementation(libs.hilt.android)
-    implementation(libs.hilt.compiler)
-    implementation(libs.kotlinx.metadata.jvm)
+    kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation)
+    implementation(libs.kotlinx.metadata.jvm)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.viewmodel.compose)
 
@@ -105,6 +132,8 @@ dependencies {
     implementation(libs.coil.svg)
     implementation(libs.lottie)
 
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.multidex)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

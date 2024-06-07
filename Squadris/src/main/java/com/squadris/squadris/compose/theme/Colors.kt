@@ -21,13 +21,6 @@ object Colors {
     val NIGHT_EERIE_BLACK: Color = Color(0xFF1A1917)
     val NIGHT: Color = Color(0xFF121212)
     val BLACK_24: Color = Color(0x3D000000)
-    val GREEN_CORRECT: Color = Color(0xFF22B573)
-    val GREEN_CORRECT_50: Color = Color(0x8022B573)
-    val YELLOW: Color = Color(0xFFFFC107)
-    val YELLOW_50: Color = Color(0x80FFC107)
-    val ORANGE: Color = Color(0xFFFF5722)
-    val RED_ERROR: Color = Color(0xFFFF6060)
-    val RED_ERROR_50: Color = Color(0x80FF6060)
 
     val PALETTE_ORANGE = Color(0xFFF44336)
     val PALETTE_BLUE_LIGHT = Color(0xFF03A9F4)

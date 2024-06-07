@@ -2,6 +2,7 @@ plugins {
     //alias(libs.plugins.android.application)
     id("com.android.library")
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -14,7 +15,7 @@ android {
 
     defaultConfig {
         minSdk = 24
-        targetSdk = 34
+        testOptions.targetSdk = 34
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

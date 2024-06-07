@@ -48,6 +48,7 @@ import com.squadris.squadris.compose.components.collapsing_layout.rememberCollap
 import com.squadris.squadris.compose.components.navigation.CustomizableAppBar
 import com.squadris.squadris.compose.theme.Colors
 import com.squadris.squadris.compose.theme.LocalTheme
+import com.squadris.squadris.compose.theme.SharedColors
 
 /** current navigation tree and controller */
 val LocalNavController = staticCompositionLocalOf<NavController?> { null }
@@ -236,7 +237,7 @@ fun BaseSnackbarHost(
                 data,
                 shape = LocalTheme.current.shapes.componentShape,
                 containerColor = if((data.visuals as? CustomSnackbarVisuals)?.isError == true) {
-                    Colors.RED_ERROR
+                    SharedColors.RED_ERROR
                 }else LocalTheme.current.colors.brandMainDark,
                 contentColor = if((data.visuals as? CustomSnackbarVisuals)?.isError == true) {
                     Color.White

@@ -117,11 +117,10 @@ fun CustomChipGroup(
                     )
                     CustomChipType.REGULAR -> {
                         SimpleChip(
-                            modifier = Modifier.animateItemPlacement(
-                                animationSpec = tween(
+                            modifier = Modifier.animateItem(
+                                placementSpec = tween(
                                     durationMillis = DEFAULT_ANIMATION_LENGTH_SHORT,
-                                    easing
-                                    = LinearOutSlowInEasing
+                                    easing = LinearOutSlowInEasing
                                 )
                             ),
                             text = chipState.chipText.value,

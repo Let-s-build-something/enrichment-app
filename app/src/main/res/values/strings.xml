@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Chat Enrichment</string>
+
+    <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>
 </resources>
