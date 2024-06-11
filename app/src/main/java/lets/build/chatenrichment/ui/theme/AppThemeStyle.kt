@@ -141,7 +141,7 @@ object AppThemeStyle: ThemeStyle {
     override val category: TextStyle
         @Composable
         get() = TextStyle(
-            color = LocalTheme.current.colors.secondary,
+            color = LocalTheme.current.colors.primary,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium
         )
@@ -152,6 +152,14 @@ object AppThemeStyle: ThemeStyle {
             color = LocalTheme.current.colors.brandMainDark,
             fontSize = 19.sp,
             fontWeight = FontWeight.Medium
+        )
+
+    override val regular: TextStyle
+        @Composable
+        get() = TextStyle(
+            color = LocalTheme.current.colors.secondary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Normal
         )
 
     override val linkText: TextStyle

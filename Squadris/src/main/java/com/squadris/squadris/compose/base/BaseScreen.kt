@@ -46,21 +46,8 @@ import com.squadris.squadris.compose.components.collapsing_layout.CollapsingLayo
 import com.squadris.squadris.compose.components.collapsing_layout.CollapsingLayoutState
 import com.squadris.squadris.compose.components.collapsing_layout.rememberCollapsingLayout
 import com.squadris.squadris.compose.components.navigation.CustomizableAppBar
-import com.squadris.squadris.compose.theme.Colors
 import com.squadris.squadris.compose.theme.LocalTheme
 import com.squadris.squadris.compose.theme.SharedColors
-
-/** current navigation tree and controller */
-val LocalNavController = staticCompositionLocalOf<NavController?> { null }
-
-/** current snackbar host for showing snackbars */
-val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
-
-/** whether device is a tablet or not */
-val LocalIsTablet = staticCompositionLocalOf { false }
-
-/** Currently displayed, hosting activity */
-val LocalActivity = staticCompositionLocalOf<Activity?> { null }
 
 /**
  * Most basic all-in-one implementation of a screen with action bar, without bottom bar
@@ -221,42 +208,15 @@ fun BaseScreen(
     }
 }
 
-/**
- * Themed snackbar host with custom snackbar and possibility to display in error version
- */
-@Composable
-fun BaseSnackbarHost(
-    modifier: Modifier = Modifier,
-    hostState: SnackbarHostState
-) {
-    SnackbarHost(
-        modifier = modifier,
-        hostState = hostState,
-        snackbar = { data ->
-            Snackbar(
-                data,
-                shape = LocalTheme.current.shapes.componentShape,
-                containerColor = if((data.visuals as? CustomSnackbarVisuals)?.isError == true) {
-                    SharedColors.RED_ERROR
-                }else LocalTheme.current.colors.brandMainDark,
-                contentColor = if((data.visuals as? CustomSnackbarVisuals)?.isError == true) {
-                    Color.White
-                }else LocalTheme.current.colors.tetrial,
-                actionColor = if((data.visuals as? CustomSnackbarVisuals)?.isError == true) {
-                    Color.White
-                }else LocalTheme.current.colors.tetrial,
-                dismissActionContentColor = if((data.visuals as? CustomSnackbarVisuals)?.isError == true) {
-                    Color.White
-                }else LocalTheme.current.colors.tetrial,
-            )
-        }
-    )
-}
 
-data class CustomSnackbarVisuals(
-    override val actionLabel: String?,
-    override val duration: SnackbarDuration = if (actionLabel == null) SnackbarDuration.Short else SnackbarDuration.Long,
-    override val message: String,
-    val isError: Boolean = false,
-    override val withDismissAction: Boolean = true
-): SnackbarVisuals
+/** current navigation tree and controller */
+val LocalNavController = staticCompositionLocalOf<NavController?> { null }
+
+/** current snackbar host for showing snackbars */
+val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
+
+/** whether device is a tablet or not */
+val LocalIsTablet = staticCompositionLocalOf { false }
+
+/** Currently displayed, hosting activity */
+val LocalActivity = staticCompositionLocalOf<Activity?> { null }

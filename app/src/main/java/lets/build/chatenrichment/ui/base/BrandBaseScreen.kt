@@ -1,8 +1,12 @@
 package lets.build.chatenrichment.ui.base
 
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -13,12 +17,15 @@ import com.squadris.squadris.compose.components.collapsing_layout.CollapsingLayo
 import com.squadris.squadris.compose.components.collapsing_layout.rememberCollapsingLayout
 import com.squadris.squadris.compose.components.navigation.NavIconType
 import com.squadris.squadris.compose.theme.LocalTheme
-import lets.build.chatenrichment.navigation.NavigationComponent
+import lets.build.chatenrichment.navigation.NavigationTree
 import lets.build.chatenrichment.data.shared.SharedViewModel
+import lets.build.chatenrichment.navigation.DefaultAppBarActions
+import lets.build.chatenrichment.ui.login.username.UsernameChangeLauncher
 
 /**
  * Most simple screen for implementing bussiness level logic
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrandBaseScreen(
     modifier: Modifier = Modifier,
@@ -41,15 +48,31 @@ fun BrandBaseScreen(
     val sharedViewModel: SharedViewModel = hiltViewModel<SharedViewModel>()
 
     val currentUser = sharedViewModel.currentUser.collectAsState()
+    val userProfile = sharedViewModel.userProfile.collectAsState()
+
+    LaunchedEffect(userProfile.value, currentUser.value) {
+        if(currentUser.value != null && userProfile.value == null) {
+            sharedViewModel.requestUserProfile()
+        }
+    }
 
     val navIconClick: (() -> Unit)? = when {
         navIconType == NavIconType.HOME -> {
             {
-                navController?.popBackStack(NavigationComponent.Home, inclusive = false)
+                navController?.popBackStack(NavigationTree.Home, inclusive = false)
             }
         }
         onNavigationIconClick != null -> onNavigationIconClick
         else -> null
+    }
+
+    if(userProfile.value != null && userProfile.value?.username == null) {
+        UsernameChangeLauncher(
+            sheetState = rememberModalBottomSheetState(
+                skipPartiallyExpanded = true,
+                confirmValueChange = { it != SheetValue.Hidden }
+            )
+        )
     }
 
     BaseScreen(
@@ -60,10 +83,10 @@ fun BrandBaseScreen(
         onBackPressed = onBackPressed,
         contentModifier = contentModifier,
         actionIcons = actionIcons ?: {
-            /*DefaultAppBarActions(
+            DefaultAppBarActions(
                 isUserSignedIn = currentUser.value != null,
-                userPhotoUrl = currentUser.value?.photoUrl?.toString()
-            )*/
+                userPhotoUrl = userProfile.value?.photoUrl ?: currentUser.value?.photoUrl?.toString()
+            )
         },
         appBarVisible = appBarVisible,
         containerColor = containerColor,

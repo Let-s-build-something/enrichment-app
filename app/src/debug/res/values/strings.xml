@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Chat Enrichment DEBUG</string>
 
-    <string name="home_screen">Home</string>
+
 
     <string name="firebase_web_client_id" translatable="false">96838385672-faocl6j2gc9ugbalufnso7m96nfa6b6j.apps.googleusercontent.com</string>
 </resources>

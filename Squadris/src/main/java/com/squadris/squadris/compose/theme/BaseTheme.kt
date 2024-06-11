@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.squadris.squadris.compose.theme.DefaultValues.defaultBaseColors
 import com.squadris.squadris.compose.theme.DefaultValues.defaultThemeIcons
+import com.squadris.squadris.compose.theme.DefaultValues.defaultThemeShapes
+import com.squadris.squadris.compose.theme.DefaultValues.defaultThemeStyle
 
 interface BaseTheme {
 
@@ -29,6 +31,7 @@ interface BaseTheme {
     val colors: BaseColors
 
     /** base styles of components */
+    @get:Composable
     val styles: ThemeStyle
 
     /** base icons specific to an app */
@@ -36,13 +39,94 @@ interface BaseTheme {
     val icons: ThemeIcons
 
     /** base shapes specific to an app */
+    @get:Composable
     val shapes: ThemeShapes
 }
 
 private object DefaultValues {
+    val defaultThemeShapes = object: ThemeShapes {
+        override val circularActionShape: Shape
+            get() = RectangleShape
+        override val rectangularActionShape: Shape
+            get() = RectangleShape
+        override val componentShape: Shape
+            get() = RectangleShape
+        override val chipShape: Shape
+            get() = RectangleShape
+        override val componentCornerRadius: Dp
+            get() = 0.dp
+        override val iconSizeSmall: Dp
+            get() = 0.dp
+        override val iconSizeMedium: Dp
+            get() = 0.dp
+        override val betweenItemsSpace: Dp
+            get() = 0.dp
+        override val iconSizeLarge: Dp
+            get() = 0.dp
+    }
+
+    val defaultThemeStyle = object: ThemeStyle {
+        override val componentElevation: Dp
+            get() = 0.dp
+        override val actionElevation: Dp
+            get() = 0.dp
+        override val minimumElevation: Dp
+            get() = 0.dp
+
+        override val textFieldColors: TextFieldColors
+            @Composable
+            get() = OutlinedTextFieldDefaults.colors()
+        override val textFieldColorsOnFocus: TextFieldColors
+            @Composable
+            get() = OutlinedTextFieldDefaults.colors()
+        override val checkBoxColorsDefault: CheckboxColors
+            @Composable
+            get() = CheckboxDefaults.colors()
+        override val switchColorsDefault: SwitchColors
+            @Composable
+            get() = SwitchDefaults.colors()
+        override val cardClickableElevation: CardElevation
+            @Composable
+            get() = CardDefaults.cardElevation()
+        override val chipBorderDefault: BorderStroke
+            @Composable
+            get() = FilterChipDefaults.filterChipBorder(
+                borderColor = Color.Transparent,
+                selectedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent,
+                disabledSelectedBorderColor = Color.Transparent,
+                borderWidth = 0.dp,
+                selectedBorderWidth = 0.dp,
+                enabled = true,
+                selected = false
+            )
+        override val chipColorsDefault: SelectableChipColors
+            @Composable
+            get() = FilterChipDefaults.filterChipColors()
+        override val heading: TextStyle
+            @Composable
+            get() = TextStyle.Default
+        override val subheading: TextStyle
+            @Composable
+            get() = TextStyle.Default
+        override val category: TextStyle
+            @Composable
+            get() = TextStyle.Default
+        override val regular: TextStyle
+            @Composable
+            get() = TextStyle.Default
+        override val linkText: TextStyle
+            @Composable
+            get() = TextStyle.Default
+        override val menuItem: TextStyle
+            @Composable
+            get() = TextStyle.Default
+    }
+
     val defaultThemeIcons = object: ThemeIcons {
         override val googleSignUp: Int = -1
     }
+
     val defaultBaseColors = object: BaseColors {
         override val primary: Color = Color(0x00000000)
         override val secondary: Color = Color(0x00000000)
@@ -72,90 +156,32 @@ val LocalAppIcons = staticCompositionLocalOf {
 }
 
 /** current set of colors */
+val LocalThemeStyle = staticCompositionLocalOf {
+    defaultThemeStyle
+}
+
+/** current set of colors */
+val LocalThemeShapes = staticCompositionLocalOf {
+    defaultThemeShapes
+}
+
+/** current set of colors */
 val LocalTheme = staticCompositionLocalOf<BaseTheme> {
     object: BaseTheme {
         override val colors: BaseColors
             @Composable
-            get() = defaultBaseColors
+            get() = LocalAppColors.current
 
-        override val styles: ThemeStyle = object: ThemeStyle {
-            override val componentElevation: Dp
-                get() = 0.dp
-            override val actionElevation: Dp
-                get() = 0.dp
-            override val minimumElevation: Dp
-                get() = 0.dp
-
-            override val textFieldColors: TextFieldColors
-                @Composable
-                get() = OutlinedTextFieldDefaults.colors()
-            override val textFieldColorsOnFocus: TextFieldColors
-                @Composable
-                get() = OutlinedTextFieldDefaults.colors()
-            override val checkBoxColorsDefault: CheckboxColors
-                @Composable
-                get() = CheckboxDefaults.colors()
-            override val switchColorsDefault: SwitchColors
-                @Composable
-                get() = SwitchDefaults.colors()
-            override val cardClickableElevation: CardElevation
-                @Composable
-                get() = CardDefaults.cardElevation()
-            override val chipBorderDefault: BorderStroke
-                @Composable
-                get() = FilterChipDefaults.filterChipBorder(
-                    borderColor = Color.Transparent,
-                    selectedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent,
-                    disabledSelectedBorderColor = Color.Transparent,
-                    borderWidth = 0.dp,
-                    selectedBorderWidth = 0.dp,
-                    enabled = true,
-                    selected = false
-                )
-            override val chipColorsDefault: SelectableChipColors
-                @Composable
-                get() = FilterChipDefaults.filterChipColors()
-            override val heading: TextStyle
-                @Composable
-                get() = TextStyle.Default
-            override val subheading: TextStyle
-                @Composable
-                get() = TextStyle.Default
-            override val category: TextStyle
-                @Composable
-                get() = TextStyle.Default
-            override val linkText: TextStyle
-                @Composable
-                get() = TextStyle.Default
-            override val menuItem: TextStyle
-                @Composable
-                get() = TextStyle.Default
-        }
+        override val styles: ThemeStyle
+            @Composable
+            get() = LocalThemeStyle.current
 
         override val icons: ThemeIcons
             @Composable
-            get() = defaultThemeIcons
+            get() = LocalAppIcons.current
 
-        override val shapes: ThemeShapes = object: ThemeShapes {
-            override val circularActionShape: Shape
-                get() = RectangleShape
-            override val rectangularActionShape: Shape
-                get() = RectangleShape
-            override val componentShape: Shape
-                get() = RectangleShape
-            override val chipShape: Shape
-                get() = RectangleShape
-            override val componentCornerRadius: Dp
-                get() = 0.dp
-            override val iconSizeSmall: Dp
-                get() = 0.dp
-            override val iconSizeMedium: Dp
-                get() = 0.dp
-            override val betweenItemsSpace: Dp
-                get() = 0.dp
-            override val iconSizeLarge: Dp
-                get() = 0.dp
-        }
+        override val shapes: ThemeShapes
+            @Composable
+            get() = LocalThemeShapes.current
     }
 }

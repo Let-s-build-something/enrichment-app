@@ -54,6 +54,10 @@ interface ThemeStyle {
     @get:Composable
     val category: TextStyle
 
+    /** regular content text */
+    @get:Composable
+    val regular: TextStyle
+
     /** Style for link text */
     @get:Composable
     val linkText: TextStyle

@@ -11,7 +11,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.squadris.squadris.compose.theme.LocalAppColors
+import com.squadris.squadris.compose.theme.LocalAppIcons
 import com.squadris.squadris.compose.theme.LocalTheme
+import com.squadris.squadris.compose.theme.LocalThemeShapes
+import com.squadris.squadris.compose.theme.LocalThemeStyle
 import com.squadris.squadris.compose.theme.SharedColors
 
 /** Theme with dynamic resources */
@@ -32,7 +36,8 @@ fun ChatEnrichmentTheme(
     CompositionLocalProvider(
         LocalAppColors provides colors,
         LocalAppIcons provides icons,
-        LocalTheme provides AppTheme
+        LocalThemeStyle provides AppThemeStyle,
+        LocalThemeShapes provides AppThemeShapes
     ) {
         MaterialTheme(
             colorScheme = ColorScheme(

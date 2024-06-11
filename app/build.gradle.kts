@@ -103,6 +103,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.play.services)
+    implementation(libs.firebase.firestore.ktx)
+
     //Credentials
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.auth)
