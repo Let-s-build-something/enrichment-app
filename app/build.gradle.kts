@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.gms.google.services)
     alias(libs.plugins.compose.compiler)
     id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.kapt")
+    id("com.google.devtools.ksp")
 
     kotlin("plugin.serialization") version "2.0.0"
 }
@@ -82,15 +82,6 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
-    // Allow references to generated code
-    kapt {
-        correctErrorTypes = true
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
 }
 
 dependencies {
@@ -123,7 +114,8 @@ dependencies {
 
     //Dagger, Hilt, Navigation, ViewModel
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.constraintlayout.compose)
+    ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation)
     implementation(libs.kotlinx.metadata.jvm)
     implementation(libs.androidx.navigation.compose)

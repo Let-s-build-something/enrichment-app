@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,6 +42,7 @@ import lets.build.chatenrichment.R
 import lets.build.chatenrichment.navigation.NavigationTree
 import lets.build.chatenrichment.ui.base.BrandBaseScreen
 import lets.build.chatenrichment.ui.components.BrandHeaderButton
+import lets.build.chatenrichment.ui.components.OutlinedButton
 
 /** Application home screen */
 @Composable
@@ -134,7 +137,8 @@ private fun LoginContent(viewModel: LoginViewModel? = null) {
                 painter = painterResource(LocalTheme.current.icons.googleSignUp),
                 contentDescription = null
             )
-            BrandHeaderButton(
+            OutlinedButton(
+                icon = Icons.Outlined.AlternateEmail,
                 text = stringResource(R.string.login_password_method),
                 onClick = {
                     navController?.navigate(NavigationTree.LoginPassword)

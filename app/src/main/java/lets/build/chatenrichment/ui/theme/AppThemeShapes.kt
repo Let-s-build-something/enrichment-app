@@ -14,7 +14,7 @@ object AppThemeShapes: ThemeShapes {
     override val iconSizeMedium: Dp = 48.dp
     override val iconSizeLarge: Dp = 64.dp
     override val componentCornerRadius: Dp = 16.dp
-    override val circularActionShape: Shape = CircleShape
+    override val circularActionShape: Shape = RoundedCornerShape(12.dp)
     override val rectangularActionShape: Shape = RoundedCornerShape(8.dp)
     override val componentShape: Shape = RoundedCornerShape(componentCornerRadius)
     override val chipShape: Shape = CircleShape

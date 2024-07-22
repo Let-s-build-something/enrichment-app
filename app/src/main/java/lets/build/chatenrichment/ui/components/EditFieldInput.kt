@@ -46,6 +46,7 @@ fun EditFieldInput(
     hint: String? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     errorText: String? = null,
+    isCorrect: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     isClearable: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -59,8 +60,9 @@ fun EditFieldInput(
     val controlColor by animateColorAsState(
         when {
             errorText != null -> SharedColors.RED_ERROR
-            isFocused.value -> LocalTheme.current.colors.secondary
-            else -> LocalTheme.current.colors.brandMain
+            isCorrect -> SharedColors.GREEN_CORRECT
+            isFocused.value -> LocalTheme.current.colors.primary
+            else -> LocalTheme.current.colors.secondary
         },
         label = "controlColorChange"
     )

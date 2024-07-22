@@ -3,6 +3,7 @@
 
     <string name="screen_home">Home</string>
     <string name="screen_login">Lost and found</string>
+    <string name="screen_login_email">Email-found</string>
     <string name="screen_account_title">Found puppy</string>
     <string name="screen_account_logout">I\'m outta here!</string>
 
@@ -22,7 +23,10 @@
     <string name="login_password_password_hint">Password</string>
 
     <string name="login_password_email_error">Incorrect email format. Correct format is: example@example.com</string>
-    <string name="login_password_password_condition_0">Minimum 12 characters long.</string>
+    <string name="login_password_password_condition_empty">Is not empty, duh!</string>
+    <string name="login_password_password_condition_0">Minimum 9 characters long.</string>
+    <string name="login_password_password_condition_1">At least one algebra character.</string>
+    <string name="login_password_password_condition_2">At least very special character.</string>
 
 
     <!--- ============================= ACCESSIBILITY ==================================== -->

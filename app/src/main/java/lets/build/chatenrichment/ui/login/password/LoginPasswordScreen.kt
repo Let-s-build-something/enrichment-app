@@ -5,15 +5,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,17 +36,16 @@ import com.squadris.squadris.compose.theme.LocalTheme
 import lets.build.chatenrichment.R
 import lets.build.chatenrichment.navigation.NavigationTree
 import lets.build.chatenrichment.ui.base.BrandBaseScreen
-import lets.build.chatenrichment.ui.components.BrandHeaderButton
+import lets.build.chatenrichment.ui.components.BrandFabButton
+import lets.build.chatenrichment.ui.components.CorrectionText
 import lets.build.chatenrichment.ui.components.EditFieldInput
+import lets.build.chatenrichment.ui.components.tab_switch.MultiChoiceSwitch
+import lets.build.chatenrichment.ui.components.tab_switch.rememberTabSwitchState
 
-data class PasswordValidation(
-    val isValid: Boolean,
-    val message: String,
-    val isRequired: Boolean = false
-)
-
-private const val PASSWORD_MIN_LENGTH = 12
-private const val PASSWORD_MAX_LENGTH = 64
+enum class SignType {
+    SIGN_IN,
+    SIGN_UP,
+}
 
 /** Login via email and password */
 @Composable
@@ -54,6 +57,7 @@ fun LoginPasswordScreen(
 
     val currentUser = viewModel?.currentUser?.collectAsState()
 
+    val signType = remember { mutableStateOf(SignType.SIGN_UP) }
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val passwordVisible = remember { mutableStateOf(false) }
@@ -62,15 +66,42 @@ fun LoginPasswordScreen(
             listOf(
                 PasswordValidation(
                     isValid = password.value.length >= PASSWORD_MIN_LENGTH,
-                    message = context.getString(R.string.login_password_password_condition_0)
+                    message = context.getString(if(password.value.isEmpty()) {
+                        R.string.login_password_password_condition_empty
+                    }else R.string.login_password_password_condition_0),
+                    isRequired = true
                 ),
                 PasswordValidation(
-                    isValid = password.value.length >= PASSWORD_MIN_LENGTH,
-                    message = context.getString(R.string.login_password_password_condition_0)
+                    isValid = password.value.contains("""\d""".toRegex()),
+                    message = context.getString(R.string.login_password_password_condition_1)
+                ),
+                PasswordValidation(
+                    isValid = password.value.isNotEmpty()
+                            && password.value.matches("""[A-Za-z0-9]+""".toRegex()).not(),
+                    message = context.getString(R.string.login_password_password_condition_2)
                 )
             )
         }
     }
+    val isPasswordValid = remember {
+        derivedStateOf {
+            validations.value.all { it.isValid || it.isRequired.not() }
+        }
+    }
+    val isEmailValid = remember {
+        derivedStateOf {
+            android.util.Patterns.EMAIL_ADDRESS.matcher(email.value).matches()
+        }
+    }
+
+    val switchTypeState = rememberTabSwitchState(
+        selectedTabIndex = SignType.SIGN_UP.ordinal,
+        tabs = mutableListOf("", ""),
+        onSelectionChange = { index ->
+            signType.value = SignType.entries.getOrNull(index) ?: SignType.SIGN_UP
+        },
+        scrollState = rememberScrollState()
+    )
 
     LaunchedEffect(currentUser?.value) {
         if(currentUser?.value != null) {
@@ -79,7 +110,22 @@ fun LoginPasswordScreen(
     }
 
     BrandBaseScreen(
-        title = stringResource(R.string.screen_login),
+        modifier = Modifier.imePadding(),
+        title = stringResource(R.string.screen_login_email),
+        floatingActionButton = {
+            BrandFabButton(
+                imageVector = Icons.Outlined.Check,
+                isEnabled = isPasswordValid.value && isEmailValid.value,
+                onClick = {
+                    if(isPasswordValid.value && isEmailValid.value) {
+                        viewModel?.signUpWithPassword(
+                            email = email.value,
+                            password = password.value
+                        )
+                    }
+                }
+            )
+        },
         navIconType = NavIconType.BACK
     ) {
         Column(
@@ -90,13 +136,15 @@ fun LoginPasswordScreen(
                     end = 16.dp
                 ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.End
+            horizontalAlignment = Alignment.Start
         ) {
-            val isEmailValid = remember {
-                derivedStateOf {
-                    android.util.Patterns.EMAIL_ADDRESS.matcher(email.value).matches()
+            MultiChoiceSwitch(
+                modifier = Modifier.fillMaxWidth(),
+                state = switchTypeState,
+                onItemCreation = { modifier, index, animatedColor ->
+                    //TODO person add and person icons
                 }
-            }
+            )
 
             EditFieldInput(
                 modifier = Modifier.fillMaxWidth(),
@@ -106,13 +154,17 @@ fun LoginPasswordScreen(
                 onValueChange = { value ->
                     email.value = value
                 },
-                errorText = if(isEmailValid.value) null else stringResource(R.string.login_password_email_error),
+                errorText = if(isEmailValid.value || email.value.isEmpty()) {
+                    null
+                } else stringResource(R.string.login_password_email_error),
                 paddingValues = PaddingValues(start = 16.dp)
             )
             EditFieldInput(
                 modifier = Modifier.fillMaxWidth(),
                 hint = stringResource(R.string.login_password_password_hint),
                 value = "",
+                isCorrect = isPasswordValid.value,
+                errorText = if(isPasswordValid.value.not() && password.value.isNotEmpty()) " " else null,
                 visualTransformation = if (passwordVisible.value) {
                     VisualTransformation.None
                 } else PasswordVisualTransformation(),
@@ -137,16 +189,16 @@ fun LoginPasswordScreen(
                 },
                 paddingValues = PaddingValues(start = 16.dp)
             )
-            BrandHeaderButton(
-                modifier = Modifier.padding(top = 16.dp),
-                text = stringResource(R.string.login_password_confirm),
-                onClick = {
-                    viewModel?.signUpWithPassword(
-                        email = email.value,
-                        password = password.value
-                    )
-                }
-            )
+            validations.value.forEach { validation ->
+                CorrectionText(
+                    text = validation.message,
+                    isCorrect = validation.isValid,
+                    isRequired = validation.isRequired
+                )
+            }
         }
     }
 }
+
+private const val PASSWORD_MIN_LENGTH = 9
+private const val PASSWORD_MAX_LENGTH = 64

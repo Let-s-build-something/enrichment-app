@@ -67,7 +67,6 @@ private fun HeaderButton(
     Row(
         modifier = modifier
             .scalingClickable(
-                scaleInto = 0.85f,
                 onTap = {
                     if(isEnabled) onClick()
                 }

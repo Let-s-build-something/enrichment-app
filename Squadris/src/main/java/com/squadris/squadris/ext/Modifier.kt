@@ -11,6 +11,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.DragAndDropSourceScope
 import androidx.compose.foundation.draganddrop.dragAndDropSource
+import androidx.compose.foundation.gestures.PressGestureScope
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -91,7 +92,8 @@ fun Modifier.scalingClickable(
     onTap: ((Offset) -> Unit)? = null,
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
-    scaleInto: Float = 0.85f
+    onPress: ((Offset, isPressed: Boolean) -> Unit)? = null,
+    scaleInto: Float = 0.9f
 ): Modifier = composed {
     val isPressed = remember { mutableStateOf(false) }
     val scale = animateFloatAsState(
@@ -103,8 +105,10 @@ fun Modifier.scalingClickable(
         .pointerInput(Unit) {
             detectTapGestures(
                 onPress = {
+                    onPress?.invoke(it, true)
                     isPressed.value = true
                     tryAwaitRelease()
+                    onPress?.invoke(it, false)
                     isPressed.value = false
                 },
                 onTap = onTap,

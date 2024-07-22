@@ -154,16 +154,16 @@ fun BaseScreen(
                             } to CollapsingBehavior.ALWAYS,
                             @Composable {
                                 val appbar = collapsingLayoutState.elements.firstOrNull()
-                                val isCollapsed = remember {
+                                val isExpanded = remember {
                                     derivedStateOf {
-                                        appbar?.offset?.doubleValue == appbar?.height?.doubleValue?.times(-1)
+                                        appbar?.offset?.doubleValue != appbar?.height?.doubleValue?.times(-1)
                                     }
                                 }
 
                                 val cornerRadius = animateDpAsState(
-                                    targetValue = if(isCollapsed.value) {
-                                        0.dp
-                                    }else 24.dp,
+                                    targetValue = if(isExpanded.value) {
+                                        24.dp
+                                    }else 0.dp,
                                     label = "cornerRadiusContent",
                                     animationSpec = spring(
                                         stiffness = StiffnessVeryLow
@@ -179,7 +179,7 @@ fun BaseScreen(
                                                 Modifier
                                                     .background(
                                                         color = containerColor,
-                                                        shape = if (!isCollapsed.value) {
+                                                        shape = if (isExpanded.value) {
                                                             RoundedCornerShape(
                                                                 topEnd = cornerRadius.value,
                                                                 topStart = cornerRadius.value
@@ -187,7 +187,7 @@ fun BaseScreen(
                                                         } else RectangleShape
                                                     )
                                                     .clip(
-                                                        if (!isCollapsed.value) {
+                                                        if (isExpanded.value) {
                                                             RoundedCornerShape(
                                                                 topEnd = cornerRadius.value,
                                                                 topStart = cornerRadius.value
