@@ -1,9 +1,9 @@
 [versions]
-agp = "8.2.2"
+agp = "8.5.1"
 android-compileSdk = "34"
 android-minSdk = "24"
 android-targetSdk = "34"
-androidx-activityCompose = "1.9.0"
+androidx-activityCompose = "1.9.1"
 androidx-appcompat = "1.7.0"
 androidx-constraintlayout = "2.1.4"
 androidx-core-ktx = "1.13.1"
@@ -13,8 +13,24 @@ androidx-test-junit = "1.2.1"
 compose-plugin = "1.6.11"
 junit = "4.13.2"
 kotlin = "2.0.0"
+navigationCompose = "2.7.0-alpha03"
+lifecycle = "2.8.0"
+lifecycleViewModel = "2.8.0-rc01"
+windowSizeClass = "0.5.0"
+coilCompose = "3.0.0-alpha06"
+ktor = "3.0.0-beta-2"                        #https://maven.pkg.jetbrains.space/public/p/ktor/eap/io/ktor/ktor-client-json-wasm-js/
+ktorClientApache5 = "3.0.0-beta-2"
+coroutines = "1.8.1-Beta"
+kotlinxSerialization = "1.6.3"
 
 [libraries]
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-javafx = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-javafx", version.ref = "coroutines" }
+kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
+kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
+coil-network = { module = "io.coil-kt.coil3:coil-network-ktor", version.ref = "coilCompose" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -25,6 +41,34 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-material = { group = "com.google.android.material", name = "material", version.ref = "androidx-material" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+material3-window-size = { module = "dev.chrisbanes.material3:material3-window-size-class-multiplatform", version.ref = "windowSizeClass" }
+lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime", version.ref = "lifecycle" }
+lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewModel" }
+
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-json = { group = "io.ktor", name = "ktor-client-json", version.ref = "ktor" }
+ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
+ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+
+ktor-client-apache5 = { module = "io.ktor:ktor-client-apache5", version.ref = "ktorClientApache5" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor-client-js-wasm = { group = "io.ktor", name = "ktor-client-js-wasm-js", version.ref = "ktor" }
+ktor-client-js = { group = "io.ktor", name = "ktor-client-js", version.ref = "ktor" }
+
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+[bundles]
+ktor-common = [
+    "ktor-client-core",
+    "ktor-client-json",
+    "ktor-client-logging",
+    "ktor-client-serialization",
+    "ktor-client-content-negotiation",
+    "ktor-serialization-kotlinx-json"
+]
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -1,25 +1,34 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import base.ChatEnrichmentTheme
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.compose_multiplatform
+import module.theme.LocalTheme
 
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    //TODO isDarkTheme
+    ChatEnrichmentTheme(isDarkTheme = false) {
         var showContent by remember { mutableStateOf(false) }
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+
+        Column(
+            modifier = Modifier
+                .background(color = LocalTheme.current.colors.backgroundLight)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Button(onClick = { showContent = !showContent }) {
                 Text("Click me!")
             }
