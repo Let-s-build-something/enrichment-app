@@ -125,6 +125,7 @@ private object DefaultValues {
 
     val defaultThemeIcons = object: ThemeIcons {
         override val googleSignUp: Int = -1
+        override val appleSignUp: Int = -1
     }
 
     val defaultBaseColors = object: BaseColors {

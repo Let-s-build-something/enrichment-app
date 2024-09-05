@@ -15,9 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import module.theme.LocalTheme
-import module.theme.SharedColors
-import module.theme.ThemeStyle
+import future_shared_module.theme.LocalTheme
+import future_shared_module.theme.SharedColors
+import future_shared_module.theme.ThemeStyle
 
 /** Styles specific to main app theme [BaseTheme.current] */
 class AppThemeStyle: ThemeStyle {

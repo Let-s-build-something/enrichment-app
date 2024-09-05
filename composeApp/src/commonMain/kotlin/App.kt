@@ -1,42 +1,71 @@
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Button
-import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import base.BaseSnackbarHost
 import base.ChatEnrichmentTheme
-import org.jetbrains.compose.resources.painterResource
+import base.LocalDeviceType
+import base.LocalNavController
+import base.LocalSnackbarHost
+import base.navigation.NavigationNode
+import future_shared_module.theme.LocalTheme
+import koin.loginModule
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.core.context.loadKoinModules
+import ui.account.AccountDashboardScreen
+import ui.account.accountDashboardModule
+import ui.home.HomeScreen
+import ui.home.homeModule
+import ui.login.LoginScreen
 
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.compose_multiplatform
-import module.theme.LocalTheme
-
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 @Preview
 fun App() {
+    val windowSizeClass = calculateWindowSizeClass()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     //TODO isDarkTheme
     ChatEnrichmentTheme(isDarkTheme = false) {
-        var showContent by remember { mutableStateOf(false) }
+        Scaffold(
+            snackbarHost = {
+                BaseSnackbarHost(hostState = snackbarHostState)
+            },
+            containerColor = LocalTheme.current.colors.brandMainDark,
+            contentColor = LocalTheme.current.colors.brandMainDark
+        ) { _ ->
 
-        Column(
-            modifier = Modifier
-                .background(color = LocalTheme.current.colors.backgroundLight)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+            val navController = rememberNavController()
+
+            CompositionLocalProvider(
+                LocalNavController provides navController,
+                LocalSnackbarHost provides snackbarHostState,
+                LocalDeviceType provides windowSizeClass.widthSizeClass
+            ) {
+                NavHost(
+                    navController = navController,
+                    startDestination = NavigationNode.Home
+                ) {
+                    composable<NavigationNode.Login> {
+                        loadKoinModules(loginModule())
+                        LoginScreen()
+                    }
+                    composable<NavigationNode.Home> {
+                        loadKoinModules(homeModule)
+                        HomeScreen()
+                    }
+                    composable<NavigationNode.Water> {
+                    }
+                    composable<NavigationNode.AccountDashboard> {
+                        loadKoinModules(accountDashboardModule)
+                        AccountDashboardScreen()
+                    }
                 }
             }
         }

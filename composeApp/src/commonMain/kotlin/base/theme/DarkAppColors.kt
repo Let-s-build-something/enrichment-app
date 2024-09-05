@@ -1,8 +1,8 @@
 package base.theme
 
 import androidx.compose.ui.graphics.Color
-import module.theme.BaseColors
-import module.theme.Colors
+import future_shared_module.theme.BaseColors
+import future_shared_module.theme.Colors
 
 object DarkAppColors: BaseColors {
 

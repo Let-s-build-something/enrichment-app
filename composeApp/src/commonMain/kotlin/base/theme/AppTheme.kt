@@ -1,12 +1,12 @@
 package base.theme
 
 import androidx.compose.runtime.Composable
-import module.theme.BaseColors
-import module.theme.BaseTheme
-import module.theme.LocalAppColors
-import module.theme.LocalAppIcons
-import module.theme.ThemeIcons
-import module.theme.ThemeStyle
+import future_shared_module.theme.BaseColors
+import future_shared_module.theme.BaseTheme
+import future_shared_module.theme.LocalAppColors
+import future_shared_module.theme.LocalAppIcons
+import future_shared_module.theme.ThemeIcons
+import future_shared_module.theme.ThemeStyle
 
 /** Main theme with current colors and styles */
 class AppTheme: BaseTheme {

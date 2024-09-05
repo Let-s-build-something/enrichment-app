@@ -3,14 +3,18 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
+    id("com.google.gms.google-services")
+    id("com.github.gmazzo.buildconfig") version "5.4.0"
 
-    kotlin("plugin.serialization") version "2.0.0"
+    kotlin("plugin.serialization") version "2.0.20"
 }
 
 kotlin {
@@ -20,8 +24,8 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
-    
-    jvm("desktop")
+
+    jvm()
     
     listOf(
         iosX64(),
@@ -35,22 +39,24 @@ kotlin {
     }
     
     sourceSets {
-        val desktopMain by getting
-        
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.ktor.client.android)
             implementation(libs.kotlinx.coroutines.android)
+
+            implementation(libs.koin.android)
+
+            //Credentials
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.auth)
+            implementation(libs.google.identity)
         }
         nativeMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
         jvmMain.dependencies {
-            implementation(libs.kotlinx.coroutines.javafx)
-        }
-        desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
 
             implementation(libs.ktor.client.apache5)
@@ -67,20 +73,26 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
 
+            implementation(libs.compottie.resources)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
 
-            implementation(libs.coil.compose)
-            implementation(libs.coil.network)
+            api(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.view.model)
+
+            implementation(libs.settings.no.arg)
+
+            implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
+            implementation(libs.firebase.kmm.auth)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
-        }
-        desktopMain.dependencies {
-            implementation(compose.desktop.currentOs)
         }
     }
 }
@@ -111,12 +123,45 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
+
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    val keystoreProperties = Properties()
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+    buildConfig {
+        buildConfigField("CLOUD_WEB_API_KEY", keystoreProperties["cloudWebApiKey"] as String)
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            keyAlias = "debug"
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+        create("release") {
+            keyAlias = "release"
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
         }
     }
+
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            applicationIdSuffix = ".test"
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -137,6 +182,16 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "chat.enrichment.eu"
             packageVersion = "1.0.0"
+
+            macOS {
+                iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
+            }
         }
     }
 }

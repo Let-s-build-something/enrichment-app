@@ -5,7 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import module.theme.ThemeShapes
+import future_shared_module.theme.ThemeShapes
 
 /** Styles specific to main app theme [LocalTheme.current] */
 class AppThemeShapes: ThemeShapes {
