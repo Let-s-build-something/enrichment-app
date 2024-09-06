@@ -1,12 +1,10 @@
 import SwiftUI
-import koin.appModule
-import org.koin.core.context.startKoin
 
 @main
 struct iOSApp: App {
     init() {
         startKoin {
-            modules(appModule)
+            modules(koin.CommonModuleKt.initKoin())
         }
     }
 

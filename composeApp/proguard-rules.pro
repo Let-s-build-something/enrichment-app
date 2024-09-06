@@ -31,6 +31,7 @@
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
 -keep class org.koin.** { *; }
+-keep class Chatenrichment.composeApp.BuildConfig.** { *; }
 -keep class org.koin.core.** { *; }
 -keep class org.koin.dsl.** { *; }
 

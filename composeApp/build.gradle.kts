@@ -35,6 +35,8 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Chat Enrichment"
             isStatic = true
+            binaryOption("bundleId", "chat.enrichment.eu")
+            binaryOption("bundleVersion", "1")
         }
     }
     
