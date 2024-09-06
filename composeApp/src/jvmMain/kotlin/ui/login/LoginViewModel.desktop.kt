@@ -21,12 +21,12 @@ import ui.home.HomeViewModel.Companion.SETTINGS_KEY_AUTO_PASSWORD
 /** module providing platform-specific sign in options */
 actual fun signInServiceModule() = module {
     factoryOf(::DesktopSignInRepository)
-    single<UserOperationService> {
-        UserOperationServiceImpl(getKoin().get())
+    single<UserOperationServiceTEST> {
+        UserOperationServiceTEST(getKoin().get())
     }
 }
 
-internal class DesktopSignInRepository(private val httpClient: HttpClient) {
+class DesktopSignInRepository(private val httpClient: HttpClient) {
 
     /** Makes a request for identity tool sign in with email and password */
     suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? {
@@ -82,25 +82,25 @@ internal class DesktopSignInRepository(private val httpClient: HttpClient) {
     }
 }
 
-internal class UserOperationServiceImpl(
+actual class UserOperationServiceTEST(
     private val repository: DesktopSignInRepository,
     private val settings: Settings = Settings()
-): UserOperationService {
+) {
 
-    override val availableOptions = listOf<SingInServiceOption>()
+    actual val availableOptions = listOf<SingInServiceOption>()
 
-    override suspend fun requestGoogleSignIn(
+    actual suspend fun requestGoogleSignIn(
         filterAuthorizedAccounts: Boolean,
         webClientId: String
     ): LoginResultType {
         return LoginResultType.FAILURE
     }
 
-    override suspend fun requestAppleSignIn(webClientId: String): LoginResultType {
+    actual suspend fun requestAppleSignIn(webClientId: String): LoginResultType {
         return LoginResultType.FAILURE
     }
 
-    override suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? {
+    actual suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? {
         val res = repository.signUpWithPassword(email, password)
 
         return if(res?.error?.type == IdentityMessageType.EMAIL_EXISTS) {
@@ -108,7 +108,7 @@ internal class UserOperationServiceImpl(
         }else res
     }
 
-    override suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? {
+    actual suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? {
         val res = repository.signInWithPassword(email, password)
 
         if(res?.email != null) {
@@ -120,7 +120,7 @@ internal class UserOperationServiceImpl(
         return res
     }
 
-    override suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? {
+    actual suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? {
         return repository.refreshToken(refreshToken)
     }
 }

@@ -24,6 +24,10 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
 
     jvm()
     
@@ -182,10 +186,12 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "chat.enrichment.eu"
             packageVersion = "1.0.0"
+            packageName = "Chatrich"
 
             macOS {
+                appStore = true
+                appCategory = "public.app-category.productivity"
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {

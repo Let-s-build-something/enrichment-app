@@ -16,16 +16,8 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.dsl.viewModelOf
-import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import ui.login.signInServiceModule
-
-/** initializes koin */
-fun initKoin() {
-    startKoin {
-        modules(commonModule)
-    }
-}
 
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class)

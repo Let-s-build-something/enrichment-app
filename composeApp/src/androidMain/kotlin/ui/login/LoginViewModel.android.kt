@@ -31,16 +31,16 @@ import org.koin.mp.KoinPlatform.getKoin
 actual fun signInServiceModule() = module {
     val context: Context = getKoin().get()
 
-    single<UserOperationService> { UserOperationServiceImpl(context) }
+    single<UserOperationServiceTEST> { UserOperationServiceTEST(context) }
 }
 
-internal class UserOperationServiceImpl(
+actual class UserOperationServiceTEST(
     private val context: Context
-): UserOperationService {
+) {
 
-    override val availableOptions = listOf(SingInServiceOption.GOOGLE)
+    actual val availableOptions = listOf(SingInServiceOption.GOOGLE)
 
-    override suspend fun requestGoogleSignIn(
+    actual suspend fun requestGoogleSignIn(
         filterAuthorizedAccounts: Boolean,
         webClientId: String
     ): LoginResultType {
@@ -92,13 +92,13 @@ internal class UserOperationServiceImpl(
         return result ?: LoginResultType.FAILURE
     }
 
-    override suspend fun requestAppleSignIn(webClientId: String): LoginResultType {
+    actual suspend fun requestAppleSignIn(webClientId: String): LoginResultType {
         return LoginResultType.FAILURE
     }
 
-    override suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? = null
-    override suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? = null
-    override suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? = null
+    actual suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? = null
+    actual suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? = null
+    actual suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? = null
 }
 
 /**

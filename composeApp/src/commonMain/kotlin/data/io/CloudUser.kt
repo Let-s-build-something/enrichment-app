@@ -71,15 +71,15 @@ object CloudUserHelper {
     }
 
     /** creates the [CloudUser] from Firebase user object */
-    fun fromUserResponse(userResponse: IdentityUserResponse): CloudUser {
+    fun fromUserResponse(userResponse: IdentityUserResponse?): CloudUser {
         return CloudUser(
-            uid = userResponse.localId,
-            displayName = userResponse.displayName,
-            email = userResponse.email,
-            photoURL = userResponse.profilePicture,
-            refreshToken = userResponse.refreshToken,
-            expiresIn = userResponse.expiresIn,
-            expiresAt = userResponse.expiresAt
+            uid = userResponse?.localId ?: "",
+            displayName = userResponse?.displayName,
+            email = userResponse?.email,
+            photoURL = userResponse?.profilePicture,
+            refreshToken = userResponse?.refreshToken ?: "",
+            expiresIn = userResponse?.expiresIn ?: 0,
+            expiresAt = userResponse?.expiresAt ?: 0
         )
     }
 }

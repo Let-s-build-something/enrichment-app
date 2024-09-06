@@ -10,6 +10,7 @@ import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
 
 internal val homeModule = module {
+    factory { HomeViewModel() }
     viewModelOf(::HomeViewModel)
 }
 
@@ -45,7 +46,7 @@ class HomeViewModel: SharedViewModel() {
 
                 if(email != "" && password != "") {
                     // auto-login has credentials, let's try them out
-                    userOperationService.signInWithPassword(email, password)?.let { response ->
+                    userOperationServiceTEST.signInWithPassword(email, password)?.let { response ->
                         if(response.email.isNotBlank()) {
                             overrideCurrentUser(CloudUserHelper.fromUserResponse(response))
                         }

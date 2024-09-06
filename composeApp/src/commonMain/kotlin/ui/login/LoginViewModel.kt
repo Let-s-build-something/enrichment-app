@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import data.io.CloudUserHelper
 import data.io.identity_platform.IdentityRefreshToken
 import data.io.identity_platform.IdentityUserResponse
-import data.shared.SharedDataManager
 import data.shared.SharedViewModel
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.AuthResult
@@ -36,7 +35,7 @@ const val identityToolUrl = "https://identitytoolkit.googleapis.com/v1/accounts"
 const val secureTokenUrl = "https://securetoken.googleapis.com"
 
 /** interface for communicating with all of the platforms creating sign in/up requests */
-interface UserOperationService {
+expect class UserOperationServiceTEST {
 
     /** list of all available service via which user can sign in */
     val availableOptions: List<SingInServiceOption>
@@ -62,7 +61,7 @@ interface UserOperationService {
 
 /** Communication between the UI, the control layers, and control and data layers */
 class LoginViewModel(
-    private val serviceProvider: UserOperationService
+    private val serviceProvider: UserOperationServiceTEST
 ): SharedViewModel() {
 
     private val _loginResult = MutableSharedFlow<LoginResultType?>()

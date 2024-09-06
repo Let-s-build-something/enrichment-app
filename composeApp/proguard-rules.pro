@@ -42,8 +42,8 @@
 -keep class io.ktor.serialization.** { *; }
 -keep class kotlin.reflect.jvm.internal.** { *; }
 -keep class coil3.** { *; }
+-keep class ui.** { *; }
 -keep class androidx.datastore.preferences.** { *; }
--keep class ui.navigation.* { *; }
 -dontwarn androidx.compose.material.**
 -keep class androidx.compose.material3.** { *; }
 -keep class androidx.compose.runtime.** { *; }
