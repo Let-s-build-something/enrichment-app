@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>96838385672-e8iskis989ka2sg7odmdb7fpnna6l1lh.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.96838385672-e8iskis989ka2sg7odmdb7fpnna6l1lh</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>96838385672-6vcremjoevm5ro9u7g36lbat8m3vfugu.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDl-F9sn6ubEKgTT2ZdQ_69yxs1DjMYztE</string>
+	<key>GCM_SENDER_ID</key>
+	<string>96838385672</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>chat.enrichment.eu</string>
+	<key>PROJECT_ID</key>
+	<string>chat-enrichment</string>
+	<key>STORAGE_BUCKET</key>
+	<string>chat-enrichment.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:96838385672:ios:707708b1163e2a548211bd</string>
+</dict>
+</plist>

@@ -37,7 +37,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "Chat Enrichment"
+            baseName = "ComposeApp"
             isStatic = true
             binaryOption("bundleId", "chat.enrichment.eu")
             binaryOption("bundleVersion", "1")
