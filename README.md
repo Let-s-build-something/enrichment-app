@@ -11,4 +11,8 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Desktop.
   you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
 
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)
+
+**SETUP**
+
+**iOS**side uses CocoaPods for dependency management, so in order to get iOS running, you need to setup CocoaPods on your computer (https://kotlinlang.org/docs/native-cocoapods.html#add-and-configure-kotlin-cocoapods-gradle-plugin).
