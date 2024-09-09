@@ -33,6 +33,7 @@
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
   <string name="login_password_action_go">Here I go!</string>
+  <string name="login_apple_sucks">Due to Apple ridiculous Developer fees, we can't support "Sign in with AppleID"</string>
 
 
 

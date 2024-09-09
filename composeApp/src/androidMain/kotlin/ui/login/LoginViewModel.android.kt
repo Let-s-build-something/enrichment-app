@@ -31,10 +31,10 @@ import org.koin.mp.KoinPlatform.getKoin
 actual fun signInServiceModule() = module {
     val context: Context = getKoin().get()
 
-    single<UserOperationServiceTEST> { UserOperationServiceTEST(context) }
+    single<UserOperationService> { UserOperationService(context) }
 }
 
-actual class UserOperationServiceTEST(
+actual class UserOperationService(
     private val context: Context
 ) {
 
@@ -92,7 +92,7 @@ actual class UserOperationServiceTEST(
         return result ?: LoginResultType.FAILURE
     }
 
-    actual suspend fun requestAppleSignIn(webClientId: String): LoginResultType {
+    actual suspend fun requestAppleSignIn(): LoginResultType {
         return LoginResultType.FAILURE
     }
 

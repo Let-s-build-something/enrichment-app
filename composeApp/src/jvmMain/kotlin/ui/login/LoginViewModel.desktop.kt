@@ -21,8 +21,8 @@ import ui.home.HomeViewModel.Companion.SETTINGS_KEY_AUTO_PASSWORD
 /** module providing platform-specific sign in options */
 actual fun signInServiceModule() = module {
     factoryOf(::DesktopSignInRepository)
-    single<UserOperationServiceTEST> {
-        UserOperationServiceTEST(getKoin().get())
+    single<UserOperationService> {
+        UserOperationService(getKoin().get())
     }
 }
 
@@ -82,7 +82,7 @@ class DesktopSignInRepository(private val httpClient: HttpClient) {
     }
 }
 
-actual class UserOperationServiceTEST(
+actual class UserOperationService(
     private val repository: DesktopSignInRepository,
     private val settings: Settings = Settings()
 ) {
@@ -96,7 +96,7 @@ actual class UserOperationServiceTEST(
         return LoginResultType.FAILURE
     }
 
-    actual suspend fun requestAppleSignIn(webClientId: String): LoginResultType {
+    actual suspend fun requestAppleSignIn(): LoginResultType {
         return LoginResultType.FAILURE
     }
 

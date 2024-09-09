@@ -22,7 +22,7 @@ import kotlinx.datetime.Clock
 import org.koin.mp.KoinPlatform
 import ui.home.HomeViewModel.Companion.SETTINGS_KEY_AUTO_EMAIL
 import ui.home.HomeViewModel.Companion.SETTINGS_KEY_AUTO_PASSWORD
-import ui.login.UserOperationServiceTEST
+import ui.login.UserOperationService
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedViewModel: ViewModel() {
@@ -31,7 +31,7 @@ open class SharedViewModel: ViewModel() {
     protected val dataManager: SharedDataManager = KoinPlatform.getKoin().get()
 
     /** service provider for user related operations */
-    protected val userOperationServiceTEST = KoinPlatform.getKoin().get<UserOperationServiceTEST>()
+    protected val userOperationService = KoinPlatform.getKoin().get<UserOperationService>()
 
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<Settings>()
@@ -48,6 +48,7 @@ open class SharedViewModel: ViewModel() {
         ?.stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
+            //Smart cast to 'dev.gitlive.firebase.Firebase' is impossible, because 'PlatformFirebase' is a expect property.
             PlatformFirebase?.auth?.currentUser
         ) ?: flowOf(null))
         .combine(dataManager.overrideUser) { firebaseUser, cloudUser ->
@@ -91,7 +92,7 @@ open class SharedViewModel: ViewModel() {
                 // Time's up! Let's bake a new pie! First, let's check no one stole our eggs, yet.
                 if(user.expiresAt.minus(EXPIRE_BOUNDARY) <= Clock.System.now().epochSeconds) {
                     withContext(Dispatchers.IO) {
-                        userOperationServiceTEST.refreshToken(user.refreshToken)?.let {
+                        userOperationService.refreshToken(user.refreshToken)?.let {
                             overrideCurrentUser(
                                 user.copy(
                                     refreshToken = it.refreshToken,

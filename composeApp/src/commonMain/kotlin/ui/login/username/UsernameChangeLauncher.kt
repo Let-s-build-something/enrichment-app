@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
@@ -23,7 +22,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.accessibility_username_change_launcher_animation
@@ -32,12 +30,12 @@ import chatenrichment.composeapp.generated.resources.username_change_launcher_co
 import chatenrichment.composeapp.generated.resources.username_change_launcher_content
 import chatenrichment.composeapp.generated.resources.username_change_launcher_hint
 import chatenrichment.composeapp.generated.resources.username_change_launcher_title
-import components.BrandHeaderButton
-import components.EditFieldInput
-import components.ErrorHeaderButton
-import future_shared_module.components.input.SimpleModalBottomSheet
+import chat.enrichment.shared.ui.components.BrandHeaderButton
+import chat.enrichment.shared.ui.components.input.EditFieldInput
+import chat.enrichment.shared.ui.components.ErrorHeaderButton
+import chat.enrichment.shared.ui.components.SimpleModalBottomSheet
 import koin.usernameChangeModule
-import future_shared_module.theme.LocalTheme
+import chat.enrichment.shared.ui.theme.LocalTheme
 import io.github.alexzhirkevich.compottie.Compottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import io.github.alexzhirkevich.compottie.rememberLottieComposition

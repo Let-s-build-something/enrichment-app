@@ -1,6 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import java.io.FileInputStream
@@ -11,10 +12,12 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
+
     id("com.google.gms.google-services")
     id("com.github.gmazzo.buildconfig") version "5.4.0"
 
     kotlin("plugin.serialization") version "2.0.20"
+    kotlin("native.cocoapods") version "2.0.20"
 }
 
 kotlin {
@@ -30,18 +33,48 @@ kotlin {
     }
 
     jvm()
-    
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
+    cocoapods {
+        version = "1.0"
+        summary = "Some description for a Kotlin/Native module"
+        homepage = "Link to a Kotlin/Native module homepage"
+
+        // Optional properties
+        // Configure the Pod name here instead of changing the Gradle project name
+        name = "ComposeApp"
+
+        podfile = project.file("../iosApp/Podfile")
+        ios.deploymentTarget = "17.3"
+
+        pod("GoogleSignIn") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseCore") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseAuth") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+
+        framework {
+            // Required properties
+            // Framework name configuration. Use this property instead of deprecated 'frameworkName'
             baseName = "ComposeApp"
+
+            // Optional properties
+            // Specify the framework linking type. It's dynamic by default.
             isStatic = true
+
             binaryOption("bundleId", "chat.enrichment.eu")
             binaryOption("bundleVersion", "1")
         }
+
+        // Maps custom Xcode configuration to NativeBuildType
+        xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
+        xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
     
     sourceSets {
@@ -70,6 +103,8 @@ kotlin {
         }
 
         commonMain.dependencies {
+            //put your multiplatform dependencies here
+            implementation(project(":shared"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
@@ -93,9 +128,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
-            implementation(libs.firebase.kmm.auth)
+            implementation(libs.firebase.gitlive.auth)
+            implementation(libs.firebase.gitlive.common)
             implementation(libs.coil.compose)
-            implementation(libs.coil.network)
+            //implementation(libs.coil.network)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)

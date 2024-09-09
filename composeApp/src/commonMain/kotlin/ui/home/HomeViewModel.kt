@@ -46,7 +46,7 @@ class HomeViewModel: SharedViewModel() {
 
                 if(email != "" && password != "") {
                     // auto-login has credentials, let's try them out
-                    userOperationServiceTEST.signInWithPassword(email, password)?.let { response ->
+                    userOperationService.signInWithPassword(email, password)?.let { response ->
                         if(response.email.isNotBlank()) {
                             overrideCurrentUser(CloudUserHelper.fromUserResponse(response))
                         }

@@ -17,6 +17,7 @@ import org.koin.core.module.Module
 /** Type of result that can be received by the sign in services */
 enum class LoginResultType {
     FAILURE,
+    NO_WINDOW,
     NO_GOOGLE_CREDENTIALS,
     SUCCESS
 }
@@ -35,7 +36,7 @@ const val identityToolUrl = "https://identitytoolkit.googleapis.com/v1/accounts"
 const val secureTokenUrl = "https://securetoken.googleapis.com"
 
 /** interface for communicating with all of the platforms creating sign in/up requests */
-expect class UserOperationServiceTEST {
+expect class UserOperationService {
 
     /** list of all available service via which user can sign in */
     val availableOptions: List<SingInServiceOption>
@@ -47,7 +48,7 @@ expect class UserOperationServiceTEST {
     ): LoginResultType
 
     /** Requests signup or sign in via Apple id */
-    suspend fun requestAppleSignIn(webClientId: String): LoginResultType
+    suspend fun requestAppleSignIn(): LoginResultType
 
     /** Requests signup or sign in via Apple id */
     suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse?
@@ -61,7 +62,7 @@ expect class UserOperationServiceTEST {
 
 /** Communication between the UI, the control layers, and control and data layers */
 class LoginViewModel(
-    private val serviceProvider: UserOperationServiceTEST
+    private val serviceProvider: UserOperationService
 ): SharedViewModel() {
 
     private val _loginResult = MutableSharedFlow<LoginResultType?>()
@@ -92,7 +93,7 @@ class LoginViewModel(
     }
 
     /** Requests a sign-in with an email and a password */
-    fun signInWithPassword(
+    private fun signInWithPassword(
         email: String,
         password: String
     ) {
@@ -118,10 +119,10 @@ class LoginViewModel(
     }
 
     /** Requests sign in or sign up via Google account */
-    fun requestAppleSignIn(webClientId: String) {
+    fun requestAppleSignIn() {
         viewModelScope.launch {
             _loginResult.emit(
-                serviceProvider.requestAppleSignIn(webClientId = webClientId)
+                serviceProvider.requestAppleSignIn()
             )
         }
     }

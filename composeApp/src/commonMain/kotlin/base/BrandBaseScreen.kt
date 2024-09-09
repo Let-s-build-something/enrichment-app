@@ -1,16 +1,25 @@
 package base
 
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.FabPosition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import base.navigation.DefaultAppBarActions
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
-import components.navigation.DefaultAppBarActions
+import chat.enrichment.shared.ui.base.BaseScreen
+import chat.enrichment.shared.ui.base.LocalNavController
+import chat.enrichment.shared.ui.base.LocalOnBackPressDispatcher
+import chat.enrichment.shared.ui.base.PlatformType
+import chat.enrichment.shared.ui.base.currentPlatform
+import chat.enrichment.shared.ui.theme.LocalTheme
+import components.navigation.VerticalAppBar
 import data.shared.SharedViewModel
-import future_shared_module.theme.LocalTheme
-import io.ktor.util.Platform
+import dev.gitlive.firebase.Firebase
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -49,7 +58,7 @@ fun BrandBaseScreen(
     contentColor: Color = Color.Transparent,
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     floatingActionButton: @Composable () -> Unit = {},
-    content: @Composable () -> Unit
+    content: @Composable BoxScope.() -> Unit
 ) {
     val sharedViewModel: SharedViewModel = koinViewModel()
     val navController = LocalNavController.current
@@ -58,7 +67,7 @@ fun BrandBaseScreen(
     val currentUser = sharedViewModel.currentUser.collectAsState(null)
 
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
-            || (navIconType == NavIconType.HAMBURGER && currentPlatform == Platform.Jvm)
+            || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)
 
     val navIconClick: (() -> Unit)? = when {
         navIconType == NavIconType.HOME || isPreviousHome -> {
@@ -70,18 +79,20 @@ fun BrandBaseScreen(
         else -> null
     }
 
+    val actions = actionIcons ?: { expanded ->
+        DefaultAppBarActions(
+            isUserSignedIn = currentUser.value != null,
+            userPhotoUrl = currentUser.value?.photoURL,
+            expanded = expanded
+        )
+    }
+
     BaseScreen(
         modifier = modifier,
         title = title,
         subtitle = subtitle,
         contentModifier = contentModifier,
-        actionIcons = actionIcons ?: { expanded ->
-            DefaultAppBarActions(
-                isUserSignedIn = currentUser.value != null,
-                userPhotoUrl = currentUser.value?.photoURL,
-                expanded = expanded
-            )
-        },
+        actionIcons = actions,
         appBarVisible = appBarVisible,
         containerColor = containerColor,
         contentColor = contentColor,
@@ -95,6 +106,17 @@ fun BrandBaseScreen(
         navigationIcon = navIconType?.imageVector ?: if(isPreviousHome) {
             NavIconType.HOME.imageVector
         }else NavIconType.BACK.imageVector,
-        content = content
+        content = content,
+        verticalAppBar = {
+            VerticalAppBar(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .wrapContentWidth(),
+                actions = actions
+            )
+        }
     )
 }
+
+/** Platform specific Firebase instance */
+expect val PlatformFirebase: Firebase?

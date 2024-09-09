@@ -17,11 +17,11 @@ import base.theme.AppThemeIconsDark
 import base.theme.AppThemeIconsLight
 import base.theme.DarkAppColors
 import base.theme.LightAppColors
-import future_shared_module.theme.LocalAppColors
-import future_shared_module.theme.LocalAppIcons
-import future_shared_module.theme.LocalThemeShapes
-import future_shared_module.theme.LocalThemeStyle
-import future_shared_module.theme.SharedColors
+import chat.enrichment.shared.ui.theme.LocalAppColors
+import chat.enrichment.shared.ui.theme.LocalAppIcons
+import chat.enrichment.shared.ui.theme.LocalThemeShapes
+import chat.enrichment.shared.ui.theme.LocalThemeStyle
+import chat.enrichment.shared.ui.theme.SharedColors
 
 /** Theme with dynamic resources */
 @Composable

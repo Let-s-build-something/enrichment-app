@@ -12,15 +12,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import base.BrandBaseScreen
-import base.LocalNavController
-import base.navigation.NavIconType
+import chat.enrichment.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.screen_account_title
-import chatenrichment.composeapp.generated.resources.screen_home
 import chatenrichment.composeapp.generated.resources.username_change_launcher_cancel
-import components.BrandHeaderButton
-import components.ErrorHeaderButton
+import chat.enrichment.shared.ui.components.ErrorHeaderButton
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -32,13 +34,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import base.BrandBaseScreen
-import base.LocalNavController
-import base.LocalSnackbarHost
+import chat.enrichment.shared.ui.base.LocalNavController
+import chat.enrichment.shared.ui.base.LocalSnackbarHost
+import chat.enrichment.shared.ui.base.PlatformType
+import chat.enrichment.shared.ui.base.currentPlatform
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.error_google_sign_in_unavailable
 import chatenrichment.composeapp.generated.resources.firebase_web_client_id
+import chatenrichment.composeapp.generated.resources.login_apple_sucks
 import chatenrichment.composeapp.generated.resources.login_password_action_go
 import chatenrichment.composeapp.generated.resources.login_password_email_error
 import chatenrichment.composeapp.generated.resources.login_password_email_hint
@@ -50,12 +55,12 @@ import chatenrichment.composeapp.generated.resources.login_password_password_hin
 import chatenrichment.composeapp.generated.resources.login_success_snackbar
 import chatenrichment.composeapp.generated.resources.login_success_snackbar_action
 import chatenrichment.composeapp.generated.resources.screen_login
-import components.BrandHeaderButton
-import components.CorrectionText
-import components.EditFieldInput
-import future_shared_module.components.input.MinimalisticIcon
+import chat.enrichment.shared.ui.components.BrandHeaderButton
+import chat.enrichment.shared.ui.components.CorrectionText
+import chat.enrichment.shared.ui.components.input.EditFieldInput
+import chat.enrichment.shared.ui.components.MinimalisticIcon
 import future_shared_module.ext.scalingClickable
-import future_shared_module.theme.LocalTheme
+import chat.enrichment.shared.ui.theme.LocalTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -157,6 +162,8 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     ) {
         Column(
             modifier = Modifier
+                .align(Alignment.TopCenter)
+                .widthIn(max = MaxModalWidthDp.dp)
                 .padding(
                     top = 24.dp,
                     start = 16.dp,
@@ -273,9 +280,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                                                     )
                                                 }
                                                 SingInServiceOption.APPLE -> {
-                                                    viewModel.requestAppleSignIn(
-                                                        webClientId = getString(Res.string.firebase_web_client_id)
-                                                    )
+                                                    viewModel.requestAppleSignIn()
                                                 }
                                             }
                                         }
@@ -292,7 +297,17 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                     }
                 }
             }
+            if(currentPlatform == PlatformType.Native) {
+                Text(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    text = stringResource(Res.string.login_apple_sucks),
+                    style = LocalTheme.current.styles.regular
+                )
+            }
         }
     }
 }
 private const val PASSWORD_MAX_LENGTH = 64
+
+/** Maximum width of a modal element - this can include a screen in case the device is a desktop */
+const val MaxModalWidthDp = 520

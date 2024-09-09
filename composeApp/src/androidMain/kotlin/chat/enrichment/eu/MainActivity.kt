@@ -9,7 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
-import base.LocalScreenSize
+import chat.enrichment.shared.ui.base.LocalScreenSize
 
 class MainActivity : ComponentActivity() {
 

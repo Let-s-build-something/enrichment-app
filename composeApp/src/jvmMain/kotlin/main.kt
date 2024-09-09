@@ -9,10 +9,9 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import base.LocalScreenSize
+import chat.enrichment.shared.ui.base.LocalScreenSize
 import koin.commonModule
 import org.koin.core.context.startKoin
-import java.awt.GraphicsConfiguration
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
 

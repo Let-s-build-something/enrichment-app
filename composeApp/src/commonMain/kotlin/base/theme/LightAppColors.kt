@@ -1,8 +1,8 @@
 package base.theme
 
 import androidx.compose.ui.graphics.Color
-import future_shared_module.theme.BaseColors
-import future_shared_module.theme.Colors
+import chat.enrichment.shared.ui.theme.BaseColors
+import chat.enrichment.shared.ui.theme.Colors
 
 object LightAppColors: BaseColors {
 
