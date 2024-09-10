@@ -26,5 +26,7 @@ jobs:
       run: echo "${{ secrets.KEYSTORE_PROPERTIES }}" | base64 --decode > /home/runner/work/Communication-enrichment/Communication-enrichment/keystore.properties
     - name: Decode Keystore
       run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /tmp/keystore.jks
+    - name: Decode google-services.json
+      run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /home/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
     - name: Build Release
       run: ./gradlew assembleRelease -Pandroid.injected.signing.store.file=/tmp/keystore.jks -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
