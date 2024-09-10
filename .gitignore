@@ -38,4 +38,6 @@ composeApp/google-services.json
 *.hprof
 
 Pods/
-/xcuserdatad/
+.xcuserdatad/
+.project.pbxproj/
+project.pbxproj
