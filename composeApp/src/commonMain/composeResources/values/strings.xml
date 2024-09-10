@@ -1,0 +1,47 @@
+<resources>
+
+  <string name="screen_home">Home</string>
+  <string name="screen_login">Lost and found</string>
+  <string name="screen_account_title">Found puppy</string>
+  <string name="screen_account_logout">I\'m outta here!</string>
+
+  <string name="navigate_home">Back</string>
+  <string name="navigate_back">Back</string>
+  <string name="navigate_close">Close</string>
+  <string name="navigate_hamburger_menu">Menu</string>
+
+  <string name="username_change_launcher_title">Hey there, stranger!</string>
+  <string name="username_change_launcher_content">
+        What should we and other users call you?
+    </string>
+  <string name="username_change_launcher_hint">Call me…</string>
+  <string name="username_change_launcher_cancel">Sign-out</string>
+  <string name="username_change_launcher_confirm">Save</string>
+  <string name="error_google_sign_in_unavailable">
+        There are no accounts in your device, use other methods, please.
+  </string>
+  <string name="login_password_confirm">Sign me up!</string>
+  <string name="login_password_method">Sign in with password</string>
+  <string name="login_password_email_hint">Email</string>
+  <string name="login_password_password_hint">Password</string>
+
+  <string name="login_password_email_error">Incorrect email format. Correct format is: example@example.com</string>
+  <string name="login_password_password_condition_empty">Is not empty, duh!</string>
+  <string name="login_password_password_condition_0">Minimum 9 characters long.</string>
+  <string name="login_password_password_condition_1">At least one algebra character.</string>
+  <string name="login_password_password_condition_2">At least very special character.</string>
+  <string name="login_success_snackbar">Welcome, what can I get you?</string>
+  <string name="login_success_snackbar_action">Just water, please.</string>
+  <string name="login_password_action_go">Here I go!</string>
+  <string name="login_apple_sucks">Due to Apple ridiculous Developer fees, we can't support "Sign in with AppleID"</string>
+
+
+
+  <!--- ============================= ACCESSIBILITY ==================================== -->
+  <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
+  <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
+  <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+
+  <!--- ============================= FIREBASE ==================================== -->
+  <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>
+</resources>

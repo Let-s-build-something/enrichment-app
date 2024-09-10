@@ -4,6 +4,8 @@
 
 # Local configuration file (sdk path, etc)
 local.properties
+keystore.properties
+.keystore.properties
 
 # Log/OS Files
 *.log
@@ -30,7 +32,12 @@ render.experimental.xml
 *.keystore
 
 # Google Services (e.g. APIs or Firebase)
-google-services.json
+composeApp/google-services.json
 
 # Android Profiling
 *.hprof
+
+Pods/
+.xcuserdatad/
+.project.pbxproj/
+project.pbxproj

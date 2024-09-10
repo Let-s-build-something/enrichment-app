@@ -1,8 +1,12 @@
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -10,54 +14,99 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
 
-    kotlin("plugin.serialization") version "2.0.0"
+    id("com.google.gms.google-services")
+    id("com.github.gmazzo.buildconfig") version "5.4.0"
+
+    kotlin("plugin.serialization") version "2.0.20"
+    kotlin("native.cocoapods") version "2.0.20"
 }
 
 kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
+            jvmTarget.set(JvmTarget.JVM_20)
         }
     }
-    
-    jvm("desktop")
-    
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Chat Enrichment"
-            isStatic = true
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
+    jvm()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
+    cocoapods {
+        version = "1.0"
+        summary = "Some description for a Kotlin/Native module"
+        homepage = "Link to a Kotlin/Native module homepage"
+
+        // Optional properties
+        // Configure the Pod name here instead of changing the Gradle project name
+        name = "ComposeApp"
+
+        podfile = project.file("../iosApp/Podfile")
+        ios.deploymentTarget = "17.3"
+
+        pod("GoogleSignIn") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
         }
+        pod("FirebaseCore") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+        pod("FirebaseAuth") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+        }
+
+        framework {
+            // Required properties
+            // Framework name configuration. Use this property instead of deprecated 'frameworkName'
+            baseName = "ComposeApp"
+
+            // Optional properties
+            // Specify the framework linking type. It's dynamic by default.
+            isStatic = true
+
+            binaryOption("bundleId", "chat.enrichment.eu")
+            binaryOption("bundleVersion", "1")
+        }
+
+        // Maps custom Xcode configuration to NativeBuildType
+        xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
+        xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
     
     sourceSets {
-        val desktopMain by getting
-        
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.ktor.client.android)
             implementation(libs.kotlinx.coroutines.android)
+
+            implementation(libs.koin.android)
+
+            //Credentials
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.auth)
+            implementation(libs.google.identity)
         }
         nativeMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
         jvmMain.dependencies {
-            implementation(libs.kotlinx.coroutines.javafx)
-        }
-        desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(libs.firebase.java.sdk)
 
             implementation(libs.ktor.client.apache5)
             implementation(libs.kotlinx.coroutines.swing)
         }
 
         commonMain.dependencies {
+            //put your multiplatform dependencies here
+            implementation(project(":shared"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
@@ -67,20 +116,27 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
 
+            implementation(libs.compottie.resources)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
 
-            implementation(libs.coil.compose)
-            implementation(libs.coil.network)
+            api(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.view.model)
+
+            implementation(libs.settings.no.arg)
+
+            implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
+            implementation(libs.firebase.gitlive.auth)
+            implementation(libs.firebase.gitlive.common)
+            implementation(libs.coil.compose)
+            //implementation(libs.coil.network)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
-        }
-        desktopMain.dependencies {
-            implementation(compose.desktop.currentOs)
         }
     }
 }
@@ -111,21 +167,62 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
+
+    val keystoreProperties = Properties()
+    keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
+
+    signingConfigs {
+        getByName("debug") {
+            keyAlias = "debug"
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+        create("release") {
+            keyAlias = "release"
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
         }
     }
+
+    buildTypes {
+        var isRelease = false
+
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            applicationIdSuffix = ".test"
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            isRelease = true
+            isMinifyEnabled = true
+            isShrinkResources = true
+            setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
+            signingConfig = signingConfigs.getByName("release")
+        }
+
+        buildConfig {
+            buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
+            buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
+            buildConfigField(
+                "AndroidAppId",
+                keystoreProperties[if(isRelease) "androidReleaseAppId" else "androidDebugAppId"] as String
+            )
+        }
+    }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_20
+        targetCompatibility = JavaVersion.VERSION_20
     }
     buildFeatures {
         compose = true
     }
     dependencies {
         debugImplementation(compose.uiTooling)
+
     }
 }
 
@@ -135,8 +232,20 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "chat.enrichment.eu"
             packageVersion = "1.0.0"
+            packageName = "Chatrich"
+
+            macOS {
+                appStore = true
+                appCategory = "public.app-category.productivity"
+                iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
+            }
+            windows {
+                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
+            }
         }
     }
 }

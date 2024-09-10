@@ -17,11 +17,11 @@ import base.theme.AppThemeIconsDark
 import base.theme.AppThemeIconsLight
 import base.theme.DarkAppColors
 import base.theme.LightAppColors
-import module.theme.LocalAppColors
-import module.theme.LocalAppIcons
-import module.theme.LocalThemeShapes
-import module.theme.LocalThemeStyle
-import module.theme.SharedColors
+import chat.enrichment.shared.ui.theme.LocalAppColors
+import chat.enrichment.shared.ui.theme.LocalAppIcons
+import chat.enrichment.shared.ui.theme.LocalThemeShapes
+import chat.enrichment.shared.ui.theme.LocalThemeStyle
+import chat.enrichment.shared.ui.theme.SharedColors
 
 /** Theme with dynamic resources */
 @Composable
@@ -68,7 +68,14 @@ fun ChatEnrichmentTheme(
                 onErrorContainer = SharedColors.RED_ERROR,
                 outline = Color.Transparent,
                 outlineVariant = Color.Transparent,
-                scrim = Color.Transparent
+                scrim = Color.Transparent,
+                surfaceBright = colors.backgroundLight,
+                surfaceDim = colors.backgroundDark,
+                surfaceContainer = colors.backgroundLight,
+                surfaceContainerHigh = colors.backgroundLight,
+                surfaceContainerHighest = colors.backgroundDark,
+                surfaceContainerLow = colors.backgroundLight,
+                surfaceContainerLowest = colors.backgroundLight,
             ),
             typography = Typography(
                 bodyLarge = TextStyle(

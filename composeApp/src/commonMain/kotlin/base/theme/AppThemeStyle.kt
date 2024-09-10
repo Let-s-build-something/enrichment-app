@@ -15,9 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import module.theme.LocalTheme
-import module.theme.SharedColors
-import module.theme.ThemeStyle
+import chat.enrichment.shared.ui.theme.LocalTheme
+import chat.enrichment.shared.ui.theme.SharedColors
+import chat.enrichment.shared.ui.theme.ThemeStyle
 
 /** Styles specific to main app theme [BaseTheme.current] */
 class AppThemeStyle: ThemeStyle {

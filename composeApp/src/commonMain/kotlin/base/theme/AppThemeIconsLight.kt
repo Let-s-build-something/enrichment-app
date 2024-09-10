@@ -1,9 +1,14 @@
 package base.theme
 
-import module.theme.ThemeIcons
+import chatenrichment.composeapp.generated.resources.Res
+import chatenrichment.composeapp.generated.resources.logo_apple_dark
+import chatenrichment.composeapp.generated.resources.logo_google_light
+import chat.enrichment.shared.ui.theme.ThemeIcons
+import org.jetbrains.compose.resources.DrawableResource
 
 /** icons specific to main app theme [LocalTheme.current] */
 object AppThemeIconsLight: ThemeIcons {
 
-    //override val googleSignUp: Int = R.drawable.google_sign_up_light
+    override val googleSignUp: DrawableResource = Res.drawable.logo_google_light
+    override val appleSignUp: DrawableResource = Res.drawable.logo_apple_dark
 }
