@@ -29,6 +29,9 @@ jobs:
     - name: Decode google-services.json
       run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /home/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
     - name: Build Jvm
-      run: ./gradlew run
+      run:
+        export DISPLAY=:99
+        sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
+        ./gradlew run
     - name: Build Android Release
       run: ./gradlew assembleRelease
