@@ -21,7 +21,6 @@
 #-renamesourcefileattribute SourceFile
 
 -keep class com.google.gson.reflect.TypeToken
--keep class study.me.please.base.navigation.** { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 -keep public class * implements java.lang.reflect.Type
 
@@ -31,7 +30,6 @@
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
 -keep class org.koin.** { *; }
--keep class Chatenrichment.composeApp.BuildConfig.** { *; }
 -keep class org.koin.core.** { *; }
 -keep class org.koin.dsl.** { *; }
 
@@ -55,5 +53,8 @@
 
 # Kotlinx coroutines rules seems to be outdated with the latest version of Kotlin and Proguard
 -keep class kotlinx.coroutines.** { *; }
+
+-keep class Chatenrichment.composeApp.BuildConfig { *; }
+-keep class chatenrichment.composeapp.BuildConfig { *; }
 
 -ignorewarnings
