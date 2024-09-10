@@ -13,14 +13,14 @@ plugins {
 kotlin {
     androidTarget {
         // Android
-        android.compileOptions.sourceCompatibility = JavaVersion.VERSION_20
+        android.compileOptions.sourceCompatibility = JavaVersion.VERSION_22
 
         // Java/Kotlin
-        java.sourceCompatibility = JavaVersion.VERSION_20
+        java.sourceCompatibility = JavaVersion.VERSION_22
 
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_20)
+            jvmTarget.set(JvmTarget.JVM_22)
         }
     }
 
@@ -64,7 +64,7 @@ android {
         minSdk = 24
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_20
-        targetCompatibility = JavaVersion.VERSION_20
+        sourceCompatibility = JavaVersion.VERSION_22
+        targetCompatibility = JavaVersion.VERSION_22
     }
 }
