@@ -1,9 +1,7 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
-import data.io.CloudUserHelper
-import data.io.identity_platform.IdentityRefreshToken
-import data.io.identity_platform.IdentityUserResponse
+import data.io.identity_platform.IdentityMessageType
 import data.shared.SharedViewModel
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.AuthResult
@@ -41,7 +39,6 @@ enum class SingInServiceOption {
 
 /** base URL for google cloud identity tool */
 const val identityToolUrl = "https://identitytoolkit.googleapis.com/v1/accounts"
-const val secureTokenUrl = "https://securetoken.googleapis.com"
 
 /** interface for communicating with all of the platforms creating sign in/up requests */
 expect class UserOperationService {
@@ -58,14 +55,8 @@ expect class UserOperationService {
     /** Requests signup or sign in via Apple id */
     suspend fun requestAppleSignIn(): LoginResultType
 
-    /** Requests signup or sign in via Apple id */
-    suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse?
-
-    /** Requests signup or sign in via Apple id */
-    suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse?
-
-    /** Requests for a new refreshToken and secures user sign in */
-    suspend fun refreshToken(refreshToken: String): IdentityRefreshToken?
+    /** Requests a signup with email and password */
+    suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType?
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
@@ -88,8 +79,15 @@ class LoginViewModel(
     ) {
         viewModelScope.launch {
             serviceProvider.signUpWithPassword(email, password)?.let {
-                processIdentityResult(it)
+                when(it) {
+                    IdentityMessageType.SUCCESS -> {
+                        // TODO createUser our BE
+                        signInWithPassword(email, password)
+                    }
+                    IdentityMessageType.EMAIL_EXISTS -> signInWithPassword(email, password)
+                }
             } ?: try {
+                // TODO createUser our BE
                 processAuthResult(
                     Firebase.auth.createUserWithEmailAndPassword(email, password)
                 )
@@ -106,9 +104,7 @@ class LoginViewModel(
         password: String
     ) {
         viewModelScope.launch {
-            serviceProvider.signInWithPassword(email, password)?.let {
-                processIdentityResult(it)
-            } ?: processAuthResult(
+            processAuthResult(
                 Firebase.auth.signInWithEmailAndPassword(email, password)
             )
         }
@@ -139,16 +135,6 @@ class LoginViewModel(
     private suspend fun processAuthResult(user: AuthResult?) {
         _loginResult.emit(
             if (user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
-        )
-    }
-
-    /** processes a given user info if there is any */
-    private suspend fun processIdentityResult(response: IdentityUserResponse?) {
-        if(response?.email.isNullOrBlank().not()) {
-            overrideCurrentUser(CloudUserHelper.fromUserResponse(response))
-        }
-        _loginResult.emit(
-            if (response != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
         )
     }
 }

@@ -11,7 +11,7 @@ data class IdentityUserResponse(
     val kind: String = "",
 
     /** token for the user */
-    val idToken: String = "",
+    val idToken: String? = null,
 
     /** email of the user */
     val email: String = "",
@@ -32,7 +32,7 @@ data class IdentityUserResponse(
     val expiresIn: Long = 0,
 
     /** local id of the user */
-    val localId: String = "",
+    val localId: String? = null,
 
     /** profile picture of the user */
     val profilePicture: String = "",

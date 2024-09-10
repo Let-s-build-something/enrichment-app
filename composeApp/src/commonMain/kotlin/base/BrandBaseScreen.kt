@@ -19,7 +19,6 @@ import chat.enrichment.shared.ui.base.currentPlatform
 import chat.enrichment.shared.ui.theme.LocalTheme
 import components.navigation.VerticalAppBar
 import data.shared.SharedViewModel
-import dev.gitlive.firebase.Firebase
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
@@ -82,7 +81,7 @@ fun BrandBaseScreen(
     val actions = actionIcons ?: { expanded ->
         DefaultAppBarActions(
             isUserSignedIn = currentUser.value != null,
-            userPhotoUrl = currentUser.value?.photoURL,
+            userPhotoUrl = try { currentUser.value?.photoURL } catch (e: NotImplementedError) { null },
             expanded = expanded
         )
     }
@@ -117,6 +116,3 @@ fun BrandBaseScreen(
         }
     )
 }
-
-/** Platform specific Firebase instance */
-expect val PlatformFirebase: Firebase?

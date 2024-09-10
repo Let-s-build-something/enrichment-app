@@ -1,6 +1,5 @@
 package koin
 
-import coil3.annotation.ExperimentalCoilApi
 import com.russhwolf.settings.Settings
 import data.shared.SharedDataManager
 import data.shared.SharedViewModel
@@ -17,7 +16,6 @@ import org.koin.dsl.module
 import ui.login.signInServiceModule
 
 /** Common module for the whole application */
-@OptIn(ExperimentalCoilApi::class)
 internal val commonModule = module {
     includes(signInServiceModule())
 

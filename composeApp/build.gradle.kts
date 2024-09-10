@@ -1,3 +1,4 @@
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -24,7 +25,7 @@ kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
+            jvmTarget.set(JvmTarget.JVM_20)
         }
     }
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -97,6 +98,7 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(libs.firebase.java.sdk)
 
             implementation(libs.ktor.client.apache5)
             implementation(libs.kotlinx.coroutines.swing)
@@ -166,13 +168,8 @@ android {
         }
     }
 
-    val keystorePropertiesFile = rootProject.file("keystore.properties")
     val keystoreProperties = Properties()
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-
-    buildConfig {
-        buildConfigField("CLOUD_WEB_API_KEY", keystoreProperties["cloudWebApiKey"] as String)
-    }
+    keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
 
     signingConfigs {
         getByName("debug") {
@@ -190,6 +187,8 @@ android {
     }
 
     buildTypes {
+        var isRelease = false
+
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
@@ -197,22 +196,33 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
+            isRelease = true
             isMinifyEnabled = true
             isShrinkResources = true
             setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
             signingConfig = signingConfigs.getByName("release")
         }
+
+        buildConfig {
+            buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
+            buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
+            buildConfigField(
+                "AndroidAppId",
+                keystoreProperties[if(isRelease) "androidReleaseAppId" else "androidDebugAppId"] as String
+            )
+        }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_20
+        targetCompatibility = JavaVersion.VERSION_20
     }
     buildFeatures {
         compose = true
     }
     dependencies {
         debugImplementation(compose.uiTooling)
+
     }
 }
 

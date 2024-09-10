@@ -1,8 +1,8 @@
 package ui.account
 
 import androidx.lifecycle.viewModelScope
-import base.PlatformFirebase
 import data.shared.SharedViewModel
+import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +27,7 @@ class AccountDashboardViewModel: SharedViewModel() {
     override fun logoutCurrentUser() {
         viewModelScope.launch {
             super.logoutCurrentUser()
-            _signOutResponse.emit(PlatformFirebase?.auth?.currentUser == null)
+            _signOutResponse.emit(Firebase.auth.currentUser == null)
         }
     }
 }

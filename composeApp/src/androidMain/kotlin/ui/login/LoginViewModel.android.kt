@@ -19,8 +19,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.auth
-import data.io.identity_platform.IdentityRefreshToken
-import data.io.identity_platform.IdentityUserResponse
+import data.io.identity_platform.IdentityMessageType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -101,9 +100,7 @@ actual class UserOperationService(
         return LoginResultType.FAILURE
     }
 
-    actual suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? = null
-    actual suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? = null
-    actual suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? = null
+    actual suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType? = null
 
 
     /**

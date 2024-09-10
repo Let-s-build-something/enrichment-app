@@ -1,8 +1,7 @@
 package ui.login
 
 import cocoapods.GoogleSignIn.GIDSignIn
-import data.io.identity_platform.IdentityRefreshToken
-import data.io.identity_platform.IdentityUserResponse
+import data.io.identity_platform.IdentityMessageType
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.OAuthProvider
@@ -128,10 +127,8 @@ actual class UserOperationService {
         return LoginResultType.FAILURE
     }
 
+    actual suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType? = null
+
     private fun NSData.string(): String? =
         NSString.create(data = this, encoding = NSUTF8StringEncoding)?.toString()
-
-    actual suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? = null
-    actual suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? = null
-    actual suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? = null
 }
