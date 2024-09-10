@@ -22,6 +22,8 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+    - name: Decode Keystore properties
+      run: echo "${{ secrets.KEYSTORE_PROPERTIES }}" | base64 --decode > /home/runner/work/Communication-enrichment/Communication-enrichment/keystore.properties
     - name: Decode Keystore
       run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /tmp/keystore.jks
     - name: Build Release
