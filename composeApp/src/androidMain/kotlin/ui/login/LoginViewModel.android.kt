@@ -38,6 +38,11 @@ actual class UserOperationService(
     private val context: Context
 ) {
 
+    companion object {
+        
+        private const val TAG = "UserOperationService"
+    }
+
     actual val availableOptions = listOf(SingInServiceOption.GOOGLE)
 
     actual suspend fun requestGoogleSignIn(
@@ -72,13 +77,13 @@ actual class UserOperationService(
             )
             result = handleGoogleSignIn(res)
         } catch (e: NoCredentialException) {
-            Log.e("kostka_test", "$e")
+            Log.e(TAG, "$e")
             result = requestGoogleSignIn(
                 filterAuthorizedAccounts = false,
                 webClientId = webClientId
             )
         } catch (e: GetCredentialCancellationException) {
-            Log.e("kostka_test", "$e")
+            Log.e(TAG, "$e")
             if(filterAuthorizedAccounts) {
                 result = requestGoogleSignIn(
                     filterAuthorizedAccounts = false,
@@ -86,7 +91,7 @@ actual class UserOperationService(
                 )
             }
         } catch (e: GetCredentialException) {
-            Log.e("kostka_test", "${e.errorMessage}")
+            Log.e(TAG, "${e.errorMessage}")
         }
 
         return result ?: LoginResultType.FAILURE
@@ -99,81 +104,82 @@ actual class UserOperationService(
     actual suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? = null
     actual suspend fun signInWithPassword(email: String, password: String): IdentityUserResponse? = null
     actual suspend fun refreshToken(refreshToken: String): IdentityRefreshToken? = null
-}
 
-/**
- * Checks for any currently ongoing process and only returns [LoginResultType] in case the pending exists,
- * thus, it should be uninterrupted
- */
-private suspend fun checkForPendingResult(): LoginResultType? {
-    val pending = Firebase.auth.pendingAuthResult
 
-    return if (pending != null) {
-        if(pending.await().user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
-    } else null
-}
+    /**
+     * Checks for any currently ongoing process and only returns [LoginResultType] in case the pending exists,
+     * thus, it should be uninterrupted
+     */
+    private suspend fun checkForPendingResult(): LoginResultType? {
+        val pending = Firebase.auth.pendingAuthResult
 
-/** Handles successful user sign in with any type of credential */
-private suspend fun handleGoogleSignIn(result: GetCredentialResponse): LoginResultType {
-    // Handle the successfully returned credential.
-    val credential = result.credential
+        return if (pending != null) {
+            if(pending.await().user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+        } else null
+    }
 
-    Log.d("kostka_test", "Received credential: $credential")
-    return withContext(Dispatchers.IO) {
-        when (credential) {
-            is PublicKeyCredential -> {
-                // Share responseJson such as a GetCredentialResponse on your server to
-                // validate and authenticate
-                //val responseJson = credential.authenticationResponseJson
-                LoginResultType.FAILURE
-            }
-            is PasswordCredential -> {
-                // Send ID and password to your server to validate and authenticate.
-                val id = credential.id
-                val password = credential.password
+    /** Handles successful user sign in with any type of credential */
+    private suspend fun handleGoogleSignIn(result: GetCredentialResponse): LoginResultType {
+        // Handle the successfully returned credential.
+        val credential = result.credential
 
-                val request = when {
-                    android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches() -> {
-                        Firebase.auth.signInWithEmailAndPassword(id, password).await()
-                    }
-                    android.util.Patterns.PHONE.matcher(id).matches() -> {
-                        Firebase.auth.signInWithCredential(
-                            PhoneAuthProvider.getCredential(id, password)
-                        ).await()
-                    }
-                    else -> null
-                }
-                if(request?.user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
-            }
-            is CustomCredential -> {
-                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                    try {
-                        // Use googleIdTokenCredential and extract id to validate and
-                        // authenticate on your server.
-                        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                        val authCredential = GoogleAuthProvider.getCredential(
-                            googleIdTokenCredential.idToken,
-                            null
-                        )
-                        val request = Firebase.auth.signInWithCredential(authCredential).await()
-                        if(request.user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
-                    } catch (e: GoogleIdTokenParsingException) {
-                        Log.e(
-                            "kostka_test",
-                            "Received an invalid google id token response: $e"
-                        )
-                        LoginResultType.FAILURE
-                    }
-                } else {
-                    // Catch any unrecognized custom credential type here.
-                    Log.e("kostka_test", "Unexpected type of credential")
+        Log.d(TAG, "Received credential: $credential")
+        return withContext(Dispatchers.IO) {
+            when (credential) {
+                is PublicKeyCredential -> {
+                    // Share responseJson such as a GetCredentialResponse on your server to
+                    // validate and authenticate
+                    //val responseJson = credential.authenticationResponseJson
                     LoginResultType.FAILURE
                 }
-            }
-            else -> {
-                // Catch any unrecognized credential type here.
-                Log.e("kostka_test", "Unexpected type of credential")
-                LoginResultType.FAILURE
+                is PasswordCredential -> {
+                    // Send ID and password to your server to validate and authenticate.
+                    val id = credential.id
+                    val password = credential.password
+
+                    val request = when {
+                        android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches() -> {
+                            Firebase.auth.signInWithEmailAndPassword(id, password).await()
+                        }
+                        android.util.Patterns.PHONE.matcher(id).matches() -> {
+                            Firebase.auth.signInWithCredential(
+                                PhoneAuthProvider.getCredential(id, password)
+                            ).await()
+                        }
+                        else -> null
+                    }
+                    if(request?.user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+                }
+                is CustomCredential -> {
+                    if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                        try {
+                            // Use googleIdTokenCredential and extract id to validate and
+                            // authenticate on your server.
+                            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                            val authCredential = GoogleAuthProvider.getCredential(
+                                googleIdTokenCredential.idToken,
+                                null
+                            )
+                            val request = Firebase.auth.signInWithCredential(authCredential).await()
+                            if(request.user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+                        } catch (e: GoogleIdTokenParsingException) {
+                            Log.e(
+                                TAG,
+                                "Received an invalid google id token response: $e"
+                            )
+                            LoginResultType.FAILURE
+                        }
+                    } else {
+                        // Catch any unrecognized custom credential type here.
+                        Log.e(TAG, "Unexpected type of credential")
+                        LoginResultType.FAILURE
+                    }
+                }
+                else -> {
+                    // Catch any unrecognized credential type here.
+                    Log.e(TAG, "Unexpected type of credential")
+                    LoginResultType.FAILURE
+                }
             }
         }
     }

@@ -26,6 +26,7 @@ actual fun signInServiceModule() = module {
     }
 }
 
+/** Repository for access to Google Cloud Identity Platform for the purpose of logging in and signing up the user */
 class DesktopSignInRepository(private val httpClient: HttpClient) {
 
     /** Makes a request for identity tool sign in with email and password */

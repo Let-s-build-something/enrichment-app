@@ -16,9 +16,17 @@ import org.koin.core.module.Module
 
 /** Type of result that can be received by the sign in services */
 enum class LoginResultType {
+
+    /** general error, the request failed */
     FAILURE,
+
+    /** the UI is missing window, iOS specific */
     NO_WINDOW,
+
+    /** There are no credentials on the device, Android specific */
     NO_GOOGLE_CREDENTIALS,
+
+    /** successful request, user is signed in */
     SUCCESS
 }
 

@@ -309,9 +309,15 @@ private fun DesktopLayout(
     }
 }
 
+/** Types of platform that this application is running on */
 enum class PlatformType {
+    /** Linux or Windows, but can run on macOS as well - generally desktop */
     Jvm,
+
+    /** iOS, macOS, watchOS - smart watch, phone, tablet, laptop */
     Native,
+
+    /** Android - phone, tablet, smart watch, Android auto */
     Android
 }
 

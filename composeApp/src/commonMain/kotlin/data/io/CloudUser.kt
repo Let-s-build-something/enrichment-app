@@ -48,7 +48,10 @@ data class CloudUser(
     val expiresIn: Long = 0,
 
     /** Time of when token expires in epochSeconds [Clock.System.now().epochSeconds] */
-    val expiresAt: Long = 0
+    val expiresAt: Long = 0,
+
+    /** currently assigned token by Google Cloud, typical expiry is 1 hour */
+    val idToken: String? = null
 )
 
 object CloudUserHelper {
@@ -66,7 +69,9 @@ object CloudUserHelper {
             metaData = firebaseUser.metaData,
             multiFactor = firebaseUser.multiFactor,
             providerData = firebaseUser.providerData,
-            providerId = firebaseUser.providerId
+            providerId = firebaseUser.providerId,
+            // no need for now
+            //idToken = firebaseUser.getIdToken(false)
         )
     }
 
@@ -79,7 +84,8 @@ object CloudUserHelper {
             photoURL = userResponse?.profilePicture,
             refreshToken = userResponse?.refreshToken ?: "",
             expiresIn = userResponse?.expiresIn ?: 0,
-            expiresAt = userResponse?.expiresAt ?: 0
+            expiresAt = userResponse?.expiresAt ?: 0,
+            idToken = userResponse?.idToken
         )
     }
 }

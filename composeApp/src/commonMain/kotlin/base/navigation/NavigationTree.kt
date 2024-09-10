@@ -2,6 +2,7 @@ package base.navigation
 
 import kotlinx.serialization.Serializable
 
+/** Main holder of all navigation nodes */
 sealed class NavigationNode {
 
     /**
@@ -11,6 +12,7 @@ sealed class NavigationNode {
     val route
         get() = this::class.qualifiedName
 
+    /** screen for both login and signup */
     @Serializable
     data object Login: NavigationNode()
 
@@ -18,9 +20,11 @@ sealed class NavigationNode {
     @Serializable
     data object Water: NavigationNode()
 
+    /** dashboard screen for user information and general user-related actions */
     @Serializable
     data object AccountDashboard: NavigationNode()
 
+    /** home screen of the whole app */
     @Serializable
     data object Home: NavigationNode()
 }

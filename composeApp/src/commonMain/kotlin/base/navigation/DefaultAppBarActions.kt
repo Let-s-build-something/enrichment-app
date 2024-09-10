@@ -15,6 +15,8 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * The default layout of action in top action bar
  * @param isUserSignedIn whether user is currently signed in or not
+ * @param userPhotoUrl url of user photo which should be displayed instead of the vector image
+ * @param expanded whether the menu is expanded or not
  */
 @Composable
 fun DefaultAppBarActions(
