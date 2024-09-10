@@ -6,6 +6,7 @@
 local.properties
 keystore.properties
 .keystore.properties
+.local.properties
 
 # Log/OS Files
 *.log

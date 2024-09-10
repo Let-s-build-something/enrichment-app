@@ -6,6 +6,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
@@ -40,7 +41,7 @@ fun main() = application {
     }
 
     val density = LocalDensity.current
-    val toolkit = Toolkit.getDefaultToolkit()
+    val toolkit = if(BuildConfig.MyNameIsPipeline == "true") null else Toolkit.getDefaultToolkit()
 
     Window(
         onCloseRequest = {
@@ -49,14 +50,16 @@ fun main() = application {
         state = rememberWindowState(
             placement = WindowPlacement.Floating,
             width = with(density) {
-                toolkit.screenSize.width.div(2).toDp()
+                toolkit?.screenSize?.width?.div(2)?.toDp() ?: 600.dp
             },
             height = with(density) {
-                (toolkit.screenSize.height - toolkit.getScreenInsets(
-                    GraphicsEnvironment.getLocalGraphicsEnvironment()
-                        .defaultScreenDevice
-                        .defaultConfiguration
-                ).bottom).toDp()
+                (toolkit?.screenSize?.height?.minus(
+                    toolkit?.getScreenInsets(
+                        GraphicsEnvironment.getLocalGraphicsEnvironment()
+                            .defaultScreenDevice
+                            .defaultConfiguration
+                    )?.bottom ?: 0
+                ))?.toDp() ?: 600.dp
             },
             position = WindowPosition.Aligned(Alignment.TopEnd)
         ),

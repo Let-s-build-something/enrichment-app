@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -22,8 +22,8 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    - name: Decode Keystore properties
-      run: echo "${{ secrets.KEYSTORE_PROPERTIES }}" | base64 --decode > /home/runner/work/Communication-enrichment/Communication-enrichment/keystore.properties
+    - name: Decode Local properties
+      run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /home/runner/work/Communication-enrichment/Communication-enrichment/local.properties
     - name: Decode Keystore
       run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /tmp/keystore.jks
     - name: Decode google-services.json

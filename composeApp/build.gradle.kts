@@ -169,7 +169,7 @@ android {
     }
 
     val keystoreProperties = Properties()
-    keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
+    keystoreProperties.load(FileInputStream(rootProject.file("local.properties")))
 
     signingConfigs {
         getByName("debug") {
@@ -204,6 +204,7 @@ android {
         }
 
         buildConfig {
+            buildConfigField("MyNameIsPipeline", keystoreProperties["myNameIsPipeline"] as String)
             buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
             buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
             buildConfigField(
