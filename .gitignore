@@ -38,3 +38,4 @@ composeApp/google-services.json
 *.hprof
 
 Pods/
+/xcuserdatad/
