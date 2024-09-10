@@ -21,6 +21,7 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 
 The simulator you're using to run the app can be configured in Android Studio (meaning, that in theory you don't need Xcode, from my experience, there is an issue of dependencies not being found when run from Android Studio). The configuration can be done with the help of Android Studio plugin "Kotlin Multiplatform" by JetBrains (current version 0.8.3). See following image for the specific configuration that can be used.
 
+![Screenshot 2024-09-10 at 10 20 50](https://github.com/user-attachments/assets/e9c60e44-3b20-4c96-8e70-4ce341bdb268)
 
 ---------------------------------
 
