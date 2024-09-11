@@ -4,25 +4,14 @@ import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 
-private func configureFirebase() -> Bool {
-    FirebaseApp.configure()
-    guard let clientID = FirebaseApp.app()?.options.clientID else { return false }
-              
-    // Create Google Sign In configuration object.
-    let config = GIDConfiguration(clientID: clientID)
-              
-    GIDSignIn.sharedInstance.configuration = config
-    return true
-}
-
-
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-      return configureFirebase()
+        // while Swift is great, Kotlin is simply better, we call initialization of everything in Helper.kt - in Kotlin
+        return HelperKt.onIOSApplication(self, application: application, launchOptions: launchOptions)
     }
     
     func application(_ app: UIApplication,
@@ -38,7 +27,7 @@ struct iOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
     init() {
-        HelperKt.doInitKoin()
+        HelperKt.doAppInit()
     }
 
     var body: some Scene {
@@ -47,4 +36,3 @@ struct iOSApp: App {
         }
     }
 }
-

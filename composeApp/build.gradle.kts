@@ -49,15 +49,10 @@ kotlin {
         podfile = project.file("../iosApp/Podfile")
         ios.deploymentTarget = "17.3"
 
-        pod("GoogleSignIn") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseCore") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseAuth") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
+        pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
 
         framework {
             // Required properties

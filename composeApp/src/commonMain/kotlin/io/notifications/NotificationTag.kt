@@ -1,4 +1,6 @@
-package chat.enrichment.eu.fcm
+package io.notifications
+
+import org.jetbrains.compose.resources.StringResource
 
 /** Tag is an identification of a type of notification being sent */
 enum class NotificationTag {
@@ -6,7 +8,7 @@ enum class NotificationTag {
     OPEN_ACCOUNT;
 
     /** human readable channel name for notification */
-    val humanReadableChannel: Int?
+    val humanReadableChannel: StringResource?
         get() = when(this) {
             else -> null
         }

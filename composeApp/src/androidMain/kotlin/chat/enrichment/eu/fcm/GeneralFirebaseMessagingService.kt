@@ -20,6 +20,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import io.notifications.NotificationTag
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,9 +48,9 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
             ignoreUnknownKeys = true
         }
 
-        (ProcessedNotification.fromNotification(
+        (ProcessedMessageData.fromNotification(
             remoteMessage.notification
-        ) ?: json.decodeFromString<ProcessedNotification>(
+        ) ?: json.decodeFromString<ProcessedMessageData>(
             json.encodeToString(remoteMessage.data)
         )).let { directNotification ->
             processScope.launch {
@@ -62,7 +63,7 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
         super.onNewToken(token)
     }
 
-    private suspend fun processNotification(notification: ProcessedNotification) {
+    private suspend fun processNotification(notification: ProcessedMessageData) {
         withContext(Dispatchers.IO) {
             if(notification.body != null) {
                 notification.largeIcon = if(!notification.icon.isNullOrEmpty()) {
@@ -74,6 +75,10 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
                 }else null
 
                 notification.messageType = NotificationTag.entries.find { it.name == notification.tag }
+
+                val channelName = notification.messageType?.humanReadableChannel?.let {
+                    org.jetbrains.compose.resources.getString(it)
+                }
 
                 withContext(Dispatchers.Main) {
                     notification.action = if(notification.clickAction != null) {
@@ -102,13 +107,16 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
                         )
                     }else null
 
-                    sendNotification(notification)
+                    sendNotification(notification, channelName)
                 }
             }
         }
     }
 
-    private fun sendNotification(notification: ProcessedNotification) {
+    private fun sendNotification(
+        notification: ProcessedMessageData,
+        channelName: String?
+    ) {
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val channelId = notification.channelId ?: getString(R.string.default_notification_channel_id)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -148,10 +156,7 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                getString(
-                    notification.messageType?.humanReadableChannel
-                        ?: R.string.default_notification_channel_name
-                ),
+                channelName ?: getString(R.string.default_notification_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT,
             )
             notificationManager?.createNotificationChannel(channel)
