@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Chatrich</string>
+    <string name="default_notification_channel_id">c3ebe36d-dc12-4da8-b201-84b51c50e41c</string>
+    <string name="default_notification_channel_name">The common stuff, ya know</string>
 </resources>

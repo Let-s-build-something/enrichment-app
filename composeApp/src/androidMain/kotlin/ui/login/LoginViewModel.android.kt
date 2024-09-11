@@ -77,10 +77,12 @@ actual class UserOperationService(
             result = handleGoogleSignIn(res)
         } catch (e: NoCredentialException) {
             Log.e(TAG, "$e")
-            result = requestGoogleSignIn(
-                filterAuthorizedAccounts = false,
-                webClientId = webClientId
-            )
+            result = if(filterAuthorizedAccounts) {
+                requestGoogleSignIn(
+                    filterAuthorizedAccounts = false,
+                    webClientId = webClientId
+                )
+            }else LoginResultType.NO_GOOGLE_CREDENTIALS
         } catch (e: GetCredentialCancellationException) {
             Log.e(TAG, "$e")
             if(filterAuthorizedAccounts) {

@@ -142,9 +142,10 @@ fun BaseScreen(
                                     if (containerColor != null) {
                                         platformModifier
                                             .background(color = containerColor, shape = shape)
-                                            .clip(shape)
                                     } else platformModifier
                                 )
+                                .clip(shape)
+                                .padding(top = 12.dp)
                         ) {
                             content(this)
                         }

@@ -23,10 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import chat.enrichment.shared.ui.components.input.AutoResizeText
 import chat.enrichment.shared.ui.components.input.FontSizeRange
 import chat.enrichment.shared.ui.theme.LocalTheme
+import coil3.compose.AsyncImage
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**

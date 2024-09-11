@@ -1,5 +1,9 @@
 package koin
 
+import coil3.annotation.ExperimentalCoilApi
+import coil3.network.CacheStrategy
+import coil3.network.NetworkFetcher
+import coil3.network.ktor3.asNetworkClient
 import com.russhwolf.settings.Settings
 import data.shared.SharedDataManager
 import data.shared.SharedViewModel
@@ -16,6 +20,7 @@ import org.koin.dsl.module
 import ui.login.signInServiceModule
 
 /** Common module for the whole application */
+@OptIn(ExperimentalCoilApi::class)
 internal val commonModule = module {
     includes(signInServiceModule())
 
@@ -23,12 +28,12 @@ internal val commonModule = module {
     single { Settings() }
     viewModelOf(::SharedViewModel)
 
-    /*single {
+    single {
         NetworkFetcher.Factory(
             networkClient = { get<HttpClient>().asNetworkClient() },
             cacheStrategy = { CacheStrategy() },
         )
-    }*/
+    }
     single {
         HttpClient().config {
             install(ContentNegotiation) {

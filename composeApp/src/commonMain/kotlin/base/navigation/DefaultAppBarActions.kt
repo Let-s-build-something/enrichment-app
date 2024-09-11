@@ -1,9 +1,12 @@
 package base.navigation
 
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import chat.enrichment.shared.ui.base.LocalNavController
 import chat.enrichment.shared.ui.components.navigation.ActionBarIcon
@@ -49,6 +52,14 @@ fun DefaultAppBarActions(
                     }
                 )
             }
+        }
+        else -> {
+            //enforce the same height of the appbar
+            ActionBarIcon(
+                modifier = Modifier.requiredWidth(0.dp),
+                imageVector = Icons.Outlined.PersonAddAlt,
+                text = ""
+            )
         }
     }
 }
