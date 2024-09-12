@@ -38,7 +38,7 @@ kotlin {
     iosSimulatorArm64()
 
     cocoapods {
-        version = "1.0"
+        version = libs.versions.version.name.get()
         summary = "Some description for a Kotlin/Native module"
         homepage = "Link to a Kotlin/Native module homepage"
 
@@ -161,7 +161,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "1.0"
+        versionName = libs.versions.version.name.get()
     }
     packaging {
         resources {
@@ -238,7 +238,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageVersion = "1.0.0"
+            packageVersion = libs.versions.version.name.get()
             packageName = "Chatrich"
 
             macOS {
@@ -259,4 +259,10 @@ compose.desktop {
 
 kotlin.sourceSets.all {
     languageSettings.optIn("kotlin.experimental.ExperimentalObjCName")
+}
+
+tasks.register("printVersionName") {
+    doLast {
+        println(libs.versions.version.name.get())
+    }
 }
