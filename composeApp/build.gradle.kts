@@ -47,7 +47,7 @@ kotlin {
         name = "ComposeApp"
 
         podfile = project.file("../iosApp/Podfile")
-        ios.deploymentTarget = "17.3"
+        ios.deploymentTarget = "14.0"
 
         pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
         pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
@@ -122,6 +122,7 @@ kotlin {
 
             implementation(libs.settings.no.arg)
 
+            implementation(libs.kotlin.crypto.sha2)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)

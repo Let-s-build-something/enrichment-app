@@ -3,9 +3,13 @@ import ComposeApp
 import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
+import FirebaseMessaging
+import CryptoKit
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-
+class AppDelegate: NSObject,
+                    UIApplicationDelegate,
+                    UNUserNotificationCenterDelegate {
+    
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
@@ -17,7 +21,17 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     func application(_ app: UIApplication,
                      open url: URL,
                      options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-      return GIDSignIn.sharedInstance.handle(url)
+        return GIDSignIn.sharedInstance.handle(url)
+    }
+    
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async-> UNNotificationPresentationOptions {
+        try! await HelperKt.onNewNotificationRequest(self, center: center, notification: notification)
+        return [.list, .banner, .sound, .badge]
     }
 }
 
@@ -36,3 +50,4 @@ struct iOSApp: App {
         }
     }
 }
+
