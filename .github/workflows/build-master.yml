@@ -1,4 +1,4 @@
-name: Demo application CI
+name: Build and extract Master
 
 on:
   pull_request:
@@ -18,6 +18,7 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    # Prepare access to everything
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Decode Local properties
@@ -26,20 +27,30 @@ jobs:
       run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
     - name: Decode google-services.json
       run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
-    - name: Build Android Release
-      run: ./gradlew assembleRelease
-    - name: Build Jvm
-      run: ./gradlew packageMsi
-    - name: Build iOS
-      run: ./gradlew packageDmg
+
+    # Prepare the environment
     - name: Build with Gradle and Print Version
       id: gradle
       run: |
-          ./gradlew printVersionName > version.txt
-          VERSION=$(tail -n 1 version.txt)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-    - name: Archive code coverage results
+        ./gradlew printVersionName > version.txt
+        VERSION=$(tail -n 1 version.txt)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    # Build the app and export the output files
+
+    # Android
+    - name: Build Android Release
+      run: ./gradlew assembleRelease
+    - name: Export Android APK to artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Android $VERSION
         path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/apk/release/composeApp-release.apk
+
+    # iOS
+    - name: Build iOS
+      run: ./gradlew packageDmg
+      
+    # Jvm
+    - name: Build Jvm
+      run: ./gradlew packageMsi
