@@ -39,7 +39,6 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
         private const val EXTRA_NOTIFICATION_CLICK_URI = "extra_notification_click_uri"
     }
 
-
     private val processScope = CoroutineScope(Dispatchers.IO)
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {

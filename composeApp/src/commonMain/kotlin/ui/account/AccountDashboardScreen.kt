@@ -69,7 +69,6 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                 }
             }
 
-
             ErrorHeaderButton(
                 modifier = Modifier
                     .padding(top = 32.dp)
