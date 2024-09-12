@@ -1,4 +1,4 @@
-name: Demo application CI
+name: King's guard
 
 on:
   push:
