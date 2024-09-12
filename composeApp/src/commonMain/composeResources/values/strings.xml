@@ -1,4 +1,5 @@
 <resources>
+  <string name="app_name">Chatrich</string>
 
   <string name="screen_home">Home</string>
   <string name="screen_login">Lost and found</string>

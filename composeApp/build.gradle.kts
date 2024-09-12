@@ -205,7 +205,6 @@ android {
         }
 
         buildConfig {
-            buildConfigField("MyNameIsPipeline", keystoreProperties["myNameIsPipeline"] as String)
             buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
             buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
             buildConfigField(
@@ -244,13 +243,14 @@ compose.desktop {
 
             macOS {
                 appStore = true
-                appCategory = "public.app-category.productivity"
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {
+                //group = "Chatrich"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
+                //group = "Chatrich"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
         }

@@ -1,3 +1,4 @@
+
 import Chatenrichment.composeApp.BuildConfig
 import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
@@ -13,6 +14,8 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import chat.enrichment.shared.ui.base.LocalScreenSize
+import chatenrichment.composeapp.generated.resources.Res
+import chatenrichment.composeapp.generated.resources.app_name
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
@@ -20,6 +23,7 @@ import com.google.firebase.initialize
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 import koin.commonModule
+import org.jetbrains.compose.resources.stringResource
 import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
 import java.awt.GraphicsEnvironment
@@ -41,7 +45,7 @@ fun main() = application {
     }
 
     val density = LocalDensity.current
-    val toolkit = if(BuildConfig.MyNameIsPipeline == "true") null else Toolkit.getDefaultToolkit()
+    val toolkit = Toolkit.getDefaultToolkit()
 
     Window(
         onCloseRequest = {
@@ -54,7 +58,7 @@ fun main() = application {
             },
             height = with(density) {
                 (toolkit?.screenSize?.height?.minus(
-                    toolkit?.getScreenInsets(
+                    toolkit.getScreenInsets(
                         GraphicsEnvironment.getLocalGraphicsEnvironment()
                             .defaultScreenDevice
                             .defaultConfiguration
@@ -63,7 +67,7 @@ fun main() = application {
             },
             position = WindowPosition.Aligned(Alignment.TopEnd)
         ),
-        title = "Chatrich",
+        title = stringResource(Res.string.app_name),
         visible = true,
         undecorated = false,
         resizable = true,
