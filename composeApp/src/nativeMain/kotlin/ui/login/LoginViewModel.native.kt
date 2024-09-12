@@ -3,12 +3,21 @@ package ui.login
 import cocoapods.GoogleSignIn.GIDSignIn
 import data.io.identity_platform.IdentityMessageType
 import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.FirebaseAuthException
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.OAuthProvider
 import dev.gitlive.firebase.auth.auth
+import io.ktor.utils.io.charsets.Charsets
+import io.ktor.utils.io.core.toByteArray
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
+import org.kotlincrypto.hash.sha2.SHA256
 import platform.AuthenticationServices.ASAuthorization
 import platform.AuthenticationServices.ASAuthorizationAppleIDCredential
 import platform.AuthenticationServices.ASAuthorizationAppleIDProvider
@@ -40,7 +49,7 @@ actual fun signInServiceModule() = module {
 actual class UserOperationService {
     actual val availableOptions: List<SingInServiceOption> = listOf(
         SingInServiceOption.GOOGLE,
-        //SingInServiceOption.APPLE
+        SingInServiceOption.APPLE
     )
 
     @OptIn(ExperimentalForeignApi::class)
@@ -78,34 +87,51 @@ actual class UserOperationService {
     }
 
     private var currentNonce: String? = null
+    private var deferredJob = CompletableDeferred<ASAuthorizationAppleIDCredential?>(Job())
 
-    @OptIn(ExperimentalUuidApi::class, ExperimentalForeignApi::class)
+    private fun sha256(input: String): String {
+        val inputData = input.toByteArray(Charsets.UTF_8)
+        val hashedData = SHA256().digest(inputData)
+        return hashedData.joinToString("") { byte ->
+            byte.toUByte().toString(16).padStart(2, '0')
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
     actual suspend fun requestAppleSignIn(): LoginResultType {
+        deferredJob = CompletableDeferred(Job())
         currentNonce = Uuid.random().toString()
+
         val appleIDProvider = ASAuthorizationAppleIDProvider()
         val request = appleIDProvider.createRequest().apply {
             requestedScopes = listOf(
                 ASAuthorizationScopeFullName,
                 ASAuthorizationScopeEmail
             )
-            nonce = currentNonce
+            currentNonce?.let {
+                nonce = sha256(it)
+            }
         }
-        suspendCoroutine { continuation ->
+        return withContext(Dispatchers.Main) {
             ASAuthorizationController(authorizationRequests = listOf(request)).run {
-                delegate = object: NSObject(), ASAuthorizationControllerDelegateProtocol, ASAuthorizationControllerPresentationContextProvidingProtocol {
-
+                cancel()
+                delegate = object: NSObject(),
+                    ASAuthorizationControllerDelegateProtocol,
+                    ASAuthorizationControllerPresentationContextProvidingProtocol {
                     override fun authorizationController(
                         controller: ASAuthorizationController,
                         didCompleteWithAuthorization: ASAuthorization
                     ) {
-                        continuation.resume(didCompleteWithAuthorization.credential as? ASAuthorizationAppleIDCredential)
+                        println("ASAuthorizationController, didCompleteWithAuthorization: $didCompleteWithAuthorization")
+                        deferredJob.complete(didCompleteWithAuthorization.credential as? ASAuthorizationAppleIDCredential)
                     }
 
                     override fun authorizationController(
                         controller: ASAuthorizationController,
                         didCompleteWithError: NSError
                     ) {
-                        continuation.resume(null)
+                        println("ASAuthorizationController, didCompleteWithError: $didCompleteWithError")
+                        deferredJob.complete(null)
                     }
 
                     override fun presentationAnchorForAuthorizationController(
@@ -114,21 +140,34 @@ actual class UserOperationService {
                 }
                 performRequests()
             }
-        }?.let { credential ->
-            Firebase.auth.signInWithCredential(
-                OAuthProvider.credential(
-                    providerId = "apple.com",
-                    rawNonce = currentNonce,
-                    idToken = credential.identityToken?.string()
-                )
-            )
-        }
+            deferredJob.await().let { credential ->
+                if(credential == null) return@withContext LoginResultType.FAILURE
 
-        return LoginResultType.FAILURE
+                try {
+                    Firebase.auth.signInWithCredential(
+                        OAuthProvider.credential(
+                            providerId = "apple.com",
+                            rawNonce = currentNonce,
+                            idToken = credential.identityToken?.string()
+                        )
+                    ).user.let {
+                        currentNonce = null
+                        return@withContext if(it != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+                    }
+                }catch (e: FirebaseAuthException) {
+                    println(e.printStackTrace())
+                    currentNonce = null
+                    return@withContext LoginResultType.AUTH_SECURITY
+                }
+            }
+        }
     }
 
     actual suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType? = null
 
-    private fun NSData.string(): String? =
-        NSString.create(data = this, encoding = NSUTF8StringEncoding)?.toString()
+    @OptIn(BetaInteropApi::class)
+    private fun NSData.string(): String? = NSString.create(
+        data = this,
+        encoding = NSUTF8StringEncoding
+    )?.toString()
 }

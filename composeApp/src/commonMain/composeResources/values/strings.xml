@@ -1,4 +1,5 @@
 <resources>
+  <string name="app_name">Chatrich</string>
 
   <string name="screen_home">Home</string>
   <string name="screen_login">Lost and found</string>
@@ -17,9 +18,7 @@
   <string name="username_change_launcher_hint">Call me…</string>
   <string name="username_change_launcher_cancel">Sign-out</string>
   <string name="username_change_launcher_confirm">Save</string>
-  <string name="error_google_sign_in_unavailable">
-        There are no accounts in your device, use other methods, please.
-  </string>
+  <string name="error_google_sign_in_unavailable">There are no accounts in your device, use other methods, please.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>
   <string name="login_password_email_hint">Email</string>
@@ -33,8 +32,9 @@
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
   <string name="login_password_action_go">Here I go!</string>
-  <string name="login_apple_sucks">Due to Apple ridiculous Developer fees, we can't support "Sign in with AppleID"</string>
 
+
+  <string name="account_dashboard_fcm">Your FCM token on this device is:</string>
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->

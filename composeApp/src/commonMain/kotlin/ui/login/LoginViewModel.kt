@@ -18,6 +18,9 @@ enum class LoginResultType {
     /** general error, the request failed */
     FAILURE,
 
+    /** general error, the request failed */
+    AUTH_SECURITY,
+
     /** the UI is missing window, iOS specific */
     NO_WINDOW,
 

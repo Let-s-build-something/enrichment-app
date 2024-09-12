@@ -12,19 +12,33 @@ sealed class NavigationNode {
     val route
         get() = this::class.qualifiedName
 
+    /**
+     * Deeplink is the appendix of a brand link, which is shared between all client apps.
+     * Null if deeplink isn't supported
+     */
+    abstract val deepLink: String?
+
     /** screen for both login and signup */
     @Serializable
-    data object Login: NavigationNode()
+    data object Login: NavigationNode() {
+        override val deepLink: String = "/login"
+    }
 
     /** Easter-egg screen, just because */
     @Serializable
-    data object Water: NavigationNode()
+    data object Water: NavigationNode() {
+        override val deepLink: String? = null
+    }
 
     /** dashboard screen for user information and general user-related actions */
     @Serializable
-    data object AccountDashboard: NavigationNode()
+    data object AccountDashboard: NavigationNode() {
+        override val deepLink: String = "/account-dashboard"
+    }
 
     /** home screen of the whole app */
     @Serializable
-    data object Home: NavigationNode()
+    data object Home: NavigationNode() {
+        override val deepLink: String = "/"
+    }
 }

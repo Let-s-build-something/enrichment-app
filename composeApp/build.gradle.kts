@@ -1,4 +1,3 @@
-
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -48,17 +47,12 @@ kotlin {
         name = "ComposeApp"
 
         podfile = project.file("../iosApp/Podfile")
-        ios.deploymentTarget = "17.3"
+        ios.deploymentTarget = "14.0"
 
-        pod("GoogleSignIn") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseCore") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
-        pod("FirebaseAuth") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
+        pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
 
         framework {
             // Required properties
@@ -83,10 +77,12 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
 
-            implementation(libs.ktor.client.android)
+            implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)
 
             implementation(libs.koin.android)
+
+            implementation(libs.androidx.splashscreen)
 
             //Credentials
             implementation(libs.androidx.credentials)
@@ -100,7 +96,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
 
-            implementation(libs.ktor.client.apache5)
+            implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
         }
 
@@ -126,14 +122,19 @@ kotlin {
 
             implementation(libs.settings.no.arg)
 
+            implementation(libs.kotlin.crypto.sha2)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
             implementation(libs.firebase.gitlive.auth)
+            implementation(libs.firebase.gitlive.messaging)
             implementation(libs.firebase.gitlive.common)
+
+            implementation(libs.coil)
             implementation(libs.coil.compose)
-            //implementation(libs.coil.network)
+            implementation(libs.coil.compose.core)
+            implementation(libs.coil.network.ktor)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
@@ -204,7 +205,6 @@ android {
         }
 
         buildConfig {
-            buildConfigField("MyNameIsPipeline", keystoreProperties["myNameIsPipeline"] as String)
             buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
             buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
             buildConfigField(
@@ -227,6 +227,10 @@ android {
 
     }
 }
+dependencies {
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.activity.ktx)
+}
 
 compose.desktop {
     application {
@@ -239,13 +243,14 @@ compose.desktop {
 
             macOS {
                 appStore = true
-                appCategory = "public.app-category.productivity"
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {
+                //group = "Chatrich"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
+                //group = "Chatrich"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
         }

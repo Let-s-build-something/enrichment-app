@@ -33,7 +33,7 @@ kotlin {
         summary = "Some description for the Shared Module"
         homepage = "Link to the Shared Module homepage"
         version = "1.0"
-        ios.deploymentTarget = "17.3"
+        ios.deploymentTarget = "14.0"
 
         framework {
             baseName = "shared"
@@ -59,9 +59,10 @@ kotlin {
 
 android {
     namespace = "chat.enrichment.shared"
-    compileSdk = 34
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+
     defaultConfig {
-        minSdk = 24
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

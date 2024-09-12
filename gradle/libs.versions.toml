@@ -1,30 +1,33 @@
 [versions]
 agp = "8.5.0"
-android-compileSdk = "34"
+android-compileSdk = "35"
 android-minSdk = "24"
-android-targetSdk = "34"
+android-targetSdk = "35"
 
 androidx-activityCompose = "1.9.2"
 compose-plugin = "1.7.0-alpha03"
 compottie = "2.0.0-beta02"
 firebaseJavaSdk = "0.4.6"
 kotlin = "2.0.20"
+kotlinCrypto = "0.5.3"
 koin = "3.6.0-Beta4"
 koinCompose = "1.2.0-Beta4"
 navigationCompose = "2.8.0-alpha09"
 lifecycle = "2.8.0"
 credentials = "1.3.0-rc01"
 googleId = "1.1.1"
-firebaseGitlive = "2.0.0"
+firebaseGitlive = "2.1.0"
 lifecycleViewModel = "2.8.0"
 windowSizeClass = "0.5.0"
-coilCompose = "3.0.0-alpha06"
-ktor = "3.0.0-beta-2"                        #https://maven.pkg.jetbrains.space/public/p/ktor/eap/io/ktor/ktor-client-json-wasm-js/
-ktorClientApache5 = "3.0.0-beta-2"
+coilCompose = "3.0.0-alpha10"
+ktor = "3.0.0-beta-2"
 coroutines = "1.9.0-RC.2"
-kotlinxSerialization = "1.7.1"
+kotlinxSerialization = "1.7.2"
 kotlinx-datetime = "0.6.1"
 multiplatformSettings = "1.2.0"
+workRuntimeKtx = "2.9.1"
+activityKtx = "1.9.2"
+androidxSplashscreen = "1.2.0-alpha02"
 
 [libraries]
 firebase-java-sdk = { module = "dev.gitlive:firebase-java-sdk", version.ref = "firebaseJavaSdk" }
@@ -33,8 +36,6 @@ kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-co
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
-coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
-coil-network = { module = "io.coil-kt.coil3:coil-network-ktor", version.ref = "coilCompose" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 material3-window-size = { module = "dev.chrisbanes.material3:material3-window-size-class-multiplatform", version.ref = "windowSizeClass" }
@@ -42,10 +43,16 @@ lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runti
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewModel" }
 compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
 
+coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
+coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coilCompose" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
+coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
+
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koinCompose"}
 koin-compose-view-model = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koinCompose" }
+kotlin-crypto-sha2 = { module = "org.kotlincrypto.hash:sha2", version.ref = "kotlinCrypto" }
 
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-json = { group = "io.ktor", name = "ktor-client-json", version.ref = "ktor" }
@@ -53,12 +60,13 @@ ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version
 ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 
-ktor-client-apache5 = { module = "io.ktor:ktor-client-apache5", version.ref = "ktorClientApache5" }
-ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 
 firebase-gitlive-common = { group = "dev.gitlive", name = "firebase-common", version.ref = "firebaseGitlive" }
 firebase-gitlive-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "firebaseGitlive" }
+firebase-gitlive-messaging = { group = "dev.gitlive", name = "firebase-messaging", version.ref = "firebaseGitlive" }
 
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
@@ -68,6 +76,9 @@ settings-no-arg = { group = "com.russhwolf", name = "multiplatform-settings-no-a
 androidx-credentials-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 google-identity = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxSplashscreen" }
 
 [bundles]
 ktor-common = [

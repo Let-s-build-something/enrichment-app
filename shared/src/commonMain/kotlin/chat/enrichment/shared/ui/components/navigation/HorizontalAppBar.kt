@@ -55,12 +55,7 @@ fun HorizontalAppBar(
     onNavigationIconClick: () -> Unit = {}
 ) {
     Row(
-        modifier = modifier.animateContentSize(
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        ),
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         navigationIcon?.let { navigationIcon ->
