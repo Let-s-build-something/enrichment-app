@@ -1,3 +1,4 @@
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -205,6 +206,12 @@ android {
         }
 
         buildConfig {
+            className("SharedBuildConfig")
+            packageName("chat.enrichment.eu")
+            useKotlinOutput {
+                internalVisibility = true
+            }
+
             buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
             buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
             buildConfigField(
@@ -220,7 +227,7 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
+        buildConfig = false
     }
     dependencies {
         debugImplementation(compose.uiTooling)
@@ -237,9 +244,8 @@ compose.desktop {
         mainClass = "MainKt"
 
         buildTypes.release.proguard {
-            obfuscate.set(false)
-            optimize.set(false)
             version.set("7.4.0")
+            configurationFiles.from(project.file("proguard-rules.pro"))
         }
 
         nativeDistributions {
@@ -252,11 +258,9 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {
-                //group = "Chatrich"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
-                //group = "Chatrich"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
         }

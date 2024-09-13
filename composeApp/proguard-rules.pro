@@ -40,7 +40,6 @@
 -keep class io.ktor.serialization.** { *; }
 -keep class kotlin.reflect.jvm.internal.** { *; }
 -keep class coil3.** { *; }
--keep class ui.** { *; }
 -keep class androidx.datastore.preferences.** { *; }
 -dontwarn androidx.compose.material.**
 -keep class androidx.compose.material3.** { *; }
@@ -48,13 +47,42 @@
 -keep class androidx.collection.** { *; }
 -keep class androidx.lifecycle.** { *; }
 
+-keep class android.graphics.drawable.Drawable { *; }
+-keep class android.graphics.Bitmap { *; }
+-keep class android.graphics.Canvas { *; }
+-keep class android.graphics.Shader$TileMode { *; }
+-keep class android.graphics.Shader { *; }
+-keep class android.graphics.Paint { *; }
+-keep class android.graphics.BitmapShader { *; }
+-keep class android.database.** { *; }
+-keep class android.os.** { *; }
+-keep class android.asynclayoutinflater.view.** { *; }
+-keep class androidx.core.graphics.drawable.** { *; }
+-keep class androidx.core.internal.view.** { *; }
+
 # We're excluding Material 2 from the project as we're using Material 3
 -dontwarn androidx.compose.material.**
 
 # Kotlinx coroutines rules seems to be outdated with the latest version of Kotlin and Proguard
 -keep class kotlinx.coroutines.** { *; }
 
--keep class Chatenrichment.composeApp.BuildConfig { *; }
--keep class chatenrichment.composeapp.BuildConfig { *; }
+-keepclasseswithmembers public class MainKt {
+    public static void main(java.lang.String[]);
+}
 
+-dontwarn kotlinx.coroutines.debug.*
+
+-keep class kotlin.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-keep class org.jetbrains.skia.** { *; }
+-keep class org.jetbrains.skiko.** { *; }
+-keep class android.view.** { *; }
+
+-assumenosideeffects public class androidx.compose.runtime.ComposerKt {
+    void sourceInformation(androidx.compose.runtime.Composer,java.lang.String);
+    void sourceInformationMarkerStart(androidx.compose.runtime.Composer,int,java.lang.String);
+    void sourceInformationMarkerEnd(androidx.compose.runtime.Composer);
+}
+
+# Just in case everything goes south
 -ignorewarnings
