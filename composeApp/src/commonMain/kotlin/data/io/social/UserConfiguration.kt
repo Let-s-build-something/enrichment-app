@@ -1,6 +1,5 @@
 package data.io.social
 
-
 /** Configuration related to currently signed in user */
 data class UserConfiguration(
 

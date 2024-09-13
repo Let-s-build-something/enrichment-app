@@ -10,5 +10,3 @@ open class BaseErrorMessage(
     /** Developer readable message. */
     val rationale: String? = null
 )
-
-
