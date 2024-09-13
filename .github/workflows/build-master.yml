@@ -32,8 +32,7 @@ jobs:
     - name: Build with Gradle and Print Version
       id: gradle
       run: |
-        ./gradlew printVersionName > version.txt
-        VERSION=$(tail -n 1 version.txt)
+        VERSION=$(./gradlew -q printVersionName)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
 
