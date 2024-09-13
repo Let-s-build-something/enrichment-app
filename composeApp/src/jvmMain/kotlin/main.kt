@@ -1,5 +1,4 @@
 
-import Chatenrichment.composeApp.BuildConfig
 import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -13,6 +12,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import chat.enrichment.eu.SharedBuildConfig
 import chat.enrichment.shared.ui.base.LocalScreenSize
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.app_name
@@ -107,9 +107,9 @@ private fun initializeFirebase(setting: Settings = KoinPlatform.getKoin().get<Se
     )
 
     val options: FirebaseOptions = FirebaseOptions.Builder()
-        .setProjectId(BuildConfig.FirebaseProjectId)
-        .setApplicationId(BuildConfig.AndroidAppId)
-        .setApiKey(BuildConfig.CloudWebApiKey)
+        .setProjectId(SharedBuildConfig.FirebaseProjectId)
+        .setApplicationId(SharedBuildConfig.AndroidAppId)
+        .setApiKey(SharedBuildConfig.CloudWebApiKey)
         .build()
 
     Firebase.initialize(Application(), options)

@@ -42,16 +42,31 @@ jobs:
     # Android
     - name: Build Android Release
       run: ./gradlew assembleRelease
-    - name: Export Android APK to artifacts
+    - name: Export Android .apk to artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Android ${{ env.VERSION }}
         path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/apk/release/composeApp-release.apk
 
-    # iOS
-    - name: Build iOS
-      run: ./gradlew packageDmg
+    # iOS - Dmg
+    - name: Build iOS Release
+      run: ./gradlew packageReleaseDmg
+    - name: Export iOS .dmg to artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: iOS ${{ env.VERSION }}
+        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/dmg/Chatrich-${{ env.VERSION }}.dmg
 
-    # Jvm
-    - name: Build Jvm
-      run: ./gradlew packageMsi
+      # Windows - Msi
+    - name: Build Windows Release
+      run: ./gradlew packageReleaseMsi
+    - name: Export Windows .msi to artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows ${{ env.VERSION }}
+        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich
+
+
+      # Linux - Deb
+    - name: Build Linux Release
+      run: ./gradlew packageReleaseDeb
