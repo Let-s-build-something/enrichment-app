@@ -62,7 +62,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Windows ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich
+        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich.msi
 
       # Linux - Deb
     - name: Build Linux Release
