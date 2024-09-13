@@ -37,14 +37,27 @@ jobs:
 
     # Build the app and export the output files
 
-    # Android
+    # Upload the artifacts to Firebase App Distribution
+
+    # Android - create a bundle
     - name: Build Android Release
       run: ./gradlew bundleRelease
-    - name: Export Android .aab to artifacts
-      uses: actions/upload-artifact@v4
+    # Android - upload the bundle to Firebase distribution
+    - name: Firebase App Distribution initialization
+      uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+
+    - name: Upload Android to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
       with:
-        name: Android ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
+        appId: ${{secrets.ANDROID_RELEASE_APP_ID}}
+        serviceCredentialsFileContent: ${{secrets.FIREBASE_DISTRIBUTION_CREDENTIALS_CONTENT}}
+        groups: internal-testing
+        file: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
+    #- name: Export Android .aab to artifacts
+    #  uses: actions/upload-artifact@v4
+    #  with:
+    #    name: Android ${{ env.VERSION }}
+    #    path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
     # iOS - Dmg
     - name: Build iOS Release

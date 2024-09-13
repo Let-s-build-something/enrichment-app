@@ -27,14 +27,14 @@ jobs:
     - name: Decode google-services.json
       run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
 
-    - name: Build Android Release
-      run: ./gradlew assembleRelease
+    - name: Build Android Debug
+      run: ./gradlew assemble
 
-    - name: Build iOS (Dmg)
-      run: ./gradlew packageReleaseDmg
+    - name: Build iOS Debug (Dmg)
+      run: ./gradlew packageDmg
 
-    - name: Build Windows (Msi)
-      run: ./gradlew packageReleaseMsi
+    - name: Build Windows Debug (Msi)
+      run: ./gradlew packageMsi
 
-    - name: Build Linux (Deb)
-      run: ./gradlew packageReleaseDeb
+    - name: Build Linux Debug (Deb)
+      run: ./gradlew packageDeb
