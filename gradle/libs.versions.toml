@@ -72,7 +72,6 @@ firebase-gitlive-messaging = { group = "dev.gitlive", name = "firebase-messaging
 
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
-proguard-gradle = { module = "com.guardsquare:proguard-gradle", version.ref = "proguardGradle" }
 settings-no-arg = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
 
 #------------------- ANDROID -------------------
