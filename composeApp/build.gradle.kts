@@ -236,6 +236,12 @@ compose.desktop {
     application {
         mainClass = "MainKt"
 
+        buildTypes.release.proguard {
+            obfuscate.set(false)
+            optimize.set(false)
+            version.set("7.4.0")
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageVersion = libs.versions.version.name.get()

@@ -1,7 +1,7 @@
 name: Build and extract Master
 
 on:
-  pull_request:
+  push:
     branches: [ "master" ]
 
 jobs:
@@ -36,6 +36,7 @@ jobs:
         VERSION=$(tail -n 1 version.txt)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+
     # Build the app and export the output files
 
     # Android
@@ -44,13 +45,13 @@ jobs:
     - name: Export Android APK to artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Android $VERSION
+        name: Android ${{env.VERSION}}
         path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/apk/release/composeApp-release.apk
 
     # iOS
     - name: Build iOS
       run: ./gradlew packageDmg
-      
+
     # Jvm
     - name: Build Jvm
       run: ./gradlew packageMsi

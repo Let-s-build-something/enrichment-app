@@ -20,7 +20,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import io.notifications.NotificationTag
+import data.io.notifications.NotificationTag
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

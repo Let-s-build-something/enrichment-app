@@ -1,4 +1,4 @@
-package io.notifications
+package data.io.notifications
 
 import kotlinx.serialization.Serializable
 
