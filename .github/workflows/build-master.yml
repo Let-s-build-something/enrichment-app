@@ -58,11 +58,11 @@ jobs:
       # Windows - Msi
     - name: Build Windows Release
       run: ./gradlew packageReleaseMsi
-    - name: Export Windows .msi to artifacts
+    - name: Export Windows .app to artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Windows ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich.msi
+        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich.app
 
       # Linux - Deb
     - name: Build Linux Release
