@@ -35,17 +35,16 @@ jobs:
         VERSION=$(./gradlew -q printVersionName)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-
     # Build the app and export the output files
 
     # Android
     - name: Build Android Release
-      run: ./gradlew assembleRelease
-    - name: Export Android .apk to artifacts
+      run: ./gradlew bundleRelease
+    - name: Export Android .aab to artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Android ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/apk/release/composeApp-release.apk
+        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
     # iOS - Dmg
     - name: Build iOS Release
@@ -64,7 +63,6 @@ jobs:
       with:
         name: Windows ${{ env.VERSION }}
         path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich
-
 
       # Linux - Deb
     - name: Build Linux Release
