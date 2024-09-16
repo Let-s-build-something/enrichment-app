@@ -5,10 +5,11 @@ import FirebaseAuth
 import GoogleSignIn
 import FirebaseMessaging
 import CryptoKit
+import AuthenticationServices
 
-class AppDelegate: NSObject,
-                    UIApplicationDelegate,
-                    UNUserNotificationCenterDelegate {
+class AppDelegate: ASPresentationAnchor,
+                   UNUserNotificationCenterDelegate,
+                   UIApplicationDelegate {
     
     func application(
         _ application: UIApplication,
