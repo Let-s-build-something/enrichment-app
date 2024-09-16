@@ -60,13 +60,6 @@ jobs:
       run: |
         VERSION=$(./gradlew -q printVersionName)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
-        
-
-      # Debugging step to list directory contents after upload
-    - name: List all schemes available
-      run: |
-        cd iosApp 
-        xcodebuild -list
 
     # Build the app and export the output files
 
