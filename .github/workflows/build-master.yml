@@ -82,7 +82,11 @@ jobs:
       run: ls -R ${{ github.workspace }}/composeApp/build/outputs/bundle/release/
 
 
-    # iOS - create .ipa file
+      # Debugging step to list directory contents after upload
+    - name: List all schemes available
+      run: xcodebuild -list
+
+      # iOS - create .ipa file
     - name: build archive
       run: |
         cd iosApp
