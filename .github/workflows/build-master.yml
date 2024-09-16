@@ -42,22 +42,11 @@ jobs:
     # Android - create a bundle
     - name: Build Android Release
       run: ./gradlew bundleRelease
-    # Android - upload the bundle to Firebase distribution
-    - name: Firebase App Distribution initialization
-      uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
-
-    - name: Upload Android to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
+    - name: Export Android .aab to artifacts
+      uses: actions/upload-artifact@v4
       with:
-        appId: ${{secrets.ANDROID_RELEASE_APP_ID}}
-        serviceCredentialsFileContent: ${{secrets.FIREBASE_DISTRIBUTION_CREDENTIALS_CONTENT}}
-        groups: internal-testing
-        file: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
-    #- name: Export Android .aab to artifacts
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #    name: Android ${{ env.VERSION }}
-    #    path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
+        name: Android ${{ env.VERSION }}
+        path: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
     # iOS - Dmg
     - name: Build iOS Release
@@ -66,7 +55,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: iOS ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/dmg/Chatrich-${{ env.VERSION }}.dmg
+        path: $GITHUB_WORKSPACE/composeApp/build/compose/binaries/main-release/dmg/Chatrich-${{ env.VERSION }}.dmg
 
       # Windows - Msi
     - name: Build Windows Release
@@ -75,7 +64,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Windows ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich.app
+        path: $GITHUB_WORKSPACE/composeApp/build/compose/binaries/main-release/app/Chatrich.app
 
       # Linux - Deb
     - name: Build Linux Release
