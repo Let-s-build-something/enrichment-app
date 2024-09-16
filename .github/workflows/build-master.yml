@@ -164,3 +164,4 @@ jobs:
 
   deploy:
     uses: ./.github/workflows/artifact-distribution.yml
+    needs: compile
