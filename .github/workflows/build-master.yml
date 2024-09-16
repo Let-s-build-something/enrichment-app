@@ -45,7 +45,7 @@ jobs:
     - name: Export Android .aab to artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Android ${{ env.VERSION }}
+        name: android-release
         path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
     # iOS - Dmg
