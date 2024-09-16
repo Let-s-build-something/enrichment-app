@@ -201,7 +201,7 @@ import Foundation
     }
 
     /// Starts the flow to verify the client via silent push notification.
-    /// - Parameter retryOnInvalidAppCredential: Whether of not the flow should be retried if an
+    /// - Parameter retryOnInvalidAppCredential: Whether or not the flow should be retried if an
     ///  AuthErrorCodeInvalidAppCredential error is returned from the backend.
     /// - Parameter phoneNumber: The phone number to be verified.
     /// - Parameter callback: The callback to be invoked on the global work queue when the flow is
@@ -346,15 +346,12 @@ import Foundation
       } catch {
         let nserror = error as NSError
         // reCAPTCHA Flow if it's an invalid app credential or a missing app token.
-        if (nserror.code == AuthErrorCode.internalError.rawValue &&
-          (nserror.userInfo[NSUnderlyingErrorKey] as? NSError)?.code ==
-          AuthErrorCode.invalidAppCredential.rawValue) ||
-          nserror.code == AuthErrorCode.missingAppToken.rawValue {
-          return try await CodeIdentity
-            .recaptcha(reCAPTCHAFlowWithUIDelegate(withUIDelegate: uiDelegate))
-        } else {
+        guard nserror.code == AuthErrorCode.invalidAppCredential.rawValue || nserror
+          .code == AuthErrorCode.missingAppToken.rawValue else {
           throw error
         }
+        return try await CodeIdentity
+          .recaptcha(reCAPTCHAFlowWithUIDelegate(withUIDelegate: uiDelegate))
       }
     }
 
