@@ -87,7 +87,6 @@ actual class UserOperationService {
     }
 
     private var currentNonce: String? = null
-    private var deferredJob = CompletableDeferred<AppleIdAuthShell?>(Job())
 
     private fun sha256(input: String): String {
         val inputData = input.toByteArray(Charsets.UTF_8)
@@ -99,8 +98,7 @@ actual class UserOperationService {
 
     @OptIn(ExperimentalUuidApi::class)
     actual suspend fun requestAppleSignIn(): LoginResultType {
-        deferredJob.complete(null)
-        deferredJob = CompletableDeferred(Job())
+        val deferredJob = CompletableDeferred<AppleIdAuthShell?>(Job())
         currentNonce = Uuid.random().toString()
 
         val appleIDProvider = ASAuthorizationAppleIDProvider()
