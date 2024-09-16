@@ -1,0 +1,4 @@
+module GoogleUtilities_Reachability {
+umbrella "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleUtilities/GoogleUtilities/Reachability/Public"
+export *
+}

@@ -1,0 +1,4 @@
+module GoogleUtilities_Network {
+umbrella "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleUtilities/GoogleUtilities/Network/Public"
+export *
+}

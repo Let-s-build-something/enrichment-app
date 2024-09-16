@@ -1,0 +1,4 @@
+module FirebaseAuth {
+header "FirebaseAuth-Swift.h"
+export *
+}

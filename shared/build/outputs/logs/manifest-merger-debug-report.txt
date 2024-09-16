@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml:2:13-83
+INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml:2:13-83
+	package
+		INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml
+	xmlns:android
+		ADDED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml:2:23-81
+uses-sdk
+INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml reason: use-sdk injection requested
+INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml
+INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml
+	android:targetSdkVersion
+		INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml
+	android:minSdkVersion
+		INJECTED from /Users/jakubkostka/Communication-enrichment/shared/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest5880635124230300520.xml

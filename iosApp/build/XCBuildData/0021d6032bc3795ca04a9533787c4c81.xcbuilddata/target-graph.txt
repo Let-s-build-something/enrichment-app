@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'iosApp' in project 'iosApp'
+➜ Explicit dependency on target 'NotificationService' in project 'iosApp'
+Target 'NotificationService' in project 'iosApp' (no dependencies)

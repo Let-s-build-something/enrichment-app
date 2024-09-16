@@ -1,0 +1,6 @@
+version: "Apple Swift version 5.10 (swiftlang-5.10.0.13 clang-1500.3.9.4)"
+options: "5b56cbfec27a89e155cc22c094d24c6a9b96c477260ea5979d56b3c8063311ac"
+build_start_time: [1726488502, 777591000]
+build_end_time: [1726488503, 816134000]
+inputs:
+  "/Users/jakubkostka/Communication-enrichment/iosApp/NotificationService/NotificationService.swift": !dirty [1726162160, 303128002]

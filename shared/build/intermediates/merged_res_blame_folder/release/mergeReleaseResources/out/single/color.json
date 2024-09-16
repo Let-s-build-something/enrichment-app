@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "chat.enrichment.shared-release-53:/color/vector_tint_theme_color.xml",
+        "source": "chat.enrichment.shared-ui-release-26:/color/vector_tint_theme_color.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/color/vector_tint_color.xml",
+        "source": "chat.enrichment.shared-ui-release-26:/color/vector_tint_color.xml"
+    }
+]

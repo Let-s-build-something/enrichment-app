@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout-v21/notification_action_tombstone.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout-v21/notification_action_tombstone.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout-v21/notification_template_icon_group.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout-v21/notification_template_icon_group.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout-v21/notification_template_custom_big.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout-v21/notification_template_custom_big.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout-v21/notification_action.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout-v21/notification_action.xml"
+    }
+]

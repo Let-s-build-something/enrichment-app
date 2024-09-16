@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-anydpi-v21/ic_call_answer.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-anydpi-v21/ic_call_answer.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-anydpi-v21/ic_call_decline_low.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-anydpi-v21/ic_call_decline_low.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-anydpi-v21/ic_call_answer_video_low.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-anydpi-v21/ic_call_answer_video_low.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-anydpi-v21/ic_call_decline.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-anydpi-v21/ic_call_decline.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-anydpi-v21/ic_call_answer_video.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-anydpi-v21/ic_call_answer_video.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-anydpi-v21/ic_call_answer_low.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-anydpi-v21/ic_call_answer_low.xml"
+    }
+]

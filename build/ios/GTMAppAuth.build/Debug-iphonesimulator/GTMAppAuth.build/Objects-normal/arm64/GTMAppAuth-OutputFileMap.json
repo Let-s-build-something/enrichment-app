@@ -1,0 +1,88 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMAppAuth-master.dia",
+    "emit-module-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMAppAuth-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMAppAuth-master-emit-module.dia",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMAppAuth-master.swiftdeps"
+  },
+  "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/resource_bundle_accessor~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/AuthSession.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSession~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/AuthSessionDelegate.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionDelegate~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/AuthSessionStore.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/AuthSessionStore~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/KeychainStore/GTMOAuth2Compatibility.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/GTMOAuth2Compatibility~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/KeychainStore/KeychainAttribute.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainAttribute~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/KeychainStore/KeychainHelper.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainHelper~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GTMAppAuth/GTMAppAuth/Sources/KeychainStore/KeychainStore.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.dia",
+    "index-unit-output-path" : "/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GTMAppAuth.build/Debug-iphonesimulator/GTMAppAuth.build/Objects-normal/arm64/KeychainStore~partial.swiftmodule"
+  }
+}

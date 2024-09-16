@@ -1,0 +1,46 @@
+[
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/notification_bg_normal.9.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/notification_bg_normal.9.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/ic_call_answer_video_low.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/ic_call_answer_video_low.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/ic_call_answer_video.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/ic_call_answer_video.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/ic_call_decline.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/ic_call_decline.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/ic_call_decline_low.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/ic_call_decline_low.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/ic_call_answer_low.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/ic_call_answer_low.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/notification_bg_low_pressed.9.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/notification_bg_low_pressed.9.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/notify_panel_notification_icon_bg.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/notify_panel_notification_icon_bg.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/notification_bg_low_normal.9.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/notification_bg_low_normal.9.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/notification_bg_normal_pressed.9.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/notification_bg_normal_pressed.9.png"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable-mdpi-v4/ic_call_answer.png",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable-mdpi-v4/ic_call_answer.png"
+    }
+]

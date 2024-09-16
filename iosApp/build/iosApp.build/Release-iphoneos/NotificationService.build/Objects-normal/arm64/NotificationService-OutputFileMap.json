@@ -1,0 +1,15 @@
+{
+  "" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService-master.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService-master.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService-master.dia",
+    "emit-module-dependencies" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService-master-emit-module.dia",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService-master.swiftdeps"
+  },
+  "/Users/jakubkostka/Communication-enrichment/iosApp/NotificationService/NotificationService.swift" : {
+    "index-unit-output-path" : "/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/iosApp/build/iosApp.build/Release-iphoneos/NotificationService.build/Objects-normal/arm64/NotificationService.o"
+  }
+}

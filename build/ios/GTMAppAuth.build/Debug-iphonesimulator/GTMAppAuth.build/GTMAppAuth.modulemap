@@ -1,0 +1,4 @@
+module GTMAppAuth {
+header "GTMAppAuth-Swift.h"
+export *
+}

@@ -1,0 +1,22 @@
+[
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable/notification_bg.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable/notification_bg.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable/notification_tile_bg.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable/notification_tile_bg.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable/notification_icon_background.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable/notification_icon_background.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable/notification_bg_low.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/drawable/notification_bg_low.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/drawable/abc_vector_test.xml",
+        "source": "chat.enrichment.shared-appcompat-resources-1.7.0-34:/drawable/abc_vector_test.xml"
+    }
+]

@@ -1,0 +1,22 @@
+[
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout/ime_secondary_split_test_activity.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout/ime_secondary_split_test_activity.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout/ime_base_split_test_activity.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout/ime_base_split_test_activity.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout/notification_template_part_chronometer.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout/notification_template_part_chronometer.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout/custom_dialog.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout/custom_dialog.xml"
+    },
+    {
+        "merged": "chat.enrichment.shared-release-53:/layout/notification_template_part_time.xml",
+        "source": "chat.enrichment.shared-core-1.13.1-48:/layout/notification_template_part_time.xml"
+    }
+]

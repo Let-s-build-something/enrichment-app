@@ -1,0 +1,38 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iosApp-master.dia",
+    "emit-module-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iosApp-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iosApp-master-emit-module.dia",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iosApp-master.swiftdeps"
+  },
+  "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Communication-enrichment/iosApp/iosApp/ContentView.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Communication-enrichment/iosApp/iosApp/iOSApp.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.dia",
+    "index-unit-output-path" : "/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/iosApp.build/Debug-iphonesimulator/iosApp.build/Objects-normal/arm64/iOSApp~partial.swiftmodule"
+  }
+}

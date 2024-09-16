@@ -1,0 +1,4 @@
+module FirebaseCoreInternal {
+header "FirebaseCoreInternal-Swift.h"
+export *
+}

@@ -1,0 +1,31 @@
+<variant
+    name="release"
+    package="chat.enrichment.shared"
+    minSdkVersion="24"
+    targetSdkVersion="24"
+    mergedManifest="build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml"
+    proguardFiles="build/intermediates/default_proguard_files/global/proguard-android.txt-8.5.0"
+    partialResultsDir="build/intermediates/lint_vital_partial_results/release/lintVitalAnalyzeRelease/out"
+    desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/d4ae48add0b92c8de41e6782e0062cf1/transformed/D8BackportedDesugaredMethods.txt">
+  <buildFeatures
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="src/androidMain/AndroidManifest.xml"
+        javaDirectories="src/main/java:src/release/java:src/androidMain/kotlin:build/generated/compose/resourceGenerator/kotlin/androidMainResourceAccessors:src/main/kotlin:build/generated/compose/resourceGenerator/kotlin/androidMainResourceCollectors:src/release/kotlin"
+        resDirectories="src/main/res:src/androidMain/res:src/release/res"
+        assetsDirectories="src/main/assets:src/androidMain/assets:src/release/assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <artifact
+      classOutputs="build/intermediates/javac/release/compileReleaseJavaWithJavac/classes:build/tmp/kotlin-classes/release:build/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar"
+      type="MAIN"
+      applicationId="chat.enrichment.shared"
+      generatedSourceFolders="build/generated/ap_generated_sources/release/out"
+      generatedResourceFolders="build/generated/res/resValues/release"
+      desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/d4ae48add0b92c8de41e6782e0062cf1/transformed/D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>

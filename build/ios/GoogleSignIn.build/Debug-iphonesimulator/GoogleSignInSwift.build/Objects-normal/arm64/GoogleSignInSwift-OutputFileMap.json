@@ -1,0 +1,68 @@
+{
+  "" : {
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInSwift-master.dia",
+    "emit-module-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInSwift-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInSwift-master-emit-module.dia",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInSwift-master.swiftdeps"
+  },
+  "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.dia",
+    "index-unit-output-path" : "/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/resource_bundle_accessor~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleSignIn-iOS/GoogleSignInSwift/Sources/GoogleSignInButton.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.dia",
+    "index-unit-output-path" : "/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButton~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleSignIn-iOS/GoogleSignInSwift/Sources/GoogleSignInButtonBundleExtensions.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.dia",
+    "index-unit-output-path" : "/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonBundleExtensions~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleSignIn-iOS/GoogleSignInSwift/Sources/GoogleSignInButtonStrings.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.dia",
+    "index-unit-output-path" : "/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStrings~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleSignIn-iOS/GoogleSignInSwift/Sources/GoogleSignInButtonStyling.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.dia",
+    "index-unit-output-path" : "/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonStyling~partial.swiftmodule"
+  },
+  "/Users/jakubkostka/Library/Developer/Xcode/DerivedData/iosApp-aglqmsawrfrafsbavhrnzcnyfwrk/SourcePackages/checkouts/GoogleSignIn-iOS/GoogleSignInSwift/Sources/GoogleSignInButtonViewModel.swift" : {
+    "const-values" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.swiftconstvalues",
+    "dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.d",
+    "diagnostics" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.dia",
+    "index-unit-output-path" : "/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.o",
+    "llvm-bc" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.bc",
+    "object" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.o",
+    "swift-dependencies" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel.swiftdeps",
+    "swiftmodule" : "/Users/jakubkostka/Communication-enrichment/build/ios/GoogleSignIn.build/Debug-iphonesimulator/GoogleSignInSwift.build/Objects-normal/arm64/GoogleSignInButtonViewModel~partial.swiftmodule"
+  }
+}
