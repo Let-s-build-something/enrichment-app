@@ -63,6 +63,10 @@ jobs:
 
     # Build the app and export the output files
 
+      # iOS - create .ipa file
+    - name: Generate Dummy Framework
+      run: ./gradlew :composeApp:generateDummyFramewo
+
     # iOS - create .ipa file
     - name: build archive
       run: |
