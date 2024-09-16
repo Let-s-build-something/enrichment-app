@@ -67,7 +67,9 @@ jobs:
     - name: Generate Dummy Framework
       run: ./gradlew :composeApp:generateDummyFramework
     - name: Clean build folder
-      run: xcodebuild clean -workspace iosApp.xcworkspace -scheme iosApp -configuration Release
+      run: |
+        cd iosApp
+        xcodebuild clean -workspace iosApp.xcworkspace -scheme iosApp -configuration Release
     - name: Install CocoaPods dependencies
       run: |
         cd iosApp
