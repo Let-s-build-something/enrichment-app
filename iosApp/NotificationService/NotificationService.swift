@@ -1,5 +1,5 @@
 import UserNotifications
-import FirebaseMessaging
+//import FirebaseMessaging
 import ComposeApp
 
 class NotificationService: UNNotificationServiceExtension {
@@ -37,10 +37,10 @@ class NotificationService: UNNotificationServiceExtension {
             }
             
             //contentHandler(bestAttemptContent)
-            Messaging.serviceExtension().populateNotificationContent(
-                bestAttemptContent,
-                withContentHandler: contentHandler
-            )
+            //Messaging.serviceExtension().populateNotificationContent(
+            //    bestAttemptContent,
+            //    withContentHandler: contentHandler
+            //)
         }
     }
         

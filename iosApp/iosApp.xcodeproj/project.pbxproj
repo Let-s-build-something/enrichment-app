@@ -13,14 +13,14 @@
 		6A029FE086515ED459605EB1 /* Pods_iosApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C952BBCC9D30584CAE11AEB8 /* Pods_iosApp.framework */; };
 		6E3A591D2C930D3C00A491FE /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6E3A591C2C930D3C00A491FE /* Launch Screen.storyboard */; };
 		6E72333B2C92F9F500433271 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E72333A2C92F9F500433271 /* NotificationService.swift */; };
-		6E72333F2C92F9F500433271 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E7233382C92F9F500433271 /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6EAD7B162C987C9E00FBD8F2 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6E7233382C92F9F500433271 /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6EBD86742C91CC51003679EC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6EBD86732C91CC51003679EC /* GoogleService-Info.plist */; };
 		7555FF83242A565900829871 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF82242A565900829871 /* ContentView.swift */; };
-		E6255BE9AD48382BD85FBFFA /* Pods_NotificationService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7298778C7352B05C2C556416 /* Pods_NotificationService.framework */; };
+		97DDFE4504600D38194103B9 /* Pods_NotificationService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7298778C7352B05C2C556416 /* Pods_NotificationService.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		6E72333D2C92F9F500433271 /* PBXContainerItemProxy */ = {
+		6EAD7B172C987C9E00FBD8F2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7555FF73242A565900829871 /* Project object */;
 			proxyType = 1;
@@ -30,13 +30,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		6E7233272C92F7EA00433271 /* Embed Foundation Extensions */ = {
+		6EAD7B192C987C9F00FBD8F2 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				6E72333F2C92F9F500433271 /* NotificationService.appex in Embed Foundation Extensions */,
+				6EAD7B162C987C9E00FBD8F2 /* NotificationService.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -70,7 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E6255BE9AD48382BD85FBFFA /* Pods_NotificationService.framework in Frameworks */,
+				97DDFE4504600D38194103B9 /* Pods_NotificationService.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,12 +198,12 @@
 				7555FF79242A565900829871 /* Resources */,
 				959C96874D2771370FC7D9DE /* [CP] Embed Pods Frameworks */,
 				C85B37C8F65D5F9225028AF2 /* [CP] Copy Pods Resources */,
-				6E7233272C92F7EA00433271 /* Embed Foundation Extensions */,
+				6EAD7B192C987C9F00FBD8F2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				6E72333E2C92F9F500433271 /* PBXTargetDependency */,
+				6EAD7B182C987C9E00FBD8F2 /* PBXTargetDependency */,
 			);
 			name = iosApp;
 			productName = iosApp;
@@ -389,10 +389,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		6E72333E2C92F9F500433271 /* PBXTargetDependency */ = {
+		6EAD7B182C987C9E00FBD8F2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 6E7233372C92F9F500433271 /* NotificationService */;
-			targetProxy = 6E72333D2C92F9F500433271 /* PBXContainerItemProxy */;
+			targetProxy = 6EAD7B172C987C9E00FBD8F2 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -409,7 +409,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_ASSET_PATHS = "iosApp/Preview\\ Content";
 				DEVELOPMENT_TEAM = YDKDFB7RLU;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotificationService/Info.plist;
@@ -446,7 +446,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "iosApp/Preview\\ Content";
 				DEVELOPMENT_TEAM = YDKDFB7RLU;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotificationService/Info.plist;
@@ -599,7 +599,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = CDF04C4E52AF2448C3F43347 /* Pods-iosApp.debug.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -635,7 +634,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4A21C3B96DC83061906B7A12 /* Pods-iosApp.release.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
