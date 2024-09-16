@@ -66,12 +66,15 @@ jobs:
       # iOS - create .ipa file
     - name: Generate Dummy Framework
       run: ./gradlew :composeApp:generateDummyFramework
-
-    # iOS - create .ipa file
-    - name: build archive
+    - name: Clean build folder
+      run: xcodebuild clean -workspace iosApp.xcworkspace -scheme iosApp -configuration Release
+    - name: Install CocoaPods dependencies
       run: |
         cd iosApp
-        
+        pod install
+    - name: Build archive
+      run: |
+        cd iosApp
         xcrun xcodebuild \
           -scheme "iosApp" \
           -configuration "Release" \
