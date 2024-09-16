@@ -84,7 +84,8 @@ jobs:
 
       # Debugging step to list directory contents after upload
     - name: List all schemes available
-      run: cd iosApp 
+      run: |
+        cd iosApp 
         xcodebuild -list
 
       # iOS - create .ipa file
