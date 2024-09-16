@@ -113,33 +113,33 @@ actual class UserOperationService {
             }
         }
         return withContext(Dispatchers.Main) {
-            ASAuthorizationController(authorizationRequests = listOf(request)).run {
-                cancel()
-                delegate = object: NSObject(),
-                    ASAuthorizationControllerDelegateProtocol,
-                    ASAuthorizationControllerPresentationContextProvidingProtocol {
-                    override fun authorizationController(
-                        controller: ASAuthorizationController,
-                        didCompleteWithAuthorization: ASAuthorization
-                    ) {
-                        println("ASAuthorizationController, didCompleteWithAuthorization: $didCompleteWithAuthorization")
-                        deferredJob.complete(didCompleteWithAuthorization.credential as? ASAuthorizationAppleIDCredential)
-                    }
-
-                    override fun authorizationController(
-                        controller: ASAuthorizationController,
-                        didCompleteWithError: NSError
-                    ) {
-                        println("ASAuthorizationController, didCompleteWithError: $didCompleteWithError")
-                        deferredJob.complete(null)
-                    }
-
-                    override fun presentationAnchorForAuthorizationController(
-                        controller: ASAuthorizationController
-                    ): UIWindow? = UIApplication.sharedApplication.keyWindow
+            val authorizationController = ASAuthorizationController(authorizationRequests = listOf(request))
+            println("ASAuthorizationController, delegate before: ${authorizationController.delegate}")
+            authorizationController.delegate = object : NSObject(),
+                ASAuthorizationControllerDelegateProtocol,
+                ASAuthorizationControllerPresentationContextProvidingProtocol {
+                override fun authorizationController(
+                    controller: ASAuthorizationController,
+                    didCompleteWithAuthorization: ASAuthorization
+                ) {
+                    println("ASAuthorizationController, didCompleteWithAuthorization: $didCompleteWithAuthorization")
+                    deferredJob.complete(didCompleteWithAuthorization.credential as? ASAuthorizationAppleIDCredential)
                 }
-                performRequests()
+
+                override fun authorizationController(
+                    controller: ASAuthorizationController,
+                    didCompleteWithError: NSError
+                ) {
+                    println("ASAuthorizationController, didCompleteWithError: $didCompleteWithError")
+                    deferredJob.complete(null)
+                }
+
+                override fun presentationAnchorForAuthorizationController(
+                    controller: ASAuthorizationController
+                ): UIWindow = UIApplication.sharedApplication.keyWindow()!!
             }
+            println("ASAuthorizationController, delegate after: ${authorizationController.delegate}")
+            authorizationController.performRequests()
             deferredJob.await().let { credential ->
                 if(credential == null) return@withContext LoginResultType.FAILURE
 

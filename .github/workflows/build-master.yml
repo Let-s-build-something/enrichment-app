@@ -64,12 +64,8 @@ jobs:
     # Build the app and export the output files
 
       # iOS - create .ipa file
-    - name: Generate Dummy Framework
+    - name: Gradle build
       run: ./gradlew build
-    - name: Clean build folder
-      run: |
-        cd iosApp
-        xcodebuild clean -workspace iosApp.xcworkspace -scheme iosApp -configuration Release
     - name: Install CocoaPods dependencies
       run: |
         cd iosApp
