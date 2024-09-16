@@ -70,17 +70,7 @@ jobs:
 
     # Build the app and export the output files
 
-    # Android - create a bundle
-    - name: Build Android Release
-      run: ./gradlew bundleRelease
-
-    - name: Export Android .aab to artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: android-release
-        path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
-
-      # iOS - create .ipa file
+    # iOS - create .ipa file
     - name: build archive
       run: |
         cd iosApp
@@ -161,6 +151,15 @@ jobs:
       # Linux - Deb
     - name: Build Linux Release
       run: ./gradlew packageReleaseDeb
+
+      # Android - create a bundle
+    - name: Build Android Release
+      run: ./gradlew bundleRelease
+    - name: Export Android .aab to artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-release
+        path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
   deploy:
     uses: ./.github/workflows/artifact-distribution.yml
