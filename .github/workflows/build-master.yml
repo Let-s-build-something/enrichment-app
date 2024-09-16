@@ -60,6 +60,13 @@ jobs:
       run: |
         VERSION=$(./gradlew -q printVersionName)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
+        
+
+      # Debugging step to list directory contents after upload
+    - name: List all schemes available
+      run: |
+        cd iosApp 
+        xcodebuild -list
 
     # Build the app and export the output files
 
@@ -72,17 +79,6 @@ jobs:
       with:
         name: android-release
         path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
-
-    - name: TEST download Android artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: android-release
-
-      # Debugging step to list directory contents after upload
-    - name: List all schemes available
-      run: |
-        cd iosApp 
-        xcodebuild -list
 
       # iOS - create .ipa file
     - name: build archive
