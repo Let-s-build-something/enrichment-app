@@ -12,22 +12,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       # Android - upload the bundle to Firebase distribution
-    - name: Firebase App Distribution initialization
-      uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+      - name: Firebase App Distribution initialization
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
 
-    - name: Download Android artifact
-    - uses: actions/download-artifact@master
-      with:
-        name: android-release
-        path: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
+      - name: Download Android artifact
+        uses: actions/download-artifact@master
+        with:
+          name: android-release
+          path: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
-    - name: Upload Android to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
-      with:
-        appId: ${{secrets.ANDROID_RELEASE_APP_ID}}
-        serviceCredentialsFileContent: ${{secrets.FIREBASE_DISTRIBUTION_CREDENTIALS_CONTENT}}
-        groups: internal-testing
-        file: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
+      - name: Upload Android to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{secrets.ANDROID_RELEASE_APP_ID}}
+          serviceCredentialsFileContent: ${{secrets.FIREBASE_DISTRIBUTION_CREDENTIALS_CONTENT}}
+          groups: internal-testing
+          file: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
