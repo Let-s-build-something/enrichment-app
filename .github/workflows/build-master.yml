@@ -54,7 +54,7 @@ jobs:
         api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
         api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
 
-        # Prepare the environment
+      # Prepare the environment
     - name: Build with Gradle and Print Version
       id: gradle
       run: |
@@ -66,11 +66,21 @@ jobs:
     # Android - create a bundle
     - name: Build Android Release
       run: ./gradlew bundleRelease
+
+      # Debugging step to list directory contents before upload
+    - name: List directory contents before upload
+      run: ls -R ${{ github.workspace }}/composeApp/build/outputs/bundle/release/
+
     - name: Export Android .aab to artifacts
       uses: actions/upload-artifact@v4
       with:
         name: android-release
         path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
+
+      # Debugging step to list directory contents after upload
+    - name: List directory contents after upload
+      run: ls -R ${{ github.workspace }}/composeApp/build/outputs/bundle/release/
+
 
     # iOS - create .ipa file
     - name: build archive
@@ -94,7 +104,7 @@ jobs:
           PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
           archive 
 
-    - name: "Generate ExportOptions.plist"
+    - name: Generate ExportOptions.plist
       run: |
         cat <<EOF > ${RUNNER_TEMP}/Build/ExportOptions.plist
         <?xml version="1.0" encoding="UTF-8"?>
