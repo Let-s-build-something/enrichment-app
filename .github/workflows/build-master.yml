@@ -40,13 +40,13 @@ jobs:
     - name: Decode google-services.json
       run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
       # Prepare Apple certificates
-    - name: import certs
+    - name: Import Apple certificates
       uses: apple-actions/import-codesign-certs@v2
       with:
         p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
         p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
       # Download provisioning profiles
-    - name: download provisioning profiles
+    - name: Download Apple provisioning profiles
       uses: apple-actions/download-provisioning-profiles@v2
       with:
         bundle-id: ${{ secrets.APPLE_BUNDLE_ID }}
