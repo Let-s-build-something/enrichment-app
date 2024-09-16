@@ -5,78 +5,158 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  compile:
 
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # We need Java to build Android and Jvm
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+      # We need Xcode to build the iOS app
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 15.3
+      # Saves up some space
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
 
-    # Prepare access to everything
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Decode Local properties
-      run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
-    - name: Decode Keystore
-      run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
-    - name: Decode google-services.json
-      run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
+        # Prepare access to everything
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Decode Local properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
+        # Prepare Apple certificates
+      - name: Import Apple certificates
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+        # Download provisioning profiles
+      - name: Download Apple provisioning profiles
+        uses: apple-actions/download-provisioning-profiles@v2
+        with:
+          bundle-id: ${{ secrets.APPLE_BUNDLE_ID }}
+          issuer-id: ${{ secrets.APP_STORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
 
-    # Prepare the environment
-    - name: Build with Gradle and Print Version
-      id: gradle
-      run: |
-        VERSION=$(./gradlew -q printVersionName)
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        # Prepare the environment
+      - name: Build with Gradle and Print Version
+        id: gradle
+        run: |
+          VERSION=$(./gradlew -q printVersionName)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-    # Build the app and export the output files
+        # Build the app and export the output files
 
-    # Upload the artifacts to Firebase App Distribution
+        # iOS - create .ipa file
+      - name: Gradle build
+        run: ./gradlew build
+      - name: Install CocoaPods dependencies
+        run: |
+          cd iosApp
+          pod install
+      - name: Build archive
+        run: |
+          cd iosApp
+          xcrun xcodebuild \
+            -scheme "iosApp" \
+            -configuration "Release" \
+            -sdk "iphoneos" \
+            -parallelizeTargets \
+            -showBuildTimingSummary \
+            -disableAutomaticPackageResolution \
+            -derivedDataPath "${RUNNER_TEMP}/Build/DerivedData" \
+            -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
+            -resultBundlePath "${RUNNER_TEMP}/Build/Artifacts/iosApp.xcresult" \
+            -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
+            CODE_SIGN_STYLE="Manual" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
+            archive 
 
-    # Android - create a bundle
-    - name: Build Android Release
-      run: ./gradlew bundleRelease
-    # Android - upload the bundle to Firebase distribution
-    - name: Firebase App Distribution initialization
-      uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+      - name: Generate ExportOptions.plist
+        run: |
+          cat <<EOF > ${RUNNER_TEMP}/Build/ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+            <dict>
+              <key>destination</key>
+              <string>export</string>
+              <key>method</key>
+              <string>app-store</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>generateAppStoreInformation</key>
+              <true/>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>teamID</key>
+              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>provisioningProfiles</key>
+              <dict>
+                <key>${{ secrets.APPLE_BUNDLE_ID }}</key>
+                <string>${{ secrets.APPLE_PROVISIONING_PROFILE_NAME_DIST }}</string>
+              </dict>
+            </dict>
+          </plist>
+          EOF
+      - id: export_archive
+        name: export archive
+        run: |
+          xcrun xcodebuild \
+            -exportArchive \
+            -exportOptionsPlist "${RUNNER_TEMP}/Build/ExportOptions.plist" \
+            -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
+            -exportPath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}"
 
-    - name: Upload Android to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
-      with:
-        appId: ${{secrets.ANDROID_RELEASE_APP_ID}}
-        serviceCredentialsFileContent: ${{secrets.FIREBASE_DISTRIBUTION_CREDENTIALS_CONTENT}}
-        groups: internal-testing
-        file: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
-    #- name: Export Android .aab to artifacts
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #    name: Android ${{ env.VERSION }}
-    #    path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/outputs/bundle/release/composeApp-release.aab
+      - name: Export Windows .app to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: ${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive/iosApp.ipa
 
-    # iOS - Dmg
-    - name: Build iOS Release
-      run: ./gradlew packageReleaseDmg
-    - name: Export iOS .dmg to artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: iOS ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/dmg/Chatrich-${{ env.VERSION }}.dmg
+        # Windows - Msi
+      - name: Build Windows Release
+        run: ./gradlew packageReleaseMsi
+      - name: Export Windows .app to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows ${{ env.VERSION }}
+          path: ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/app/Chatrich.app
 
-      # Windows - Msi
-    - name: Build Windows Release
-      run: ./gradlew packageReleaseMsi
-    - name: Export Windows .app to artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Windows ${{ env.VERSION }}
-        path: /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/build/compose/binaries/main-release/app/Chatrich.app
+        # Linux - Deb
+      - name: Build Linux Release
+        run: ./gradlew packageReleaseDeb
 
-      # Linux - Deb
-    - name: Build Linux Release
-      run: ./gradlew packageReleaseDeb
+        # Android - create a bundle
+      - name: Build Android Release
+        run: ./gradlew bundleRelease
+      - name: Export Android .aab to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
+
+  deploy:
+    uses: ./.github/workflows/artifact-distribution.yml
+    needs: compile
