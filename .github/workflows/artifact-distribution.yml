@@ -25,10 +25,9 @@ jobs:
         run: ls -R
 
       - name: Download Android artifact
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v4
         with:
           name: android-release
-          path: composeApp-release.aab
 
       # Android - upload the bundle to Google Play Console
       - name: Upload Android artifact to Play Store
