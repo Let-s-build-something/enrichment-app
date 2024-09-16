@@ -67,6 +67,7 @@ jobs:
     - name: build archive
       run: |
         cd iosApp
+        pod install
         
         xcrun xcodebuild \
           -scheme "iosApp" \
