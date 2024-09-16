@@ -163,7 +163,6 @@ jobs:
       run: ./gradlew packageReleaseDeb
 
   deploy:
-
+    uses: ./.github/workflows/artifact-distribution.yml
     runs-on: ubuntu-latest
     needs: compile
-    uses: ./.github/workflows/artifact-distribution.yml
