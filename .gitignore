@@ -1,6 +1,5 @@
 # Gradle files
 .gradle/
-*.DS_Store
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -38,6 +37,7 @@ composeApp/google-services.json
 # Android Profiling
 *.hprof
 
+# iOS
 xcuserdata/
 *.xcuserdatad
 build
@@ -56,3 +56,9 @@ local.properties
 android/mobile/release/*
 .DS_Store
 .externalNativeBuild
+.DS_Store
+*.ipa
+*.dSYM.zip
+*.dSYM
+**/Pods
+DerivedData
