@@ -21,7 +21,7 @@ jobs:
     - name: Download Android artifact
     - uses: actions/download-artifact@master
       with:
-        name: my-artifact
+        name: android-release
         path: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
     - name: Upload Android to Firebase App Distribution
