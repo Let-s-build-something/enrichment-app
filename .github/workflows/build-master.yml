@@ -68,8 +68,6 @@ jobs:
       run: |
         cd iosApp
         
-        xcodebuild -scheme iosApp -configuration Release -sdk iphoneos -archivePath ./build/iosApp.xcarchive archive
-
         xcrun xcodebuild \
           -scheme "iosApp" \
           -configuration "Release" \
