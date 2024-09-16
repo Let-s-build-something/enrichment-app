@@ -22,7 +22,7 @@ jobs:
         uses: actions/download-artifact@master
         with:
           name: android-release
-          path: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
+          path: ${{ GITHUB_WORKSPACE }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
       - name: Upload Android to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -30,4 +30,4 @@ jobs:
           appId: ${{secrets.ANDROID_RELEASE_APP_ID}}
           serviceCredentialsFileContent: ${{secrets.FIREBASE_DISTRIBUTION_CREDENTIALS_CONTENT}}
           groups: internal-testing
-          file: $GITHUB_WORKSPACE/composeApp/build/outputs/bundle/release/composeApp-release.aab
+          file: ${{ GITHUB_WORKSPACE }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
