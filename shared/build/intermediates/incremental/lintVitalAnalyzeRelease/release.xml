@@ -6,7 +6,7 @@
     mergedManifest="build/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml"
     proguardFiles="build/intermediates/default_proguard_files/global/proguard-android.txt-8.5.0"
     partialResultsDir="build/intermediates/lint_vital_partial_results/release/lintVitalAnalyzeRelease/out"
-    desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/d4ae48add0b92c8de41e6782e0062cf1/transformed/D8BackportedDesugaredMethods.txt">
+    desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/3405e214de38f04d8785192f6ac8efd2/transformed/D8BackportedDesugaredMethods.txt">
   <buildFeatures
       namespacing="REQUIRED"/>
   <sourceProviders>
@@ -26,6 +26,6 @@
       applicationId="chat.enrichment.shared"
       generatedSourceFolders="build/generated/ap_generated_sources/release/out"
       generatedResourceFolders="build/generated/res/resValues/release"
-      desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/d4ae48add0b92c8de41e6782e0062cf1/transformed/D8BackportedDesugaredMethods.txt">
+      desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/3405e214de38f04d8785192f6ac8efd2/transformed/D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>

@@ -65,7 +65,7 @@ jobs:
 
       # iOS - create .ipa file
     - name: Generate Dummy Framework
-      run: ./gradlew :composeApp:generateDummyFramework
+      run: ./gradlew build
     - name: Clean build folder
       run: |
         cd iosApp

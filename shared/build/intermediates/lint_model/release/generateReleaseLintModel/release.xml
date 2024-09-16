@@ -26,6 +26,6 @@
       applicationId="chat.enrichment.shared"
       generatedSourceFolders="build/generated/ap_generated_sources/release/out"
       generatedResourceFolders="build/generated/res/resValues/release"
-      desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/d4ae48add0b92c8de41e6782e0062cf1/transformed/D8BackportedDesugaredMethods.txt">
+      desugaredMethodsFiles="/Users/jakubkostka/.gradle/caches/8.9/transforms/3405e214de38f04d8785192f6ac8efd2/transformed/D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>
