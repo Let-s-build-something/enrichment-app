@@ -67,19 +67,22 @@ jobs:
     - name: Build Android Release
       run: ./gradlew bundleRelease
 
-      # Debugging step to list directory contents before upload
-    - name: List directory contents before upload
-      run: ls -R ${{ github.workspace }}/composeApp/build/outputs/bundle/release/
-
     - name: Export Android .aab to artifacts
       uses: actions/upload-artifact@v4
       with:
         name: android-release
         path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
-      # Debugging step to list directory contents after upload
-    - name: List directory contents after upload
-      run: ls -R ${{ github.workspace }}/composeApp/build/outputs/bundle/release/
+    - name: TEST download Android artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: android-release
+
+    - name: List directory contents before upload
+      run: ls -R ${{ github.workspace }}
+
+    - name: List directory contents before upload
+      run: ls -R
 
 
       # Debugging step to list directory contents after upload
