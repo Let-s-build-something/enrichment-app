@@ -78,13 +78,6 @@ jobs:
       with:
         name: android-release
 
-    - name: List directory contents before upload
-      run: ls -R ${{ github.workspace }}
-
-    - name: List directory contents before upload
-      run: ls -R
-
-
       # Debugging step to list directory contents after upload
     - name: List all schemes available
       run: |
