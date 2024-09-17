@@ -6,9 +6,7 @@ on:
 
 jobs:
   compile:
-
     runs-on: macos-latest
-    needs: sync
 
     steps:
       - uses: actions/checkout@v4
