@@ -56,13 +56,13 @@ jobs:
           ls -la
 
       # Android - upload the bundle to Google Play Console
-      - name: Upload Android artifact to Play Store
-        uses: r0adkll/upload-google-play@v1
+      - name: Publish Android to Play Store internal test track
+        uses: r0adkll/upload-google-play@v1.0.15
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: chat.enrichment.eu
           releaseFiles: ${{ github.workspace }}/composeApp-release.aab
-          track: qa
+          track: internal
           status: draft
 
       #      - name: Upload Android to Firebase App Distribution
