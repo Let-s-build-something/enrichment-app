@@ -128,7 +128,7 @@ jobs:
 #            -exportPath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
 #            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}"
 
-      - name: Export Windows .app to artifacts
+      - name: Export iOS to artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ios-release

@@ -26,8 +26,18 @@ jobs:
           name: android-release
 
       # DEBUG purposes only
-      - name: Display structure of downloaded files
-        run: ls -R
+      - name: Increase version code
+        run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@github.com'
+          git add gradle/libs.versions.toml
+          git commit -m 'Increment version code'
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Android - upload the bundle to Google Play Console
       - name: Upload Android artifact to Play Store
@@ -36,7 +46,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: chat.enrichment.eu
           releaseFiles: ${{ github.workspace }}/composeApp-release.aab
-          track: production
+          track: qa
 
       #      - name: Upload Android to Firebase App Distribution
       #        uses: wzieba/Firebase-Distribution-Github-Action@v1

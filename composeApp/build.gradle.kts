@@ -154,6 +154,9 @@ rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlu
     rootProject.the<YarnRootExtension>().yarnLockAutoReplace = false // true
 }
 
+val versionCode = libs.versions.version.code.get().toInt()
+val versionName = libs.versions.version.name.get() + versionCode
+
 android {
     namespace = "chat.enrichment.eu"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -166,8 +169,8 @@ android {
         applicationId = "chat.enrichment.eu"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = libs.versions.version.name.get()
+        versionCode = versionCode
+        versionName = versionName
     }
     packaging {
         resources {
@@ -255,7 +258,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageVersion = libs.versions.version.name.get()
+            packageVersion = versionName
             packageName = "Chatrich"
 
             macOS {
@@ -278,7 +281,7 @@ kotlin.sourceSets.all {
 
 tasks.register("printVersionName") {
     doLast {
-        println(libs.versions.version.name.get())
+        println(versionName)
     }
 }
 tasks.register("syncWithGradleFiles") {
