@@ -155,7 +155,7 @@ rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlu
 }
 
 val versionCode = libs.versions.version.code.get().toInt()
-val versionName = libs.versions.version.name.get() + versionCode
+val versionName = "${libs.versions.version.name.get()}.$versionCode"
 
 android {
     namespace = "chat.enrichment.eu"
