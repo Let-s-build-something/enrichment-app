@@ -1,4 +1,4 @@
-name: Distribute Artifacts
+name: Sync with Gradle files
 
 on:
   # Reusable workflows (other workflows can trigger this)
@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
