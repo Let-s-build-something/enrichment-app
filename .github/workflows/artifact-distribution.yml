@@ -46,7 +46,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@github.com'
           git add gradle/libs.versions.toml
           git commit -m 'Increment version code'
-          git push origin master
+          git push origin master --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
