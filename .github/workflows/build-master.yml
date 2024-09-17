@@ -5,9 +5,12 @@ on:
     branches: [ "master" ]
 
 jobs:
+  sync:
+    uses: ./.github/workflows/sync-with-gradle-files.yml
   compile:
 
     runs-on: macos-latest
+    needs: sync
 
     steps:
       - uses: actions/checkout@v4
@@ -64,15 +67,12 @@ jobs:
         # Build the app and export the output files
 
         # iOS - create .ipa file
-      - name: Gradle build
-        run: ./gradlew build
-      - name: Install CocoaPods dependencies
-        run: |
-          cd iosApp
-          pod install
       - name: Build archive
         run: |
           cd iosApp
+          
+          pod install
+          
           xcrun xcodebuild \
             -scheme "iosApp" \
             -configuration "Release" \
