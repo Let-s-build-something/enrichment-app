@@ -57,13 +57,15 @@ jobs:
 
       # Android - upload the bundle to Google Play Console
       - name: Publish Android to Play Store internal test track
-        uses: r0adkll/upload-google-play@v1.0.15
+        uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: chat.enrichment.eu
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           releaseFiles: ${{ github.workspace }}/composeApp-release.aab
           track: internal
           status: draft
+          inAppUpdatePriority: 3
+
 
       #      - name: Upload Android to Firebase App Distribution
       #        uses: wzieba/Firebase-Distribution-Github-Action@v1
