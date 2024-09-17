@@ -60,7 +60,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           packageName: chat.enrichment.eu
-          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          serviceAccountJsonPlainText: "${{ secrets.SERVICE_ACCOUNT_JSON }}"
           releaseFiles: ${{ github.workspace }}/composeApp-release.aab
           track: internal
           status: draft
