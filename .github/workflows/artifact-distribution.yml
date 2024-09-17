@@ -63,6 +63,7 @@ jobs:
           packageName: chat.enrichment.eu
           releaseFiles: ${{ github.workspace }}/composeApp-release.aab
           track: qa
+          status: draft
 
       #      - name: Upload Android to Firebase App Distribution
       #        uses: wzieba/Firebase-Distribution-Github-Action@v1
