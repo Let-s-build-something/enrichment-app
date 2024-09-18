@@ -60,7 +60,12 @@ jobs:
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
 
+      - name: Move and rename MSI file
+        run: |
+          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
+        shell: pwsh
+
       - name: Upload MSI file to FTP
         run: |
           curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --ftp-create-dirs
-          curl -T ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl -T ${{ github.workspace }}/Chatrich.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
