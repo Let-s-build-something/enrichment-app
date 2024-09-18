@@ -39,3 +39,6 @@ composeApp/google-services.json
 *.hprof
 
 .xcuserdatad/
+build/wix311/
+shared/build/classes/
+shared/build/
