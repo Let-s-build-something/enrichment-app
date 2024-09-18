@@ -31,13 +31,21 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-        
+
       - name: Decode Local properties
-        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | certutil -decode -f - ${{ github.workspace }}\local.properties
+        run: |
+          echo "${{ secrets.LOCAL_PROPERTIES }}" > local.properties.b64
+          certutil -decode local.properties.b64 ${{ github.workspace }}\local.properties
+
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE }}" | certutil -decode -f - ${{ github.workspace }}\keystore.jks
+        run: |
+          echo "${{ secrets.KEYSTORE }}" > keystore.jks.b64
+          certutil -decode keystore.jks.b64 ${{ github.workspace }}\keystore.jks
+
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES }}" | certutil -decode -f - ${{ github.workspace }}\composeApp\google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES }}" > google-services.json.b64
+          certutil -decode google-services.json.b64 ${{ github.workspace }}\composeApp\google-services.json
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
