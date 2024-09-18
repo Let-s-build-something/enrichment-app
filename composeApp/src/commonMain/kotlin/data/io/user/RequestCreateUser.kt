@@ -1,5 +1,7 @@
 package data.io.user
 
+import chat.enrichment.shared.ui.base.PlatformType
+
 /** Request body for creation of a user on our BE */
 data class RequestCreateUser(
     /** email associated with the registered user */
