@@ -31,12 +31,13 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+        
       - name: Decode Local properties
-        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}\\local.properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | certutil -decode -f - ${{ github.workspace }}\local.properties
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > ${{ github.workspace }}\\keystore.jks
+        run: echo "${{ secrets.KEYSTORE }}" | certutil -decode -f - ${{ github.workspace }}\keystore.jks
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}\\composeApp\\google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | certutil -decode -f - ${{ github.workspace }}\composeApp\google-services.json
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
@@ -51,12 +52,12 @@ jobs:
 
       - name: List files with sizes
         run: |
-          dir ${{ github.workspace }}\\composeApp\\build\\compose\\binaries
+          dir ${{ github.workspace }}\composeApp\build\compose\binaries
 
       - name: Move and rename MSI file
         run: |
           mkdir downloads\\${{ env.VERSION }}
-          move ${{ github.workspace }}\\composeApp\\build\\compose\\binaries\\main-release\\msi\\Chatrich-${{ env.VERSION }}.msi downloads\\${{ env.VERSION }}\\Chatrich.msi
+          move ${{ github.workspace }}\composeApp\build\\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi downloads\${{ env.VERSION }}\Chatrich.msi
 
       - name: Setup SSH
         run: |
@@ -69,7 +70,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
-          git add downloads\\${{ env.VERSION }}\\Chatrich.msi
+          git add downloads\${{ env.VERSION }}\Chatrich.msi
           git commit -m 'Add msi (Windows) installer'
           git push origin master --force
         env:
