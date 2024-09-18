@@ -1,4 +1,4 @@
-name: Distribute Windows artifact
+name: Distribute Linux artifact
 
 on:
   # Reusable workflows (other workflows can trigger this)
@@ -22,4 +22,35 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # Prepare access to everything
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
+      # Linux - Deb
+      - name: Build Linux Release
+        run: ./gradlew packageReleaseDeb
+
+      - name: List the deb directory
+        run: ls -la ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb
+
+      - name: Move and rename MSI file
+        run: |
+          mkdir -p downloads/${{ env.VERSION }}
+          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/Chatrich-${{ env.VERSION }}.deb downloads/${{ env.VERSION }}/Chatrich.deb
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ACTION_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'git@github.com'
+          git add downloads/${{ env.VERSION }}/Chatrich.deb
+          git commit -m 'Add deb (Linux) app'
+          git push origin master --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -40,6 +40,11 @@ jobs:
         with:
           name: windows-release
 
+      - name: Move and rename MSI file
+        run: |
+          mkdir -p downloads/${{ env.VERSION }}
+          mv Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -51,7 +56,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
-          git add Chatrich-${{ env.VERSION }}.msi
+          git add downloads/${{ env.VERSION }}/Chatrich.msi
           git commit -m 'Add msi (Windows) installer'
           git push origin master --force
         env:
