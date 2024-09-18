@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "${{ secrets.LOCAL_PROPERTIES }}" > local.properties.b64
           certutil -decode local.properties.b64 ${{ github.workspace }}\local.properties
-          awk "{if (\$1 == \"storeFile=\") print \"storeFile=${{ github.workspace }}\\\keystore.jks\"; else print \$0}" ${{ github.workspace }}\local.properties > temp && mv temp ${{ github.workspace }}\local.properties
+          (Get-Content ${{ github.workspace }}\local.properties) -replace 'storeFile=.*', 'storeFile=${{ github.workspace }}\keystore.jks' | Set-Content ${{ github.workspace }}\local.properties
 
       - name: Decode Keystore
         run: |
