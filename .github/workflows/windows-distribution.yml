@@ -1,4 +1,4 @@
-name: Distribute Linux artifact
+name: Distribute Windows artifact
 
 on:
   # Reusable workflows (other workflows can trigger this)
@@ -12,12 +12,10 @@ permissions:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.ACTION_DEPLOY_KEY }}
       - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -25,27 +23,43 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # Saves up some space
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
       - name: Decode Local properties
-        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
+        run: |
+          echo "${{ secrets.LOCAL_PROPERTIES }}" > local.properties.b64
+          certutil -decode local.properties.b64 ${{ github.workspace }}\local.properties
+
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
+        run: |
+          echo "${{ secrets.KEYSTORE }}" > keystore.jks.b64
+          certutil -decode keystore.jks.b64 ${{ github.workspace }}\keystore.jks
+
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES }}" > google-services.json.b64
+          certutil -decode google-services.json.b64 ${{ github.workspace }}\composeApp\google-services.json
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
         id: gradle
         run: |
-          VERSION=$(./gradlew -q printVersionName)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          $version = ./gradlew -q printVersionName
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+        shell: pwsh
 
       # Windows - Msi
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
 
-      - name: Move and rename MSI file
+      - name: Upload MSI file to FTP
         run: |
-          mkdir -p downloads/${{ env.VERSION }}
-          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/msi/Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
+          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl -T ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
