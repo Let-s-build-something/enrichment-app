@@ -29,11 +29,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Decode Local properties
-        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}/local.properties
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
         # Android - create a bundle
       - name: Build Android Release
