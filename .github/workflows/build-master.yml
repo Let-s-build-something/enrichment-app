@@ -143,10 +143,6 @@ jobs:
           name: windows-release
           path: ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/msi/Chatrich-${{ env.VERSION }}.msi
 
-        # Linux - Deb
-      - name: Build Linux Release
-        run: ./gradlew packageReleaseDeb
-
         # Android - create a bundle
       - name: Build Android Release
         run: ./gradlew bundleRelease
@@ -160,16 +156,14 @@ jobs:
     uses: ./.github/workflows/windows-distribution.yml
     needs: compile
 
+  deploy-linux:
+    uses: ./.github/workflows/linux-distribution.yml
+    needs: deploy-windows
+
   deploy-android:
     uses: ./.github/workflows/android-distribution.yml
-    needs: deploy-windows
+    needs: deploy-linux
 
   deploy-ios:
     uses: ./.github/workflows/ios-distribution.yml
-    needs: deploy-windows
-
-  deploy-linux:
-    uses: ./.github/workflows/linux-distribution.yml
-  deploy:
-    uses: ./.github/workflows/artifact-distribution.yml
-    needs: deploy-windows
+    needs: deploy-linux

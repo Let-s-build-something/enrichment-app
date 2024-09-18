@@ -27,6 +27,12 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+      - name: Decode Local properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
@@ -40,6 +46,11 @@ jobs:
         with:
           name: windows-release
 
+      - name: Move and rename MSI file
+        run: |
+          mkdir -p downloads/${{ env.VERSION }}
+          mv Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -51,7 +62,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
-          git add Chatrich-${{ env.VERSION }}.msi
+          git add downloads/${{ env.VERSION }}/Chatrich.msi
           git commit -m 'Add msi (Windows) installer'
           git push origin master --force
         env:
