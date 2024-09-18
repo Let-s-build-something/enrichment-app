@@ -40,10 +40,6 @@ jobs:
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
-      - name: List files with sizes
-        run: |
-          find ${{ github.workspace }} -type f -exec ls -lh {} \; | awk '{print $9 ": " $5}'
-
       # Prepare the environment
       - name: Build with Gradle and Print Version
         id: gradle
@@ -54,6 +50,10 @@ jobs:
       # Windows - Msi
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
+
+      - name: List files with sizes
+        run: |
+          find ${{ github.workspace }}/composeApp/build/compose/binaries -type f -exec ls -lh {} \; | awk '{print $9 ": " $5}'
 
       - name: Move and rename MSI file
         run: |
