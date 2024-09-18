@@ -18,6 +18,9 @@ enum class LoginResultType {
     /** general error, the request failed */
     FAILURE,
 
+    /** sign in request cancelled */
+    CANCELLED,
+
     /** general error, the request failed */
     AUTH_SECURITY,
 

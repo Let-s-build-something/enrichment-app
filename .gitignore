@@ -40,5 +40,9 @@ composeApp/google-services.json
 
 .xcuserdatad/
 build/wix311/
-shared/build/classes/
 shared/build/
+iosApp/iosApp.xcodeproj/xcuserdata
+iosApp/iosApp.xcworkspace/xcuserdata
+.DS_Store
+shared/build
+iosApp/Pods

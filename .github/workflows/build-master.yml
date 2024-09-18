@@ -162,12 +162,14 @@ jobs:
 
   deploy-android:
     uses: ./.github/workflows/android-distribution.yml
-    needs: compile
+    needs: deploy-windows
 
   deploy-ios:
     uses: ./.github/workflows/ios-distribution.yml
-    needs: compile
+    needs: deploy-windows
 
   deploy-linux:
     uses: ./.github/workflows/linux-distribution.yml
-    needs: compile
+  deploy:
+    uses: ./.github/workflows/artifact-distribution.yml
+    needs: deploy-windows
