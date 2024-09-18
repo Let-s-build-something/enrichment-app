@@ -13,8 +13,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.ACTION_DEPLOY_KEY }}
       - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -46,19 +44,12 @@ jobs:
           mkdir -p downloads/${{ env.VERSION }}
           mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb downloads/${{ env.VERSION }}/Chatrich.deb
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ACTION_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      - name: Commit and push changes
+      - name: Commit and push changes to release branch
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
           git add downloads/${{ env.VERSION }}/Chatrich.deb
           git commit -m 'Add deb (Linux) app'
-          git push origin master --force
+          git push origin release-${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
