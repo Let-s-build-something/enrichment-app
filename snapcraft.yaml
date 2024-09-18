@@ -16,4 +16,4 @@ parts:
       - maven
       - openjdk-17-jdk-headless
 confinement: devmode
-description: |
+description: Enrich your communication with people around you and make it meaningful with Chatrich.
