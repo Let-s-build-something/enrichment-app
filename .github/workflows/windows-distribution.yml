@@ -59,14 +59,6 @@ jobs:
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
 
-      - name: List files with sizes
-        run: |
-          dir ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi
-
-      - name: List files with sizes
-        run: |
-          dir ${{ github.workspace }}\composeApp\build\compose\binaries\main-release
-
       - name: Move and rename MSI file
         run: |
           if (-Not (Test-Path -Path downloads\${{ env.VERSION }})) {

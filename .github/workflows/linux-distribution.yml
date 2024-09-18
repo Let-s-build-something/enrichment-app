@@ -41,10 +41,10 @@ jobs:
       - name: List the deb directory
         run: ls -la ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb
 
-      - name: Move and rename MSI file
+      - name: Move and rename DEB file
         run: |
           mkdir -p downloads/${{ env.VERSION }}
-          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/Chatrich-${{ env.VERSION }}.deb downloads/${{ env.VERSION }}/Chatrich.deb
+          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb downloads/${{ env.VERSION }}/Chatrich.deb
 
       - name: Setup SSH
         run: |
