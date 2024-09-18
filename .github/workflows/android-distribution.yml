@@ -25,10 +25,24 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Download Android artifact
-        uses: actions/download-artifact@v4
+      # Prepare access to everything
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Decode Local properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
+      - name: Decode Keystore
+        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
+
+        # Android - create a bundle
+      - name: Build Android Release
+        run: ./gradlew bundleRelease
+      - name: Export Android .aab to artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: android-release
+          path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
@@ -56,7 +70,7 @@ jobs:
         with:
           packageName: chat.enrichment.eu
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          releaseFiles: ${{ github.workspace }}/composeApp-release.aab
+          releaseFiles: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
           track: internal
           status: draft
           inAppUpdatePriority: 3
