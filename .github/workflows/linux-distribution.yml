@@ -36,20 +36,7 @@ jobs:
       - name: Build Linux Release
         run: ./gradlew packageReleaseDeb
 
-      - name: List the deb directory
-        run: ls -la ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb
-
-      - name: Move and rename DEB file
+      - name: Upload DEB file to FTP
         run: |
-          mkdir -p downloads/${{ env.VERSION }}
-          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb downloads/${{ env.VERSION }}/Chatrich.deb
-
-      - name: Commit and push changes to release branch
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'git@github.com'
-          git add downloads/${{ env.VERSION }}/Chatrich.deb
-          git commit -m 'Add deb (Linux) app'
-          git push origin release-${{ env.VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl -T ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb ftp://${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}

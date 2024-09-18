@@ -59,31 +59,7 @@ jobs:
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
 
-      - name: Move and rename MSI file
+      - name: Upload MSI file to FTP
         run: |
-          if (-Not (Test-Path -Path downloads\${{ env.VERSION }})) {
-            mkdir downloads\${{ env.VERSION }}
-          }
-          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi downloads\${{ env.VERSION }}\Chatrich.msi
-        shell: pwsh
-
-      - name: Commit and push changes to release branch
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'git@github.com'
-          git checkout -b release || git checkout release
-          git add downloads\${{ env.VERSION }}\Chatrich.msi
-          git commit -m 'Add msi (Windows) installer'
-          git push origin release-${{ env.VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Pull Request to master
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'Automatic release of version ${{ env.VERSION }}'
-          branch: release-${{ env.VERSION }}
-          base: master
-          title: 'Release ${{ env.VERSION }}'
-          body: 'Automatic release of version ${{ env.VERSION }}'
+          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl -T ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
