@@ -67,19 +67,23 @@ jobs:
           move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi downloads\${{ env.VERSION }}\Chatrich.msi
         shell: pwsh
 
-      - name: Setup SSH
-        run: |
-          mkdir ~/.ssh
-          echo "${{ secrets.ACTION_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      - name: Commit and push changes
+      - name: Commit and push changes to release branch
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
+          git checkout -b release || git checkout release
           git add downloads\${{ env.VERSION }}\Chatrich.msi
           git commit -m 'Add msi (Windows) installer'
-          git push origin master --force
+          git push origin release-${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request to master
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'Automatic release of version ${{ env.VERSION }}'
+          branch: release-${{ env.VERSION }}
+          base: master
+          title: 'Release ${{ env.VERSION }}'
+          body: 'Automatic release of version ${{ env.VERSION }}'
