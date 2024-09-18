@@ -1,4 +1,4 @@
-name: Distribute Linux artifact
+name: Distribute Windows artifact
 
 on:
   # Reusable workflows (other workflows can trigger this)
@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -34,11 +34,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Decode Local properties
-        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}/local.properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}\\local.properties
       - name: Decode Keystore
-        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
+        run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > ${{ github.workspace }}\\keystore.jks
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}\\composeApp\\google-services.json
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
@@ -53,16 +53,16 @@ jobs:
 
       - name: List files with sizes
         run: |
-          find ${{ github.workspace }}/composeApp/build/compose/binaries -type f -exec ls -lh {} \; | awk '{print $9 ": " $5}'
+          dir ${{ github.workspace }}\\composeApp\\build\\compose\\binaries
 
       - name: Move and rename MSI file
         run: |
-          mkdir -p downloads/${{ env.VERSION }}
-          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/msi/Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
+          mkdir downloads\\${{ env.VERSION }}
+          move ${{ github.workspace }}\\composeApp\\build\\compose\\binaries\\main-release\\msi\\Chatrich-${{ env.VERSION }}.msi downloads\\${{ env.VERSION }}\\Chatrich.msi
 
       - name: Setup SSH
         run: |
-          mkdir -p ~/.ssh
+          mkdir ~/.ssh
           echo "${{ secrets.ACTION_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts
@@ -71,7 +71,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
-          git add downloads/${{ env.VERSION }}/Chatrich.msi
+          git add downloads\\${{ env.VERSION }}\\Chatrich.msi
           git commit -m 'Add msi (Windows) installer'
           git push origin master --force
         env:
