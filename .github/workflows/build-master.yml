@@ -140,8 +140,8 @@ jobs:
       - name: Export Windows .app to artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Windows ${{ env.VERSION }}
-          path: ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/app/Chatrich.app
+          name: windows-release
+          path: ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/msi/Chatrich-${{ env.VERSION }}.msi
 
         # Linux - Deb
       - name: Build Linux Release
@@ -156,6 +156,20 @@ jobs:
           name: android-release
           path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
+  deploy-windows:
+    uses: ./.github/workflows/windows-distribution.yml
+    needs: compile
+
+  deploy-android:
+    uses: ./.github/workflows/android-distribution.yml
+    needs: deploy-windows
+
+  deploy-ios:
+    uses: ./.github/workflows/ios-distribution.yml
+    needs: deploy-windows
+
+  deploy-linux:
+    uses: ./.github/workflows/linux-distribution.yml
   deploy:
     uses: ./.github/workflows/artifact-distribution.yml
-    needs: compile
+    needs: deploy-windows

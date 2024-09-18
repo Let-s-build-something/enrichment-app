@@ -39,6 +39,8 @@ composeApp/google-services.json
 *.hprof
 
 .xcuserdatad/
+build/wix311/
+shared/build/
 iosApp/iosApp.xcodeproj/xcuserdata
 iosApp/iosApp.xcworkspace/xcuserdata
 .DS_Store
