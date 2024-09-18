@@ -87,7 +87,7 @@ actual class UserOperationService {
     }
 
     private var currentNonce: String? = null
-    private var deferredJob = CompletableDeferred<ASAuthorizationAppleIDCredential?>(Job())
+    private var deferredJob = CompletableDeferred<AppleIdAuthShell?>(Job())
 
     private fun sha256(input: String): String {
         val inputData = input.toByteArray(Charsets.UTF_8)
@@ -99,6 +99,7 @@ actual class UserOperationService {
 
     @OptIn(ExperimentalUuidApi::class)
     actual suspend fun requestAppleSignIn(): LoginResultType {
+        deferredJob.complete(null)
         deferredJob = CompletableDeferred(Job())
         currentNonce = Uuid.random().toString()
 
@@ -112,52 +113,62 @@ actual class UserOperationService {
                 nonce = sha256(it)
             }
         }
+
         return withContext(Dispatchers.Main) {
             ASAuthorizationController(authorizationRequests = listOf(request)).run {
-                cancel()
-                delegate = object: NSObject(),
+                val authorizationDelegate = object: NSObject(),
                     ASAuthorizationControllerDelegateProtocol,
                     ASAuthorizationControllerPresentationContextProvidingProtocol {
                     override fun authorizationController(
                         controller: ASAuthorizationController,
                         didCompleteWithAuthorization: ASAuthorization
                     ) {
-                        println("ASAuthorizationController, didCompleteWithAuthorization: $didCompleteWithAuthorization")
-                        deferredJob.complete(didCompleteWithAuthorization.credential as? ASAuthorizationAppleIDCredential)
+                        deferredJob.complete(
+                            AppleIdAuthShell(
+                                didCompleteWithAuthorization.credential as? ASAuthorizationAppleIDCredential
+                            )
+                        )
                     }
 
                     override fun authorizationController(
                         controller: ASAuthorizationController,
                         didCompleteWithError: NSError
                     ) {
-                        println("ASAuthorizationController, didCompleteWithError: $didCompleteWithError")
-                        deferredJob.complete(null)
+                        deferredJob.complete(AppleIdAuthShell(error = didCompleteWithError))
                     }
 
                     override fun presentationAnchorForAuthorizationController(
                         controller: ASAuthorizationController
                     ): UIWindow? = UIApplication.sharedApplication.keyWindow
                 }
+                delegate = authorizationDelegate
+                setPresentationContextProvider(authorizationDelegate)
                 performRequests()
             }
-            deferredJob.await().let { credential ->
-                if(credential == null) return@withContext LoginResultType.FAILURE
-
-                try {
-                    Firebase.auth.signInWithCredential(
-                        OAuthProvider.credential(
-                            providerId = "apple.com",
-                            rawNonce = currentNonce,
-                            idToken = credential.identityToken?.string()
-                        )
-                    ).user.let {
-                        currentNonce = null
-                        return@withContext if(it != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+            deferredJob.await().let { response ->
+                return@withContext if(response?.credentials == null) {
+                    println("Apple Sign In Error: ${response?.error}")
+                    when(response?.error?.code) {
+                        1001L -> LoginResultType.CANCELLED
+                        else -> LoginResultType.FAILURE
                     }
-                }catch (e: FirebaseAuthException) {
-                    println(e.printStackTrace())
-                    currentNonce = null
-                    return@withContext LoginResultType.AUTH_SECURITY
+                }else {
+                    try {
+                        Firebase.auth.signInWithCredential(
+                            OAuthProvider.credential(
+                                providerId = "apple.com",
+                                rawNonce = currentNonce,
+                                idToken = response.credentials.identityToken?.string()
+                            )
+                        ).user.let {
+                            currentNonce = null
+                            return@withContext if(it != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+                        }
+                    }catch (e: FirebaseAuthException) {
+                        println(e.printStackTrace())
+                        currentNonce = null
+                        return@withContext LoginResultType.AUTH_SECURITY
+                    }
                 }
             }
         }
@@ -171,3 +182,11 @@ actual class UserOperationService {
         encoding = NSUTF8StringEncoding
     )?.toString()
 }
+
+/** result of the Sign in with Apple Id */
+private data class AppleIdAuthShell(
+    /** successfully gained credentials */
+    val credentials: ASAuthorizationAppleIDCredential? = null,
+    /** returned error during the process */
+    val error: NSError? = null
+)

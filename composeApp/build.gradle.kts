@@ -89,6 +89,11 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.auth)
             implementation(libs.google.identity)
+
+            //Firebase
+            implementation(libs.android.firebase.common)
+            implementation(libs.android.firebase.auth)
+            implementation(libs.android.firebase.messaging)
         }
         nativeMain.dependencies {
             implementation(libs.ktor.client.darwin)

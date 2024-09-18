@@ -30,6 +30,10 @@ multiplatformSettings = "1.2.0"
 workRuntimeKtx = "2.9.1"
 activityKtx = "1.9.2"
 androidxSplashscreen = "1.2.0-alpha02"
+androidFirebaseAuth = "23.0.0"
+androidFirebaseCommon = "21.0.0"
+androidFirebaseMessaging = "24.0.1"
+
 
 [libraries]
 firebase-java-sdk = { module = "dev.gitlive:firebase-java-sdk", version.ref = "firebaseJavaSdk" }
@@ -81,6 +85,11 @@ google-identity = { group = "com.google.android.libraries.identity.googleid", na
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxSplashscreen" }
+android-firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "androidFirebaseMessaging" }
+android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }
+android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
+
+
 
 [bundles]
 ktor-common = [
