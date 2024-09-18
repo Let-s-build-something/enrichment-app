@@ -67,5 +67,5 @@ jobs:
 
       - name: Upload MSI file to FTP
         run: |
-          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/downloads/www/${{ env.VERSION }}/ --ftp-create-dirs
-          curl -T ${{ github.workspace }}/Chatrich.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/downloads/www/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl ftp://${{ secrets.FTP_CREDENTIALS }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl -T ${{ github.workspace }}/Chatrich.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_CREDENTIALS }}
