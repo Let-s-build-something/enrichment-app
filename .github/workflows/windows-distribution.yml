@@ -51,8 +51,9 @@ jobs:
       - name: Build with Gradle and Print Version
         id: gradle
         run: |
-          VERSION=$(./gradlew -q printVersionName)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          $version = ./gradlew -q printVersionName
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+        shell: pwsh
 
       # Windows - Msi
       - name: Build Windows Release
