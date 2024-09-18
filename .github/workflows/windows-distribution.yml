@@ -25,14 +25,24 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # Saves up some space
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_ENCRYPTION_KEY }}
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Decode Local properties
-        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/local.properties
+        run: echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}/local.properties
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > /Users/runner/work/Communication-enrichment/Communication-enrichment/composeApp/google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
+
+      - name: List files with sizes
+        run: |
+          find ${{ github.workspace }} -type f -exec ls -lh {} \; | awk '{print $9 ": " $5}'
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
