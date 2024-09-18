@@ -65,7 +65,11 @@ jobs:
           move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
         shell: pwsh
 
-      - name: Upload MSI file to FTP
-        run: |
-          curl ftp://${{ secrets.FTP_CREDENTIALS }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
-          curl -T ${{ github.workspace }}/Chatrich.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_CREDENTIALS }}
+      - name: Upload ftp
+        uses: genietim/ftp-action@releases/v4
+        with:
+          host: ${{ secrets.FTP_SERVER_DOMAIN }}
+          user: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          localDir: "${{ github.workspace }}/Chatrich.msi"
+          remoteDir: "www/downloads/${{ env.VERSION }}"
