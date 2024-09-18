@@ -41,15 +41,14 @@ jobs:
           VERSION=$(./gradlew -q printVersionName)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-release
+      # Windows - Msi
+      - name: Build Windows Release
+        run: ./gradlew packageReleaseMsi
 
       - name: Move and rename MSI file
         run: |
           mkdir -p downloads/${{ env.VERSION }}
-          mv Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
+          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/msi/Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
 
       - name: Setup SSH
         run: |
