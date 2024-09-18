@@ -28,7 +28,7 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
       - name: Build Android Debug
-        run: ./gradlew assemble
+        run: ./gradlew bundle
 
       - name: Build iOS Debug (Dmg)
         run: ./gradlew packageDmg
