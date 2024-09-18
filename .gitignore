@@ -46,3 +46,4 @@ iosApp/iosApp.xcworkspace/xcuserdata
 .DS_Store
 shared/build
 iosApp/Pods
+build/wix311/
