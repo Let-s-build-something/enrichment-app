@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   build:
@@ -52,15 +53,17 @@ jobs:
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
 
+      - name: Checkout release branch
+        run: |
+          git fetch origin
+          git checkout -b release-${{ env.VERSION }}
+
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
-          git checkout -b release-${{ env.VERSION }}
           git add gradle/libs.versions.toml
           git commit -m 'Increment version code'
-          git fetch origin release-${{ env.VERSION }}
-          git rebase origin/release-${{ env.VERSION }}
           git push origin release-${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
