@@ -55,7 +55,7 @@ jobs:
           git config --global user.email 'git@github.com'
           git add -A
           git commit -m 'Increment version code'
-          git push
+          git push --set-upstream origin release-${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
