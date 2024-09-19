@@ -72,11 +72,6 @@ jobs:
       # Android - create a bundle
       - name: Build Android Release
         run: ./gradlew bundleRelease
-      - name: Export Android .aab to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-release
-          path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
       # Android - upload the bundle to Google Play Console
       - name: Publish Android to Play Store internal test track
