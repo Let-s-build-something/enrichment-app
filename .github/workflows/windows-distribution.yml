@@ -65,8 +65,8 @@ jobs:
           move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
         shell: pwsh
 
-      - name: Upload ftp
-        uses: genietim/ftp-action@releases/v4
+      - name: Upload MSI file to FTP
+        uses: GenieTim/ftp-action@v4.0.1
         with:
           host: ${{ secrets.FTP_SERVER_DOMAIN }}
           user: ${{ secrets.FTP_USERNAME }}
