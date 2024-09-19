@@ -93,10 +93,9 @@ jobs:
       - name: Sign MSI with pfx
         run: |
           $pfxPath = "${{ github.workspace }}\chatrich.pfx"
-          $pfxPassword = "${{ secrets.WINDOWS_PFX_PASSWORD }}"
           $msiPath = "${{ github.workspace }}\Chatrich.msi"
           $signtoolPath = ${{ env.SIGNSIGNTOOL_PATH }}
-          & $signtoolPath sign /f $pfxPath /p $pfxPassword /fd sha256 /tr http://timestamp.digicert.com /td sha256 $msiPath
+          & $signtoolPath sign /f $pfxPath /p ${{ secrets.WINDOWS_PFX_PASSWORD }} /fd sha256 /tr http://timestamp.digicert.com /td sha256 $msiPath
         env:
           PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
         shell: pwsh
