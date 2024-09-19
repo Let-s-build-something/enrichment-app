@@ -63,15 +63,9 @@ jobs:
       - name: Fetch latest changes from remote branch
         run: git fetch origin
 
-      - name: Create Pull Request to master
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'Automatic release of version ${{ env.VERSION }}'
-          branch: release-${{ env.VERSION }}
-          base: master
-          title: 'Release ${{ env.VERSION }}'
-          body: 'Automatic release of version ${{ env.VERSION }}'
+      - name: Create Pull Request
+        run: |
+          gh pr create --title "Release ${{ env.VERSION }}" --body "Automated release of version ${{ env.VERSION }}" --head release-${{ env.VERSION }} --base master
 
       # Android - create a bundle
       - name: Build Android Release
