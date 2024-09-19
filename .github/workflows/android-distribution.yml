@@ -41,15 +41,6 @@ jobs:
           VERSION=$(./gradlew -q printVersionName)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-        # Android - create a bundle
-      - name: Build Android Release
-        run: ./gradlew bundleRelease
-      - name: Export Android .aab to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-release
-          path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
-
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
 
@@ -62,9 +53,9 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
-          git add gradle/libs.versions.toml
+          git add -A
           git commit -m 'Increment version code'
-          git push origin release-${{ env.VERSION }}
+          git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,6 +68,15 @@ jobs:
           base: master
           title: 'Release ${{ env.VERSION }}'
           body: 'Automatic release of version ${{ env.VERSION }}'
+
+      # Android - create a bundle
+      - name: Build Android Release
+        run: ./gradlew bundleRelease
+      - name: Export Android .aab to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
 
       # Android - upload the bundle to Google Play Console
       - name: Publish Android to Play Store internal test track
