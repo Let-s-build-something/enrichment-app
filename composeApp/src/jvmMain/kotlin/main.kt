@@ -26,7 +26,12 @@ import koin.commonModule
 import org.jetbrains.compose.resources.stringResource
 import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
+import java.awt.Button
+import java.awt.Dialog
+import java.awt.FlowLayout
+import java.awt.Frame
 import java.awt.GraphicsEnvironment
+import java.awt.Label
 import java.awt.Toolkit
 
 
@@ -46,6 +51,19 @@ fun main() = application {
 
     val density = LocalDensity.current
     val toolkit = Toolkit.getDefaultToolkit()
+
+    Thread.setDefaultUncaughtExceptionHandler { _, e ->
+        Dialog(Frame(), e.message ?: "Error").apply {
+            layout = FlowLayout()
+            add(Label("We apologize, an unexpected error occurred: ${e.message}"))
+            val button = Button("Okay, FINE").apply {
+                addActionListener { dispose() }
+            }
+            add(button)
+            setSize(300, 300)
+            isVisible = true
+        }
+    }
 
     Window(
         onCloseRequest = {
