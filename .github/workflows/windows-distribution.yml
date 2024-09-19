@@ -61,6 +61,19 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_ENV
         shell: pwsh
 
+      - name: Check Windows version
+        run: |
+          echo (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").ReleaseId
+        shell: pwsh
+
+      - name: List Program Files
+        run: dir "C:\Program Files (x86)\Windows Kits\10\bin"
+        shell: pwsh
+
+      - name: List Program Files
+        run: dir "C:\Program Files\Windows Kits"
+        shell: pwsh
+
       # Locate signtool.exe and log the output
       - name: Locate signtool.exe
         id: locate_signtool
@@ -71,6 +84,24 @@ jobs:
           }
           if (-not $signtoolPath) {
             $signtoolPath = Get-ChildItem -Path "C:\Program Files\Windows Kits\10\bin\x64" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $signtoolPath) {
+            $signtoolPath = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin\x86" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $signtoolPath) {
+            $signtoolPath = Get-ChildItem -Path "C:\Program Files\Windows Kits\10\bin\x86" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $signtoolPath) {
+            $signtoolPath = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\8.1\bin\x64" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $signtoolPath) {
+            $signtoolPath = Get-ChildItem -Path "C:\Program Files\Windows Kits\8.1\bin\x64" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $signtoolPath) {
+            $signtoolPath = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\7\bin\x86" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
+          }
+          if (-not $signtoolPath) {
+            $signtoolPath = Get-ChildItem -Path "C:\Program Files\Windows Kits\7\bin\x86" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName -First 1
           }
           if (-not $signtoolPath) {
             Write-Error "signtool.exe not found"
