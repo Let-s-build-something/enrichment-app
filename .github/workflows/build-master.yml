@@ -55,15 +55,15 @@ jobs:
 
   deploy-linux:
     uses: ./.github/workflows/linux-distribution.yml
-    needs: deploy-windows
+    needs: compile
     secrets: inherit
 
   deploy-android:
     uses: ./.github/workflows/android-distribution.yml
-    needs: deploy-linux
+    needs: compile
     secrets: inherit
 
   deploy-ios:
     uses: ./.github/workflows/ios-distribution.yml
-    needs: deploy-linux
+    needs: compile
     secrets: inherit

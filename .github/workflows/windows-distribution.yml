@@ -66,10 +66,10 @@ jobs:
         shell: pwsh
 
       - name: Upload MSI file to FTP
-        uses: GenieTim/ftp-action@v4.0.1
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.FTP_SERVER_DOMAIN }}
-          user: ${{ secrets.FTP_USERNAME }}
+          server: ${{ secrets.FTP_SERVER_DOMAIN }}
+          username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          localDir: "${{ github.workspace }}/Chatrich.msi"
-          remoteDir: "www/downloads/${{ env.VERSION }}"
+          local-dir: "${{ github.workspace }}/Chatrich.msi"
+          server-dir: "www/downloads/${{ env.VERSION }}"
