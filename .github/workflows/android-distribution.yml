@@ -86,5 +86,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           releaseFiles: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
           track: internal
-          status: completed
+          status: draft
           inAppUpdatePriority: 3

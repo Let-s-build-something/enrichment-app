@@ -6,6 +6,7 @@ on:
 
 jobs:
   compile:
+    if: "!contains(github.ref, 'release-')"
     runs-on: macos-latest
 
     steps:
