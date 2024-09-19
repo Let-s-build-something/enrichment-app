@@ -35,7 +35,7 @@ jobs:
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
-        id: gradle
+        id: gradle-version
         run: |
           VERSION=$(./gradlew -q printVersionName)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -59,30 +59,18 @@ jobs:
     uses: ./.github/workflows/windows-distribution.yml
     needs: compile
     secrets: inherit
-    with:
-      env:
-        VERSION: ${{ env.VERSION }}
 
   deploy-linux:
     uses: ./.github/workflows/linux-distribution.yml
     needs: compile
     secrets: inherit
-    with:
-      env:
-        VERSION: ${{ env.VERSION }}
 
   deploy-android:
     uses: ./.github/workflows/android-distribution.yml
     needs: compile
     secrets: inherit
-    with:
-      env:
-        VERSION: ${{ env.VERSION }}
 
   deploy-ios:
     uses: ./.github/workflows/ios-distribution.yml
     needs: compile
     secrets: inherit
-    with:
-      env:
-        VERSION: ${{ env.VERSION }}

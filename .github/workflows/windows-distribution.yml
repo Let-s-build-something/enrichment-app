@@ -53,6 +53,14 @@ jobs:
           echo "${{ secrets.WINDOWS_PFX_BASE64 }}" > chatrich.pfx.b64
           certutil -decode chatrich.pfx.b64 ${{ github.workspace }}\chatrich.pfx
 
+      # Prepare the environment
+      - name: Build with Gradle and Print Version
+        id: gradle
+        run: |
+          $version = ./gradlew -q printVersionName
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+        shell: pwsh
+
       # Locate signtool.exe and log the output
       - name: Locate signtool.exe
         id: locate_signtool
