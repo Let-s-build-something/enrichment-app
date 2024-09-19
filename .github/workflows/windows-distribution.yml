@@ -62,7 +62,10 @@ jobs:
 
       - name: Move and rename MSI file
         run: |
-          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
+          if (-Not (Test-Path -Path "downloads/${{ env.VERSION }}/")) {
+            New-Item -ItemType Directory -Force -Path "downloads/${{ env.VERSION }}/"
+          }
+          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
         shell: pwsh
 
       - name: Upload MSI file to FTP
@@ -71,5 +74,5 @@ jobs:
           server: ${{ secrets.FTP_SERVER_DOMAIN }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "${{ github.workspace }}/Chatrich.msi"
-          server-dir: "www/downloads/${{ env.VERSION }}"
+          local-dir: "downloads/${{ env.VERSION }}/"
+          server-dir: "www/"

@@ -32,6 +32,14 @@ jobs:
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
+
+      # Prepare the environment
+      - name: Build with Gradle and Print Version
+        id: gradle
+        run: |
+          VERSION=$(./gradlew -q printVersionName)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       # Linux - Deb
       - name: Build Linux Release
         run: ./gradlew packageReleaseDeb
@@ -39,9 +47,7 @@ jobs:
       - name: Move and rename DEB file
         run: |
           mkdir -p downloads/${{ env.VERSION }}
-          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb ${{ github.workspace }}/Chatrich.deb
-
-
+          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb downloads/${{ env.VERSION }}/Chatrich.deb
 
       - name: Upload DEB file to FTP
         uses: GenieTim/ftp-action@v4.0.1
@@ -49,5 +55,5 @@ jobs:
           host: ${{ secrets.FTP_SERVER_DOMAIN }}
           user: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          localDir: "${{ github.workspace }}/Chatrich.deb"
-          remoteDir: "www/downloads/${{ env.VERSION }}"
+          localDir: "downloads/${{ env.VERSION }}/"
+          remoteDir: "www/"
