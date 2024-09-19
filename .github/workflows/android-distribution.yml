@@ -66,6 +66,8 @@ jobs:
       - name: Create Pull Request
         run: |
           gh pr create --title "Release ${{ env.VERSION }}" --body "Automated release of version ${{ env.VERSION }}" --head release-${{ env.VERSION }} --base master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Android - create a bundle
       - name: Build Android Release
