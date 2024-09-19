@@ -64,8 +64,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'Automatic release of version ${{ env.VERSION }}'
-          branch: release-${{ env.VERSION }}
-          base: master
+          branch: master
+          base: release-${{ env.VERSION }}
           title: 'Release ${{ env.VERSION }}'
           body: 'Automatic release of version ${{ env.VERSION }}'
 
