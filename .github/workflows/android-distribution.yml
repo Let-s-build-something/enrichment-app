@@ -59,6 +59,8 @@ jobs:
           git checkout -b release-${{ env.VERSION }}
           git add gradle/libs.versions.toml
           git commit -m 'Increment version code'
+          git fetch origin release-${{ env.VERSION }}
+          git rebase origin/release-${{ env.VERSION }}
           git push origin release-${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
