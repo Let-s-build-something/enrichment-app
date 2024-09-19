@@ -62,17 +62,10 @@ jobs:
 
       - name: Move and rename MSI file
         run: |
-          if (-Not (Test-Path -Path "downloads/${{ env.VERSION }}/")) {
-            New-Item -ItemType Directory -Force -Path "downloads/${{ env.VERSION }}/"
-          }
-          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi downloads/${{ env.VERSION }}/Chatrich.msi
+          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
         shell: pwsh
 
       - name: Upload MSI file to FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER_DOMAIN }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: "downloads/${{ env.VERSION }}/"
-          server-dir: "www/"
+        run: |
+          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl -T ${{ github.workspace }}/Chatrich.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}

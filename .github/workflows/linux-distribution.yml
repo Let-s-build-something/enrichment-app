@@ -32,14 +32,6 @@ jobs:
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
-
-      # Prepare the environment
-      - name: Build with Gradle and Print Version
-        id: gradle
-        run: |
-          VERSION=$(./gradlew -q printVersionName)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
       # Linux - Deb
       - name: Build Linux Release
         run: ./gradlew packageReleaseDeb
@@ -47,13 +39,9 @@ jobs:
       - name: Move and rename DEB file
         run: |
           mkdir -p downloads/${{ env.VERSION }}
-          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb downloads/${{ env.VERSION }}/Chatrich.deb
+          mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/chatrich_${{ env.VERSION }}-1_amd64.deb ${{ github.workspace }}/Chatrich.deb
 
       - name: Upload DEB file to FTP
-        uses: GenieTim/ftp-action@v4.0.1
-        with:
-          host: ${{ secrets.FTP_SERVER_DOMAIN }}
-          user: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          localDir: "downloads/${{ env.VERSION }}/"
-          remoteDir: "www/"
+        run: |
+          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl -T ${{ github.workspace }}/Chatrich.deb ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
