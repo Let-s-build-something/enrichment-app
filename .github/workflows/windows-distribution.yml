@@ -65,7 +65,7 @@ jobs:
       - name: Locate signtool.exe
         id: locate_signtool
         run: |
-          $signtoolPath = where signtool.exe
+          $signtoolPath = (where signtool.exe)[0]
           echo "signtool.exe path: $signtoolPath"
           echo "SIGNSIGNTOOL_PATH=$signtoolPath" >> $env:GITHUB_ENV
         shell: pwsh
@@ -73,6 +73,14 @@ jobs:
       # Windows - Msi
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
+
+      - name: List Program Files
+        run: dir "C:\Program Files (x86)\Windows Kits\10\bin\x64"
+        shell: pwsh
+
+      - name: List Program Files
+        run: dir "C:\Program Files (x86)\Windows Kits\"
+        shell: pwsh
 
       - name: Move and rename MSI file
         run: |
