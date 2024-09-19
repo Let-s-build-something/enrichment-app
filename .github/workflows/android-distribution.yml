@@ -60,6 +60,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Checkout release branch
+        run: |
+          git fetch origin
+          git checkout -b release-${{ env.VERSION }}
+
       - name: Create Pull Request to master
         uses: peter-evans/create-pull-request@v5
         with:
