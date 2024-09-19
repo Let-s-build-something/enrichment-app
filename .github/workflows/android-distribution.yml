@@ -41,18 +41,19 @@ jobs:
           VERSION=$(./gradlew -q printVersionName)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Increase version code
-        run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
-
       - name: Checkout release branch
         run: |
           git fetch origin
           git checkout -b release-${{ env.VERSION }}
 
+      - name: Increase version code
+        run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
+
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'git@github.com'
+          git add gradle/libs.versions.toml
           git add -A
           git commit -m 'Increment version code'
           git push --set-upstream origin release-${{ env.VERSION }}
@@ -86,5 +87,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           releaseFiles: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
           track: internal
-          status: draft
+          status: complete
           inAppUpdatePriority: 3
