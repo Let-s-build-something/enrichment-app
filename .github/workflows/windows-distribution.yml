@@ -61,11 +61,6 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: Check Windows version
-        run: |
-          echo Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-        shell: pwsh
-
       - name: List Program Files
         run: dir "C:\Program Files\"
         shell: pwsh
@@ -102,13 +97,14 @@ jobs:
           move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
         shell: pwsh
 
+      # Currently disabled, as there is no recognized PFX certificate available - requires a purchase
       # Sign the MSI file with the PFX certificate
-      - name: Sign MSI with pfx
-        run: |
-          & "${{ env.SIGNSIGNTOOL_PATH }}" sign /f "${{ github.workspace }}\chatrich.pfx" /p ${{ secrets.WINDOWS_PFX_PASSWORD }} /fd sha256 /tr http://timestamp.digicert.com /td sha256 "${{ github.workspace }}\Chatrich.msi"
-        env:
-          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
-        shell: pwsh
+#      - name: Sign MSI with pfx
+#        run: |
+#          & "${{ env.SIGNSIGNTOOL_PATH }}" sign /f "${{ github.workspace }}\chatrich.pfx" /p ${{ secrets.WINDOWS_PFX_PASSWORD }} /fd sha256 /tr http://timestamp.digicert.com /td sha256 "${{ github.workspace }}\Chatrich.msi"
+#        env:
+#          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+#        shell: pwsh
 
       - name: Upload MSI file to FTP
         run: |
