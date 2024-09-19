@@ -53,7 +53,7 @@ jobs:
           git fetch origin
           git checkout release-${{ env.VERSION }}
           git reset --hard origin/master
-          git push --force origin release-version
+          git push --force origin release-${{ env.VERSION }}
 
   deploy-windows:
     uses: ./.github/workflows/windows-distribution.yml
