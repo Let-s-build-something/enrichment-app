@@ -48,12 +48,26 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES }}" > google-services.json.b64
           certutil -decode google-services.json.b64 ${{ github.workspace }}\composeApp\google-services.json
 
+      - name: Decode Microsoft PFX certificate
+        run: |
+          echo "${{ secrets.WINDOWS_PFX_BASE64 }}" > chatrich.pfx.b64
+          certutil -decode chatrich.pfx.b64 ${{ github.workspace }}\chatrich.pfx
+
       # Prepare the environment
       - name: Build with Gradle and Print Version
         id: gradle
         run: |
           $version = ./gradlew -q printVersionName
           echo "VERSION=$version" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      # Locate signtool.exe and log the output
+      - name: Locate signtool.exe
+        id: locate_signtool
+        run: |
+          $signtoolPath = where signtool.exe
+          echo "signtool.exe path: $signtoolPath"
+          echo "SIGNSIGNTOOL_PATH=$signtoolPath" >> $env:GITHUB_ENV
         shell: pwsh
 
       # Windows - Msi
@@ -63,6 +77,18 @@ jobs:
       - name: Move and rename MSI file
         run: |
           move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
+        shell: pwsh
+
+      # Sign the MSI file with the PFX certificate
+      - name: Sign MSI with pfx
+        run: |
+          $pfxPath = "${{ github.workspace }}\chatrich.pfx"
+          $pfxPassword = ${{ secrets.WINDOWS_PFX_PASSWORD }}
+          $msiPath = "${{ github.workspace }}\Chatrich.msi"
+          $signtoolPath = ${{ env.SIGNSIGNTOOL_PATH }}
+          & $signtoolPath sign /f $pfxPath /p $pfxPassword /fd sha256 /tr http://timestamp.digicert.com /td sha256 $msiPath
+        env:
+          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
         shell: pwsh
 
       - name: Upload MSI file to FTP

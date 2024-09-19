@@ -266,6 +266,7 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {
+                menuGroup = "Let's build something"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
