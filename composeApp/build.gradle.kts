@@ -266,10 +266,13 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {
+                modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported")
                 menuGroup = "Let's build something"
+                shortcut = true
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
+                menuGroup = "Let's build something"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
         }
