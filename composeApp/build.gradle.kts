@@ -198,14 +198,19 @@ android {
 
     buildTypes {
         var isRelease = false
+        var hostName = ""
 
         debug {
+            hostName = "https://api.fly-here.com/api/"
+            manifestPlaceholders["hostName"] = hostName
             isMinifyEnabled = false
             isShrinkResources = false
             applicationIdSuffix = ".test"
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
+            hostName = "https://google.com/"
+            manifestPlaceholders["hostName"] = hostName
             isRelease = true
             isMinifyEnabled = true
             isShrinkResources = true
@@ -220,6 +225,7 @@ android {
                 internalVisibility = true
             }
 
+            buildConfigField("HttpsHostName", hostName)
             buildConfigField("BearerToken", keystoreProperties["bearerToken"] as String)
             buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
             buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
