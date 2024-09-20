@@ -1,8 +1,8 @@
-name: Build and extract Master
+name: Build and extract Release
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "release" ]
 
 jobs:
   compile:
