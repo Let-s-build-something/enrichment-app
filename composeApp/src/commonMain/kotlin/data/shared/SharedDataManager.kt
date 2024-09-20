@@ -11,4 +11,7 @@ class SharedDataManager {
 
     /** Information about current user including the token and its expiration */
     val currentUser = MutableStateFlow<UserIO?>(null)
+
+    /** Currently active fcm token for push notifications */
+    var fcmToken: String? = null
 }

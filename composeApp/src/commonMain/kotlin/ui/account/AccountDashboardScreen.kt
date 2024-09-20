@@ -35,7 +35,7 @@ import org.koin.core.annotation.KoinExperimentalAPI
 fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel()) {
     val navController = LocalNavController.current
 
-    val currentUser = viewModel.currentUser.collectAsState(null)
+    val currentUser = viewModel.firebaseUser.collectAsState(null)
     val signOutResponse = viewModel.signOutResponse.collectAsState()
     val currentFcmToken = viewModel.currentFcmToken.collectAsState()
 

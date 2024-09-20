@@ -28,6 +28,6 @@ internal val commonModule = module {
         )
     }
     single {
-        httpClientFactory(get<SharedDataManager>())
+        httpClientFactory(get<SharedViewModel>())
     }
 }

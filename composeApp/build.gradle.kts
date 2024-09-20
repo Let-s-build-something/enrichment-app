@@ -1,4 +1,5 @@
 
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -15,10 +16,10 @@ plugins {
     alias(libs.plugins.compose.compiler)
 
     id("com.google.gms.google-services")
-    id("com.github.gmazzo.buildconfig") version "5.4.0"
 
     kotlin("plugin.serialization") version "2.0.20"
     kotlin("native.cocoapods") version "2.0.20"
+    id("com.codingfeline.buildkonfig") version "0.15.2"
 }
 
 kotlin {
@@ -156,6 +157,8 @@ rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlu
 
 val vCode = libs.versions.version.code.get().toInt()
 val vName = "${libs.versions.version.name.get()}.$vCode"
+val debugHostname = "api.fly-here.com/api"
+val releaseHostname = "google.com"
 
 android {
     namespace = "chat.enrichment.eu"
@@ -177,12 +180,20 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     val keystoreProperties = Properties()
     keystoreProperties.load(FileInputStream(rootProject.file("local.properties")))
 
     signingConfigs {
-        getByName("debug") {
+        create("dev") {
             keyAlias = "debug"
             keyPassword = keystoreProperties["keyPassword"] as String
             storeFile = file(keystoreProperties["storeFile"] as String)
@@ -197,62 +208,34 @@ android {
     }
 
     buildTypes {
-        var isRelease = false
-        var hostName = ""
-
         debug {
-            hostName = "https://api.fly-here.com/api/"
-            manifestPlaceholders["hostName"] = hostName
             isMinifyEnabled = false
             isShrinkResources = false
+            isDebuggable = true
             applicationIdSuffix = ".test"
             signingConfig = signingConfigs.getByName("debug")
+            manifestPlaceholders["hostName"] = debugHostname
         }
         release {
-            hostName = "https://google.com/"
-            manifestPlaceholders["hostName"] = hostName
-            isRelease = true
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
             signingConfig = signingConfigs.getByName("release")
-        }
-
-        buildConfig {
-            className("SharedBuildConfig")
-            packageName("chat.enrichment.eu")
-            useKotlinOutput {
-                internalVisibility = true
-            }
-
-            buildConfigField("HttpsHostName", hostName)
-            buildConfigField("BearerToken", keystoreProperties["bearerToken"] as String)
-            buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
-            buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
-            buildConfigField(
-                "AndroidAppId",
-                keystoreProperties[if(isRelease) "androidReleaseAppId" else "androidDebugAppId"] as String
-            )
+            manifestPlaceholders["hostName"] = releaseHostname
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    buildFeatures {
-        compose = true
-        buildConfig = false
-    }
     dependencies {
         debugImplementation(compose.uiTooling)
-
     }
 }
 dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.activity.ktx)
 }
+
+//java.toolchain.languageVersion = JavaLanguageVersion.of(libs.versions.java.get())
 
 compose.desktop {
     application {
@@ -283,6 +266,28 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
         }
+    }
+}
+
+buildkonfig {
+    packageName = "chat.enrichment.eu"
+
+    val keystoreProperties = Properties()
+    keystoreProperties.load(FileInputStream(rootProject.file("local.properties")))
+
+    // this is the production setting
+    defaultConfigs {
+        buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
+        buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
+
+        buildConfigField(STRING, "HttpsHostName", releaseHostname)
+        buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidReleaseAppId"] as String)
+    }
+
+    // change the setting just for development
+    defaultConfigs("development") {
+        buildConfigField(STRING, "HttpsHostName", debugHostname)
+        buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidDebugAppId"] as String)
     }
 }
 

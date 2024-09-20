@@ -63,7 +63,7 @@ fun BrandBaseScreen(
     val navController = LocalNavController.current
     val onBackPressedDispatcher = LocalOnBackPressDispatcher.current
 
-    val currentUser = sharedViewModel.currentUser.collectAsState(null)
+    val currentUser = sharedViewModel.firebaseUser.collectAsState(null)
 
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
             || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)

@@ -39,7 +39,8 @@ class AccountDashboardViewModel: SharedViewModel() {
     /** makes a request for current fcm token of this device */
     private fun requestFcmToken() {
         viewModelScope.launch(Dispatchers.IO) {
-            _currentFcmToken.value = Firebase.messaging.getToken()
+            dataManager.fcmToken = dataManager.fcmToken ?: Firebase.messaging.getToken()
+            _currentFcmToken.value = dataManager.fcmToken
         }
     }
 

@@ -25,6 +25,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform.getKoin
+import java.util.UUID
 
 /** module providing platform-specific sign in options */
 actual fun signInServiceModule() = module {
@@ -42,6 +43,8 @@ actual class UserOperationService(
         private const val TAG = "UserOperationService"
     }
 
+    private var lastNonce: String? = null
+
     actual val availableOptions = listOf(SingInServiceOption.GOOGLE)
 
     actual suspend fun requestGoogleSignIn(
@@ -50,6 +53,8 @@ actual class UserOperationService(
     ): LoginResultType {
         val pendingResult = checkForPendingResult()
         if(pendingResult != null) return pendingResult
+        val nonce = UUID.randomUUID().toString()
+        lastNonce = nonce
 
         var result: LoginResultType? = null
 
@@ -57,8 +62,9 @@ actual class UserOperationService(
 
         val googleIdOption: GetGoogleIdOption = GetGoogleIdOption
             .Builder()
-            .setFilterByAuthorizedAccounts(false)
+            .setFilterByAuthorizedAccounts(filterAuthorizedAccounts)
             .setServerClientId(webClientId)
+            .setNonce(nonce)
             .build()
 
         val passwordCredential = GetPasswordOption()
@@ -72,9 +78,9 @@ actual class UserOperationService(
         try {
             val res = credentialManager.getCredential(
                 request = request,
-                context = context,
+                context = context
             )
-            result = handleGoogleSignIn(res)
+            result = handleGoogleSignIn(res, nonce = nonce)
         } catch (e: NoCredentialException) {
             Log.e(TAG, "$e")
             result = if(filterAuthorizedAccounts) {
@@ -118,7 +124,11 @@ actual class UserOperationService(
     }
 
     /** Handles successful user sign in with any type of credential */
-    private suspend fun handleGoogleSignIn(result: GetCredentialResponse): LoginResultType {
+    private suspend fun handleGoogleSignIn(
+        result: GetCredentialResponse,
+        nonce: String
+    ): LoginResultType {
+        if(lastNonce != nonce) return LoginResultType.FAILURE
         // Handle the successfully returned credential.
         val credential = result.credential
 

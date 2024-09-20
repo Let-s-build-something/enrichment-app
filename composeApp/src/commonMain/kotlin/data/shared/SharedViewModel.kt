@@ -7,6 +7,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
 
@@ -21,13 +22,11 @@ open class SharedViewModel: ViewModel() {
 
 
     /** currently signed in user */
-    val currentUser = Firebase.auth.authStateChanged
-        .stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            //Smart cast to 'dev.gitlive.firebase.Firebase' is impossible, because 'PlatformFirebase' is a expect property.
-            Firebase.auth.currentUser
-        )
+    val firebaseUser = Firebase.auth.authStateChanged.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        Firebase.auth.currentUser
+    )
 
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = dataManager.isToolbarExpanded
@@ -41,6 +40,15 @@ open class SharedViewModel: ViewModel() {
     open fun logoutCurrentUser() {
         runBlocking {
             Firebase.auth.signOut()
+        }
+    }
+
+    /** Updates with new token and sends this information to BE */
+    fun updateFcmToken(newToken: String) {
+        println("New FCM token: $newToken")
+        dataManager.fcmToken = newToken
+        viewModelScope.launch {
+            //TODO send token to BE
         }
     }
 }

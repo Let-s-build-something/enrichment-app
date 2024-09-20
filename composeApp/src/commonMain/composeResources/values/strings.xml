@@ -19,12 +19,17 @@
   <string name="username_change_launcher_cancel">Sign-out</string>
   <string name="username_change_launcher_confirm">Save</string>
   <string name="error_google_sign_in_unavailable">There are no accounts in your device, use other methods, please.</string>
+  <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
+  <string name="login_error_invalid_credential">Sorry, something's incorrect. Use a password manager.</string>
+  <string name="login_error_no_windows">Something's up with the UI, try yeeting the app away and opening again.</string>
+  <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>
   <string name="login_password_email_hint">Email</string>
   <string name="login_password_password_hint">Password</string>
+  <string name="error_general">Even we failed communicating (with the server)</string>
 
-  <string name="login_password_email_error">Incorrect email format. Correct format is: example@example.com</string>
+  <string name="login_password_email_error">You call that an email address? Try cereal@mr.grain</string>
   <string name="login_password_password_condition_empty">Is not empty, duh!</string>
   <string name="login_password_password_condition_0">Minimum 9 characters long.</string>
   <string name="login_password_password_condition_1">At least one algebra character.</string>
