@@ -220,6 +220,7 @@ android {
                 internalVisibility = true
             }
 
+            buildConfigField("BearerToken", keystoreProperties["bearerToken"] as String)
             buildConfigField("CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
             buildConfigField("FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
             buildConfigField(

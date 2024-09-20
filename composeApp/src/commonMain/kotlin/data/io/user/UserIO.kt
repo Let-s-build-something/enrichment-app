@@ -6,5 +6,11 @@ data class UserIO(
     val username: String? = null,
 
     /** tag of the current user */
-    val tag: String? = null
+    val tag: String? = null,
+
+    /** current token which should be active */
+    val token: String? = null,
+
+    /** token expiration in milliseconds */
+    val tokenExpirationMs: Long? = null
 )
