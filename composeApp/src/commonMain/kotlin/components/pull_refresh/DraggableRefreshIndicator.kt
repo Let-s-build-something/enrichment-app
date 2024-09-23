@@ -106,7 +106,7 @@ fun DraggableRefreshIndicator(
     }
 
     Box(
-        modifier = modifier,
+        modifier = modifier.pullRefreshIndicatorTransform(state),
         contentAlignment = Alignment.BottomCenter
     ) {
         if(isRefreshing) {
@@ -123,8 +123,7 @@ fun DraggableRefreshIndicator(
                         bottom = 8.dp
                     )
                     .background(LocalTheme.current.colors.tetrial, RoundedCornerShape(20.dp))
-                    .size(pullRefreshSize.minus(12.dp))
-                    .pullRefreshIndicatorTransform(state),
+                    .size(pullRefreshSize.minus(12.dp)),
                 painter = rememberLottiePainter(
                     composition = composition
                 ),
@@ -142,7 +141,6 @@ fun DraggableRefreshIndicator(
                     )
                     .background(LocalTheme.current.colors.tetrial, RoundedCornerShape(20.dp))
                     .size(pullRefreshSize.minus(12.dp))
-                    .pullRefreshIndicatorTransform(state)
 
             )
         }

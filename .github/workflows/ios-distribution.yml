@@ -52,6 +52,12 @@ jobs:
           api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
 
+      - name: Import Apple certificates
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+
       - name: Install CocoaPods dependencies
         run: |
           ./gradlew -q syncWithGradleFiles
@@ -76,7 +82,7 @@ jobs:
             -resultBundlePath "${RUNNER_TEMP}/Build/Artifacts/iosApp.xcresult" \
             -destination "generic/platform=iOS" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}${{ secrets.APPLE_TEAM_ID }}" \
             CODE_SIGN_STYLE="Manual" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
             archive
@@ -110,15 +116,16 @@ jobs:
             </dict>
           </plist>
           EOF
-      - id: export_archive
-        name: export archive
+
+      - name: export archive
+        id: export_archive
         run: |
           xcrun xcodebuild \
             -exportArchive \
             -exportOptionsPlist "${RUNNER_TEMP}/Build/ExportOptions.plist" \
             -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
             -exportPath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}"
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Upload app to TestFlight
         uses: apple-actions/upload-testflight-build@v1
