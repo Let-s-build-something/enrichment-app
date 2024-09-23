@@ -103,14 +103,12 @@ fun MultiChoiceSwitch(
         Animatable(indicatorWidth.value.times(state.selectedTabIndex.value))
     }
 
-
     LaunchedEffect(state.selectedTabIndex.value) {
         offsetX.animateTo(
             targetValue = indicatorWidth.value.times(state.selectedTabIndex.value),
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow,
-                //duration = if(offsetX.value == -1f) 0 else DEFAULT_ANIMATION_LENGTH_SHORT
+                stiffness = Spring.StiffnessLow
             )
         )
     }

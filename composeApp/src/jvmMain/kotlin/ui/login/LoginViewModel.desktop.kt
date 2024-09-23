@@ -1,6 +1,6 @@
 package ui.login
 
-import chat.enrichment.eu.SharedBuildConfig
+import chat.enrichment.eu.BuildKonfig
 import data.io.identity_platform.IdentityMessageType
 import data.io.identity_platform.IdentityUserResponse
 import io.ktor.client.HttpClient
@@ -32,7 +32,7 @@ class DesktopSignInRepository(private val httpClient: HttpClient) {
                 urlString = "$identityToolUrl:signUp",
                 block =  {
                     header("Content-Type", "application/json")
-                    parameter("key", SharedBuildConfig.CloudWebApiKey)
+                    parameter("key", BuildKonfig.CloudWebApiKey)
                     parameter("returnSecureToken", true)
                     parameter("email", email)
                     parameter("password", password)

@@ -21,16 +21,20 @@ import coil3.request.allowHardware
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import data.io.notifications.NotificationTag
+import data.shared.SharedViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.koin.mp.KoinPlatform
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
+
+    private val viewModel: SharedViewModel = KoinPlatform.getKoin().get()
 
     companion object {
         /**
@@ -60,6 +64,7 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
+        viewModel.updateFcmToken(token)
     }
 
     private suspend fun processNotification(notification: ProcessedMessageData) {

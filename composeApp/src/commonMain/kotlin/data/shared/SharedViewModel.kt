@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.russhwolf.settings.Settings
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
+import data.io.app.ThemeChoice
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
@@ -30,13 +32,11 @@ open class SharedViewModel: ViewModel() {
 
 
     /** currently signed in user */
-    val currentUser = Firebase.auth.authStateChanged
-        .stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            //Smart cast to 'dev.gitlive.firebase.Firebase' is impossible, because 'PlatformFirebase' is a expect property.
-            Firebase.auth.currentUser
-        )
+    val firebaseUser = Firebase.auth.authStateChanged.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        Firebase.auth.currentUser
+    )
 
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = dataManager.isToolbarExpanded
@@ -54,22 +54,44 @@ open class SharedViewModel: ViewModel() {
     }
 
     /** Initializes the application */
-    fun initApp(isDeviceDarkTheme: Boolean) {
+    fun initApp() {
         viewModelScope.launch {
-            if(dataManager.localSettings.value == null) {
+            if (dataManager.localSettings.value == null) {
+                val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
+
+                val fcmToken = if(defaultFcm == null) {
+                    val newFcm = Firebase.messaging.getToken()
+                    settings.putString(SettingsKeys.KEY_FCM, newFcm)
+                    newFcm
+                }else defaultFcm
+
                 dataManager.localSettings.value = LocalSettings(
-                    isDarkTheme = settings.getBooleanOrNull(SettingsKeys.KEY_THEME) ?: isDeviceDarkTheme,
-                    fcmToken = settings.getStringOrNull(SettingsKeys.KEY_FCM) ?: Firebase.messaging.getToken()
+                    theme = ThemeChoice.entries.find {
+                        it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
+                    } ?: ThemeChoice.SYSTEM,
+                    fcmToken = fcmToken
                 )
             }
 
-            if(Firebase.auth.currentUser != null) {
-                Firebase.auth.idTokenChanged.collectLatest {
-                    //it?.getIdToken(false)
+            if (Firebase.auth.currentUser != null) {
+                Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
+                    dataManager.currentUser.update {
+                        it?.copy(idToken = firebaseUser?.getIdToken(false))
+                    }
                 }
-                // get id token
-                // authenticate user
+                // authenticate user on our BE
             }
+        }
+    }
+
+    /** Updates with new token and sends this information to BE */
+    fun updateFcmToken(newToken: String) {
+        println("New FCM token: $newToken")
+        dataManager.localSettings.update {
+            it?.copy(fcmToken = newToken)
+        }
+        viewModelScope.launch {
+            //TODO send token to BE
         }
     }
 }

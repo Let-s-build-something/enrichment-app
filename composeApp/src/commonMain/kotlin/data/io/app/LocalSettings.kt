@@ -4,8 +4,14 @@ package data.io.app
 data class LocalSettings(
 
     /** user-selected theme for this application */
-    val isDarkTheme: Boolean = false,
+    val theme: ThemeChoice = ThemeChoice.SYSTEM,
 
     /** Fcm token for this device. Used for push notifications. */
-    val fcmToken: String? = null
+    var fcmToken: String? = null
 )
+
+enum class ThemeChoice {
+    LIGHT,
+    DARK,
+    SYSTEM
+}

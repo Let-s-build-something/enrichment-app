@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import base.BrandBaseScreen
@@ -41,10 +42,25 @@ import org.koin.core.annotation.KoinExperimentalAPI
 fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel()) {
     val navController = LocalNavController.current
 
-    val currentUser = viewModel.currentUser.collectAsState(null)
+    val currentUser = viewModel.firebaseUser.collectAsState(null)
     val signOutResponse = viewModel.signOutResponse.collectAsState()
-    val currentFcmToken = viewModel.currentFcmToken.collectAsState()
+    val localSettings = viewModel.localSettings.collectAsState()
 
+    val switchThemeState = rememberTabSwitchState(
+        tabs = mutableListOf(
+            stringResource(Res.string.account_dashboard_theme_light),
+            stringResource(Res.string.account_dashboard_theme_dark),
+            stringResource(Res.string.account_dashboard_theme_device)
+        ),
+        selectedTabIndex = mutableStateOf(localSettings.value?.theme?.ordinal ?: 0),
+        onSelectionChange = {
+            viewModel.updateTheme(it)
+        }
+    )
+
+    LaunchedEffect(localSettings.value?.theme) {
+        switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: 0
+    }
 
     LaunchedEffect(signOutResponse.value, currentUser.value) {
         if(signOutResponse.value && currentUser.value == null) {
@@ -67,18 +83,12 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
             MultiChoiceSwitch(
                 modifier = Modifier.fillMaxWidth(),
                 shape = LocalTheme.current.shapes.rectangularActionShape,
-                state = rememberTabSwitchState(
-                    tabs = mutableListOf(
-                        stringResource(Res.string.account_dashboard_theme_light),
-                        stringResource(Res.string.account_dashboard_theme_dark),
-                        stringResource(Res.string.account_dashboard_theme_device)
-                    )
-                )
+                state = switchThemeState
             )
 
             AnimatedVisibility(
                 modifier = Modifier.padding(top = LocalTheme.current.shapes.betweenItemsSpace),
-                visible = currentFcmToken.value != null
+                visible = localSettings.value?.fcmToken != null
             ) {
                 Column {
                     Text(
@@ -87,7 +97,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                     )
                     SelectionContainer {
                         Text(
-                            text = currentFcmToken.value ?: "",
+                            text = localSettings.value?.fcmToken ?: "",
                             style = LocalTheme.current.styles.title
                         )
                     }

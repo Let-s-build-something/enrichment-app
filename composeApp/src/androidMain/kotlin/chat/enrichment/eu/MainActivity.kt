@@ -8,7 +8,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,10 +53,9 @@ class MainActivity: ComponentActivity() {
             val viewModel: SharedViewModel = koinViewModel()
             val settings = viewModel.localSettings.collectAsState()
             val configuration = LocalConfiguration.current
-            val isSystemInDarkTheme = isSystemInDarkTheme()
 
             LaunchedEffect(Unit) {
-                viewModel.initApp(isDeviceDarkTheme = isSystemInDarkTheme)
+                viewModel.initApp()
             }
 
             installSplashScreen().setKeepOnScreenCondition {
