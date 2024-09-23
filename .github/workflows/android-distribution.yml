@@ -24,7 +24,7 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # Prepare access to everything
+      # Prepare access to everything and decode secrets
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Decode Local properties
