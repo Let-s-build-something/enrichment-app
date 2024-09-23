@@ -22,9 +22,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import future_shared_module.ext.scalingClickable
 import chat.enrichment.shared.ui.theme.LocalTheme
 import chat.enrichment.shared.ui.theme.SharedColors
+import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -72,7 +72,7 @@ private fun HeaderButton(
                 shape = shape
             )
             .padding(
-                vertical = 16.dp,
+                vertical = 14.dp,
                 horizontal = 24.dp
             ),
         verticalAlignment = Alignment.CenterVertically,

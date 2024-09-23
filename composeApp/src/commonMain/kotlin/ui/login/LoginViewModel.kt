@@ -11,7 +11,6 @@ import dev.gitlive.firebase.auth.FirebaseAuthEmailException
 import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.auth
-import dev.gitlive.firebase.messaging.messaging
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -112,7 +111,6 @@ class LoginViewModel(
         viewModelScope.launch {
             if(dataManager.currentUser.value == null) {
                 Firebase.auth.currentUser?.uid?.let { clientId ->
-                    dataManager.fcmToken = dataManager.fcmToken ?: Firebase.messaging.getToken()
 
                     dataManager.currentUser.value = UserIO(
                         publicId = repository.createUser(
@@ -122,7 +120,7 @@ class LoginViewModel(
                                 } catch (e: NotImplementedError) { null },
                                 clientId = clientId,
                                 platform = currentPlatform,
-                                fcmToken = dataManager.fcmToken
+                                fcmToken = localSettings.value?.fcmToken
                             )
                         )?.publicId
                     )

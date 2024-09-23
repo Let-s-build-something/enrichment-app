@@ -1,12 +1,19 @@
 
 import android.app.Application
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
@@ -26,12 +33,7 @@ import koin.commonModule
 import org.jetbrains.compose.resources.stringResource
 import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
-import java.awt.Button
-import java.awt.Dialog
-import java.awt.FlowLayout
-import java.awt.Frame
 import java.awt.GraphicsEnvironment
-import java.awt.Label
 import java.awt.Toolkit
 
 
@@ -49,20 +51,15 @@ fun main() = application {
         isAppInitialized = true
     }
 
+    val crashException = remember {
+        mutableStateOf<Throwable?>(null)
+    }
     val density = LocalDensity.current
     val toolkit = Toolkit.getDefaultToolkit()
 
     Thread.setDefaultUncaughtExceptionHandler { _, e ->
-        Dialog(Frame(), e.message ?: "Error").apply {
-            layout = FlowLayout()
-            add(Label("We apologize, an unexpected error occurred: ${e.message}"))
-            val button = Button("Okay, FINE").apply {
-                addActionListener { dispose() }
-            }
-            add(button)
-            setSize(300, 300)
-            isVisible = true
-        }
+        e.printStackTrace()
+        crashException.value = e
     }
 
     Window(
@@ -99,7 +96,19 @@ fun main() = application {
                 width = with(density) { containerSize.width.toDp() }.value.toInt()
             )
         ) {
-            App()
+            Crossfade(targetState = crashException.value == null) {
+                if(it) {
+                    App()
+                }else {
+                    if(crashException.value != null) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = "Error: ${crashException.value?.message}",
+                            fontSize = 30.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }

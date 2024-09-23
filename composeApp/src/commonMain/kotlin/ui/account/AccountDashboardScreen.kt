@@ -12,15 +12,22 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import chat.enrichment.shared.ui.base.LocalNavController
 import chat.enrichment.shared.ui.components.ErrorHeaderButton
+import chat.enrichment.shared.ui.components.MultiChoiceSwitch
+import chat.enrichment.shared.ui.components.rememberTabSwitchState
 import chat.enrichment.shared.ui.theme.LocalTheme
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.account_dashboard_fcm
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme_dark
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme_device
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme_light
 import chatenrichment.composeapp.generated.resources.screen_account_title
 import chatenrichment.composeapp.generated.resources.username_change_launcher_cancel
 import org.jetbrains.compose.resources.stringResource
@@ -37,8 +44,23 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 
     val currentUser = viewModel.firebaseUser.collectAsState(null)
     val signOutResponse = viewModel.signOutResponse.collectAsState()
-    val currentFcmToken = viewModel.currentFcmToken.collectAsState()
+    val localSettings = viewModel.localSettings.collectAsState()
 
+    val switchThemeState = rememberTabSwitchState(
+        tabs = mutableListOf(
+            stringResource(Res.string.account_dashboard_theme_light),
+            stringResource(Res.string.account_dashboard_theme_dark),
+            stringResource(Res.string.account_dashboard_theme_device)
+        ),
+        selectedTabIndex = mutableStateOf(localSettings.value?.theme?.ordinal ?: 0),
+        onSelectionChange = {
+            viewModel.updateTheme(it)
+        }
+    )
+
+    LaunchedEffect(localSettings.value?.theme) {
+        switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: 0
+    }
 
     LaunchedEffect(signOutResponse.value, currentUser.value) {
         if(signOutResponse.value && currentUser.value == null) {
@@ -54,7 +76,20 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                 .padding(top = 12.dp, start = 16.dp, end = 16.dp)
                 .fillMaxSize()
         ) {
-            AnimatedVisibility(currentFcmToken.value != null) {
+            Text(
+                stringResource(Res.string.account_dashboard_theme),
+                style = LocalTheme.current.styles.category
+            )
+            MultiChoiceSwitch(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LocalTheme.current.shapes.rectangularActionShape,
+                state = switchThemeState
+            )
+
+            AnimatedVisibility(
+                modifier = Modifier.padding(top = LocalTheme.current.shapes.betweenItemsSpace),
+                visible = localSettings.value?.fcmToken != null
+            ) {
                 Column {
                     Text(
                         stringResource(Res.string.account_dashboard_fcm),
@@ -62,7 +97,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                     )
                     SelectionContainer {
                         Text(
-                            text = currentFcmToken.value ?: "",
+                            text = localSettings.value?.fcmToken ?: "",
                             style = LocalTheme.current.styles.title
                         )
                     }

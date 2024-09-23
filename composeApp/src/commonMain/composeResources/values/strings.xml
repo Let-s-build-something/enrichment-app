@@ -33,13 +33,19 @@
   <string name="login_password_password_condition_empty">Is not empty, duh!</string>
   <string name="login_password_password_condition_0">Minimum 9 characters long.</string>
   <string name="login_password_password_condition_1">At least one algebra character.</string>
-  <string name="login_password_password_condition_2">At least very special character.</string>
+  <string name="login_password_password_condition_2">At least one very special character.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
   <string name="login_password_action_go">Here I go!</string>
 
 
   <string name="account_dashboard_fcm">Your FCM token on this device is:</string>
+  <string name="account_dashboard_theme">Dark and darker</string>
+  <string name="account_dashboard_theme_light">Light</string>
+  <string name="account_dashboard_theme_dark">Dark</string>
+  <string name="account_dashboard_theme_device">System</string>
+
+  <string name="splash_loading_text">We are waking up the little people operating your application...</string>
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
