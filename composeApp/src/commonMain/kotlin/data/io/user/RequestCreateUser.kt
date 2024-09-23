@@ -1,8 +1,10 @@
 package data.io.user
 
 import chat.enrichment.shared.ui.base.PlatformType
+import kotlinx.serialization.Serializable
 
 /** Request body for creation of a user on our BE */
+@Serializable
 data class RequestCreateUser(
     /** email associated with the registered user */
     val email: String? = null, //optional

@@ -1,37 +1,138 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
+import chat.enrichment.shared.ui.base.currentPlatform
 import data.io.identity_platform.IdentityMessageType
+import data.io.user.RequestCreateUser
+import data.io.user.UserIO
 import data.shared.SharedViewModel
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.AuthResult
+import dev.gitlive.firebase.auth.FirebaseAuthEmailException
+import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.messaging.messaging
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.koin.core.module.Module
 
-/** Type of result that can be received by the sign in services */
-enum class LoginResultType {
+/** Communication between the UI, the control layers, and control and data layers */
+class LoginViewModel(
+    private val serviceProvider: UserOperationService,
+    private val repository: LoginRepository
+): SharedViewModel() {
 
-    /** general error, the request failed */
-    FAILURE,
+    private val _loginResult = MutableSharedFlow<LoginResultType?>()
 
-    /** sign in request cancelled */
-    CANCELLED,
+    /** Sends signal to UI about a response that happened */
+    val loginResult = _loginResult.asSharedFlow()
 
-    /** general error, the request failed */
-    AUTH_SECURITY,
+    /** List of all available service via which user can sign in */
+    val availableOptions = serviceProvider.availableOptions
 
-    /** the UI is missing window, iOS specific */
-    NO_WINDOW,
+    /** Requests signup with an email and a password */
+    fun signUpWithPassword(
+        email: String,
+        password: String
+    ) {
+        viewModelScope.launch {
+            serviceProvider.signUpWithPassword(email, password)?.let {
+                when(it) {
+                    IdentityMessageType.SUCCESS -> {
+                        signInWithPassword(email, password)
+                        finalizeSignIn(email)
+                    }
+                    IdentityMessageType.EMAIL_EXISTS -> signInWithPassword(email, password)
+                }
+            } ?: try {
+                Firebase.auth.createUserWithEmailAndPassword(email, password).user?.let {
+                    signInWithPassword(email, password)
+                    finalizeSignIn(email)
+                }
+            } catch(e: FirebaseAuthUserCollisionException) {
+                println("FirebaseAuthUserCollisionException: The email address is already in use by another account.")
+                signInWithPassword(email, password)
+            }
+        }
+    }
 
-    /** There are no credentials on the device, Android specific */
-    NO_GOOGLE_CREDENTIALS,
+    /** Requests a sign-in with an email and a password */
+    private fun signInWithPassword(
+        email: String,
+        password: String
+    ) {
+        viewModelScope.launch {
+            try {
+                Firebase.auth.signInWithEmailAndPassword(email, password)
+                authenticateUser(email)
+            }catch (e: FirebaseAuthInvalidCredentialsException) {
+                _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
+            }catch (e: FirebaseAuthEmailException) {
+                _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
+            }catch (e: Exception) {
+                _loginResult.emit(LoginResultType.FAILURE)
+            }
+        }
+    }
 
-    /** successful request, user is signed in */
-    SUCCESS
+    /** Requests sign in or sign up via Google account */
+    fun requestGoogleSignIn(webClientId: String) {
+        viewModelScope.launch {
+            val res = serviceProvider.requestGoogleSignIn(
+                filterAuthorizedAccounts = true,
+                webClientId = webClientId
+            )
+            if(res == LoginResultType.SUCCESS) {
+                finalizeSignIn(null)
+            }else _loginResult.emit(res)
+        }
+    }
+
+    /** Requests sign in or sign up via Google account */
+    fun requestAppleSignIn() {
+        viewModelScope.launch {
+            val res = serviceProvider.requestAppleSignIn()
+            if(res == LoginResultType.SUCCESS) {
+                finalizeSignIn(null)
+            }else _loginResult.emit(res)
+        }
+    }
+
+    /** Authenticates user with a token */
+    private fun authenticateUser(email: String?) {
+        viewModelScope.launch {
+            dataManager.currentUser.value = repository.authenticateUser()
+            finalizeSignIn(email)
+        }
+    }
+
+    /** finalizes full flow with a result */
+    private fun finalizeSignIn(email: String?) {
+        viewModelScope.launch {
+            if(dataManager.currentUser.value == null) {
+                Firebase.auth.currentUser?.uid?.let { clientId ->
+                    dataManager.fcmToken = dataManager.fcmToken ?: Firebase.messaging.getToken()
+
+                    dataManager.currentUser.value = UserIO(
+                        publicId = repository.createUser(
+                            RequestCreateUser(
+                                email = email ?: try {
+                                    Firebase.auth.currentUser?.email
+                                } catch (e: NotImplementedError) { null },
+                                clientId = clientId,
+                                platform = currentPlatform,
+                                fcmToken = dataManager.fcmToken
+                            )
+                        )?.publicId
+                    )
+                }
+            }
+            _loginResult.emit(
+                if(dataManager.currentUser.value == null) LoginResultType.FAILURE else LoginResultType.SUCCESS
+            )
+        }
+    }
 }
 
 /** module providing platform-specific sign in options */
@@ -63,84 +164,4 @@ expect class UserOperationService {
 
     /** Requests a signup with email and password */
     suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType?
-}
-
-/** Communication between the UI, the control layers, and control and data layers */
-class LoginViewModel(
-    private val serviceProvider: UserOperationService
-): SharedViewModel() {
-
-    private val _loginResult = MutableSharedFlow<LoginResultType?>()
-
-    /** Sends signal to UI about a response that happened */
-    val loginResult = _loginResult.asSharedFlow()
-
-    /** List of all available service via which user can sign in */
-    val availableOptions = serviceProvider.availableOptions
-
-    /** Requests signup with an email and a password */
-    fun signUpWithPassword(
-        email: String,
-        password: String
-    ) {
-        viewModelScope.launch {
-            serviceProvider.signUpWithPassword(email, password)?.let {
-                when(it) {
-                    IdentityMessageType.SUCCESS -> {
-                        // TODO createUser our BE
-                        signInWithPassword(email, password)
-                    }
-                    IdentityMessageType.EMAIL_EXISTS -> signInWithPassword(email, password)
-                }
-            } ?: try {
-                // TODO createUser our BE
-                processAuthResult(
-                    Firebase.auth.createUserWithEmailAndPassword(email, password)
-                )
-            } catch(e: FirebaseAuthUserCollisionException) {
-                println("FirebaseAuthUserCollisionException: The email address is already in use by another account.")
-                signInWithPassword(email, password)
-            }
-        }
-    }
-
-    /** Requests a sign-in with an email and a password */
-    private fun signInWithPassword(
-        email: String,
-        password: String
-    ) {
-        viewModelScope.launch {
-            processAuthResult(
-                Firebase.auth.signInWithEmailAndPassword(email, password)
-            )
-        }
-    }
-
-    /** Requests sign in or sign up via Google account */
-    fun requestGoogleSignIn(webClientId: String) {
-        viewModelScope.launch {
-            _loginResult.emit(
-                serviceProvider.requestGoogleSignIn(
-                    filterAuthorizedAccounts = true,
-                    webClientId = webClientId
-                )
-            )
-        }
-    }
-
-    /** Requests sign in or sign up via Google account */
-    fun requestAppleSignIn() {
-        viewModelScope.launch {
-            _loginResult.emit(
-                serviceProvider.requestAppleSignIn()
-            )
-        }
-    }
-
-    /** processes a given user if there is any */
-    private suspend fun processAuthResult(user: AuthResult?) {
-        _loginResult.emit(
-            if (user != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
-        )
-    }
 }

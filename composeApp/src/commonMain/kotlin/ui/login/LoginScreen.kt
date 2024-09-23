@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -44,8 +45,13 @@ import chat.enrichment.shared.ui.components.MinimalisticIcon
 import chat.enrichment.shared.ui.components.input.EditFieldInput
 import chat.enrichment.shared.ui.theme.LocalTheme
 import chatenrichment.composeapp.generated.resources.Res
+import chatenrichment.composeapp.generated.resources.error_general
 import chatenrichment.composeapp.generated.resources.error_google_sign_in_unavailable
 import chatenrichment.composeapp.generated.resources.firebase_web_client_id
+import chatenrichment.composeapp.generated.resources.login_error_canceled
+import chatenrichment.composeapp.generated.resources.login_error_invalid_credential
+import chatenrichment.composeapp.generated.resources.login_error_no_windows
+import chatenrichment.composeapp.generated.resources.login_error_security
 import chatenrichment.composeapp.generated.resources.login_password_action_go
 import chatenrichment.composeapp.generated.resources.login_password_email_error
 import chatenrichment.composeapp.generated.resources.login_password_email_hint
@@ -88,6 +94,9 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
 
     val isWaitingForResult = remember { mutableStateOf(false) }
+    val errorMessage = remember {
+        mutableStateOf<String?>(null)
+    }
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val passwordVisible = remember { mutableStateOf(false) }
@@ -122,31 +131,41 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
             validations.value.all { it.isValid || it.isRequired.not() }
         }
     }
-    val isEmailValid = emailAddressRegex.matches(email.value)
+    val isEmailValid = emailAddressRegex.matches(email.value) && errorMessage.value == null
 
     LaunchedEffect(Unit) {
         viewModel.loginResult.collectLatest { res ->
             when(res) {
-                LoginResultType.NO_GOOGLE_CREDENTIALS -> {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        snackbarHostState?.showSnackbar(
-                            message = getString(Res.string.error_google_sign_in_unavailable)
-                        )
-                    }
-                }
                 LoginResultType.SUCCESS -> {
                     CoroutineScope(Dispatchers.Main).launch {
                         if(snackbarHostState?.showSnackbar(
-                            message = getString(Res.string.login_success_snackbar),
-                            actionLabel = getString(Res.string.login_success_snackbar_action),
-                            duration = SnackbarDuration.Short
-                        ) == SnackbarResult.ActionPerformed) {
+                                message = getString(Res.string.login_success_snackbar),
+                                actionLabel = getString(Res.string.login_success_snackbar_action),
+                                duration = SnackbarDuration.Short
+                            ) == SnackbarResult.ActionPerformed) {
                             navController?.navigate(NavigationNode.Water)
                         }
                     }
                     navController?.popBackStack(NavigationNode.Login, inclusive = true)
                 }
-                else -> {}
+                LoginResultType.NO_GOOGLE_CREDENTIALS -> {
+                    errorMessage.value = getString(Res.string.error_google_sign_in_unavailable)
+                }
+                LoginResultType.CANCELLED -> {
+                    errorMessage.value = getString(Res.string.login_error_canceled)
+                }
+                LoginResultType.INVALID_CREDENTIAL  -> {
+                    errorMessage.value = getString(Res.string.login_error_invalid_credential)
+                }
+                LoginResultType.NO_WINDOW  -> {
+                    errorMessage.value = getString(Res.string.login_error_no_windows)
+                }
+                LoginResultType.AUTH_SECURITY  -> {
+                    errorMessage.value = getString(Res.string.login_error_security)
+                }
+                else -> {
+                    errorMessage.value = getString(Res.string.error_general)
+                }
             }
             isWaitingForResult.value = false
         }
@@ -170,8 +189,14 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.Start
         ) {
+            val isEmailFocused = remember { mutableStateOf(false) }
+
             EditFieldInput(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { state ->
+                        isEmailFocused.value = state.isFocused
+                    },
                 hint = stringResource(Res.string.login_password_email_hint),
                 value = "",
                 keyboardOptions = KeyboardOptions(
@@ -179,11 +204,12 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                     imeAction = ImeAction.Next
                 ),
                 onValueChange = { value ->
+                    errorMessage.value = null
                     email.value = value
                 },
-                errorText = if(isEmailValid || email.value.isEmpty()) {
+                errorText = if(isEmailValid || email.value.isEmpty() || isEmailFocused.value) {
                     null
-                } else stringResource(Res.string.login_password_email_error),
+                } else errorMessage.value ?: stringResource(Res.string.login_password_email_error),
                 paddingValues = PaddingValues(start = 16.dp)
             )
 
@@ -228,6 +254,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 },
                 onValueChange = { value ->
                     password.value = value.take(PASSWORD_MAX_LENGTH)
+                    errorMessage.value = null
                 },
                 paddingValues = PaddingValues(start = 16.dp)
             )

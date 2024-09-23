@@ -58,7 +58,7 @@ fun UsernameChangeLauncher(
 ) {
     loadKoinModules(usernameChangeModule)
 
-    val currentUser = viewModel.currentUser.collectAsState(null)
+    val currentUser = viewModel.firebaseUser.collectAsState(null)
 
     val nameOutput = rememberSaveable {
         mutableStateOf(currentUser.value?.displayName ?: "")
