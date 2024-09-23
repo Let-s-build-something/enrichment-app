@@ -60,8 +60,11 @@ open class SharedViewModel: ViewModel() {
                 val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
 
                 val fcmToken = if(defaultFcm == null) {
-                    val newFcm = Firebase.messaging.getToken()
-                    settings.putString(SettingsKeys.KEY_FCM, newFcm)
+                    val newFcm = try {
+                        Firebase.messaging.getToken()
+                    }catch (e: NotImplementedError) { null }?.apply {
+                        settings.putString(SettingsKeys.KEY_FCM, this)
+                    }
                     newFcm
                 }else defaultFcm
 

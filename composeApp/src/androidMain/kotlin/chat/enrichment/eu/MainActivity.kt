@@ -9,16 +9,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import chat.enrichment.shared.ui.base.LocalScreenSize
-import data.shared.SharedViewModel
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.annotation.KoinExperimentalAPI
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -44,23 +39,14 @@ class MainActivity: ComponentActivity() {
         }
     }
 
-    @OptIn(KoinExperimentalAPI::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         askForPermissions()
 
         setContent {
-            val viewModel: SharedViewModel = koinViewModel()
-            val settings = viewModel.localSettings.collectAsState()
             val configuration = LocalConfiguration.current
-
-            LaunchedEffect(Unit) {
-                viewModel.initApp()
-            }
-
-            installSplashScreen().setKeepOnScreenCondition {
-                settings.value != null
-            }
 
             CompositionLocalProvider(
                 LocalScreenSize provides IntSize(
@@ -68,9 +54,7 @@ class MainActivity: ComponentActivity() {
                     width = configuration.screenWidthDp
                 )
             ) {
-                if(settings.value != null) {
-                    App(viewModel)
-                }
+                App()
             }
         }
     }

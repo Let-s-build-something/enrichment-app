@@ -43,7 +43,9 @@
   <string name="account_dashboard_theme">Dark and darker</string>
   <string name="account_dashboard_theme_light">Light</string>
   <string name="account_dashboard_theme_dark">Dark</string>
-  <string name="account_dashboard_theme_device">Device</string>
+  <string name="account_dashboard_theme_device">System</string>
+
+  <string name="splash_loading_text">We are waking up the little people operating your application...</string>
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
