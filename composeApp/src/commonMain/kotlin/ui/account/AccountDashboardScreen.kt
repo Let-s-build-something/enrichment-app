@@ -18,9 +18,15 @@ import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import chat.enrichment.shared.ui.base.LocalNavController
 import chat.enrichment.shared.ui.components.ErrorHeaderButton
+import chat.enrichment.shared.ui.components.MultiChoiceSwitch
+import chat.enrichment.shared.ui.components.rememberTabSwitchState
 import chat.enrichment.shared.ui.theme.LocalTheme
 import chatenrichment.composeapp.generated.resources.Res
 import chatenrichment.composeapp.generated.resources.account_dashboard_fcm
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme_dark
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme_device
+import chatenrichment.composeapp.generated.resources.account_dashboard_theme_light
 import chatenrichment.composeapp.generated.resources.screen_account_title
 import chatenrichment.composeapp.generated.resources.username_change_launcher_cancel
 import org.jetbrains.compose.resources.stringResource
@@ -54,7 +60,26 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                 .padding(top = 12.dp, start = 16.dp, end = 16.dp)
                 .fillMaxSize()
         ) {
-            AnimatedVisibility(currentFcmToken.value != null) {
+            Text(
+                stringResource(Res.string.account_dashboard_theme),
+                style = LocalTheme.current.styles.category
+            )
+            MultiChoiceSwitch(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LocalTheme.current.shapes.rectangularActionShape,
+                state = rememberTabSwitchState(
+                    tabs = mutableListOf(
+                        stringResource(Res.string.account_dashboard_theme_light),
+                        stringResource(Res.string.account_dashboard_theme_dark),
+                        stringResource(Res.string.account_dashboard_theme_device)
+                    )
+                )
+            )
+
+            AnimatedVisibility(
+                modifier = Modifier.padding(top = LocalTheme.current.shapes.betweenItemsSpace),
+                visible = currentFcmToken.value != null
+            ) {
                 Column {
                     Text(
                         stringResource(Res.string.account_dashboard_fcm),

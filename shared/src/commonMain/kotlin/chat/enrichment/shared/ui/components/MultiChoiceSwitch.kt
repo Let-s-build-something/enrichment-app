@@ -1,18 +1,16 @@
 package chat.enrichment.shared.ui.components
 
 import androidx.compose.animation.Animatable
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -26,19 +24,21 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import chat.enrichment.shared.ui.theme.LocalTheme
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import future_shared_module.ext.scalingClickable
 
 /** State for communication with [MultiChoiceSwitch] */
 data class TabSwitchState(
@@ -88,7 +88,7 @@ const val DEFAULT_ANIMATION_LENGTH_LONG = 600
 @Composable
 fun MultiChoiceSwitch(
     modifier: Modifier = Modifier,
-    unselectedTextColor: Color = LocalTheme.current.colors.brandMain,
+    unselectedTextColor: Color = LocalTheme.current.colors.brandMainDark,
     selectedTextColor: Color = LocalTheme.current.colors.tetrial,
     state: TabSwitchState = rememberTabSwitchState(scrollState = rememberScrollState()),
     onItemCreation: (@Composable (Modifier, index: Int, animatedColor: Color) -> Unit)? = null,
@@ -97,36 +97,67 @@ fun MultiChoiceSwitch(
     val localDensity = LocalDensity.current
     val colors = LocalTheme.current.colors
 
-    val indicatorWidth = remember { mutableStateOf((-1).dp) }
+    val indicatorWidth = remember { mutableStateOf((-1f)) }
+    val indicatorHeight = remember { mutableStateOf((-1f)) }
     val offsetX = remember {
-        Animatable(indicatorWidth.value.times(state.selectedTabIndex.value).value)
+        Animatable(indicatorWidth.value.times(state.selectedTabIndex.value))
     }
 
 
     LaunchedEffect(state.selectedTabIndex.value) {
         offsetX.animateTo(
-            targetValue = indicatorWidth.value.times(state.selectedTabIndex.value).value,
-            animationSpec = tween(if(offsetX.value == -1f) 0 else DEFAULT_ANIMATION_LENGTH_SHORT)
+            targetValue = indicatorWidth.value.times(state.selectedTabIndex.value),
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow,
+                //duration = if(offsetX.value == -1f) 0 else DEFAULT_ANIMATION_LENGTH_SHORT
+            )
         )
     }
     LaunchedEffect(key1 = state.selectedTabIndex.value) {
         state.onSelectionChange(state.selectedTabIndex.value)
     }
 
-
     Box(
-        modifier = modifier
-            .shadow(
-                elevation = LocalTheme.current.styles.componentElevation,
-                shape = shape
-            )
-            .background(
-                color = colors.brandMain,
-                shape = shape
-            )
-            .width(indicatorWidth.value)
-            .animateContentSize()
+        modifier = modifier.background(
+            color = selectedTextColor,
+            shape = shape
+        )
     ) {
+        Layout(
+            content = {
+                Box(
+                    modifier = Modifier
+                        .height(
+                            with(localDensity) {
+                                indicatorHeight.value.toDp()
+                            }
+                        )
+                        .width(
+                            with(localDensity) {
+                                indicatorWidth.value.toDp()
+                            }
+                        )
+                        .background(unselectedTextColor, shape = shape)
+                        .align(Alignment.Center)
+                )
+            }
+        ) { measurables, constraints ->
+            val placeables = measurables.map { measurable ->
+                measurable.measure(constraints)
+            }
+
+            layout(constraints.maxWidth, constraints.minHeight) {
+                placeables.forEach { placeable ->
+                    placeable.placeRelative(
+                        IntOffset(
+                            offsetX.value.toInt(),
+                            0
+                        )
+                    )
+                }
+            }
+        }
         Row(
             modifier = Modifier.wrapContentHeight(unbounded = false),
             horizontalArrangement = Arrangement.SpaceAround,
@@ -151,13 +182,13 @@ fun MultiChoiceSwitch(
                 (onItemCreation ?: { modifier, _, color ->
                     Text(
                         modifier = modifier
+                            .padding(vertical = 2.dp)
                             .padding(LocalTheme.current.shapes.betweenItemsSpace)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
-                                state.selectedTabIndex.value = index
-                            },
+                            .scalingClickable(
+                                onTap = {
+                                    state.selectedTabIndex.value = index
+                                }
+                            ),
                         text = tab,
                         color = color,
                         style = TextStyle(
@@ -170,9 +201,8 @@ fun MultiChoiceSwitch(
                     Modifier
                         .onGloballyPositioned { coordinates ->
                             if (state.selectedTabIndex.value == index) {
-                                indicatorWidth.value = with(localDensity) {
-                                    coordinates.size.width.toDp()
-                                }
+                                indicatorWidth.value = coordinates.size.width.toFloat()
+                                indicatorHeight.value = coordinates.size.height.toFloat()
                             }
                         }
                         .weight(1f),
@@ -181,26 +211,5 @@ fun MultiChoiceSwitch(
                 )
             }
         }
-    }
-}
-
-@Preview
-@Composable
-private fun Preview() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = LocalTheme.current.colors.backgroundLight)
-    ) {
-        MultiChoiceSwitch(
-            modifier = Modifier,
-            state = rememberTabSwitchState(
-                tabs = mutableListOf("tab one", "tab two"),
-                selectedTabIndex = mutableIntStateOf(1)
-            ),
-            onItemCreation = { _, _, _ ->
-
-            }
-        )
     }
 }

@@ -8,17 +8,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import chat.enrichment.shared.ui.base.LocalScreenSize
+import data.shared.SharedViewModel
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.annotation.KoinExperimentalAPI
 
-class MainActivity : ComponentActivity() {
-
+class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { isGranted: Boolean ->
@@ -42,13 +45,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(KoinExperimentalAPI::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        installSplashScreen()
         askForPermissions()
 
         setContent {
+            val viewModel: SharedViewModel = koinViewModel()
+            val settings = viewModel.localSettings.collectAsState()
             val configuration = LocalConfiguration.current
+            val isSystemInDarkTheme = isSystemInDarkTheme()
+
+            LaunchedEffect(Unit) {
+                viewModel.initApp(isDeviceDarkTheme = isSystemInDarkTheme)
+            }
+
+            installSplashScreen().setKeepOnScreenCondition {
+                settings.value != null
+            }
 
             CompositionLocalProvider(
                 LocalScreenSize provides IntSize(
@@ -56,14 +70,10 @@ class MainActivity : ComponentActivity() {
                     width = configuration.screenWidthDp
                 )
             ) {
-                App()
+                if(settings.value != null) {
+                    App(viewModel)
+                }
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun AppAndroidPreview() {
-    App()
 }
