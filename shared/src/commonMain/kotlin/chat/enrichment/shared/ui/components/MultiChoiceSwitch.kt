@@ -133,7 +133,7 @@ fun MultiChoiceSwitch(
                         )
                         .width(
                             with(localDensity) {
-                                indicatorWidth.value.toDp()
+                                indicatorWidth.value.toDp() + 2.dp
                             }
                         )
                         .background(unselectedTextColor, shape = shape)

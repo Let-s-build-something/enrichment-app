@@ -74,7 +74,7 @@ fun BaseScreen(
     }else RoundedCornerShape(
         topEnd = 24.dp,
         bottomEnd = 24.dp,
-        bottomStart = 24.dp
+        //bottomStart = 24.dp
     ),
     actionIcons: @Composable (Boolean) -> Unit = {},
     appBarVisible: Boolean = LocalHeyIamScreen.current.not(),
@@ -238,7 +238,7 @@ private fun DesktopLayout(
                     shape = RoundedCornerShape(
                         bottomEnd = 24.dp,
                         topEnd = 36.dp,
-                        bottomStart = 24.dp
+                        //bottomStart = 24.dp
                     )
                 )
         ) {
