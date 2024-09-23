@@ -416,7 +416,7 @@ tasks.register("syncWithGradleFiles") {
         ":composeApp:generateActualResourceCollectorsForJvmMain",
         ":composeApp:generateComposeResClass",
         ":composeApp:generateExpectResourceCollectorsForCommonMain",
-        ":composeApp:generateNonAndroidBuildConfig",
+        //":composeApp:generateNonAndroidBuildConfig",
         ":composeApp:prepareComposeResourcesTaskForAndroidDebug",
         ":composeApp:generateResourceAccessorsForAndroidDebug",
         ":composeApp:prepareComposeResourcesTaskForAndroidInstrumentedTest",
