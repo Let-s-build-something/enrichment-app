@@ -403,7 +403,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_IDENTITY = "Apple Development: jacob.mexxxx@gmail.com (L397G4NYR5)";
+				CODE_SIGN_IDENTITY = "Apple Development: Jakub Kostka (L397G4NYR5)";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -442,7 +442,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_IDENTITY = "Apple Development: jacob.mexxxx@gmail.com (L397G4NYR5)";
+				CODE_SIGN_IDENTITY = "Apple Development: Jakub Kostka (L397G4NYR5)";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "iosApp/Preview\\ Content";
@@ -606,8 +606,8 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development: jacob.mexxxx@gmail.com (L397G4NYR5)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development: jacob.mexxxx@gmail.com (L397G4NYR5)";
+				CODE_SIGN_IDENTITY = "Apple Development: Jakub Kostka (L397G4NYR5)";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development: Jakub Kostka (L397G4NYR5)";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = YDKDFB7RLU;
@@ -645,8 +645,8 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development: jacob.mexxxx@gmail.com (L397G4NYR5)";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development: jacob.mexxxx@gmail.com (L397G4NYR5)";
+				CODE_SIGN_IDENTITY = "Apple Development: Jakub Kostka (L397G4NYR5)";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development: Jakub Kostka (L397G4NYR5)";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = YDKDFB7RLU;
