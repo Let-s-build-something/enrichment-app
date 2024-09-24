@@ -52,35 +52,6 @@ jobs:
           api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
 
-      - name: Install CocoaPods dependencies
-        run: |
-          ./gradlew -q syncWithGradleFiles
-          cd iosApp
-          pod install
-
-        # iOS - create .ipa file
-      - name: Build archive
-        run: |
-          cd iosApp
-          xcrun xcodebuild \
-            -workspace "iosApp.xcworkspace" \
-            -scheme "iosApp" \
-            -configuration "Release" \
-            -sdk "iphoneos" \
-            -parallelizeTargets \
-            -showBuildTimingSummary \
-            -disableAutomaticPackageResolution \
-            -derivedDataPath "${RUNNER_TEMP}/Build/DerivedData" \
-            -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
-            -resultBundlePath "${RUNNER_TEMP}/Build/Artifacts/iosApp.xcresult" \
-            -destination "generic/platform=iOS" \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
-            CODE_SIGN_STYLE="Manual" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
-            CODE_SIGNING_ALLOWED="NO" \
-            archive
-
       - name: Generate ExportOptions.plist
         run: |
           cat <<EOF > ${RUNNER_TEMP}/Build/ExportOptions.plist
@@ -110,6 +81,34 @@ jobs:
             </dict>
           </plist>
           EOF
+
+      - name: Simulate Sync with Gradle files
+        run: |
+          ./gradlew -q syncWithGradleFiles
+
+        # iOS - create .ipa file
+      - name: Build archive
+        run: |
+          cd iosApp
+          xcrun xcodebuild \
+            -workspace "iosApp.xcworkspace" \
+            -scheme "iosApp" \
+            -configuration "Release" \
+            -sdk "iphoneos" \
+            -parallelizeTargets \
+            -showBuildTimingSummary \
+            -disableAutomaticPackageResolution \
+            -derivedDataPath "${RUNNER_TEMP}/Build/DerivedData" \
+            -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
+            -resultBundlePath "${RUNNER_TEMP}/Build/Artifacts/iosApp.xcresult" \
+            -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
+            CODE_SIGN_STYLE="Manual" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
+            CODE_SIGNING_ALLOWED="NO" \
+            EXCLUDED_SOURCE_FILE_NAMES="GoogleDataTransport.framework FirebaseAuth.framework FirebaseAuthInterop.framework FirebaseCore.framework FirebaseAppCheckInterop.framework FBLPromises.framework GoogleUtilities.framework FirebaseMessaging.framework nanopb.framework FirebaseInstallations.framework AppAuth.framework RecaptchaInterop.framework AppCheckCore.framework GTMAppAuth.framework FirebaseCoreInternal.framework GTMSessionFetcher.framework GoogleSignIn.framework FirebaseCoreExtension.framework"
+            archive
 
       - name: export archive
         id: export_archive
