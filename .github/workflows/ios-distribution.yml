@@ -58,6 +58,8 @@ jobs:
           sudo gem uninstall cocoapods -ax
           echo “installing cocoapods version 1.5.3”
           sudo gem install cocoapods -v 1.5.3
+          pod repo add trunk https://cdn.cocoapods.org
+          
           ./gradlew -q syncWithGradleFiles
           cd iosApp
           pod install
