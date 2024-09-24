@@ -52,37 +52,6 @@ jobs:
           api-key-id: ${{ secrets.APP_STORE_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_PRIVATE_KEY }}
 
-      - name: Generate ExportOptions.plist
-        run: |
-          mkdir -p ${RUNNER_TEMP}/Build
-          cat <<EOF > ${RUNNER_TEMP}/Build/ExportOptions.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-            <dict>
-              <key>destination</key>
-              <string>export</string>
-              <key>method</key>
-              <string>app-store</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>generateAppStoreInformation</key>
-              <true/>
-              <key>stripSwiftSymbols</key>
-              <true/>
-              <key>teamID</key>
-              <string>${{ secrets.APPLE_TEAM_ID }}</string>
-              <key>uploadSymbols</key>
-              <true/>
-              <key>provisioningProfiles</key>
-              <dict>
-                <key>${{ secrets.APPLE_BUNDLE_ID }}</key>
-                <string>${{ secrets.APPLE_PROVISIONING_PROFILE_NAME_DIST }}</string>
-              </dict>
-            </dict>
-          </plist>
-          EOF
-
       - name: Simulate Sync with Gradle files
         run: |
           ./gradlew -q syncWithGradleFiles
@@ -110,6 +79,36 @@ jobs:
             CODE_SIGNING_ALLOWED="NO" \
             EXCLUDED_SOURCE_FILE_NAMES="GoogleDataTransport.framework FirebaseAuth.framework FirebaseAuthInterop.framework FirebaseCore.framework FirebaseAppCheckInterop.framework FBLPromises.framework GoogleUtilities.framework FirebaseMessaging.framework nanopb.framework FirebaseInstallations.framework AppAuth.framework RecaptchaInterop.framework AppCheckCore.framework GTMAppAuth.framework FirebaseCoreInternal.framework GTMSessionFetcher.framework GoogleSignIn.framework FirebaseCoreExtension.framework"
             archive
+
+            - name: Generate ExportOptions.plist
+        run: |
+          cat <<EOF > ${RUNNER_TEMP}/Build/ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+            <dict>
+              <key>destination</key>
+              <string>export</string>
+              <key>method</key>
+              <string>app-store</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>generateAppStoreInformation</key>
+              <true/>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>teamID</key>
+              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>provisioningProfiles</key>
+              <dict>
+                <key>${{ secrets.APPLE_BUNDLE_ID }}</key>
+                <string>${{ secrets.APPLE_PROVISIONING_PROFILE_NAME_DIST }}</string>
+              </dict>
+            </dict>
+          </plist>
+          EOF
 
       - name: export archive
         id: export_archive
