@@ -2,6 +2,8 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import chat.enrichment.shared.ui.base.PlatformType
+import chat.enrichment.shared.ui.base.currentPlatform
 import com.russhwolf.settings.Settings
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
@@ -9,6 +11,7 @@ import data.io.app.ThemeChoice
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -61,6 +64,8 @@ open class SharedViewModel: ViewModel() {
 
                 val fcmToken = if(defaultFcm == null) {
                     val newFcm = try {
+                        // gotta wait for APNS to be ready before FCM request
+                        if(currentPlatform == PlatformType.Native) delay(500)
                         Firebase.messaging.getToken()
                     }catch (e: NotImplementedError) { null }?.apply {
                         settings.putString(SettingsKeys.KEY_FCM, this)

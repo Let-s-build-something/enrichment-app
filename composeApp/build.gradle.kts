@@ -458,7 +458,6 @@ tasks.register("syncWithGradleFiles") {
         ":composeApp:transformIosTestCInteropDependenciesMetadataForIde",
         ":composeApp:prepareKotlinIdeaImport",
         ":shared:commonizeCInterop",
-        ":shared:copyCommonizeCInteropForIde",
         ":shared:commonize",
         ":shared:convertXmlValueResourcesForAndroidDebug",
         ":shared:convertXmlValueResourcesForAndroidInstrumentedTest",
