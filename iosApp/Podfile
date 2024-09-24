@@ -5,7 +5,7 @@ source 'https://cdn.cocoapods.org'
 
 target 'iosApp' do
   # Comment the next line if you don't want to use dynamic frameworks
-  use_modular_headers!
+  use_frameworks!
   platform :ios, '15.3'
   # Pods for iosApp
 	pod 'ComposeApp', :path => '../composeApp'
@@ -17,4 +17,14 @@ target 'iosApp' do
 	target 'NotificationService' do
         	inherit! :search_paths
     	end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    if ['FirebaseAuthInterop', 'FirebaseCore', 'FirebaseAuth', 'GoogleSignIn', 'FirebaseMessaging'].include?(target.name)
+      target.build_configurations.each do |config|
+        config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      end
+    end
+  end
 end

@@ -27,7 +27,8 @@ class AppDelegate: ASPresentationAnchor,
     
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        Messaging.messaging().apnsToken = deviceToken
+        print("Registered for Apple Remote Notifications")
+        Messaging.messaging().setAPNSToken(deviceToken, type: .unknown)
     }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async-> UNNotificationPresentationOptions {
