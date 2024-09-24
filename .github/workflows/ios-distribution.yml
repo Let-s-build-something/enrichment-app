@@ -76,7 +76,7 @@ jobs:
             -resultBundlePath "${RUNNER_TEMP}/Build/Artifacts/iosApp.xcresult" \
             -destination "generic/platform=iOS" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}${{ secrets.APPLE_TEAM_ID }}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
             CODE_SIGN_STYLE="Manual" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
             archive
@@ -119,7 +119,7 @@ jobs:
             -exportOptionsPlist "${RUNNER_TEMP}/Build/ExportOptions.plist" \
             -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
             -exportPath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
-            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}${{ secrets.APPLE_TEAM_ID }}"
+            PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}"
 
       - name: Upload app to TestFlight
         uses: apple-actions/upload-testflight-build@v1
