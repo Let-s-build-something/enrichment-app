@@ -54,6 +54,10 @@ jobs:
 
       - name: Install CocoaPods dependencies
         run: |
+          echo “uninstalling all cocoapods versions”
+          sudo gem uninstall cocoapods -ax
+          echo “installing cocoapods version 1.5.3”
+          sudo gem install cocoapods -v 1.5.3
           ./gradlew -q syncWithGradleFiles
           cd iosApp
           pod install
@@ -62,7 +66,6 @@ jobs:
       - name: Build archive
         run: |
           cd iosApp
-
           xcrun xcodebuild \
             -workspace "iosApp.xcworkspace" \
             -scheme "iosApp" \
