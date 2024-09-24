@@ -59,6 +59,7 @@ jobs:
           echo “installing cocoapods version 1.5.3”
           sudo gem install cocoapods -v 1.5.3
           pod repo add trunk https://github.com/CocoaPods/Specs.git
+          pod setup
           
           ./gradlew -q syncWithGradleFiles
           cd iosApp
