@@ -80,7 +80,7 @@ jobs:
             EXCLUDED_SOURCE_FILE_NAMES="GoogleDataTransport.framework FirebaseAuth.framework FirebaseAuthInterop.framework FirebaseCore.framework FirebaseAppCheckInterop.framework FBLPromises.framework GoogleUtilities.framework FirebaseMessaging.framework nanopb.framework FirebaseInstallations.framework AppAuth.framework RecaptchaInterop.framework AppCheckCore.framework GTMAppAuth.framework FirebaseCoreInternal.framework GTMSessionFetcher.framework GoogleSignIn.framework FirebaseCoreExtension.framework"
             archive
 
-            - name: Generate ExportOptions.plist
+      - name: Generate ExportOptions.plist
         run: |
           cat <<EOF > ${RUNNER_TEMP}/Build/ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
