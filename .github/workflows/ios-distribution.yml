@@ -79,6 +79,7 @@ jobs:
             PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
             CODE_SIGN_STYLE="Manual" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
+            CODE_SIGNING_ALLOWED="NO" \
             archive
 
       - name: Generate ExportOptions.plist
