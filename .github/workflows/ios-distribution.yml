@@ -25,6 +25,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
+      - name: setup-cocoapods
+        uses: maxim-lobanov/setup-cocoapods@v1
+        with:
+          version: 1.5.3
 
       # Prepare access to everything
       - name: Grant execute permission for gradlew
@@ -54,12 +58,6 @@ jobs:
 
       - name: Install CocoaPods dependencies
         run: |
-          echo “uninstalling all cocoapods versions”
-          sudo gem uninstall cocoapods -ax
-          echo “installing cocoapods version 1.5.3”
-          sudo gem install cocoapods -v 1.5.3
-          pod setup
-          
           ./gradlew -q syncWithGradleFiles
           cd iosApp
           pod install
