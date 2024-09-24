@@ -73,7 +73,7 @@ kotlin {
         xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
         xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -158,7 +158,7 @@ rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlu
 val vCode = libs.versions.version.code.get().toInt()
 val vName = "${libs.versions.version.name.get()}.$vCode"
 val debugHostname = "api.fly-here.com/api"
-val releaseHostname = "google.com"
+val releaseHostname = "api.fly-here.com/api"
 
 android {
     namespace = "chat.enrichment.eu"
@@ -416,7 +416,6 @@ tasks.register("syncWithGradleFiles") {
         ":composeApp:generateActualResourceCollectorsForJvmMain",
         ":composeApp:generateComposeResClass",
         ":composeApp:generateExpectResourceCollectorsForCommonMain",
-        //":composeApp:generateNonAndroidBuildConfig",
         ":composeApp:prepareComposeResourcesTaskForAndroidDebug",
         ":composeApp:generateResourceAccessorsForAndroidDebug",
         ":composeApp:prepareComposeResourcesTaskForAndroidInstrumentedTest",
@@ -459,6 +458,7 @@ tasks.register("syncWithGradleFiles") {
         ":composeApp:transformIosTestCInteropDependenciesMetadataForIde",
         ":composeApp:prepareKotlinIdeaImport",
         ":shared:commonizeCInterop",
+        ":shared:copyCommonizeCInteropForIde",
         ":shared:commonize",
         ":shared:convertXmlValueResourcesForAndroidDebug",
         ":shared:convertXmlValueResourcesForAndroidInstrumentedTest",
@@ -565,7 +565,6 @@ tasks.register("syncWithGradleFiles") {
         ":shared:generateResourceAccessorsForNativeTest",
         ":shared:generateDummyFramework",
         ":shared:podspec",
-        ":shared:podInstall",
         ":shared:podImport",
         ":shared:transformNativeMainCInteropDependenciesMetadataForIde",
         ":shared:transformAppleMainCInteropDependenciesMetadataForIde",
