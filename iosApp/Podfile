@@ -13,10 +13,6 @@ target 'iosApp' do
   	pod 'FirebaseAuth'
   	pod 'GoogleSignIn'
 	pod 'FirebaseMessaging'
-
-	target 'NotificationService' do
-        	inherit! :search_paths
-    	end
 end
 
 post_install do |installer|
