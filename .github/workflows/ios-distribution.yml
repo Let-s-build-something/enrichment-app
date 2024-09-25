@@ -101,7 +101,6 @@ jobs:
               <string>${{ secrets.APPLE_TEAM_ID }}</string>
               <key>uploadSymbols</key>
               <true/>
-              <key>provisioningProfiles</key>
               <key>uploadBitcode</key>
               <true/>
             </dict>
@@ -116,6 +115,8 @@ jobs:
             -exportOptionsPlist "${RUNNER_TEMP}/Build/ExportOptions.plist" \
             -archivePath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
             -exportPath "${RUNNER_TEMP}/Build/Archives/iosApp.xcarchive" \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
             PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}"
 
       - name: Upload app to TestFlight
