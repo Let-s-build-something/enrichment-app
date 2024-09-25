@@ -47,3 +47,4 @@ iosApp/iosApp.xcworkspace/xcuserdata
 shared/build
 iosApp/Pods
 build/wix311/
+iosApp/build/XCBuildData
