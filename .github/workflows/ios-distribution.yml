@@ -92,7 +92,7 @@ jobs:
               <key>method</key>
               <string>app-store</string>
               <key>signingStyle</key>
-              <string>manual</string>
+              <string>automatic</string>
               <key>generateAppStoreInformation</key>
               <true/>
               <key>stripSwiftSymbols</key>
@@ -102,10 +102,8 @@ jobs:
               <key>uploadSymbols</key>
               <true/>
               <key>provisioningProfiles</key>
-              <dict>
-                <key>${{ secrets.APPLE_BUNDLE_ID }}</key>
-                <string>${{ secrets.APPLE_PROVISIONING_PROFILE_NAME_DIST }}</string>
-              </dict>
+              <key>uploadBitcode</key>
+              <true/>
             </dict>
           </plist>
           EOF
