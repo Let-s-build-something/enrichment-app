@@ -76,7 +76,6 @@ jobs:
             PRODUCT_BUNDLE_IDENTIFIER="${{ secrets.APPLE_BUNDLE_ID }}" \
             CODE_SIGN_STYLE="Manual" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}" \
-            CODE_SIGNING_ALLOWED="NO" \
             EXCLUDED_SOURCE_FILE_NAMES="GoogleDataTransport.framework FirebaseAuth.framework FirebaseAuthInterop.framework FirebaseCore.framework FirebaseAppCheckInterop.framework FBLPromises.framework GoogleUtilities.framework FirebaseMessaging.framework nanopb.framework FirebaseInstallations.framework AppAuth.framework RecaptchaInterop.framework AppCheckCore.framework GTMAppAuth.framework FirebaseCoreInternal.framework GTMSessionFetcher.framework GoogleSignIn.framework FirebaseCoreExtension.framework" \
             archive
 
@@ -92,7 +91,7 @@ jobs:
               <key>method</key>
               <string>app-store-connect</string>
               <key>signingStyle</key>
-              <string>automatic</string>
+              <string>manual</string>
               <key>generateAppStoreInformation</key>
               <true/>
               <key>stripSwiftSymbols</key>
@@ -101,6 +100,10 @@ jobs:
               <string>${{ secrets.APPLE_TEAM_ID }}</string>
               <key>uploadSymbols</key>
               <true/>
+              <dict>
+                <key>${{ secrets.APPLE_BUNDLE_ID }}</key>
+                <string>${{ secrets.APPLE_PROVISIONING_PROFILE_NAME_DIST }}</string>
+              </dict>
               <key>uploadBitcode</key>
               <false/>
             </dict>
