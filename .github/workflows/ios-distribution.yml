@@ -102,6 +102,7 @@ jobs:
           xcodebuild
             -exportArchive \
             -workspace "iosApp.xcworkspace" \
+            -scheme "iosApp" \
             -archivePath $RUNNER_TEMP/chatrich.xcarchive \
             -exportOptionsPlist $EXPORT_OPTS_PATH \
             -exportPath $RUNNER_TEMP/build \
