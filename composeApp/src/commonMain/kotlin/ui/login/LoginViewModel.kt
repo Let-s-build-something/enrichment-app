@@ -33,26 +33,26 @@ class LoginViewModel(
     /** Requests signup with an email and a password */
     fun signUpWithPassword(
         email: String,
-        password: String
+        password: String,
+        screenType: LoginScreenType
     ) {
         viewModelScope.launch {
-            serviceProvider.signUpWithPassword(email, password)?.let {
-                when(it) {
-                    IdentityMessageType.SUCCESS -> {
-                        signInWithPassword(email, password)
-                        finalizeSignIn(email)
+            if(screenType == LoginScreenType.SIGN_UP) {
+                serviceProvider.signUpWithPassword(email, password)?.let {
+                    when(it) {
+                        IdentityMessageType.SUCCESS -> {
+                            signInWithPassword(email, password)
+                        }
+                        IdentityMessageType.EMAIL_EXISTS -> _loginResult.emit(LoginResultType.EMAIL_EXISTS)
                     }
-                    IdentityMessageType.EMAIL_EXISTS -> signInWithPassword(email, password)
+                } ?: try {
+                    Firebase.auth.createUserWithEmailAndPassword(email, password).user?.let {
+                        signInWithPassword(email, password)
+                    }
+                } catch(e: FirebaseAuthUserCollisionException) {
+                    _loginResult.emit(LoginResultType.EMAIL_EXISTS)
                 }
-            } ?: try {
-                Firebase.auth.createUserWithEmailAndPassword(email, password).user?.let {
-                    signInWithPassword(email, password)
-                    finalizeSignIn(email)
-                }
-            } catch(e: FirebaseAuthUserCollisionException) {
-                println("FirebaseAuthUserCollisionException: The email address is already in use by another account.")
-                signInWithPassword(email, password)
-            }
+            }else signInWithPassword(email, password)
         }
     }
 
@@ -99,37 +99,33 @@ class LoginViewModel(
     }
 
     /** Authenticates user with a token */
-    private fun authenticateUser(email: String?) {
-        viewModelScope.launch {
-            dataManager.currentUser.value = repository.authenticateUser()
-            finalizeSignIn(email)
-        }
+    private suspend fun authenticateUser(email: String?) {
+        dataManager.currentUser.value = repository.authenticateUser()
+        finalizeSignIn(email)
     }
 
     /** finalizes full flow with a result */
-    private fun finalizeSignIn(email: String?) {
-        viewModelScope.launch {
-            if(dataManager.currentUser.value == null) {
-                Firebase.auth.currentUser?.uid?.let { clientId ->
+    private suspend fun finalizeSignIn(email: String?) {
+        if(dataManager.currentUser.value == null) {
+            Firebase.auth.currentUser?.uid?.let { clientId ->
 
-                    dataManager.currentUser.value = UserIO(
-                        publicId = repository.createUser(
-                            RequestCreateUser(
-                                email = email ?: try {
-                                    Firebase.auth.currentUser?.email
-                                } catch (e: NotImplementedError) { null },
-                                clientId = clientId,
-                                platform = currentPlatform,
-                                fcmToken = localSettings.value?.fcmToken
-                            )
-                        )?.publicId
-                    )
-                }
+                dataManager.currentUser.value = UserIO(
+                    publicId = repository.createUser(
+                        RequestCreateUser(
+                            email = email ?: try {
+                                Firebase.auth.currentUser?.email
+                            } catch (e: NotImplementedError) { null },
+                            clientId = clientId,
+                            platform = currentPlatform,
+                            fcmToken = localSettings.value?.fcmToken
+                        )
+                    )?.publicId
+                )
             }
-            _loginResult.emit(
-                if(dataManager.currentUser.value == null) LoginResultType.FAILURE else LoginResultType.SUCCESS
-            )
         }
+        _loginResult.emit(
+            if(dataManager.currentUser.value == null) LoginResultType.FAILURE else LoginResultType.SUCCESS
+        )
     }
 }
 

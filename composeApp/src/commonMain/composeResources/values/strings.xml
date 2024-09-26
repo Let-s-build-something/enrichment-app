@@ -29,11 +29,14 @@
   <string name="login_password_password_hint">Password</string>
   <string name="error_general">Even we failed communicating (with the server)</string>
 
-  <string name="login_password_email_error">You call that an email address? Try cereal@mr.grain</string>
-  <string name="login_password_password_condition_empty">Is not empty, duh!</string>
-  <string name="login_password_password_condition_0">Minimum 9 characters long.</string>
-  <string name="login_password_password_condition_1">At least one algebra character.</string>
-  <string name="login_password_password_condition_2">At least one very special character.</string>
+  <string name="login_screen_type_sign_up">I'm new</string>
+  <string name="login_screen_type_sign_in">Experienced pirate</string>
+  <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
+  <string name="login_error_duplicate_email">Some pirate out there took the wind out of your sails. Try another email or sing in.</string>
+  <string name="login_password_condition_empty">Is not empty, duh!</string>
+  <string name="login_password_condition_0">Minimum 9 characters long.</string>
+  <string name="login_password_condition_1">At least one algebra character.</string>
+  <string name="login_password_condition_2">At least one very special character.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
   <string name="login_password_action_go">Here I go!</string>
@@ -52,6 +55,8 @@
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+  <string name="accessibility_show_password">Show password</string>
+  <string name="accessibility_hide_password">Hide password</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

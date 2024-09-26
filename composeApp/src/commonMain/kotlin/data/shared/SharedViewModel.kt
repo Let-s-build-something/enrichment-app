@@ -87,7 +87,7 @@ open class SharedViewModel: ViewModel() {
                         it?.copy(idToken = firebaseUser?.getIdToken(false))
                     }
                 }
-                // authenticate user on our BE
+                // TODO authenticate user on our BE
             }
         }
     }
