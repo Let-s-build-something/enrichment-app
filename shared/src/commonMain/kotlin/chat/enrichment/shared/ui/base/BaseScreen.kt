@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Scaffold
@@ -310,6 +312,33 @@ private fun DesktopLayout(
     }
 }
 
+/**
+ * Default content for screen that should collapse based on the device width.
+ * This custom limitation is due to some screens not needing the extra space and not having for example dual pane layout.
+ */
+@Composable
+fun BoxScope.ModalScreenContent(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(8.dp),
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .align(Alignment.TopCenter)
+            .widthIn(max = MaxModalWidthDp.dp)
+            .fillMaxHeight()
+            .padding(
+                top = 24.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
+        verticalArrangement = verticalArrangement,
+        horizontalAlignment = horizontalAlignment,
+        content = content
+    )
+}
+
 /** Types of platform that this application is running on */
 enum class PlatformType {
     /** Linux or Windows, but can run on macOS as well - generally desktop */
@@ -326,6 +355,9 @@ enum class PlatformType {
 val LocalScreenSize = staticCompositionLocalOf {
     IntSize(0, 0)
 }
+
+/** Maximum width of a modal element - this can include a screen in case the device is a desktop */
+const val MaxModalWidthDp = 520
 
 /** Platform using this application */
 expect val currentPlatform: PlatformType

@@ -125,7 +125,11 @@ fun EditFieldInput(
         )
         AnimatedVisibility(errorText.isNullOrBlank().not()) {
             Text(
-                modifier = Modifier.padding(8.dp),
+                modifier = Modifier.padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 4.dp
+                ),
                 text = errorText ?: "",
                 style = LocalTheme.current.styles.regular.copy(
                     color = SharedColors.RED_ERROR,

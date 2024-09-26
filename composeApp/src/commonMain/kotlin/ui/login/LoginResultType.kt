@@ -12,6 +12,9 @@ enum class LoginResultType {
     /** the nonce don't match, security check */
     AUTH_SECURITY,
 
+    /** email already exists */
+    EMAIL_EXISTS,
+
     /** the UI is missing window, iOS specific */
     NO_WINDOW,
 
