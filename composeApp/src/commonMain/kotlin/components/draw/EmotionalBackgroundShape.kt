@@ -46,7 +46,7 @@ private fun Preview() {
                 .height(70.dp)
                 .background(
                     color = Colors.Asparagus,
-                    shape = BackgroundEmotionShape(
+                    shape = EmotionalBackgroundShape(
                         sides = 50,
                         depth = 0.09,
                         iterations = 360
@@ -68,7 +68,7 @@ private fun Preview() {
  * @param depth a double value between 0.0 - 1.0 for modifying curve depth - ideal maximum value is around .4.
  * @param iterations a value between 0 - 360 that determines the quality of the waves shape - number of polygons.
  */
-class BackgroundEmotionShape(
+class EmotionalBackgroundShape(
     private val sides: Int,
     private val depth: Double = 0.09,
     iterations: Int = 360
@@ -185,15 +185,14 @@ class BackgroundEmotionShape(
         val steps = (length / (2 * PI / sides)).toInt()
         val stepSize = length / steps
 
-        for (i in 0..steps) {
+        for (i in 0 until steps) {
             val t = i * stepSize
             val waveOffset = amplitude * sin((t / length) * 2 * PI * sides - PI / 2).toFloat()
-            val x = start.x + t
-            val y = start.y + waveOffset.times(
-                // we make sure the wave starts and ends at the relative "bottom"
-                if(start.y > end.y) 1 else -1
-            )
-            lineTo(x, y.toFloat())
+            val x1 = start.x + t
+            val y1 = start.y + waveOffset.times(if (start.y > end.y) 1 else -1)
+            val x2 = start.x + (i + 1) * stepSize
+            val y2 = start.y + amplitude * sin(((i + 1) * stepSize / length) * 2 * PI * sides - PI / 2).toFloat().times(if (start.y > end.y) 1 else -1)
+            cubicTo(x1, y1.toFloat(), x2, y2.toFloat(), x2, y2.toFloat())
         }
 
         lineTo(end.x, end.y)
@@ -214,9 +213,11 @@ class BackgroundEmotionShape(
         while (t <= TWO_PI) {
             val x = r * (cos(t) * (1 + depth * cos(sides * t)))
             val y = r * (sin(t) * (1 + depth * cos(sides * t)))
-            lineTo((x + center.x).toFloat(), (y + center.y).toFloat())
-
-            t += steps
+            val nextT = t + steps
+            val nextX = r * (cos(nextT) * (1 + depth * cos(sides * nextT)))
+            val nextY = r * (sin(nextT) * (1 + depth * cos(sides * nextT)))
+            cubicTo((x + center.x).toFloat(), (y + center.y).toFloat(), (nextX + center.x).toFloat(), (nextY + center.y).toFloat(), (nextX + center.x).toFloat(), (nextY + center.y).toFloat())
+            t = nextT
         }
 
         val x = r * (cos(t) * (1 + depth * cos(sides * t)))
