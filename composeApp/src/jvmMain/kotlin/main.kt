@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowDecoration
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
@@ -33,7 +34,12 @@ import koin.commonModule
 import org.jetbrains.compose.resources.stringResource
 import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
+import java.awt.Button
+import java.awt.Dialog
+import java.awt.FlowLayout
+import java.awt.Frame
 import java.awt.GraphicsEnvironment
+import java.awt.Label
 import java.awt.Toolkit
 
 
@@ -58,6 +64,19 @@ fun main() = application {
     val toolkit = Toolkit.getDefaultToolkit()
 
     Thread.setDefaultUncaughtExceptionHandler { _, e ->
+        Dialog(Frame(), e.message ?: "Error").apply {
+            layout = FlowLayout()
+            add(Label("We apologize, an unexpected error occurred: ${e.message}"))
+            add(
+                Button("Okay, FINE").apply {
+                    addActionListener { dispose() }
+                }
+            )
+            setSize(1200, 300)
+            isAutoRequestFocus = true
+            isResizable = true
+            isVisible = true
+        }
         e.printStackTrace()
         crashException.value = e
     }
@@ -84,7 +103,7 @@ fun main() = application {
         ),
         title = stringResource(Res.string.app_name),
         visible = true,
-        undecorated = false,
+        decoration = WindowDecoration.SystemDefault,
         resizable = true,
         alwaysOnTop = false
     ) {

@@ -8,7 +8,8 @@ import com.russhwolf.settings.Settings
 import data.shared.SharedDataManager
 import data.shared.SharedViewModel
 import io.ktor.client.HttpClient
-import org.koin.compose.viewmodel.dsl.viewModelOf
+import kotlinx.serialization.json.Json
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.login.signInServiceModule
 
@@ -22,12 +23,22 @@ internal val commonModule = module {
     viewModelOf(::SharedViewModel)
 
     single {
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            useArrayPolymorphism = true
+        }
+    }
+    single {
         NetworkFetcher.Factory(
             networkClient = { get<HttpClient>().asNetworkClient() },
             cacheStrategy = { CacheStrategy() },
         )
     }
     single {
-        httpClientFactory(get<SharedViewModel>())
+        httpClientFactory(
+            sharedViewModel = get<SharedViewModel>(),
+            json = get()
+        )
     }
 }

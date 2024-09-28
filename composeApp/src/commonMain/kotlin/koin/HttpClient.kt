@@ -20,7 +20,10 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 /** Creates a new instance of http client with interceptor and authentication */
-internal fun httpClientFactory(sharedViewModel: SharedViewModel): HttpClient {
+internal fun httpClientFactory(
+    sharedViewModel: SharedViewModel,
+    json: Json
+): HttpClient {
     return HttpClient().apply {
         this.plugin(HttpSend).intercept { request ->
             /* assign token variable from firebase and keep it fresh
@@ -47,11 +50,7 @@ internal fun httpClientFactory(sharedViewModel: SharedViewModel): HttpClient {
             }
         }
         install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                }
-            )
+            json(json)
         }
         install(Logging) {
             logger = Logger.DEFAULT

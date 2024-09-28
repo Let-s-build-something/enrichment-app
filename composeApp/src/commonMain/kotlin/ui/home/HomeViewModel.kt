@@ -3,7 +3,7 @@ package ui.home
 import androidx.lifecycle.ViewModel
 import components.pull_refresh.RefreshableViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.koin.compose.viewmodel.dsl.viewModelOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 internal val homeModule = module {

@@ -32,6 +32,7 @@ fun NavigationHost(
             HomeScreen()
         }
         composable<NavigationNode.Water> {
+            AccountDashboardScreen()
         }
         composable<NavigationNode.AccountDashboard> {
             loadKoinModules(accountDashboardModule)

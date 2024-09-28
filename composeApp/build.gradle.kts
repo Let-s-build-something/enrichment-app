@@ -17,8 +17,8 @@ plugins {
 
     id("com.google.gms.google-services")
 
-    kotlin("plugin.serialization") version "2.0.20"
-    kotlin("native.cocoapods") version "2.0.20"
+    kotlin("plugin.serialization") version libs.versions.kotlin
+    kotlin("native.cocoapods") version libs.versions.kotlin
     id("com.codingfeline.buildkonfig") version "0.15.2"
 }
 
