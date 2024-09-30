@@ -109,7 +109,6 @@ kotlin {
         }
 
         commonMain.dependencies {
-            //put your multiplatform dependencies here
             implementation(project(":shared"))
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -243,7 +242,7 @@ compose.desktop {
         mainClass = "MainKt"
 
         buildTypes.release.proguard {
-            //version.set("7.4.0")
+            //version.set("7.5.0")
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
 
@@ -263,6 +262,7 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
+                modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported")
                 menuGroup = "Let's build something"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
