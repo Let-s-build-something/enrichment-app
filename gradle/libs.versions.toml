@@ -4,7 +4,7 @@ android-compileSdk = "35"
 android-minSdk = "24"
 android-targetSdk = "35"
 version-name = "1.0"
-version-code = "26"
+version-code = "27"
 
 androidx-activityCompose = "1.9.2"
 compose-plugin = "1.7.0-beta02"
