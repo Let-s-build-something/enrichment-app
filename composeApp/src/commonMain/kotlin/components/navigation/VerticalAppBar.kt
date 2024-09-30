@@ -28,10 +28,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import base.navigation.NavIconType
-import chat.enrichment.shared.ui.components.navigation.ActionBarIcon
-import chat.enrichment.shared.ui.components.navigation.HorizontalAppBar
-import chat.enrichment.shared.ui.components.navigation.NavigationIcon
-import chat.enrichment.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
+import augmy.interactive.shared.ui.components.navigation.HorizontalAppBar
+import augmy.interactive.shared.ui.components.navigation.NavigationIcon
+import augmy.interactive.shared.ui.theme.LocalTheme
 import data.shared.SharedViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -42,7 +42,6 @@ import org.koin.core.annotation.KoinExperimentalAPI
  *
  * @param actions other actions on the right side of the action bar
  */
-@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun VerticalAppBar(
     modifier: Modifier = Modifier,

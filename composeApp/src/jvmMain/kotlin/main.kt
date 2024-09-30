@@ -20,10 +20,10 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import chat.enrichment.eu.BuildKonfig
-import chat.enrichment.shared.ui.base.LocalScreenSize
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.app_name
+import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.app_name
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform

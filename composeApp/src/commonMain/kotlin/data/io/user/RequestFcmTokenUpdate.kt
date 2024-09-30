@@ -1,6 +1,6 @@
 package data.io.user
 
-import chat.enrichment.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.PlatformType
 import kotlinx.serialization.Serializable
 
 /** update for change of a FCM token on our BE */

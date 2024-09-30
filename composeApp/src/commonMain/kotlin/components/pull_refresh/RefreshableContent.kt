@@ -16,9 +16,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import chat.enrichment.shared.ui.base.LocalDeviceType
-import chat.enrichment.shared.ui.components.getDefaultPullRefreshSize
-import chat.enrichment.shared.ui.components.navigation.AppBarHeightDp
+import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.components.getDefaultPullRefreshSize
+import augmy.interactive.shared.ui.components.navigation.AppBarHeightDp
 
 /**
  * Content which can be refresh by pulling down vertically.

@@ -1,6 +1,6 @@
 package data.io.user
 
-import chat.enrichment.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.PlatformType
 import kotlinx.serialization.Serializable
 
 /** Request body for creation of a user on our BE */

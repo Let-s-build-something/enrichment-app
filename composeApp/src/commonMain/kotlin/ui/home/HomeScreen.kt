@@ -6,9 +6,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.screen_home
 import base.navigation.NavIconType
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.screen_home
 import components.pull_refresh.RefreshableScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel

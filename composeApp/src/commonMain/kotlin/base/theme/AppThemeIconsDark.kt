@@ -1,9 +1,9 @@
 package base.theme
 
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.logo_apple_light
-import chatenrichment.composeapp.generated.resources.logo_google_dark
-import chat.enrichment.shared.ui.theme.ThemeIcons
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.logo_apple_light
+import augmy.composeapp.generated.resources.logo_google_dark
+import augmy.interactive.shared.ui.theme.ThemeIcons
 import org.jetbrains.compose.resources.DrawableResource
 
 /** icons specific to main app theme [LocalTheme.current] */

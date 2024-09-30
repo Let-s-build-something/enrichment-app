@@ -1,6 +1,6 @@
 package ui.login
 
-import chat.enrichment.eu.BuildKonfig
+import augmy.interactive.com.BuildKonfig
 import data.io.identity_platform.IdentityMessageType
 import data.io.identity_platform.IdentityUserResponse
 import io.ktor.client.HttpClient

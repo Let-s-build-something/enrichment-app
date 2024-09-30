@@ -4,7 +4,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.ComposeUIViewController
-import chat.enrichment.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.LocalScreenSize
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun MainViewController() = ComposeUIViewController {

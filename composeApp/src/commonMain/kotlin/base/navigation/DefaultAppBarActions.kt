@@ -8,11 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
-import chat.enrichment.shared.ui.base.LocalNavController
-import chat.enrichment.shared.ui.components.navigation.ActionBarIcon
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.screen_account_title
-import chatenrichment.composeapp.generated.resources.screen_login
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.screen_account_title
+import augmy.composeapp.generated.resources.screen_login
 import org.jetbrains.compose.resources.stringResource
 
 /**

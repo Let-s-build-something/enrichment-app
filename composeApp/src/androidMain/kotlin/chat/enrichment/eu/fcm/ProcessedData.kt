@@ -1,4 +1,4 @@
-package chat.enrichment.eu.fcm
+package augmy.interactive.com.fcm
 
 import android.graphics.Bitmap
 import androidx.core.app.NotificationCompat

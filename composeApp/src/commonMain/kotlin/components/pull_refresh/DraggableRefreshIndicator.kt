@@ -22,9 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import chat.enrichment.shared.ui.components.REFRESH_RETURN_ANIMATION_LENGTH
-import chat.enrichment.shared.ui.components.getRandomLoadingLottieAnim
-import chat.enrichment.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.components.REFRESH_RETURN_ANIMATION_LENGTH
+import augmy.interactive.shared.ui.components.getRandomLoadingLottieAnim
+import augmy.interactive.shared.ui.theme.LocalTheme
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import io.github.alexzhirkevich.compottie.rememberLottieComposition
 import io.github.alexzhirkevich.compottie.rememberLottiePainter

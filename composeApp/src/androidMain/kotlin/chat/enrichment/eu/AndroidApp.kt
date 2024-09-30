@@ -1,4 +1,4 @@
-package chat.enrichment.eu
+package augmy.interactive.com
 
 import android.app.Application
 import koin.commonModule
