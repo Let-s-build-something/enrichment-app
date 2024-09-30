@@ -50,8 +50,8 @@ jobs:
 
       - name: Decode Microsoft PFX certificate
         run: |
-          echo "${{ secrets.WINDOWS_PFX_BASE64 }}" > chatrich.pfx.b64
-          certutil -decode chatrich.pfx.b64 ${{ github.workspace }}\chatrich.pfx
+          echo "${{ secrets.WINDOWS_PFX_BASE64 }}" > augmy.pfx.b64
+          certutil -decode augmy.pfx.b64 ${{ github.workspace }}\augmy.pfx
 
       # Prepare the environment
       - name: Build with Gradle and Print Version
@@ -92,16 +92,20 @@ jobs:
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
 
+      - name: List files
+        run: dir ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi
+        shell: pwsh
+
       - name: Move and rename MSI file
         run: |
-          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Chatrich-${{ env.VERSION }}.msi ${{ github.workspace }}/Chatrich.msi
+          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Augmy-${{ env.VERSION }}.msi ${{ github.workspace }}/Augmy.msi
         shell: pwsh
 
       # Currently disabled, as there is no recognized PFX certificate available - requires a purchase
       # Sign the MSI file with the PFX certificate
 #      - name: Sign MSI with pfx
 #        run: |
-#          & "${{ env.SIGNSIGNTOOL_PATH }}" sign /f "${{ github.workspace }}\chatrich.pfx" /p ${{ secrets.WINDOWS_PFX_PASSWORD }} /fd sha256 /tr http://timestamp.digicert.com /td sha256 "${{ github.workspace }}\Chatrich.msi"
+#          & "${{ env.SIGNSIGNTOOL_PATH }}" sign /f "${{ github.workspace }}\augmy.pfx" /p ${{ secrets.WINDOWS_PFX_PASSWORD }} /fd sha256 /tr http://timestamp.digicert.com /td sha256 "${{ github.workspace }}\Augmy.msi"
 #        env:
 #          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
 #        shell: pwsh
@@ -109,4 +113,4 @@ jobs:
       - name: Upload MSI file to FTP
         run: |
           curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
-          curl -T ${{ github.workspace }}/Chatrich.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
