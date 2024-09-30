@@ -89,5 +89,5 @@ jobs:
           releaseName: Release version ${{ env.VERSION }}
           whatsNewDirectory: ${{ github.workspace }}/whatsnew
           track: internal
-          status: completed
+          status: draft
           inAppUpdatePriority: 3
