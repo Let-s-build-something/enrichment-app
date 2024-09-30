@@ -1,12 +1,12 @@
 package base.theme
 
 import androidx.compose.runtime.Composable
-import chat.enrichment.shared.ui.theme.BaseColors
-import chat.enrichment.shared.ui.theme.BaseTheme
-import chat.enrichment.shared.ui.theme.LocalAppColors
-import chat.enrichment.shared.ui.theme.LocalAppIcons
-import chat.enrichment.shared.ui.theme.ThemeIcons
-import chat.enrichment.shared.ui.theme.ThemeStyle
+import augmy.interactive.shared.ui.theme.BaseColors
+import augmy.interactive.shared.ui.theme.BaseTheme
+import augmy.interactive.shared.ui.theme.LocalAppColors
+import augmy.interactive.shared.ui.theme.LocalAppIcons
+import augmy.interactive.shared.ui.theme.ThemeIcons
+import augmy.interactive.shared.ui.theme.ThemeStyle
 
 /** Main theme with current colors and styles */
 class AppTheme: BaseTheme {

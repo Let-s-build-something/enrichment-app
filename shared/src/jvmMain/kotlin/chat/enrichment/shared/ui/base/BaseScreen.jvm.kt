@@ -1,4 +1,4 @@
-package chat.enrichment.shared.ui.base
+package augmy.interactive.shared.ui.base
 
 /** Platform using this application */
 actual val currentPlatform: PlatformType = PlatformType.Jvm

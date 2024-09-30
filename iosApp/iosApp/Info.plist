@@ -47,12 +47,12 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict>
-		<key>UIImageRespectsSafeAreaInsets</key>
-		<true/>
 		<key>UIColorName</key>
 		<string>brandMain</string>
 		<key>UIImageName</key>
 		<string>AppIcon</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<true/>
 	</dict>
 	<key>UILaunchStoryboardName</key>
 	<string>Launch Screen.storyboard</string>

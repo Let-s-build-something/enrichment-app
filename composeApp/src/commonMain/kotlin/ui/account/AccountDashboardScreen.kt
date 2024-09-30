@@ -15,29 +15,27 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.components.ErrorHeaderButton
+import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.rememberTabSwitchState
+import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
-import chat.enrichment.shared.ui.base.LocalNavController
-import chat.enrichment.shared.ui.components.ErrorHeaderButton
-import chat.enrichment.shared.ui.components.MultiChoiceSwitch
-import chat.enrichment.shared.ui.components.rememberTabSwitchState
-import chat.enrichment.shared.ui.theme.LocalTheme
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.account_dashboard_fcm
-import chatenrichment.composeapp.generated.resources.account_dashboard_theme
-import chatenrichment.composeapp.generated.resources.account_dashboard_theme_dark
-import chatenrichment.composeapp.generated.resources.account_dashboard_theme_device
-import chatenrichment.composeapp.generated.resources.account_dashboard_theme_light
-import chatenrichment.composeapp.generated.resources.screen_account_title
-import chatenrichment.composeapp.generated.resources.username_change_launcher_cancel
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.account_dashboard_fcm
+import augmy.composeapp.generated.resources.account_dashboard_theme
+import augmy.composeapp.generated.resources.account_dashboard_theme_dark
+import augmy.composeapp.generated.resources.account_dashboard_theme_device
+import augmy.composeapp.generated.resources.account_dashboard_theme_light
+import augmy.composeapp.generated.resources.screen_account_title
+import augmy.composeapp.generated.resources.username_change_launcher_cancel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.annotation.KoinExperimentalAPI
 
 /**
  * Screen for the home page
  */
-@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel()) {
     val navController = LocalNavController.current

@@ -1,6 +1,6 @@
 package koin
 
-import chat.enrichment.eu.BuildKonfig
+import augmy.interactive.com.BuildKonfig
 import data.shared.SharedViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpSend

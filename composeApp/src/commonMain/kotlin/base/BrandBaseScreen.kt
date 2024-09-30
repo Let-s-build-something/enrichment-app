@@ -11,12 +11,12 @@ import androidx.compose.ui.graphics.Color
 import base.navigation.DefaultAppBarActions
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
-import chat.enrichment.shared.ui.base.BaseScreen
-import chat.enrichment.shared.ui.base.LocalNavController
-import chat.enrichment.shared.ui.base.LocalOnBackPressDispatcher
-import chat.enrichment.shared.ui.base.PlatformType
-import chat.enrichment.shared.ui.base.currentPlatform
-import chat.enrichment.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.base.BaseScreen
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalOnBackPressDispatcher
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
+import augmy.interactive.shared.ui.theme.LocalTheme
 import components.navigation.VerticalAppBar
 import data.shared.SharedViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -41,7 +41,6 @@ import org.koin.core.annotation.KoinExperimentalAPI
  * @param floatingActionButton floating action button
  * @param content content of the screen under app bar and any other framing elements
  */
-@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun BrandBaseScreen(
     modifier: Modifier = Modifier,

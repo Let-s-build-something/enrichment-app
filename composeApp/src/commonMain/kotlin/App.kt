@@ -10,12 +10,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.rememberNavController
-import base.ChatEnrichmentTheme
-import chat.enrichment.shared.ui.base.BaseSnackbarHost
-import chat.enrichment.shared.ui.base.LocalDeviceType
-import chat.enrichment.shared.ui.base.LocalNavController
-import chat.enrichment.shared.ui.base.LocalSnackbarHost
-import chat.enrichment.shared.ui.theme.LocalTheme
+import base.AugmyTheme
+import augmy.interactive.shared.ui.base.BaseSnackbarHost
+import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.app.ThemeChoice
 import data.shared.SharedViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -34,7 +34,7 @@ fun App(viewModel: SharedViewModel = koinViewModel()) {
         viewModel.initApp()
     }
 
-    ChatEnrichmentTheme(
+    AugmyTheme(
         isDarkTheme = when(localSettings.value?.theme) {
             ThemeChoice.DARK -> true
             ThemeChoice.LIGHT -> false

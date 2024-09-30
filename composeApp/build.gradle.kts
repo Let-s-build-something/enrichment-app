@@ -65,7 +65,7 @@ kotlin {
             // Specify the framework linking type. It's dynamic by default.
             isStatic = true
 
-            binaryOption("bundleId", "chat.enrichment.eu")
+            binaryOption("bundleId", "augmy.interactive.com")
             binaryOption("bundleVersion", "1")
         }
 
@@ -161,7 +161,7 @@ val debugHostname = "api.fly-here.com/api"
 val releaseHostname = "api.fly-here.com/api"
 
 android {
-    namespace = "chat.enrichment.eu"
+    namespace = "augmy.interactive.com"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
@@ -169,7 +169,7 @@ android {
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
     defaultConfig {
-        applicationId = "chat.enrichment.eu"
+        applicationId = "augmy.interactive.com"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = vCode
@@ -249,7 +249,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageVersion = vName
-            packageName = "Chatrich"
+            packageName = "Augmy"
 
             macOS {
                 appStore = true
@@ -257,13 +257,13 @@ compose.desktop {
             }
             windows {
                 modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported")
-                menuGroup = "Let's build something"
+                menuGroup = "Augmy Interactive"
                 shortcut = true
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
                 modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported")
-                menuGroup = "Let's build something"
+                menuGroup = "Augmy Interactive"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
         }
@@ -271,7 +271,7 @@ compose.desktop {
 }
 
 buildkonfig {
-    packageName = "chat.enrichment.eu"
+    packageName = "augmy.interactive.com"
 
     val keystoreProperties = Properties()
     keystoreProperties.load(FileInputStream(rootProject.file("local.properties")))

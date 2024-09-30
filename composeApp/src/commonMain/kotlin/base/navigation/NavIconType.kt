@@ -7,11 +7,11 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
-import chatenrichment.composeapp.generated.resources.Res
-import chatenrichment.composeapp.generated.resources.navigate_back
-import chatenrichment.composeapp.generated.resources.navigate_close
-import chatenrichment.composeapp.generated.resources.navigate_hamburger_menu
-import chatenrichment.composeapp.generated.resources.navigate_home
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.navigate_back
+import augmy.composeapp.generated.resources.navigate_close
+import augmy.composeapp.generated.resources.navigate_hamburger_menu
+import augmy.composeapp.generated.resources.navigate_home
 import org.jetbrains.compose.resources.stringResource
 
 /**

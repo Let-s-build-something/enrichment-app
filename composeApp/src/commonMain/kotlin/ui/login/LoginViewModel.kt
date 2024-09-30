@@ -1,7 +1,7 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
-import chat.enrichment.shared.ui.base.currentPlatform
+import augmy.interactive.shared.ui.base.currentPlatform
 import data.io.identity_platform.IdentityMessageType
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO

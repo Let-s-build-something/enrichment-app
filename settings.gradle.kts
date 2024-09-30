@@ -1,4 +1,4 @@
-rootProject.name = "Chatenrichment"
+rootProject.name = "Augmy"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

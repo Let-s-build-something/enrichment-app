@@ -2,8 +2,8 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import chat.enrichment.shared.ui.base.PlatformType
-import chat.enrichment.shared.ui.base.currentPlatform
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import com.russhwolf.settings.Settings
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys

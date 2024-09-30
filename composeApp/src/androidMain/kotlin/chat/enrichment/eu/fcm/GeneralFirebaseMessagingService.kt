@@ -1,4 +1,4 @@
-package chat.enrichment.eu.fcm
+package augmy.interactive.com.fcm
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,8 +11,8 @@ import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import base.navigation.NavigationNode
-import chat.enrichment.eu.MainActivity
-import chat.enrichment.eu.R
+import augmy.interactive.com.MainActivity
+import augmy.interactive.com.R
 import coil3.ImageLoader
 import coil3.request.CachePolicy
 import coil3.request.ErrorResult

@@ -58,7 +58,7 @@ kotlin {
 }
 
 android {
-    namespace = "chat.enrichment.shared"
+    namespace = "augmy.interactive.shared"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

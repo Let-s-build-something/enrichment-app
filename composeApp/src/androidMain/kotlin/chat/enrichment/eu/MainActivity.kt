@@ -1,4 +1,4 @@
-package chat.enrichment.eu
+package augmy.interactive.com
 
 import App
 import android.Manifest.permission.POST_NOTIFICATIONS
@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import chat.enrichment.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.LocalScreenSize
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
