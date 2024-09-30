@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -81,7 +80,6 @@ import chatenrichment.composeapp.generated.resources.login_success_snackbar
 import chatenrichment.composeapp.generated.resources.login_success_snackbar_action
 import chatenrichment.composeapp.generated.resources.screen_login
 import coil3.compose.AsyncImage
-import coil3.compose.AsyncImagePainter
 import data.HostedData
 import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.CoroutineScope
@@ -92,13 +90,11 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.annotation.KoinExperimentalAPI
 
 /**
  * Screen for logging into an account through various methods, including:
  * email + password, Google, and Apple ID
  */
-@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     val navController = LocalNavController.current
@@ -319,7 +315,7 @@ private fun ColumnScope.LoginScreenContent(
     )
 
     AnimatedVisibility(screenType == LoginScreenType.SIGN_UP) {
-        Column {
+        Column(modifier = Modifier.padding(top = 4.dp)) {
             validations.forEach { validation ->
                 CorrectionText(
                     text = validation.message,

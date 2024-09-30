@@ -12,12 +12,10 @@ import chatenrichment.composeapp.generated.resources.screen_home
 import components.pull_refresh.RefreshableScreen
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.annotation.KoinExperimentalAPI
 
 /**
  * Screen for the home page
  */
-@OptIn(KoinExperimentalAPI::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     RefreshableScreen(
