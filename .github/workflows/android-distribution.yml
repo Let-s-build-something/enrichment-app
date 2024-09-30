@@ -49,6 +49,12 @@ jobs:
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
 
+      - name: Create whatsnew file
+        run: |
+          last_increment_commit=$(git log --grep="Increment version code" -n 1 --pretty=format:"%H")
+          mkdir -p ${{ github.workspace }}/whatsnew
+          git log --pretty=format:"%s" $last_increment_commit..HEAD | grep -E "/CU-[a-z0-9]+_[^ ]+" | awk -F'_' '{print $2}' | sort | uniq > ${{ github.workspace }}/whatsnew/whatsnew-en-US
+
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -80,6 +86,8 @@ jobs:
           packageName: augmy.interactive.com
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           releaseFiles: ${{ github.workspace }}/composeApp/build/outputs/bundle/release/composeApp-release.aab
+          releaseName: Release version ${{ env.VERSION }}
+          whatsNewDirectory: ${{ github.workspace }}/whatsnew
           track: internal
-          status: draft
+          status: completed
           inAppUpdatePriority: 3
