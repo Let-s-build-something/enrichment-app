@@ -139,17 +139,17 @@ private object DefaultValues {
 }
 
 /** current set of colors */
-val LocalAppColors = staticCompositionLocalOf {
+val LocalThemeColors = staticCompositionLocalOf {
     defaultBaseColors
 }
 
 /** current set of colors */
-val LocalAppIcons = staticCompositionLocalOf {
+val LocalThemeIcons = staticCompositionLocalOf {
     defaultThemeIcons
 }
 
 /** current set of colors */
-val LocalThemeStyle = staticCompositionLocalOf {
+val LocalThemeStyles = staticCompositionLocalOf {
     defaultThemeStyle
 }
 
@@ -163,15 +163,15 @@ val LocalTheme = staticCompositionLocalOf<BaseTheme> {
     object: BaseTheme {
         override val colors: BaseColors
             @Composable
-            get() = LocalAppColors.current
+            get() = LocalThemeColors.current
 
         override val styles: ThemeStyle
             @Composable
-            get() = LocalThemeStyle.current
+            get() = LocalThemeStyles.current
 
         override val icons: ThemeIcons
             @Composable
-            get() = LocalAppIcons.current
+            get() = LocalThemeIcons.current
 
         override val shapes: ThemeShapes
             @Composable

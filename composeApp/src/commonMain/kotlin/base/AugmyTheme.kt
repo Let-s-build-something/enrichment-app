@@ -7,20 +7,17 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import augmy.interactive.shared.ui.theme.LocalAppColors
-import augmy.interactive.shared.ui.theme.LocalAppIcons
+import augmy.interactive.shared.ui.theme.LocalThemeColors
+import augmy.interactive.shared.ui.theme.LocalThemeIcons
 import augmy.interactive.shared.ui.theme.LocalThemeShapes
-import augmy.interactive.shared.ui.theme.LocalThemeStyle
+import augmy.interactive.shared.ui.theme.LocalThemeStyles
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.theme.AppThemeIconsDark
 import base.theme.AppThemeIconsLight
 import base.theme.AppThemeShapes
-import base.theme.AppThemeStyle
 import base.theme.DarkAppColors
+import base.theme.DarkThemeStyles
+import base.theme.DefaultThemeStyles
 import base.theme.LightAppColors
 
 /** Theme with dynamic resources */
@@ -30,12 +27,13 @@ fun AugmyTheme(
     content: @Composable () -> Unit
 ) {
     val colors = if(isDarkTheme) DarkAppColors else LightAppColors
+    val styles = if(isDarkTheme) DarkThemeStyles() else DefaultThemeStyles()
     val icons = if(isDarkTheme) AppThemeIconsDark else AppThemeIconsLight
 
     CompositionLocalProvider(
-        LocalAppColors provides colors,
-        LocalAppIcons provides icons,
-        LocalThemeStyle provides AppThemeStyle(),
+        LocalThemeColors provides colors,
+        LocalThemeIcons provides icons,
+        LocalThemeStyles provides styles,
         LocalThemeShapes provides AppThemeShapes()
     ) {
         MaterialTheme(
@@ -78,11 +76,18 @@ fun AugmyTheme(
                 surfaceContainerLowest = colors.backgroundLight,
             ),
             typography = Typography(
-                bodyLarge = TextStyle(
-                    fontFamily = FontFamily.Default,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 16.sp
-                )
+                bodyLarge = styles.regular,
+                bodySmall = styles.regular,
+                bodyMedium = styles.regular,
+                titleLarge = styles.regular,
+                titleSmall = styles.title,
+                titleMedium = styles.title,
+                headlineMedium = styles.heading,
+                headlineSmall = styles.heading,
+                headlineLarge = styles.heading,
+                labelLarge = styles.category,
+                labelSmall = styles.category,
+                labelMedium = styles.category
             ),
             content = content
         )

@@ -2,7 +2,6 @@ package base.theme
 
 import androidx.compose.ui.graphics.Color
 import augmy.interactive.shared.ui.theme.BaseColors
-import augmy.interactive.shared.ui.theme.Colors
 
 object DarkAppColors: BaseColors {
 

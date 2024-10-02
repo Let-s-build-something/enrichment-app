@@ -8,7 +8,7 @@ data class UserIO(
     /** username of the current user */
     val username: String? = null,
 
-    /** tag of the current user */
+    /** tag of the current user, unique in combination with [username]  */
     val tag: String? = null,
 
     /** current idToken which should be active and can be associated with data in Cloud Identity */

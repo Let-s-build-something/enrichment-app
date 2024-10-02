@@ -11,16 +11,41 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.quicksand_medium
+import augmy.composeapp.generated.resources.quicksand_regular
+import augmy.composeapp.generated.resources.quicksand_semi_bold
+import augmy.composeapp.generated.resources.quicksand_variable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.interactive.shared.ui.theme.ThemeStyle
+import org.jetbrains.compose.resources.Font
+import kotlin.jvm.JvmStatic
 
-/** Styles specific to main app theme [BaseTheme.current] */
-class AppThemeStyle: ThemeStyle {
+/** Styles specific to main app theme */
+open class DefaultThemeStyles: ThemeStyle {
+
+    companion object {
+        protected val fontQuicksandVariable
+            @Composable get() = Font(Res.font.quicksand_variable)
+
+        @JvmStatic
+        protected val fontQuicksandRegular
+            @Composable get() = Font(Res.font.quicksand_regular)
+
+        @JvmStatic
+        protected val fontQuicksandMedium
+            @Composable get() = Font(Res.font.quicksand_medium)
+
+        @JvmStatic
+        protected val fontQuicksandSemiBold
+            @Composable get() = Font(Res.font.quicksand_semi_bold)
+    }
+
     override val textFieldColors: TextFieldColors
         @Composable get() {
             return TextFieldDefaults.colors(
@@ -113,12 +138,13 @@ class AppThemeStyle: ThemeStyle {
             selectedContainerColor = LocalTheme.current.colors.brandMain,
             selectedLabelColor = LocalTheme.current.colors.tetrial
         )
+
     override val heading: TextStyle
         @Composable
         get() = TextStyle(
             color = LocalTheme.current.colors.primary,
             fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
+            fontFamily = FontFamily(fontQuicksandSemiBold)
         )
 
     override val subheading: TextStyle
@@ -126,7 +152,7 @@ class AppThemeStyle: ThemeStyle {
         get() = TextStyle(
             color = LocalTheme.current.colors.primary,
             fontSize = 22.sp,
-            fontWeight = FontWeight.Medium
+            fontFamily = FontFamily(fontQuicksandSemiBold)
         )
 
     override val category: TextStyle
@@ -134,15 +160,15 @@ class AppThemeStyle: ThemeStyle {
         get() = TextStyle(
             color = LocalTheme.current.colors.secondary,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
+            fontFamily = FontFamily(fontQuicksandSemiBold)
         )
 
     override val title: TextStyle
         @Composable
         get() = TextStyle(
-            color = LocalTheme.current.colors.secondary,
+            color = LocalTheme.current.colors.primary,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Normal
+            fontFamily = FontFamily(fontQuicksandMedium)
         )
 
     override val regular: TextStyle
@@ -150,6 +176,6 @@ class AppThemeStyle: ThemeStyle {
         get() = TextStyle(
             color = LocalTheme.current.colors.secondary,
             fontSize = 12.sp,
-            fontWeight = FontWeight.Normal
+            fontFamily = FontFamily(fontQuicksandMedium)
         )
 }

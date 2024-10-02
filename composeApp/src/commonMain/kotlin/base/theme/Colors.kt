@@ -1,12 +1,12 @@
-package augmy.interactive.shared.ui.theme
+package base.theme
 
 import androidx.compose.ui.graphics.Color
 
 /** List of custom colors defined outside of the standard [Color] colors */
 object Colors {
-    val DarkBlue: Color = Color(0xFF142033)
-    val DarkBlue70: Color = Color(0xB3142033)
-    val DarkBlue7: Color = Color(0x12142033)
+    val Onyx: Color = Color(0xFF3b3d41)
+    val Coffee: Color = Color(0xFF4d5155)
+    val Coffee12: Color = Color(0x1f4d5155)
     val GrayLight: Color = Color(0xFFD7D9DD)
     val White7: Color = Color(0x12FFFFFF)
     val EerieBlack: Color = Color(0xFF221F1C)
