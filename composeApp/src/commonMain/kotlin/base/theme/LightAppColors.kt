@@ -2,13 +2,12 @@ package base.theme
 
 import androidx.compose.ui.graphics.Color
 import augmy.interactive.shared.ui.theme.BaseColors
-import augmy.interactive.shared.ui.theme.Colors
 
 object LightAppColors: BaseColors {
 
-    override val primary: Color = Colors.DarkBlue
-    override val secondary: Color = Colors.DarkBlue70
-    override val disabled: Color = Colors.DarkBlue7
+    override val primary: Color = Colors.Onyx
+    override val secondary: Color = Colors.Coffee
+    override val disabled: Color = Colors.Coffee12
 
     override val brandMain: Color = Colors.Asparagus
 

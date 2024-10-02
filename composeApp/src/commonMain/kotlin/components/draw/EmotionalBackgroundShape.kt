@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import augmy.interactive.shared.ui.theme.Colors
+import base.theme.Colors
 import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.cos
