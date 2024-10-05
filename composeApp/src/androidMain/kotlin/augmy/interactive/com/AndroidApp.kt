@@ -9,11 +9,17 @@ import org.koin.core.context.startKoin
 class AndroidApp: Application() {
     override fun onCreate() {
         super.onCreate()
+        instance = this
 
         startKoin {
             androidContext(applicationContext)
             androidLogger()
             modules(commonModule)
         }
+    }
+
+    companion object {
+        lateinit var instance: AndroidApp
+            private set
     }
 }

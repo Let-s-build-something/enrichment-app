@@ -38,21 +38,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import base.BrandBaseScreen
-import base.navigation.NavIconType
-import base.navigation.NavigationNode
-import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.base.LocalScreenSize
-import augmy.interactive.shared.ui.base.LocalSnackbarHost
-import augmy.interactive.shared.ui.base.ModalScreenContent
-import augmy.interactive.shared.ui.components.BrandHeaderButton
-import augmy.interactive.shared.ui.components.CorrectionText
-import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
-import augmy.interactive.shared.ui.components.MinimalisticIcon
-import augmy.interactive.shared.ui.components.MultiChoiceSwitch
-import augmy.interactive.shared.ui.components.input.EditFieldInput
-import augmy.interactive.shared.ui.components.rememberTabSwitchState
-import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
@@ -79,8 +64,23 @@ import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
 import augmy.composeapp.generated.resources.login_success_snackbar_action
 import augmy.composeapp.generated.resources.screen_login
-import coil3.compose.AsyncImage
-import data.HostedData
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.base.ModalScreenContent
+import augmy.interactive.shared.ui.components.BrandHeaderButton
+import augmy.interactive.shared.ui.components.CorrectionText
+import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
+import augmy.interactive.shared.ui.components.MinimalisticIcon
+import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.rememberTabSwitchState
+import augmy.interactive.shared.ui.theme.LocalTheme
+import base.BrandBaseScreen
+import base.navigation.NavIconType
+import base.navigation.NavigationNode
+import components.AsyncImageThumbnail
+import data.Asset
 import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -197,13 +197,13 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 label = ""
             ) { type ->
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    AsyncImage(
+                    AsyncImageThumbnail(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .heightIn(max = (LocalScreenSize.current.height / 3).dp),
-                        model = if(type == LoginScreenType.SIGN_UP) {
-                            HostedData.Image.SignUp.url
-                        }else HostedData.Image.SignIn.url,
+                        image = if(type == LoginScreenType.SIGN_UP) {
+                            Asset.Image.SignUp
+                        }else Asset.Image.SignIn,
                         contentDescription = stringResource(
                             if(type == LoginScreenType.SIGN_UP) {
                                 Res.string.accessibility_sign_up_illustration

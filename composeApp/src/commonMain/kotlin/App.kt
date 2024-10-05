@@ -22,7 +22,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, KoinExperimentalAPI::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 @Preview
 fun App(viewModel: SharedViewModel = koinViewModel()) {
