@@ -1,5 +1,6 @@
 package components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -15,25 +16,39 @@ import data.Asset
 fun AsyncImageThumbnail(
     modifier: Modifier = Modifier,
     thumbnail: String,
-    url: String,
-    contentDescription: String? = null
+    url: String
 ) {
+    val loadOriginal = rememberSaveable {
+        mutableStateOf(false)
+    }
     val displayOriginal = rememberSaveable {
         mutableStateOf(false)
     }
 
+    val thumbnailRequest =  ImageRequest.Builder(PlatformContext.INSTANCE)
+        .data(if(displayOriginal.value) url else thumbnail)
+        .crossfade(true)
+        .listener(
+            onSuccess = { _, _ ->
+                loadOriginal.value = true
+            }
+        )
+        .build()
+
+    val originalRequest = ImageRequest.Builder(PlatformContext.INSTANCE)
+        .data(if(displayOriginal.value) url else thumbnail)
+        .crossfade(true)
+        .listener(
+            onSuccess = { _, _ ->
+                displayOriginal.value = true
+            }
+        )
+        .build()
+
     AsyncImage(
-        modifier = modifier,
-        model = ImageRequest.Builder(platformContext)
-            .data(if(displayOriginal.value) url else thumbnail)
-            .crossfade(true)
-            .listener(
-                onSuccess = { _, _ ->
-                    displayOriginal.value = true
-                }
-            )
-            .build(),
-        contentDescription = contentDescription
+        modifier = modifier.animateContentSize(),
+        model = if(displayOriginal.value) originalRequest else thumbnailRequest,
+        contentDescription = null
     )
 }
 
