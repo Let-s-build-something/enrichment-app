@@ -7,7 +7,7 @@ version-name = "1.0"
 version-code = "28"
 
 androidx-activityCompose = "1.9.2"
-compose-plugin = "1.7.0-beta02"
+compose-plugin = "1.7.0-rc01"
 compottie = "2.0.0-rc01"
 firebaseJavaSdk = "0.4.6"
 kotlin = "2.0.20"

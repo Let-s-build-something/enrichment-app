@@ -51,7 +51,15 @@ jobs:
           mkdir -p downloads/${{ env.VERSION }}
           mv ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb/augmy_${{ env.VERSION }}-1_amd64.deb ${{ github.workspace }}/Augmy.deb
 
+      # FTP Upload with URL-encoded username
+      - name: Encode FTP Username
+        id: encode-username
+        run: |
+          # URL-encode the @ in the username
+          FTP_USERNAME_ENCODED=$(echo "${{ secrets.FTP_USERNAME }}" | sed 's/@/%40/g')
+          echo "FTP_USERNAME_ENCODED=$FTP_USERNAME_ENCODED" >> $GITHUB_ENV
+
       - name: Upload DEB file to FTP
         run: |
-          curl ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl ftp://${{ secrets.FTP_USERNAME_ENCODED }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
           curl -T ${{ github.workspace }}/Augmy.deb ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
