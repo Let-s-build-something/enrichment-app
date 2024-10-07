@@ -16,7 +16,8 @@ import data.Asset
 fun AsyncImageThumbnail(
     modifier: Modifier = Modifier,
     thumbnail: String,
-    url: String
+    url: String,
+    contentDescription: String? = null
 ) {
     val loadOriginal = rememberSaveable {
         mutableStateOf(false)
@@ -48,7 +49,7 @@ fun AsyncImageThumbnail(
     AsyncImage(
         modifier = modifier.animateContentSize(),
         model = if(displayOriginal.value) originalRequest else thumbnailRequest,
-        contentDescription = null
+        contentDescription = contentDescription
     )
 }
 
