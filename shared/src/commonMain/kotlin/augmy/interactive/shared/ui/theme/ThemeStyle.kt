@@ -6,6 +6,7 @@ import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 
@@ -57,4 +58,8 @@ interface ThemeStyle {
     /** regular content text */
     @get:Composable
     val regular: TextStyle
+
+    /** style of link text */
+    @get:Composable
+    val link: TextLinkStyles
 }

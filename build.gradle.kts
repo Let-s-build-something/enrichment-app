@@ -10,5 +10,5 @@ plugins {
 
     id("com.google.gms.google-services").version("4.4.2").apply(false)
 
-    kotlin("native.cocoapods") version "2.0.20"
+    kotlin("native.cocoapods") version libs.versions.kotlin
 }

@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
 
-    kotlin("native.cocoapods") version "2.0.20"
+    kotlin("native.cocoapods") version libs.versions.kotlin
 }
 
 kotlin {
