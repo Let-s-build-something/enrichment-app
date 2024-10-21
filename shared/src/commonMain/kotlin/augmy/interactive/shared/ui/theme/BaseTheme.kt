@@ -14,6 +14,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -74,6 +75,10 @@ private object DefaultValues {
             get() = 0.dp
         override val minimumElevation: Dp
             get() = 0.dp
+
+        override val link: TextLinkStyles
+            @Composable
+            get() = TextLinkStyles()
 
         override val textFieldColors: TextFieldColors
             @Composable

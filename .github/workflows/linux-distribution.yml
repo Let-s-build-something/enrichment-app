@@ -55,3 +55,4 @@ jobs:
         run: |
           curl ftp://${{ secrets.FTP_USERNAME_ENCODED }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
           curl -T ${{ github.workspace }}/Augmy.deb ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl -T ${{ github.workspace }}/Augmy.deb ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}

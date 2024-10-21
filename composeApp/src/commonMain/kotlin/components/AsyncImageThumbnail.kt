@@ -26,7 +26,7 @@ fun AsyncImageThumbnail(
         mutableStateOf(false)
     }
 
-    val thumbnailRequest =  ImageRequest.Builder(PlatformContext.INSTANCE)
+    val thumbnailRequest =  ImageRequest.Builder(platformContext)
         .data(if(displayOriginal.value) url else thumbnail)
         .crossfade(true)
         .listener(
@@ -36,7 +36,7 @@ fun AsyncImageThumbnail(
         )
         .build()
 
-    val originalRequest = ImageRequest.Builder(PlatformContext.INSTANCE)
+    val originalRequest = ImageRequest.Builder(platformContext)
         .data(if(displayOriginal.value) url else thumbnail)
         .crossfade(true)
         .listener(
