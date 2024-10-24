@@ -44,7 +44,7 @@ jobs:
       - name: Checkout release branch
         run: |
           git fetch origin
-          git checkout -b release-${{ env.VERSION }}
+          git checkout -b release/${{ env.VERSION }}
 
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
@@ -62,7 +62,7 @@ jobs:
           git add gradle/libs.versions.toml
           git add -A
           git commit -m 'Increment version code'
-          git push --set-upstream origin release-${{ env.VERSION }}
+          git push --set-upstream origin release/${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,7 +71,7 @@ jobs:
 
       - name: Create Pull Request
         run: |
-          gh pr create --title "Release ${{ env.VERSION }}" --body "Automated release of version ${{ env.VERSION }}" --head release-${{ env.VERSION }} --base master
+          gh pr create --title "Release ${{ env.VERSION }}" --body "Automated release of version ${{ env.VERSION }}" --head release/${{ env.VERSION }} --base master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

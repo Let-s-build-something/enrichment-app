@@ -44,20 +44,20 @@ jobs:
           VERSION=$(./gradlew -q printVersionName)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Create release-${{ env.VERSION }} branch if it doesn't exist
+      - name: Create release/${{ env.VERSION }} branch if it doesn't exist
         run: |
           git fetch origin
-          if ! git rev-parse --verify origin/release-${{ env.VERSION }}; then
-            git checkout -b release-${{ env.VERSION }}
-            git push origin release-${{ env.VERSION }}
+          if ! git rev-parse --verify origin/release/${{ env.VERSION }}; then
+            git checkout -b release/${{ env.VERSION }}
+            git push origin release/${{ env.VERSION }}
           fi
 
       - name: Force release-version to match master
         run: |
           git fetch origin
-          git checkout release-${{ env.VERSION }}
+          git checkout release/${{ env.VERSION }}
           git reset --hard origin/master
-          git push --force origin release-${{ env.VERSION }}
+          git push --force origin release/${{ env.VERSION }}
 
   deploy-windows:
     uses: ./.github/workflows/windows-distribution.yml
