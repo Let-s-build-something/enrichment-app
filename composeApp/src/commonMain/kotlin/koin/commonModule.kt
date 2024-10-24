@@ -5,6 +5,7 @@ import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
 import com.russhwolf.settings.Settings
 import data.shared.SharedDataManager
+import data.shared.SharedRepository
 import data.shared.SharedViewModel
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
@@ -26,6 +27,11 @@ internal val commonModule = module {
             ignoreUnknownKeys = true
             isLenient = true
             useArrayPolymorphism = true
+
+            encodeDefaults = true
+            allowSpecialFloatingPointValues = true
+            allowStructuredMapKeys = true
+            prettyPrint = true
         }
     }
     single {
@@ -39,4 +45,6 @@ internal val commonModule = module {
             json = get()
         )
     }
+
+    factory { SharedRepository(get<HttpClient>()) }
 }

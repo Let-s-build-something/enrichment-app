@@ -1,6 +1,7 @@
 package augmy.interactive.shared.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -8,10 +9,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ui.theme.LocalTheme
+import future_shared_module.ext.scalingClickable
 
 /**
  * Clickable basic Icon with vector image with minimalistic size
@@ -22,15 +26,50 @@ fun MinimalisticIcon(
     imageVector: ImageVector,
     tint: Color = LocalTheme.current.colors.primary,
     contentDescription: String? = null,
-    onClick: (() -> Unit)? = null
+    onTap: ((Offset) -> Unit)? = null
 ) {
     Icon(
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .then(if(onClick != null) {
-                modifier.clickable(onClick = onClick)
+            .then(if(onTap != null) {
+                modifier.scalingClickable(onTap = onTap)
             }else modifier)
+            .padding(5.dp),
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        tint = tint
+    )
+}
+
+/**
+ * Clickable basic Icon with vector image with minimalistic size
+ */
+@Composable
+fun MinimalisticBrandIcon(
+    modifier: Modifier = Modifier,
+    imageVector: ImageVector,
+    tint: Color = LocalTheme.current.colors.brandMainDark,
+    contentDescription: String? = null,
+    onTap: ((Offset) -> Unit)? = null
+) {
+    Icon(
+        modifier = modifier
+            .zIndex(10f)
+            .size(34.dp)
+            .then(if(onTap != null) {
+                Modifier.scalingClickable(onTap = onTap)
+            }else Modifier)
+            .background(
+                color = LocalTheme.current.colors.tetrial,
+                shape = CircleShape
+            )
+            .border(
+                width = 0.5.dp,
+                color = tint,
+                shape = CircleShape
+            )
+            .clip(CircleShape)
             .padding(5.dp),
         imageVector = imageVector,
         contentDescription = contentDescription,

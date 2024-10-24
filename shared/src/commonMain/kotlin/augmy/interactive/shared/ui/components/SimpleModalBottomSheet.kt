@@ -3,10 +3,11 @@ package augmy.interactive.shared.ui.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
@@ -22,15 +23,14 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 
 /**
  * Simple bottom sheet layout
- * material3 library crashes due to internal issue - TODO make a switch the moment it works
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimpleModalBottomSheet(
     modifier: Modifier = Modifier,
-    onDismissRequest: () -> Unit = {},
+    onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    windowInsets: @Composable () -> WindowInsets = { WindowInsets.systemBars },
+    windowInsets: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
     // hotfix, native onDismissRequest doesn't work when collapsing by drag
@@ -41,13 +41,14 @@ fun SimpleModalBottomSheet(
         }
         previousValue.value = sheetState.currentValue
     }
+
     ModalBottomSheet(
         modifier = modifier,
         onDismissRequest = onDismissRequest,
         content = {
             Column(
                 modifier = Modifier
-                    .padding(12.dp)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
                     .navigationBarsPadding()
             ) {
                 content()
@@ -60,7 +61,9 @@ fun SimpleModalBottomSheet(
             topEnd = LocalTheme.current.shapes.componentCornerRadius
         ),
         tonalElevation = LocalTheme.current.styles.actionElevation,
-        dragHandle = {  },
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = LocalTheme.current.colors.secondary)
+        },
         contentWindowInsets = windowInsets
     )
 }

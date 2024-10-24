@@ -7,7 +7,8 @@ object DarkAppColors: BaseColors {
 
     override val primary: Color = Color.White
     override val secondary: Color = Colors.GrayLight
-    override val disabled: Color = Colors.White7
+    override val disabled: Color = secondary.copy(alpha = .6f)
+    override val disabledComponent: Color = Colors.White7
 
     override val brandMain: Color = Colors.Asparagus
 

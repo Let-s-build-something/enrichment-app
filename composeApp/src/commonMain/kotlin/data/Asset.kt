@@ -1,7 +1,7 @@
 package data
 
 /** base URL for the brand storage */
-private const val BASE_URL = "https://augmyinteractive.com/storage/"
+private const val BASE_URL = "https://augmy.org/storage/"
 
 sealed class Asset {
 
@@ -12,7 +12,7 @@ sealed class Asset {
 
         final override val appendix: String = "img/"
         override val url = BASE_URL + appendix + name
-        open val thumbnail = BASE_URL + appendix + "thumbnails/" + "tn_$name"
+        open val thumbnail = BASE_URL + appendix + "thumbnail/" + "tn_$name"
 
 
         data object SignIn: Image("i0_sign_up.webp")

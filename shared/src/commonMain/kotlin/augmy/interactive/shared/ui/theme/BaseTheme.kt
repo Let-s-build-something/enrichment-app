@@ -133,6 +133,7 @@ private object DefaultValues {
         override val primary: Color = Color(0x00000000)
         override val secondary: Color = Color(0x00000000)
         override val disabled: Color = Color(0x00000000)
+        override val disabledComponent: Color = Color(0x00000000)
         override val brandMain: Color = Color(0x00000000)
         override val brandMainDark: Color = Color(0x00000000)
         override val tetrial: Color = Color(0x00000000)

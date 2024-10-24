@@ -31,7 +31,7 @@ class AccountDashboardViewModel: SharedViewModel() {
     fun updateTheme(choiceOrdinal: Int) {
         viewModelScope.launch {
             val choice = ThemeChoice.entries[choiceOrdinal]
-            dataManager.localSettings.update {
+            sharedDataManager.localSettings.update {
                 it?.copy(theme = choice)
             }
             settings[SettingsKeys.KEY_THEME] = choice.name

@@ -3,7 +3,7 @@ package ui.login
 import data.io.base.BaseResponse.Companion.getResponse
 import data.io.user.RequestCreateUser
 import data.io.user.ResponseCreateUser
-import data.io.user.UserIO
+import data.shared.SharedRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -12,7 +12,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /** Class for calling APIs and remote work in general */
-class LoginRepository(private val httpClient: HttpClient) {
+class LoginRepository(private val httpClient: HttpClient): SharedRepository(httpClient) {
 
     /** Makes a request to create a user */
     suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
@@ -24,13 +24,6 @@ class LoginRepository(private val httpClient: HttpClient) {
                     println(data)
                 }
             ).getResponse<ResponseCreateUser>().success?.data
-        }
-    }
-
-    /** Makes a request to create a user */
-    suspend fun authenticateUser(): UserIO? {
-        return withContext(Dispatchers.IO) {
-            null
         }
     }
 }

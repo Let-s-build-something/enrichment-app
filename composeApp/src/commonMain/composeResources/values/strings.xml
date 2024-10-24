@@ -4,6 +4,7 @@
   <string name="screen_home">Home</string>
   <string name="screen_login">Lost and found</string>
   <string name="screen_account_title">Found puppy</string>
+  <string name="screen_water_please">Water, please!</string>
   <string name="screen_account_logout">I\'m outta here!</string>
 
   <string name="navigate_home">Back</string>
@@ -11,12 +12,9 @@
   <string name="navigate_close">Close</string>
   <string name="navigate_hamburger_menu">Menu</string>
 
-  <string name="username_change_launcher_title">Hey there, stranger!</string>
-  <string name="username_change_launcher_content">
-        What should we and other users call you?
-    </string>
+  <string name="username_change_launcher_title">Hey there, %1$s</string>
+  <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
-  <string name="username_change_launcher_cancel">Sign-out</string>
   <string name="username_change_launcher_confirm">Save</string>
   <string name="error_google_sign_in_unavailable">There are no accounts in your device, use other methods, please.</string>
   <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
@@ -34,7 +32,7 @@
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
   <string name="login_error_duplicate_email">Some pirate out there took the wind out of your sails. Try another email or sing in.</string>
   <string name="login_password_condition_empty">Is not empty, duh!</string>
-  <string name="login_password_condition_0">Minimum 9 characters long.</string>
+  <string name="login_password_condition_0">Minimum 8 characters long.</string>
   <string name="login_password_condition_1">At least one algebra character.</string>
   <string name="login_password_condition_2">At least one very special character.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
@@ -43,12 +41,26 @@
 
 
   <string name="account_dashboard_fcm">Your FCM token on this device is:</string>
-  <string name="account_dashboard_theme">Dark and darker</string>
+  <string name="account_dashboard_theme">Mr. Theme</string>
   <string name="account_dashboard_theme_light">Light</string>
   <string name="account_dashboard_theme_dark">Dark</string>
   <string name="account_dashboard_theme_device">System</string>
+  <string name="account_dashboard_sign_out">Sign out</string>
+  <string name="account_sign_out_message">Are you sure you want to jump the ship, captain?</string>
+  <string name="account_username_hint">Nick's name</string>
+  <string name="account_username_error_long">We'll add an option to write an essay on your profile, just for you.</string>
+  <string name="account_username_error_short">Your username should be at least 3 characters long.</string>
+  <string name="account_username_error_spaces">How do you pronounce a white space? No white spaces at the beginning or end.</string>
+  <string name="account_username_error_format">Make sure the username is between 5 and 128 characters long and doesn't contain ultra special characters.</string>
+  <string name="account_username_error_duplicate">You're copying someone. Try expressing the uniqueness of yourself.</string>
+  <string name="account_username_success">Welcome aboard, %1$s</string>
+  <string name="account_username_empty">Mrs. Woo Dat</string>
+  <string name="account_username_change_heading">Mrs. Woo Dat</string>
 
-  <string name="splash_loading_text">We are waking up the little people operating your application...</string>
+  <string name="button_yes">Yes</string>
+  <string name="button_dismiss">Dismiss</string>
+
+  <string name="work_in_progress">We are working actively on this, hang on tight!</string>
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
@@ -57,6 +69,10 @@
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
   <string name="accessibility_show_password">Show password</string>
   <string name="accessibility_hide_password">Hide password</string>
+  <string name="accessibility_change_avatar">Change avatar</string>
+  <string name="accessibility_change_username">Change username</string>
+  <string name="accessibility_save">Save</string>
+  <string name="accessibility_cancel">Cancel</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

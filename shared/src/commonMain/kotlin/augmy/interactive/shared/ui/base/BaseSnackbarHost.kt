@@ -48,7 +48,7 @@ fun BaseSnackbarHost(
  * such as whether it is an error snackbar [isError]
  */
 data class CustomSnackbarVisuals(
-    override val actionLabel: String?,
+    override val actionLabel: String? = null,
     override val duration: SnackbarDuration = if (actionLabel == null) SnackbarDuration.Short else SnackbarDuration.Long,
     override val message: String,
     val isError: Boolean = false,

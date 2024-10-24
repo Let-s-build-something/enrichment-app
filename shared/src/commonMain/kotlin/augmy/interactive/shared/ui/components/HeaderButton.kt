@@ -1,7 +1,7 @@
 package augmy.interactive.shared.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,7 +55,7 @@ private fun HeaderButton(
     val animContainerColor by animateColorAsState(
         when {
             isEnabled -> containerColor
-            else -> LocalTheme.current.colors.disabled
+            else -> LocalTheme.current.colors.disabledComponent
         },
         label = "controlColorChange"
     )
@@ -65,7 +66,8 @@ private fun HeaderButton(
                 enabled = isEnabled,
                 onTap = {
                     if(isEnabled) onClick()
-                }
+                },
+                scaleInto = 0.9f
             )
             .background(
                 color = animContainerColor,
@@ -173,17 +175,18 @@ fun BrandHeaderButton(
     onClick: () -> Unit = {}
 ) {
     HeaderButton(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier,
         text = text,
         isEnabled = isEnabled,
         onClick = onClick,
         additionalContent = {
-            if(isLoading) {
+            AnimatedVisibility(isLoading) {
+                val density = LocalDensity.current
                 // Loading indicator
                 CircularProgressIndicator(
                     modifier = Modifier
                         .padding(start = 12.dp)
-                        .requiredSize(24.dp),
+                        .requiredSize(with(density) { 16.sp.toDp() }),
                     color = LocalTheme.current.colors.brandMainDark,
                     trackColor = LocalTheme.current.colors.tetrial
                 )

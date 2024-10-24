@@ -7,6 +7,7 @@ import base.navigation.NavigationNode
 import koin.loginModule
 import org.koin.core.context.loadKoinModules
 import ui.account.AccountDashboardScreen
+import ui.account.WaterPleaseScreen
 import ui.account.accountDashboardModule
 import ui.home.HomeScreen
 import ui.home.homeModule
@@ -32,7 +33,7 @@ fun NavigationHost(
             HomeScreen()
         }
         composable<NavigationNode.Water> {
-            AccountDashboardScreen()
+            WaterPleaseScreen()
         }
         composable<NavigationNode.AccountDashboard> {
             loadKoinModules(accountDashboardModule)
