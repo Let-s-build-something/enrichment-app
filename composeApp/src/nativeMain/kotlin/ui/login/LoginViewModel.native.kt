@@ -53,10 +53,7 @@ actual class UserOperationService {
     )
 
     @OptIn(ExperimentalForeignApi::class)
-    actual suspend fun requestGoogleSignIn(
-        filterAuthorizedAccounts: Boolean,
-        webClientId: String
-    ): LoginResultType {
+    actual suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType {
         val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
         return if (rootViewController == null) {
             LoginResultType.NO_WINDOW

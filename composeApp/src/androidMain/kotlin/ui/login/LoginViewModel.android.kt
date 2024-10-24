@@ -12,6 +12,8 @@ import androidx.credentials.PublicKeyCredential
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.firebase_web_client_id
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -23,6 +25,7 @@ import data.io.identity_platform.IdentityMessageType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform.getKoin
 import java.util.UUID
@@ -47,10 +50,7 @@ actual class UserOperationService(
 
     actual val availableOptions = listOf(SingInServiceOption.GOOGLE)
 
-    actual suspend fun requestGoogleSignIn(
-        filterAuthorizedAccounts: Boolean,
-        webClientId: String
-    ): LoginResultType {
+    actual suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType {
         val pendingResult = checkForPendingResult()
         if(pendingResult != null) return pendingResult
         val nonce = UUID.randomUUID().toString()
@@ -63,7 +63,7 @@ actual class UserOperationService(
         val googleIdOption: GetGoogleIdOption = GetGoogleIdOption
             .Builder()
             .setFilterByAuthorizedAccounts(filterAuthorizedAccounts)
-            .setServerClientId(webClientId)
+            .setServerClientId(getString(Res.string.firebase_web_client_id))
             .setNonce(nonce)
             .build()
 
@@ -84,19 +84,14 @@ actual class UserOperationService(
         } catch (e: NoCredentialException) {
             Log.e(TAG, "$e")
             result = if(filterAuthorizedAccounts) {
-                requestGoogleSignIn(
-                    filterAuthorizedAccounts = false,
-                    webClientId = webClientId
-                )
+                requestGoogleSignIn(filterAuthorizedAccounts = false)
             }else LoginResultType.NO_GOOGLE_CREDENTIALS
         } catch (e: GetCredentialCancellationException) {
             Log.e(TAG, "$e")
-            if(filterAuthorizedAccounts) {
-                result = requestGoogleSignIn(
-                    filterAuthorizedAccounts = false,
-                    webClientId = webClientId
-                )
-            }
+            /*if(filterAuthorizedAccounts) {
+                result = requestGoogleSignIn(filterAuthorizedAccounts = false)
+            }*/
+            LoginResultType.CANCELLED
         } catch (e: GetCredentialException) {
             Log.e(TAG, "${e.errorMessage}")
         }

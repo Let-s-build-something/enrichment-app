@@ -29,9 +29,9 @@ multiplatformSettings = "1.2.0"
 workRuntimeKtx = "2.9.1"
 activityKtx = "1.9.3"
 androidxSplashscreen = "1.2.0-alpha02"
-androidFirebaseAuth = "23.0.0"
+androidFirebaseAuth = "23.1.0"
 androidFirebaseCommon = "21.0.0"
-androidFirebaseMessaging = "24.0.2"
+androidFirebaseMessaging = "24.0.3"
 
 
 [libraries]

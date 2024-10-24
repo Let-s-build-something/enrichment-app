@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -45,7 +47,6 @@ import augmy.composeapp.generated.resources.accessibility_sign_in_illustration
 import augmy.composeapp.generated.resources.accessibility_sign_up_illustration
 import augmy.composeapp.generated.resources.error_general
 import augmy.composeapp.generated.resources.error_google_sign_in_unavailable
-import augmy.composeapp.generated.resources.firebase_web_client_id
 import augmy.composeapp.generated.resources.login_email_error
 import augmy.composeapp.generated.resources.login_error_canceled
 import augmy.composeapp.generated.resources.login_error_duplicate_email
@@ -64,6 +65,7 @@ import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
 import augmy.composeapp.generated.resources.login_success_snackbar_action
 import augmy.composeapp.generated.resources.screen_login
+import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
@@ -110,7 +112,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     }
     val screenType = LoginScreenType.entries[screenStateIndex.value]
     val validations = remember {
-        mutableStateOf(listOf<PasswordValidation>())
+        mutableStateOf(listOf<FieldValidation>())
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -126,26 +128,27 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
         LaunchedEffect(password.value) {
             coroutineScope.launch(Dispatchers.Default) {
                 validations.value = listOf(
-                    PasswordValidation(
+                    FieldValidation(
                         isValid = password.value.length >= PASSWORD_MIN_LENGTH,
                         message = getString(if(password.value.isEmpty()) {
                             Res.string.login_password_condition_empty
-                        }else Res.string.login_password_condition_0),
-                        isRequired = true
+                        }else Res.string.login_password_condition_0)
                     ),
-                    PasswordValidation(
+                    FieldValidation(
                         isValid = password.value.contains("""\d""".toRegex()),
-                        message = getString(Res.string.login_password_condition_1)
+                        message = getString(Res.string.login_password_condition_1),
+                        isRequired = false
                     ),
-                    PasswordValidation(
+                    FieldValidation(
                         isValid = password.value.isNotEmpty()
                                 && password.value.matches("""[A-Za-z0-9]+""".toRegex()).not(),
-                        message = getString(Res.string.login_password_condition_2)
+                        message = getString(Res.string.login_password_condition_2),
+                        isRequired = false
                     )
                 )
             }
         }
-    }
+    }else validations.value = listOf()
 
     LaunchedEffect(Unit) {
         viewModel.loginResult.collectLatest { res ->
@@ -163,7 +166,17 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                     navController?.popBackStack(NavigationNode.Login, inclusive = true)
                     null
                 }
-                LoginResultType.NO_GOOGLE_CREDENTIALS -> getString(Res.string.error_google_sign_in_unavailable)
+                LoginResultType.NO_GOOGLE_CREDENTIALS -> {
+                    coroutineScope.launch {
+                        snackbarHostState?.showSnackbar(
+                            visuals = CustomSnackbarVisuals(
+                                message = getString(Res.string.error_google_sign_in_unavailable),
+                                isError = true
+                            )
+                        )
+                    }
+                    null
+                }
                 LoginResultType.CANCELLED -> getString(Res.string.login_error_canceled)
                 LoginResultType.INVALID_CREDENTIAL -> getString(Res.string.login_error_invalid_credential)
                 LoginResultType.NO_WINDOW -> getString(Res.string.login_error_no_windows)
@@ -181,8 +194,10 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
         navIconType = NavIconType.BACK
     ) {
         ModalScreenContent(
-            modifier = Modifier.animateContentSize(),
-            verticalArrangement = Arrangement.Top
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
         ) {
             MultiChoiceSwitch(
                 modifier = Modifier.fillMaxWidth(),
@@ -199,6 +214,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     AsyncImageThumbnail(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .align(Alignment.Center)
                             .heightIn(max = (LocalScreenSize.current.height / 3).dp),
                         image = if(type == LoginScreenType.SIGN_UP) {
@@ -228,13 +244,11 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 private fun ColumnScope.LoginScreenContent(
     viewModel: LoginViewModel,
     screenType: LoginScreenType,
-    validations: List<PasswordValidation>,
+    validations: List<FieldValidation>,
     errorMessage: MutableState<String?>,
     password: MutableState<String>,
     isWaitingForResult: MutableState<Boolean>
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
     val email = remember { mutableStateOf("") }
@@ -315,7 +329,7 @@ private fun ColumnScope.LoginScreenContent(
     )
 
     AnimatedVisibility(screenType == LoginScreenType.SIGN_UP) {
-        Column(modifier = Modifier.padding(top = 4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             validations.forEach { validation ->
                 CorrectionText(
                     text = validation.message,
@@ -359,16 +373,8 @@ private fun ColumnScope.LoginScreenContent(
                         .scalingClickable(
                             onTap = {
                                 when(option) {
-                                    SingInServiceOption.GOOGLE -> {
-                                        coroutineScope.launch {
-                                            viewModel.requestGoogleSignIn(
-                                                webClientId = getString(Res.string.firebase_web_client_id)
-                                            )
-                                        }
-                                    }
-                                    SingInServiceOption.APPLE -> {
-                                        viewModel.requestAppleSignIn()
-                                    }
+                                    SingInServiceOption.GOOGLE -> viewModel.requestGoogleSignIn()
+                                    SingInServiceOption.APPLE -> viewModel.requestAppleSignIn()
                                 }
                             }
                         ),
@@ -392,7 +398,7 @@ private const val PASSWORD_MAX_LENGTH = 64
  */
 private val emailAddressRegex = """[a-zA-Z0-9+._%-+]{1,256}@[a-zA-Z0-9][a-zA-Z0-9-]{0,64}(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,25})+""".toRegex()
 
-private const val PASSWORD_MIN_LENGTH = 9
+private const val PASSWORD_MIN_LENGTH = 8
 
 /** Type of interface for login screen */
 enum class LoginScreenType {

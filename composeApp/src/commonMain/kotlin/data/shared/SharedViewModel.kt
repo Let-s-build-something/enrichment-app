@@ -25,28 +25,31 @@ import org.koin.mp.KoinPlatform
 open class SharedViewModel: ViewModel() {
 
     /** Singleton data manager to keep session-only data alive */
-    protected val dataManager: SharedDataManager = KoinPlatform.getKoin().get()
+    protected val sharedDataManager: SharedDataManager = KoinPlatform.getKoin().get()
 
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<Settings>()
 
     /** Current configuration specific to this app */
-    val localSettings = dataManager.localSettings.asStateFlow()
+    val localSettings = sharedDataManager.localSettings.asStateFlow()
 
 
-    /** currently signed in user */
+    /** currently signed in firebase user */
     val firebaseUser = Firebase.auth.authStateChanged.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
         Firebase.auth.currentUser
     )
 
+    /** currently signed in user */
+    val currentUser = sharedDataManager.currentUser.asStateFlow()
+
     /** whether toolbar is currently expanded */
-    val isToolbarExpanded = dataManager.isToolbarExpanded
+    val isToolbarExpanded = sharedDataManager.isToolbarExpanded
 
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {
-        dataManager.isToolbarExpanded.value = expand
+        sharedDataManager.isToolbarExpanded.value = expand
     }
 
     /** Logs out the currently signed in user */
@@ -59,7 +62,7 @@ open class SharedViewModel: ViewModel() {
     /** Initializes the application */
     fun initApp() {
         viewModelScope.launch {
-            if (dataManager.localSettings.value == null) {
+            if (sharedDataManager.localSettings.value == null) {
                 val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
 
                 val fcmToken = if(defaultFcm == null) {
@@ -73,7 +76,7 @@ open class SharedViewModel: ViewModel() {
                     newFcm
                 }else defaultFcm
 
-                dataManager.localSettings.value = LocalSettings(
+                sharedDataManager.localSettings.value = LocalSettings(
                     theme = ThemeChoice.entries.find {
                         it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
                     } ?: ThemeChoice.SYSTEM,
@@ -83,7 +86,7 @@ open class SharedViewModel: ViewModel() {
 
             if (Firebase.auth.currentUser != null) {
                 Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
-                    dataManager.currentUser.update {
+                    sharedDataManager.currentUser.update {
                         it?.copy(idToken = firebaseUser?.getIdToken(false))
                     }
                 }
@@ -95,7 +98,7 @@ open class SharedViewModel: ViewModel() {
     /** Updates with new token and sends this information to BE */
     fun updateFcmToken(newToken: String) {
         println("New FCM token: $newToken")
-        dataManager.localSettings.update {
+        sharedDataManager.localSettings.update {
             it?.copy(fcmToken = newToken)
         }
         viewModelScope.launch {

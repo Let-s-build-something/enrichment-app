@@ -4,15 +4,17 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PersonOutline
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
-import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.screen_account_title
 import augmy.composeapp.generated.resources.screen_login
+import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -55,11 +57,13 @@ fun DefaultAppBarActions(
         }
         else -> {
             //enforce the same height of the appbar
-            ActionBarIcon(
-                modifier = Modifier.requiredWidth(0.dp),
-                imageVector = Icons.Outlined.PersonAddAlt,
-                text = ""
-            )
+            if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
+                ActionBarIcon(
+                    modifier = Modifier.requiredWidth(0.dp),
+                    imageVector = Icons.Outlined.PersonAddAlt,
+                    text = ""
+                )
+            }
         }
     }
 }

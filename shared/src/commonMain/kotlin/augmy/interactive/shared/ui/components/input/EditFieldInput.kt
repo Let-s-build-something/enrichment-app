@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.TextRange
@@ -28,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.shared.generated.resources.Res
+import augmy.shared.generated.resources.accessibility_clear
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Generic input field for text input
@@ -42,9 +47,11 @@ fun EditFieldInput(
         fontSize = 16.sp,
         textAlign = TextAlign.Start
     ),
+    enabled: Boolean = true,
     paddingValues: PaddingValues = TextFieldDefaults.contentPaddingWithoutLabel(),
     maxLines: Int = 1,
     minLines: Int = 1,
+    maxCharacters: Int = -1,
     hint: String? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     errorText: String? = null,
@@ -64,6 +71,7 @@ fun EditFieldInput(
             errorText != null -> SharedColors.RED_ERROR
             isCorrect -> SharedColors.GREEN_CORRECT
             isFocused.value -> LocalTheme.current.colors.primary
+            !enabled -> LocalTheme.current.colors.disabled
             else -> LocalTheme.current.colors.secondary
         },
         label = "controlColorChange"
@@ -105,16 +113,31 @@ fun EditFieldInput(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             isError = errorText != null,
+            enabled = enabled,
             shape = LocalTheme.current.shapes.circularActionShape,
             trailingIcon = if(isClearable) {
                 {
-                    MinimalisticIcon(
-                        contentDescription = "Clear",
-                        imageVector = Icons.Outlined.Clear,
-                        tint = controlColor
-                    ) {
-                        onValueChange("")
-                        text.value = TextFieldValue()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if(maxCharacters > 0) {
+                            Text(
+                                text = "${value.length}/$maxCharacters",
+                                style = LocalTheme.current.styles.regular.copy(
+                                    color = if(value.length > maxCharacters) {
+                                        SharedColors.RED_ERROR
+                                    }else LocalTheme.current.colors.disabled
+                                )
+                            )
+                        }
+                        AnimatedVisibility(enabled) {
+                            MinimalisticIcon(
+                                contentDescription = stringResource(Res.string.accessibility_clear),
+                                imageVector = Icons.Outlined.Clear,
+                                tint = LocalTheme.current.colors.secondary
+                            ) {
+                                onValueChange("")
+                                text.value = TextFieldValue()
+                            }
+                        }
                     }
                 }
             }else trailingIcon,

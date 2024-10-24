@@ -19,8 +19,11 @@ interface BaseColors {
     /** Contrast to background color, used for lighter or regular text */
     val secondary: Color
 
-    /** disabled color contrasted to background */
+    /** disabled color with any background */
     val disabled: Color
+
+    /** disabled color contrasted to background */
+    val disabledComponent: Color
 
     /** color of shimmer background */
     val shimmer: Color

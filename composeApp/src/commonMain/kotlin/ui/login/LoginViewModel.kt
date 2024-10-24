@@ -76,12 +76,9 @@ class LoginViewModel(
     }
 
     /** Requests sign in or sign up via Google account */
-    fun requestGoogleSignIn(webClientId: String) {
+    fun requestGoogleSignIn() {
         viewModelScope.launch {
-            val res = serviceProvider.requestGoogleSignIn(
-                filterAuthorizedAccounts = true,
-                webClientId = webClientId
-            )
+            val res = serviceProvider.requestGoogleSignIn(filterAuthorizedAccounts = true)
             if(res == LoginResultType.SUCCESS) {
                 finalizeSignIn(null)
             }else _loginResult.emit(res)
@@ -100,16 +97,16 @@ class LoginViewModel(
 
     /** Authenticates user with a token */
     private suspend fun authenticateUser(email: String?) {
-        dataManager.currentUser.value = repository.authenticateUser()
+        sharedDataManager.currentUser.value = repository.authenticateUser()
         finalizeSignIn(email)
     }
 
     /** finalizes full flow with a result */
     private suspend fun finalizeSignIn(email: String?) {
-        if(dataManager.currentUser.value == null) {
+        if(sharedDataManager.currentUser.value == null) {
             Firebase.auth.currentUser?.uid?.let { clientId ->
 
-                dataManager.currentUser.value = UserIO(
+                sharedDataManager.currentUser.value = UserIO(
                     publicId = repository.createUser(
                         RequestCreateUser(
                             email = email ?: try {
@@ -124,7 +121,7 @@ class LoginViewModel(
             }
         }
         _loginResult.emit(
-            if(dataManager.currentUser.value == null) LoginResultType.FAILURE else LoginResultType.SUCCESS
+            if(sharedDataManager.currentUser.value == null) LoginResultType.FAILURE else LoginResultType.SUCCESS
         )
     }
 }
@@ -148,10 +145,7 @@ expect class UserOperationService {
     val availableOptions: List<SingInServiceOption>
 
     /** Requests signup or sign in via Google account */
-    suspend fun requestGoogleSignIn(
-        filterAuthorizedAccounts: Boolean,
-        webClientId: String
-    ): LoginResultType
+    suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType
 
     /** Requests signup or sign in via Apple id */
     suspend fun requestAppleSignIn(): LoginResultType
