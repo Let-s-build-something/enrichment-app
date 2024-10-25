@@ -56,11 +56,16 @@
   <string name="account_username_success">Welcome aboard, %1$s</string>
   <string name="account_username_empty">Mrs. Woo Dat</string>
   <string name="account_username_change_heading">Mrs. Woo Dat</string>
+  <string name="account_picture_peeps" translatable="false">Peeps</string>
+  <string name="account_picture_custom">Custom</string>
+  <string name="account_picture_change_success">Oh, what a beauty!</string>
+  <string name="account_picture_pick_title">Find yourself</string>
 
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
 
   <string name="work_in_progress">We are working actively on this, hang on tight!</string>
+  <string name="function_unavailable">This functionality is not support on your device yet, we are actively working on it, hang on tight.</string>
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
@@ -73,6 +78,8 @@
   <string name="accessibility_change_username">Change username</string>
   <string name="accessibility_save">Save</string>
   <string name="accessibility_cancel">Cancel</string>
+  <string name="accessibility_upload_files">Upload from files</string>
+  <string name="accessibility_upload_url">Upload from URL input</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

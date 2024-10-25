@@ -25,4 +25,9 @@ sealed class Asset {
         data object DesignConstruction: Image("90c610ff-e2e1-48e5-82c9-3c9440b765c3.jpg")
         data object Experiment: Image("95b14a4e-5182-4375-b78f-d0f6fd504926.jpg")
     }
+
+    class Peep(index: Int): Asset() {
+        override val appendix: String = "peep/"
+        override val url = BASE_URL + appendix + "peep-${index + 1}.svg"
+    }
 }

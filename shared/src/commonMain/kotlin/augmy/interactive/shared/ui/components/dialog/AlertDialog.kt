@@ -82,7 +82,7 @@ fun AlertDialog(
                         onDismissRequest()
                     },
                     enabled = confirmButtonState.enabled,
-                    activeColor = LocalTheme.current.colors.brandMain
+                    activeColor = LocalTheme.current.colors.brandMainDark
                 )
             }
         },

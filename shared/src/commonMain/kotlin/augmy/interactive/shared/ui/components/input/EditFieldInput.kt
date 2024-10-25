@@ -83,11 +83,12 @@ fun EditFieldInput(
                 .border(
                     if (isFocused.value) 1.dp else 0.25.dp,
                     controlColor,
-                    LocalTheme.current.shapes.componentShape
+                    LocalTheme.current.shapes.rectangularActionShape
                 )
                 .onFocusChanged {
                     isFocused.value = it.isFocused
                 },
+            shape = LocalTheme.current.shapes.rectangularActionShape,
             value = text.value,
             paddingValues = paddingValues,
             minLines = minLines,
@@ -114,7 +115,6 @@ fun EditFieldInput(
             keyboardActions = keyboardActions,
             isError = errorText != null,
             enabled = enabled,
-            shape = LocalTheme.current.shapes.circularActionShape,
             trailingIcon = if(isClearable) {
                 {
                     Row(verticalAlignment = Alignment.CenterVertically) {

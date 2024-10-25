@@ -25,6 +25,7 @@ ktor = "3.0.0-rc-2"
 coroutines = "1.9.0"
 kotlinxSerialization = "1.7.3"
 kotlinx-datetime = "0.6.1"
+fileKit = "0.8.7"
 multiplatformSettings = "1.2.0"
 workRuntimeKtx = "2.9.1"
 activityKtx = "1.9.3"
@@ -47,8 +48,10 @@ material3-window-size = { module = "dev.chrisbanes.material3:material3-window-si
 lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime", version.ref = "lifecycle" }
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewModel" }
 compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
+compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref = "fileKit" }
 
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
+coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coilCompose" }
 coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coilCompose" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
@@ -72,6 +75,7 @@ ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.r
 firebase-gitlive-common = { group = "dev.gitlive", name = "firebase-common", version.ref = "firebaseGitlive" }
 firebase-gitlive-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "firebaseGitlive" }
 firebase-gitlive-messaging = { group = "dev.gitlive", name = "firebase-messaging", version.ref = "firebaseGitlive" }
+firebase-gitlive-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebaseGitlive" }
 
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 

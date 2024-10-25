@@ -67,7 +67,8 @@ import coil3.compose.AsyncImage
 import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.login.username.UsernameChangeLauncher
+import ui.account.profile.DialogPictureChange
+import ui.account.profile.UsernameChangeLauncher
 
 /**
  * Screen for the home page
@@ -179,6 +180,9 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
     val isUsernameInEdit = rememberSaveable {
         mutableStateOf(false)
     }
+    val isPictureInEdit = rememberSaveable {
+        mutableStateOf(false)
+    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "infiniteScaleBackground")
     val liveScaleBackground by infiniteTransition.animateFloat(
@@ -187,7 +191,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
         animationSpec = infiniteRepeatable(
             animation = keyframes {
                 durationMillis = 7000
-                1.15f at 2500 using LinearEasing // Takes 2.5 seconds to reach 1.2f
+                1.15f at 2500 using LinearEasing // Takes 2.5 seconds to reach 1.15f
                 1f at 7000 using LinearEasing // Takes 4.5 seconds to return to 1f
             },
             repeatMode = RepeatMode.Restart
@@ -199,6 +203,13 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
         UsernameChangeLauncher {
             isUsernameInEdit.value = false
         }
+    }
+    if(isPictureInEdit.value) {
+        DialogPictureChange(
+            onDismissRequest = {
+                isPictureInEdit.value = false
+            }
+        )
     }
 
     Box {
@@ -221,7 +232,9 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                     color = LocalTheme.current.colors.brandMain,
                     shape = CircleShape
                 ),
-            model = firebaseUser.value?.photoURL,
+            model = try {
+                firebaseUser.value?.photoURL
+            }catch (e: NotImplementedError) { null },
             contentDescription = null
         )
         MinimalisticBrandIcon(
@@ -229,7 +242,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                 .padding(bottom = 8.dp, end = 8.dp)
                 .align(Alignment.BottomEnd),
             onTap = {
-                //TODO edit avatar
+                isPictureInEdit.value = true
             },
             imageVector = Icons.Outlined.Edit,
             contentDescription = stringResource(Res.string.accessibility_change_avatar)

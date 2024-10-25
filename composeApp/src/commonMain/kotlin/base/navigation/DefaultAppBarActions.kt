@@ -38,7 +38,9 @@ fun DefaultAppBarActions(
         NavigationNode.Home.route -> {
             if(isUserSignedIn) {
                 ActionBarIcon(
-                    text = if(expanded) stringResource(Res.string.screen_account_title) else null,
+                    text = if(expanded && userPhotoUrl == null) {
+                        stringResource(Res.string.screen_account_title)
+                    } else null,
                     imageUrl = userPhotoUrl,
                     imageVector = Icons.Outlined.PersonOutline,
                     onClick = {

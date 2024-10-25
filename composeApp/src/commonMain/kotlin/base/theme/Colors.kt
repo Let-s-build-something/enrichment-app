@@ -11,7 +11,7 @@ object Colors {
     val White7: Color = Color(0x12FFFFFF)
     val EerieBlack: Color = Color(0xFF221F1C)
     val Night: Color = Color(0xFF121212)
-    val AzureWeb: Color = Color(0xFFE0F0F2)
+    val AzureWeb: Color = Color(0xFFECF1E7)
 
     val HunterGreen: Color = Color(0xFF365E32)
     val HunterGreen42: Color = Color(0x6B365E32)

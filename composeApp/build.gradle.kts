@@ -122,6 +122,7 @@ kotlin {
             implementation(libs.compottie.resources)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
+            implementation(libs.compose.file.kit)
 
             api(libs.koin.core)
             implementation(libs.koin.compose)
@@ -134,11 +135,13 @@ kotlin {
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
+            implementation(libs.firebase.gitlive.common)
             implementation(libs.firebase.gitlive.auth)
             implementation(libs.firebase.gitlive.messaging)
-            implementation(libs.firebase.gitlive.common)
+            implementation(libs.firebase.gitlive.storage)
 
             implementation(libs.coil)
+            implementation(libs.coil.svg)
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
@@ -262,7 +265,7 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
-                modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported")
+                modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported", "jdk.security.auth")
                 menuGroup = "Augmy Interactive"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
@@ -283,6 +286,7 @@ buildkonfig {
 
         buildConfigField(STRING, "HttpsHostName", releaseHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidReleaseAppId"] as String)
+        buildConfigField(STRING, "StorageBucketName", keystoreProperties["storageBucketName"] as String)
     }
 
     // change the setting just for development

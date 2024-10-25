@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,8 @@ fun ActionBarIcon(
     imageUrl: String? = null,
     onClick: () -> Unit = {}
 ) {
+    val density = LocalDensity.current
+
     Column(
         modifier = Modifier
             .padding(4.dp)
@@ -65,7 +68,9 @@ fun ActionBarIcon(
                 AsyncImage(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .size(24.dp),
+                        .then(if(text == null) {
+                            Modifier.size(22.dp + with(density) { 12.sp.toDp() })
+                        }else Modifier.size(24.dp)),
                     model = imageUrl,
                     contentDescription = text
                 )

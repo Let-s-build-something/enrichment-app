@@ -1,4 +1,4 @@
-package ui.login.username
+package ui.account.profile
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -48,7 +48,7 @@ import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.social.username.UsernameChangeError
-import koin.usernameChangeModule
+import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -70,8 +70,8 @@ fun UsernameChangeLauncher(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     onDismissRequest: () -> Unit
 ) {
-    loadKoinModules(usernameChangeModule)
-    val viewModel: UsernameChangeViewModel = koinViewModel()
+    loadKoinModules(profileChangeModule)
+    val viewModel: ProfileChangeViewModel = koinViewModel()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHost.current
     val focusRequester = remember {
@@ -121,7 +121,7 @@ fun UsernameChangeLauncher(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.response.collectLatest { res ->
+        viewModel.usernameResponse.collectLatest { res ->
             errorMessage.value = when(res?.error?.errors?.firstOrNull()) {
                 UsernameChangeError.DUPLICATE.name -> {
                     getString(Res.string.account_username_error_duplicate)

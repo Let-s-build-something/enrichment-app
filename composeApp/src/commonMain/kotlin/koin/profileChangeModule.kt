@@ -3,12 +3,12 @@ package koin
 import io.ktor.client.HttpClient
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.login.username.UsernameChangeRepository
-import ui.login.username.UsernameChangeViewModel
+import ui.account.profile.UsernameChangeRepository
+import ui.account.profile.ProfileChangeViewModel
 
-internal val usernameChangeModule = module {
+internal val profileChangeModule = module {
     factory {
         UsernameChangeRepository(get<HttpClient>())
     }
-    viewModelOf(::UsernameChangeViewModel)
+    viewModelOf(::ProfileChangeViewModel)
 }
