@@ -1,3 +1,4 @@
 <resources>
     <string name="accessibility_clear">Clear</string>
+    <string name="button_dismiss">Dismiss</string>
 </resources>

@@ -2,6 +2,7 @@ package base
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
@@ -34,7 +35,9 @@ fun AugmyTheme(
         LocalThemeColors provides colors,
         LocalThemeIcons provides icons,
         LocalThemeStyles provides styles,
-        LocalThemeShapes provides AppThemeShapes()
+        LocalThemeShapes provides AppThemeShapes(),
+        LocalTextStyle provides styles.regular,
+        androidx.compose.material.LocalTextStyle provides styles.regular
     ) {
         MaterialTheme(
             colorScheme = ColorScheme(

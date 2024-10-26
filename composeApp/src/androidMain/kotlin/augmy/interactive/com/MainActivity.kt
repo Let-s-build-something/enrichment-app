@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import io.github.vinceglb.filekit.core.FileKit
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -43,6 +44,7 @@ class MainActivity: ComponentActivity() {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+        FileKit.init(this)
         askForPermissions()
 
         setContent {

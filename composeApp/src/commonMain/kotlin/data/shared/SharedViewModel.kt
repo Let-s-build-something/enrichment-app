@@ -11,6 +11,10 @@ import data.io.app.ThemeChoice
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
+import dev.gitlive.firebase.storage.Data
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +60,7 @@ open class SharedViewModel: ViewModel() {
     open fun logoutCurrentUser() {
         runBlocking {
             Firebase.auth.signOut()
+            sharedDataManager.currentUser.value = null
         }
     }
 
@@ -83,14 +88,17 @@ open class SharedViewModel: ViewModel() {
                     fcmToken = fcmToken
                 )
             }
-
-            if (Firebase.auth.currentUser != null) {
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            if (firebaseUser.value != null) {
+                sharedDataManager.currentUser.update {
+                    it?.copy(idToken = firebaseUser.value?.getIdToken(false))
+                }
                 Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
                     sharedDataManager.currentUser.update {
                         it?.copy(idToken = firebaseUser?.getIdToken(false))
                     }
                 }
-                // TODO authenticate user on our BE
             }
         }
     }
@@ -106,3 +114,5 @@ open class SharedViewModel: ViewModel() {
         }
     }
 }
+
+expect fun fromByteArrayToData(byteArray: ByteArray): Data

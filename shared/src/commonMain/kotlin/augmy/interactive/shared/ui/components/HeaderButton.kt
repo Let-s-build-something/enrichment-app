@@ -177,7 +177,7 @@ fun BrandHeaderButton(
     HeaderButton(
         modifier = modifier,
         text = text,
-        isEnabled = isEnabled,
+        isEnabled = isEnabled && isLoading.not(),
         onClick = onClick,
         additionalContent = {
             AnimatedVisibility(isLoading) {

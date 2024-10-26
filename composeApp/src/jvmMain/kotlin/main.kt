@@ -20,10 +20,10 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import augmy.interactive.com.BuildKonfig
-import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.app_name
+import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ui.base.LocalScreenSize
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
@@ -156,6 +156,7 @@ private fun initializeFirebase(setting: Settings = KoinPlatform.getKoin().get<Se
         .setProjectId(BuildKonfig.FirebaseProjectId)
         .setApplicationId(BuildKonfig.AndroidAppId)
         .setApiKey(BuildKonfig.CloudWebApiKey)
+        .setStorageBucket(BuildKonfig.StorageBucketName)
         .build()
 
     Firebase.initialize(Application(), options)
