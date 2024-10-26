@@ -1,9 +1,12 @@
 package ui.account.profile
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -11,27 +14,32 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Upload
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
@@ -42,13 +50,20 @@ import augmy.composeapp.generated.resources.account_picture_custom
 import augmy.composeapp.generated.resources.account_picture_peeps
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.function_unavailable
+import augmy.composeapp.generated.resources.image_field_url_error_formats
+import augmy.composeapp.generated.resources.image_field_url_hint
 import augmy.composeapp.generated.resources.username_change_launcher_confirm
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.dialog.DialogShell
+import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import components.AsyncSvgImage
 import data.Asset
 import future_shared_module.ext.scalingClickable
@@ -76,8 +91,22 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
     val firebaseUser = viewModel.firebaseUser.collectAsState()
     val isLoading = viewModel.isLoading.collectAsState()
 
+    val customUrl = rememberSaveable { mutableStateOf<String?>(null) }
     val selectedImageUrl = rememberSaveable {
-        mutableStateOf(try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null } ?: "")
+        mutableStateOf(
+            customUrl.value ?: try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null } ?: ""
+        )
+    }
+    val isUrlInEdit = rememberSaveable { mutableStateOf(false) }
+    val urlState = remember {
+        mutableStateOf<AsyncImagePainter.State?>(null)
+    }
+
+    LaunchedEffect(isUrlInEdit.value) {
+        if(!isUrlInEdit.value) {
+            urlState.value = null
+            customUrl.value = null
+        }
     }
 
     val launcher = rememberFilePickerLauncher(
@@ -125,8 +154,16 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                             color = LocalTheme.current.colors.brandMain,
                             shape = CircleShape
                         ),
-                    model = selectedImageUrl.value,
-                    contentDescription = null
+                    model = customUrl.value ?: selectedImageUrl.value,
+                    contentDescription = null,
+                    onState = { loadState ->
+                        if(isUrlInEdit.value) {
+                            if(loadState is AsyncImagePainter.State.Success) {
+                                selectedImageUrl.value = customUrl.value ?: ""
+                                isUrlInEdit.value = false
+                            }else urlState.value = loadState
+                        }
+                    }
                 )
                 Row(
                     modifier = Modifier
@@ -149,7 +186,8 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                         modifier = Modifier.weight(1f),
                         isLoading = isLoading.value,
                         text = stringResource(Res.string.username_change_launcher_confirm),
-                        isEnabled = selectedImageUrl.value != try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
+                        isEnabled = (customUrl.value ?: selectedImageUrl.value)
+                                != try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
                         onClick = {
                             viewModel.requestPictureChange(selectedImageUrl.value)
                         }
@@ -158,21 +196,18 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                 LazyVerticalGrid(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(.5f)
-                        .background(
-                            color = LocalTheme.current.colors.tetrial,
-                            shape = RoundedCornerShape(
-                                topStart = LocalTheme.current.shapes.componentCornerRadius,
-                                topEnd = LocalTheme.current.shapes.componentCornerRadius
-                            )
-                        ),
+                        .fillMaxHeight(.5f),
                     columns = GridCells.Adaptive(minSize = 100.dp)
                 ) {
                     headers {
                         item(span = {
                             GridItemSpan(maxCurrentLineSpan)
                         }) {
-                            Column {
+                            Column(
+                                Modifier
+                                    .padding(bottom = 16.dp)
+                                    .animateContentSize()
+                            ) {
                                 Text(
                                     modifier = Modifier
                                         .padding(top = 16.dp)
@@ -180,49 +215,89 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                     text = stringResource(Res.string.account_picture_custom),
                                     style = LocalTheme.current.styles.category.copy(
                                         textAlign = TextAlign.Center,
-                                        color = LocalTheme.current.colors.brandMainDark
+                                        color = LocalTheme.current.colors.secondary
                                     )
                                 )
-                                Row(
-                                    modifier = Modifier
-                                        .padding(horizontal = 16.dp)
-                                        .fillMaxWidth()
-                                        .background(
-                                            color = LocalTheme.current.colors.tetrial,
-                                            shape = LocalTheme.current.shapes.componentShape
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = LocalTheme.current.colors.brandMainDark,
-                                            shape = LocalTheme.current.shapes.componentShape
-                                        )
-                                        .padding(vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceAround
-                                ) {
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(50.dp)
-                                            .scalingClickable(
-                                                onTap = {
-                                                    launcher.launch()
-                                                }
+                                Crossfade(targetState = isUrlInEdit.value) { isUrlInput ->
+                                    if(isUrlInput) {
+                                        EditFieldInput(
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp)
+                                                .fillMaxWidth(),
+                                            hint = stringResource(Res.string.image_field_url_hint),
+                                            value = customUrl.value ?: "",
+                                            keyboardOptions = KeyboardOptions(
+                                                keyboardType = KeyboardType.Text,
+                                                imeAction = ImeAction.Done
                                             ),
-                                        imageVector = Icons.Outlined.Upload,
-                                        contentDescription = stringResource(Res.string.accessibility_upload_files),
-                                        tint = LocalTheme.current.colors.brandMainDark
-                                    )
-                                    Icon(
-                                        modifier = Modifier
-                                            .size(50.dp)
-                                            .scalingClickable(
-                                                onTap = {
-
+                                            onValueChange = { value ->
+                                                customUrl.value = value
+                                            },
+                                            trailingIcon = if(urlState.value is AsyncImagePainter.State.Loading) {
+                                                {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.requiredSize(24.dp),
+                                                        color = LocalTheme.current.colors.brandMainDark,
+                                                        trackColor = LocalTheme.current.colors.tetrial
+                                                    )
                                                 }
-                                            ),
-                                        imageVector = Icons.Outlined.Link,
-                                        contentDescription = stringResource(Res.string.accessibility_upload_url),
-                                        tint = LocalTheme.current.colors.brandMainDark
-                                    )
+                                            }else null,
+                                            isClearable = true,
+                                            onClear = {
+                                                isUrlInEdit.value = false
+                                            },
+                                            errorText = if(urlState.value is AsyncImagePainter.State.Error) {
+                                                stringResource(Res.string.image_field_url_error_formats)
+                                            }else null,
+                                            paddingValues = PaddingValues(start = 16.dp)
+                                        )
+                                    }else {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .fillMaxWidth()
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = LocalTheme.current.colors.secondary,
+                                                    shape = LocalTheme.current.shapes.componentShape
+                                                )
+                                                .padding(vertical = 12.dp),
+                                            horizontalArrangement = Arrangement.SpaceAround
+                                        ) {
+                                            Icon(
+                                                modifier = Modifier
+                                                    .size(42.dp)
+                                                    .scalingClickable(
+                                                        onTap = {
+                                                            if(currentPlatform != PlatformType.Jvm) {
+                                                                launcher.launch()
+                                                            }else {
+                                                                coroutineScope.launch {
+                                                                    snackbarHostState?.showSnackbar(
+                                                                        message = getString(Res.string.function_unavailable)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    ),
+                                                imageVector = Icons.Outlined.Upload,
+                                                contentDescription = stringResource(Res.string.accessibility_upload_files),
+                                                tint = LocalTheme.current.colors.primary
+                                            )
+                                            Icon(
+                                                modifier = Modifier
+                                                    .size(42.dp)
+                                                    .scalingClickable(
+                                                        onTap = {
+                                                            isUrlInEdit.value = true
+                                                        }
+                                                    ),
+                                                imageVector = Icons.Outlined.Link,
+                                                contentDescription = stringResource(Res.string.accessibility_upload_url),
+                                                tint = LocalTheme.current.colors.primary
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -231,11 +306,13 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                         GridItemSpan(maxCurrentLineSpan)
                     }) {
                         Text(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(bottom = 4.dp)
+                                .fillMaxWidth(),
                             text = stringResource(Res.string.account_picture_peeps),
                             style = LocalTheme.current.styles.category.copy(
                                 textAlign = TextAlign.Center,
-                                color = LocalTheme.current.colors.brandMainDark
+                                color = LocalTheme.current.colors.secondary
                             )
                         )
                     }

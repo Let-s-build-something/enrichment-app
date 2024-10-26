@@ -1,8 +1,6 @@
 package ui.account.profile
 
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
 import data.io.base.BaseResponse
 import data.io.social.username.ResponseUsernameChange
 import data.shared.SharedViewModel
@@ -95,21 +93,13 @@ class ProfileChangeViewModel (
                     ?.groupValues
                     ?.getOrNull(1)
 
-                if(currentPlatform != PlatformType.Jvm) {
-                    _isPictureChangeSuccess.emit(
-                        uploadPictureStorage(
-                            byteArray = mediaByteArray,
-                            fileName = fileName,
-                            previousFileSuffix = previousFileSuffix
-                        )
-                    )
-                }else {
-                    uploadPictureApi(
+                _isPictureChangeSuccess.emit(
+                    uploadPictureStorage(
                         byteArray = mediaByteArray,
                         fileName = fileName,
                         previousFileSuffix = previousFileSuffix
                     )
-                }
+                )
             }
             _isLoading.value = false
         }
@@ -144,26 +134,5 @@ class ProfileChangeViewModel (
                 true
             }else false
         }
-    }
-
-    /** @return if true, it was successful, if false, it failed */
-    private suspend fun uploadPictureApi(
-        byteArray: ByteArray,
-        fileName: String,
-        previousFileSuffix: String?
-    ): Boolean {
-        currentUser.value?.idToken?.let { idToken ->
-            repository.changeProfilePictureHttp(
-                fileName = "${firebaseUser.value?.uid}%2Fprofile-picture.${fileName.split(".").lastOrNull()}",
-                previousFileName = "${firebaseUser.value?.uid}%2Fprofile-picture$previousFileSuffix",
-                byteArray = byteArray,
-                idToken = idToken
-            )?.let { newUrl ->
-                requestPictureChange(newUrl)
-                return true
-            }
-        }
-
-        return false
     }
 }

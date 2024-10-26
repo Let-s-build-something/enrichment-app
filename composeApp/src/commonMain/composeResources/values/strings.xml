@@ -16,7 +16,7 @@
   <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
   <string name="username_change_launcher_confirm">Save</string>
-  <string name="error_google_sign_in_unavailable">There are no accounts in your device, use other methods, please.</string>
+  <string name="error_google_sign_in_unavailable">There are no accounts on your device, use other methods, please.</string>
   <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
   <string name="login_error_invalid_credential">Sorry, something's incorrect. Use a password manager.</string>
   <string name="login_error_no_windows">Something's up with the UI, try yeeting the app away and opening again.</string>
@@ -61,11 +61,16 @@
   <string name="account_picture_change_success">Oh, what a beauty!</string>
   <string name="account_picture_pick_title">Find yourself</string>
 
+  <string name="image_field_url_hint">URL of an image.</string>
+  <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
+
+
+
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
 
   <string name="work_in_progress">We are working actively on this, hang on tight!</string>
-  <string name="function_unavailable">This functionality is not support on your device yet, we are actively working on it, hang on tight.</string>
+  <string name="function_unavailable">This functionality is not supported on your device yet. But you can use Android, iOS, or macOS device to complete your action.</string>
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->

@@ -60,6 +60,7 @@ open class SharedViewModel: ViewModel() {
     open fun logoutCurrentUser() {
         runBlocking {
             Firebase.auth.signOut()
+            sharedDataManager.currentUser.value = null
         }
     }
 

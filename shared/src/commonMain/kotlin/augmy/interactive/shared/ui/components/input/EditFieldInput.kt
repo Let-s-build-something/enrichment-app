@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,12 +42,12 @@ import org.jetbrains.compose.resources.stringResource
 fun EditFieldInput(
     modifier: Modifier = Modifier,
     value: String,
-    onValueChange: (String) -> Unit,
     textStyle: TextStyle = TextStyle(
         color = LocalTheme.current.colors.primary,
         fontSize = 16.sp,
         textAlign = TextAlign.Start
     ),
+    colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     enabled: Boolean = true,
     paddingValues: PaddingValues = TextFieldDefaults.contentPaddingWithoutLabel(),
     maxLines: Int = 1,
@@ -58,8 +59,10 @@ fun EditFieldInput(
     isCorrect: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     isClearable: Boolean = false,
+    onClear: () -> Unit = {},
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    onValueChange: (String) -> Unit,
 ) {
     val isFocused = remember(value) { mutableStateOf(false) }
     val text = remember(value) {
@@ -68,11 +71,11 @@ fun EditFieldInput(
 
     val controlColor by animateColorAsState(
         when {
-            errorText != null -> SharedColors.RED_ERROR
+            errorText != null -> colors.errorTextColor
             isCorrect -> SharedColors.GREEN_CORRECT
-            isFocused.value -> LocalTheme.current.colors.primary
-            !enabled -> LocalTheme.current.colors.disabled
-            else -> LocalTheme.current.colors.secondary
+            isFocused.value -> colors.focusedTextColor
+            !enabled -> colors.disabledTextColor
+            else -> colors.unfocusedTextColor
         },
         label = "controlColorChange"
     )
@@ -110,12 +113,12 @@ fun EditFieldInput(
                     )
                 }
             },
-            colors = LocalTheme.current.styles.textFieldColors,
+            colors = colors,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             isError = errorText != null,
             enabled = enabled,
-            trailingIcon = if(isClearable) {
+            trailingIcon = trailingIcon ?: if(isClearable) {
                 {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if(maxCharacters > 0) {
@@ -134,6 +137,7 @@ fun EditFieldInput(
                                 imageVector = Icons.Outlined.Clear,
                                 tint = LocalTheme.current.colors.secondary
                             ) {
+                                onClear()
                                 onValueChange("")
                                 text.value = TextFieldValue()
                             }
