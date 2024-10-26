@@ -286,7 +286,7 @@ buildkonfig {
 
         buildConfigField(STRING, "HttpsHostName", releaseHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidReleaseAppId"] as String)
-        buildConfigField(STRING, "StorageBucketName", keystoreProperties["storageBucketName"] as String)
+        buildConfigField(STRING, "StorageBucketName", "chat-enrichment.appspot.com")
     }
 
     // change the setting just for development
