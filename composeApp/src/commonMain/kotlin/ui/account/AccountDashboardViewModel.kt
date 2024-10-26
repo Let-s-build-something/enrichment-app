@@ -94,9 +94,9 @@ class AccountDashboardViewModel(
                 configuration = newConfiguration
             )
             if(_visibilityResponse.value is BaseResponse.Success) {
-            }
-            sharedDataManager.currentUser.update { previous ->
-                previous?.copy(configuration = newConfiguration)
+                sharedDataManager.currentUser.update { previous ->
+                    previous?.copy(configuration = newConfiguration)
+                }
             }
             delay(kotlin.math.max(
                 Clock.System.now().toEpochMilliseconds().minus(startTime),
