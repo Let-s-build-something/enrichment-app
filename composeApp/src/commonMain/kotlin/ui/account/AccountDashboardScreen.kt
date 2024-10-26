@@ -177,18 +177,6 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
     LaunchedEffect(localSettings.value?.theme) {
         switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: 0
     }
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            modifier = Modifier.align(Alignment.Start),
-            text = stringResource(Res.string.account_dashboard_theme),
-            style = LocalTheme.current.styles.category
-        )
-        MultiChoiceSwitch(
-            modifier = Modifier.fillMaxWidth(),
-            shape = LocalTheme.current.shapes.rectangularActionShape,
-            state = switchThemeState
-        )
-    }
 
     RowSetting(
         response = privacyResponse.value,
@@ -238,6 +226,19 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
             }
         }
     )
+
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            modifier = Modifier.align(Alignment.Start),
+            text = stringResource(Res.string.account_dashboard_theme),
+            style = LocalTheme.current.styles.category
+        )
+        MultiChoiceSwitch(
+            modifier = Modifier.fillMaxWidth(),
+            shape = LocalTheme.current.shapes.rectangularActionShape,
+            state = switchThemeState
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
