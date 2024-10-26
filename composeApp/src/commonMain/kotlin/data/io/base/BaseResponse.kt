@@ -7,6 +7,9 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
 
 sealed class BaseResponse<out T> {
+
+    data object Loading: BaseResponse<Nothing>()
+
     data class Success<out T>(val data: T) : BaseResponse<T>()
 
     @Serializable

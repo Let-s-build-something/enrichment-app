@@ -6,14 +6,29 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class UserConfiguration(
 
+	/** user selected privacy */
+	val privacy: UserPrivacy = UserPrivacy.PUBLIC,
+
 	/** user selected visibility */
-	val visibility: UserVisibility = UserVisibility.PRIVATE
+	val visibility: UserVisibility = UserVisibility.ONLINE
 )
 
-/** visibility of the user */
-enum class UserVisibility {
+/** privacy of the user */
+enum class UserPrivacy {
 	/** not visible to outsiders */
 	PRIVATE,
 	/** visible to outsiders */
 	PUBLIC
+}
+
+/** Visibility of the user */
+enum class UserVisibility {
+	/** connected to the app */
+	ONLINE,
+
+	/** not visible to anyone */
+	INVISIBLE,
+
+	/** disconnected from the app */
+	OFFLINE
 }

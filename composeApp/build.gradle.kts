@@ -119,7 +119,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
 
-            implementation(libs.compottie.resources)
+            implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)

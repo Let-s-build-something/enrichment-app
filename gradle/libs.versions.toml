@@ -47,7 +47,7 @@ navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-co
 material3-window-size = { module = "dev.chrisbanes.material3:material3-window-size-class-multiplatform", version.ref = "windowSizeClass" }
 lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime", version.ref = "lifecycle" }
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewModel" }
-compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
+compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
 compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref = "fileKit" }
 
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
