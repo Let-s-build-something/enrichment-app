@@ -60,6 +60,17 @@
   <string name="account_picture_custom">Custom</string>
   <string name="account_picture_change_success">Oh, what a beauty!</string>
   <string name="account_picture_pick_title">Find yourself</string>
+  <string name="account_settings_private_title">You're protected</string>
+  <string name="account_settings_private_content">Others can't interact with you unless you agree to it.</string>
+  <string name="account_settings_public_title">You're public</string>
+  <string name="account_settings_public_content">Anyone can interact with you. If you don't like how they interact with you, you can always mute them.</string>
+
+  <string name="account_settings_title_online">You're online</string>
+  <string name="account_settings_content_online">There are no limits, enjoy the app!</string>
+  <string name="account_settings_title_invisible">You're invisible</string>
+  <string name="account_settings_content_invisible">You can't be seen by other users.</string>
+  <string name="account_settings_title_offline">You're offline :-(</string>
+  <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
 
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>

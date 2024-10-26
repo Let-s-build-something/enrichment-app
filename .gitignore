@@ -1,6 +1,9 @@
 # Gradle files
 .gradle/
 
+#multiplatform receipts
+.fleet/
+
 
 # Local configuration file (sdk path, etc)
 local.properties

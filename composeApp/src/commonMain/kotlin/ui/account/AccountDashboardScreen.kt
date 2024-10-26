@@ -47,6 +47,16 @@ import augmy.composeapp.generated.resources.account_dashboard_theme
 import augmy.composeapp.generated.resources.account_dashboard_theme_dark
 import augmy.composeapp.generated.resources.account_dashboard_theme_device
 import augmy.composeapp.generated.resources.account_dashboard_theme_light
+import augmy.composeapp.generated.resources.account_settings_content_invisible
+import augmy.composeapp.generated.resources.account_settings_content_offline
+import augmy.composeapp.generated.resources.account_settings_content_online
+import augmy.composeapp.generated.resources.account_settings_private_content
+import augmy.composeapp.generated.resources.account_settings_private_title
+import augmy.composeapp.generated.resources.account_settings_public_content
+import augmy.composeapp.generated.resources.account_settings_public_title
+import augmy.composeapp.generated.resources.account_settings_title_invisible
+import augmy.composeapp.generated.resources.account_settings_title_offline
+import augmy.composeapp.generated.resources.account_settings_title_online
 import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.account_username_empty
 import augmy.composeapp.generated.resources.button_dismiss
@@ -64,6 +74,9 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import coil3.compose.AsyncImage
+import components.RowSetting
+import data.io.social.UserPrivacy
+import data.io.social.UserVisibility
 import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -142,6 +155,12 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 @Composable
 private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
     val localSettings = viewModel.localSettings.collectAsState()
+    val currentUser = viewModel.currentUser.collectAsState()
+    val privacyResponse = viewModel.privacyResponse.collectAsState()
+    val visibilityResponse = viewModel.visibilityResponse.collectAsState()
+
+    val privacy = currentUser.value?.configuration?.privacy ?: UserPrivacy.PUBLIC
+    val visibility = currentUser.value?.configuration?.visibility ?: UserVisibility.ONLINE
 
     val switchThemeState = rememberTabSwitchState(
         tabs = mutableListOf(
@@ -159,16 +178,67 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
         switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: 0
     }
 
-    Text(
-        modifier = Modifier.align(Alignment.Start),
-        text = stringResource(Res.string.account_dashboard_theme),
-        style = LocalTheme.current.styles.category
+    RowSetting(
+        response = privacyResponse.value,
+        title = stringResource(if(privacy == UserPrivacy.PRIVATE) {
+            Res.string.account_settings_private_title
+        }else Res.string.account_settings_public_title),
+        content = stringResource(if(privacy == UserPrivacy.PRIVATE) {
+            Res.string.account_settings_private_content
+        }else Res.string.account_settings_public_content),
+        lottieFileName = "private_public",
+        scale = 2f,
+        progressValue = if(privacy == UserPrivacy.PRIVATE) .5f else 0f,
+        onTap = {
+            if(privacyResponse.value == null) {
+                viewModel.requestPrivacyChange(
+                    if(privacy == UserPrivacy.PUBLIC) {
+                        UserPrivacy.PRIVATE
+                    }else UserPrivacy.PUBLIC
+                )
+            }
+        }
     )
-    MultiChoiceSwitch(
-        modifier = Modifier.fillMaxWidth(),
-        shape = LocalTheme.current.shapes.rectangularActionShape,
-        state = switchThemeState
+
+    RowSetting(
+        response = visibilityResponse.value,
+        title = stringResource(when(visibility) {
+            UserVisibility.OFFLINE -> Res.string.account_settings_title_offline
+            UserVisibility.INVISIBLE -> Res.string.account_settings_title_invisible
+            else -> Res.string.account_settings_title_online
+        }),
+        content = stringResource(when(visibility) {
+            UserVisibility.OFFLINE -> Res.string.account_settings_content_offline
+            UserVisibility.INVISIBLE -> Res.string.account_settings_content_invisible
+            else -> Res.string.account_settings_content_online
+        }),
+        lottieFileName = "online_offline",
+        progressValue = if(visibility == UserVisibility.OFFLINE) 0f else .3f,
+        tint = if(visibility == UserVisibility.INVISIBLE) LocalTheme.current.colors.disabled else null,
+        onTap = {
+            if(visibilityResponse.value == null) {
+                val v = currentUser.value?.configuration?.visibility
+                viewModel.requestVisibilityChange(
+                    if(v?.ordinal == 2) {
+                        UserVisibility.entries.first()
+                    }else UserVisibility.entries[(v?.ordinal ?: 0) + 1]
+                )
+            }
+        }
     )
+
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            modifier = Modifier.align(Alignment.Start),
+            text = stringResource(Res.string.account_dashboard_theme),
+            style = LocalTheme.current.styles.category
+        )
+        MultiChoiceSwitch(
+            modifier = Modifier.fillMaxWidth(),
+            shape = LocalTheme.current.shapes.rectangularActionShape,
+            state = switchThemeState
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

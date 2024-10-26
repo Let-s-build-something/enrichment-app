@@ -17,7 +17,6 @@ object DarkAppColors: BaseColors {
     override val tetrial: Color = Colors.Flax
 
     override val backgroundLight: Color = Colors.Night
-
     override val backgroundDark: Color = Colors.EerieBlack
 
     override val shimmer: Color = Colors.HunterGreen16
