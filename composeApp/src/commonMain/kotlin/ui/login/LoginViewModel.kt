@@ -2,6 +2,8 @@ package ui.login
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ui.base.currentPlatform
+import data.io.app.ClientStatus
+import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.identity_platform.IdentityMessageType
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO
@@ -23,6 +25,16 @@ class LoginViewModel(
 ): SharedViewModel() {
 
     private val _loginResult = MutableSharedFlow<LoginResultType?>()
+
+    /** current client status */
+    var clientStatus: ClientStatus = ClientStatus.NEW
+        get() = ClientStatus.entries.find {
+            it.name == settings.getStringOrNull(KEY_CLIENT_STATUS)
+        } ?: field
+        private set(value) {
+            settings.putString(KEY_CLIENT_STATUS, value.name)
+            field = value
+        }
 
     /** Sends signal to UI about a response that happened */
     val loginResult = _loginResult.asSharedFlow()
@@ -121,7 +133,10 @@ class LoginViewModel(
             }
         }
         _loginResult.emit(
-            if(sharedDataManager.currentUser.value == null) LoginResultType.FAILURE else LoginResultType.SUCCESS
+            if(sharedDataManager.currentUser.value != null) {
+                clientStatus = ClientStatus.REGISTERED
+                LoginResultType.SUCCESS
+            } else LoginResultType.FAILURE
         )
     }
 }

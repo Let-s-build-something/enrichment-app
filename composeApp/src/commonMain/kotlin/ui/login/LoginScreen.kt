@@ -108,8 +108,9 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     }
     val password = remember { mutableStateOf("") }
     val screenStateIndex = rememberSaveable {
-        mutableStateOf(0)
+        mutableStateOf(viewModel.clientStatus.ordinal)
     }
+    println("screenStateIndex: ${screenStateIndex.value}")
     val screenType = LoginScreenType.entries[screenStateIndex.value]
     val validations = remember {
         mutableStateOf(listOf<FieldValidation>())
