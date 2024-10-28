@@ -110,8 +110,14 @@ jobs:
 #          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
 #        shell: pwsh
 
-      - name: Upload MSI file to FTP
+      - name: Generate versioned folder in FTP
         run: |
           curl ftp://${{ secrets.FTP_USERNAME_ENCODED }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+
+      - name: Upload versioned MSI file to FTP
+        run: |
           curl -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+
+      - name: Upload general MSI file to FTP
+        run: |
           curl -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}

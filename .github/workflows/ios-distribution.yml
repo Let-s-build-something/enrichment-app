@@ -88,7 +88,6 @@ jobs:
           -allowProvisioningDeviceRegistration \
           -destination generic/platform=iOS \
           clean archive \
-          -archivePath $RUNNER_TEMP/augmy.xcarchive \
           -sdk iphoneos \
           -configuration Debug \
           -allowProvisioningUpdates \
