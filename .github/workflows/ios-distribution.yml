@@ -87,12 +87,7 @@ jobs:
           -allowProvisioningUpdates \
           -allowProvisioningDeviceRegistration \
           -destination generic/platform=iOS \
-          clean archive \
-          -sdk iphoneos \
-          -configuration Debug \
-          -allowProvisioningUpdates \
-          -allowProvisioningDeviceRegistration \
-          -destination generic/platform=iOS \
+          clean archive
 
       - name: export ipa
         env:

@@ -11,6 +11,7 @@ target 'iosApp' do
 	pod 'ComposeApp', :path => '../composeApp'
 	pod 'FirebaseCore'
   	pod 'FirebaseAuth'
+  	pod 'FirebaseStorage'
   	pod 'GoogleSignIn'
 	pod 'FirebaseMessaging'
 end
