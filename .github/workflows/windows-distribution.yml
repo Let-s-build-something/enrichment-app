@@ -104,8 +104,8 @@ jobs:
 
       - name: Upload versioned MSI file to FTP
         run: |
-          curl -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl --connect-timeout 30 --max-time 600 -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
 
       - name: Upload general MSI file to FTP
         run: |
-          curl -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl --connect-timeout 30 --max-time 600 -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}

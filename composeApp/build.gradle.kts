@@ -22,6 +22,11 @@ plugins {
     id("com.codingfeline.buildkonfig") version "0.15.2"
 }
 
+val vCode = libs.versions.version.code.get().toInt()
+val vName = "${libs.versions.version.name.get()}.$vCode"
+val debugHostname = "api.fly-here.com/api"
+val releaseHostname = "api.fly-here.com/api"
+
 kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -54,6 +59,7 @@ kotlin {
         pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
         pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
         pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseStorage") { extraOpts += listOf("-compiler-option", "-fmodules") }
         pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
 
         framework {
@@ -66,7 +72,7 @@ kotlin {
             isStatic = true
 
             binaryOption("bundleId", "augmy.interactive.com")
-            binaryOption("bundleVersion", "1")
+            binaryOption("bundleVersion", "$vCode")
         }
 
         // Maps custom Xcode configuration to NativeBuildType
@@ -157,11 +163,6 @@ rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlu
     rootProject.the<YarnRootExtension>().reportNewYarnLock = false // true
     rootProject.the<YarnRootExtension>().yarnLockAutoReplace = false // true
 }
-
-val vCode = libs.versions.version.code.get().toInt()
-val vName = "${libs.versions.version.name.get()}.$vCode"
-val debugHostname = "api.fly-here.com/api"
-val releaseHostname = "api.fly-here.com/api"
 
 android {
     namespace = "augmy.interactive.com"
