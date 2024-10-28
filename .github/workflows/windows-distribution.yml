@@ -61,14 +61,6 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: List Program Files
-        run: dir "C:\Program Files\"
-        shell: pwsh
-
-      - name: List Program Files
-        run: dir "C:\Program Files (x86)\Windows Kits\10\bin"
-        shell: pwsh
-
       # Locate signtool.exe and log the output
       - name: Locate signtool.exe
         id: locate_signtool
@@ -91,10 +83,6 @@ jobs:
       # Windows - Msi
       - name: Build Windows Release
         run: ./gradlew packageReleaseMsi
-
-      - name: List files
-        run: dir ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi
-        shell: pwsh
 
       - name: Move and rename MSI file
         run: |
