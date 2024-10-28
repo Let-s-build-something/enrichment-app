@@ -87,8 +87,7 @@ jobs:
           -allowProvisioningUpdates \
           -allowProvisioningDeviceRegistration \
           -destination generic/platform=iOS \
-          clean archive -scheme "iosApp" \
-          -workspace "iosApp.xcworkspace" \
+          clean archive \
           -archivePath $RUNNER_TEMP/augmy.xcarchive \
           -sdk iphoneos \
           -configuration Debug \
