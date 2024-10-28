@@ -87,7 +87,7 @@ jobs:
           -allowProvisioningUpdates \
           -allowProvisioningDeviceRegistration \
           -destination generic/platform=iOS \
-      #clean archive
+          clean archive
 
       - name: export ipa
         env:
