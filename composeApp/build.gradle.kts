@@ -24,8 +24,8 @@ plugins {
 
 val vCode = libs.versions.version.code.get().toInt()
 val vName = "${libs.versions.version.name.get()}.$vCode"
-val debugHostname = "api.augmy.org/api"
-val releaseHostname = "api.augmy.org/api"
+val debugHostname = "api.augmy.org"
+val releaseHostname = "api.augmy.org"
 
 kotlin {
     androidTarget {
