@@ -218,7 +218,6 @@ android {
             isDebuggable = true
             applicationIdSuffix = ".test"
             signingConfig = signingConfigs.getByName("debug")
-            manifestPlaceholders["hostName"] = debugHostname
         }
         release {
             isMinifyEnabled = true
@@ -226,7 +225,6 @@ android {
             isDebuggable = false
             setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
             signingConfig = signingConfigs.getByName("release")
-            manifestPlaceholders["hostName"] = releaseHostname
         }
     }
 
