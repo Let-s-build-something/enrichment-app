@@ -108,8 +108,9 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     }
     val password = remember { mutableStateOf("") }
     val screenStateIndex = rememberSaveable {
-        mutableStateOf(0)
+        mutableStateOf(viewModel.clientStatus.ordinal)
     }
+    println("screenStateIndex: ${screenStateIndex.value}")
     val screenType = LoginScreenType.entries[screenStateIndex.value]
     val validations = remember {
         mutableStateOf(listOf<FieldValidation>())
@@ -216,7 +217,10 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.Center)
-                            .heightIn(max = (LocalScreenSize.current.height / 3).dp),
+                            .heightIn(
+                                min = 150.dp,
+                                max = (LocalScreenSize.current.height / 3).dp
+                            ),
                         image = if(type == LoginScreenType.SIGN_UP) {
                             Asset.Image.SignUp
                         }else Asset.Image.SignIn,

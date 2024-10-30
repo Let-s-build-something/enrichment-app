@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -72,7 +73,8 @@ fun ActionBarIcon(
                             Modifier.size(22.dp + with(density) { 12.sp.toDp() })
                         }else Modifier.size(24.dp)),
                     model = imageUrl,
-                    contentDescription = text
+                    contentDescription = text,
+                    contentScale = ContentScale.Crop
                 )
             }
             imageVector != null -> {

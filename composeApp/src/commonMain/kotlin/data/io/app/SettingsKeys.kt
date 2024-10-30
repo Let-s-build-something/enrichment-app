@@ -8,4 +8,7 @@ object SettingsKeys {
 
     /** key for the fcm token */
     const val KEY_FCM = "device_fcm"
+
+    /** key for current client status */
+    const val KEY_CLIENT_STATUS = "client_status"
 }

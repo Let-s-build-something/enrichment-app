@@ -20,11 +20,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import base.BrandBaseScreen
-import base.navigation.NavIconType
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.components.getDefaultPullRefreshSize
 import augmy.interactive.shared.ui.components.navigation.AppBarHeightDp
+import base.BrandBaseScreen
+import base.navigation.NavIconType
 
 /**
  * Implementation of the [BrandBaseScreen] with pull to refresh logic
@@ -38,6 +38,7 @@ fun RefreshableScreen(
     title: String? = null,
     subtitle: String? = null,
     onBackPressed: () -> Boolean = { true },
+    onRefresh: () -> Unit = {},
     actionIcons: (@Composable (expanded: Boolean) -> Unit)? = null,
     onNavigationIconClick: (() -> Unit)? = null,
     appBarVisible: Boolean = true,
@@ -58,6 +59,7 @@ fun RefreshableScreen(
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing.value,
         onRefresh = {
+            onRefresh()
             viewModel.requestData(scope = refreshScope, isSpecial = true, isPullRefresh = true)
         },
         refreshingOffset = pullRefreshSize.plus(AppBarHeightDp.dp),

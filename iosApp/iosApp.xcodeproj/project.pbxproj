@@ -166,7 +166,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1530;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1610;
 				ORGANIZATIONNAME = orgName;
 				TargetAttributes = {
 					7555FF7A242A565900829871 = {
@@ -455,7 +455,7 @@
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = augmy.interactive.com;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "GitHub pipeline";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "GitHub pipeline";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "macMini dev";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = 14.0;
@@ -493,7 +493,7 @@
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = augmy.interactive.com;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "GitHub pipeline";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "GitHub pipeline";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "macMini dev";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = 14.0;

@@ -30,10 +30,34 @@ sealed class NavigationNode {
         override val deepLink: String? = null
     }
 
+    /** Conversation detail screen */
+    @Serializable
+    data class Conversation(
+        /** unique identifier of the conversation */
+        val conversationUid: String? = null,
+
+        /** unique identifier of the recipient user */
+        val userUid: String? = null
+    ): NavigationNode() {
+        override val deepLink: String? = null
+    }
+
     /** dashboard screen for user information and general user-related actions */
     @Serializable
     data object AccountDashboard: NavigationNode() {
-        override val deepLink: String = "/account-dashboard"
+        override val deepLink: String = "/account/dashboard"
+    }
+
+    /** screen for managing social circle of this app, specific to the current user */
+    @Serializable
+    data object NetworkManagement: NavigationNode() {
+        override val deepLink: String = "/network/management"
+    }
+
+    /** screen for adding new people to a social network */
+    @Serializable
+    data object NetworkNew: NavigationNode() {
+        override val deepLink: String = "/network/new"
     }
 
     /** home screen of the whole app */

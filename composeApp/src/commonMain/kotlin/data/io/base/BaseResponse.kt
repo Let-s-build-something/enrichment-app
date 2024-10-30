@@ -15,7 +15,7 @@ sealed class BaseResponse<out T> {
     @Serializable
     data class Error(
         /** list of error objects */
-        val errors: List<String> = listOf()
+        val errors: List<String> = listOf(),
     ): BaseResponse<Nothing>() {
         var httpCode: Int = -1
     }
@@ -40,6 +40,8 @@ sealed class BaseResponse<out T> {
                         httpCode = status.value
                     }
                 }catch (e: NoTransformationFoundException) {
+                    Error()
+                }catch (e: Exception) {
                     Error()
                 }
             }

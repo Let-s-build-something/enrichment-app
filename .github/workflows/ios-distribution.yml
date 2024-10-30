@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
+
+      - name: Setup specifically XCode 15.3
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.3'
 
       # Prepare access to everything
       - name: Grant execute permission for gradlew
@@ -37,7 +42,6 @@ jobs:
       - name: Simulate Sync with Gradle files
         run: |
           ./gradlew -q syncWithGradleFiles
-          
 
       - name: Install the Apple certificate and provisioning profile
         env:

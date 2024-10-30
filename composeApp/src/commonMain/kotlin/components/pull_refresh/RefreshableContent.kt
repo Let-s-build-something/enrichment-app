@@ -1,5 +1,7 @@
 package components.pull_refresh
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
@@ -10,10 +12,10 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -30,7 +32,8 @@ fun RefreshableContent(
     modifier: Modifier = Modifier,
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
-    content: @Composable (Modifier, indicatorOffset: Dp) -> Unit
+    contentAlignment: Alignment = Alignment.TopStart,
+    content: @Composable BoxScope.() -> Unit
 ) {
     val pullRefreshSize = getDefaultPullRefreshSize(
         isSmallDevice = LocalDeviceType.current == WindowWidthSizeClass.Compact
@@ -45,26 +48,32 @@ fun RefreshableContent(
         refreshThreshold = pullRefreshSize
     )
 
-    DraggableRefreshIndicator(
-        modifier = modifier
-            .width(with(LocalDensity.current) {
-                indicatorWidth.value.toDp()
-            })
-            .systemBarsPadding()
-            .statusBarsPadding()
-            .zIndex(100f),
-        pullRefreshSize = pullRefreshSize,
-        state = pullRefreshState,
-        isRefreshing = true
-    ) { indicatorOffsetDp ->
-        indicatorOffset.value = indicatorOffsetDp
+    Box {
+        DraggableRefreshIndicator(
+            modifier = Modifier
+                .width(with(LocalDensity.current) {
+                    indicatorWidth.value.toDp()
+                })
+                .systemBarsPadding()
+                .statusBarsPadding()
+                .zIndex(100f),
+            pullRefreshSize = pullRefreshSize,
+            state = pullRefreshState,
+            isRefreshing = isRefreshing
+        ) { indicatorOffsetDp ->
+            indicatorOffset.value = indicatorOffsetDp
+        }
+        Box(
+            modifier = modifier
+                .graphicsLayer {
+                    translationY = indicatorOffset.value
+                        .roundToPx()
+                        .toFloat()
+                    indicatorWidth.value = size.width
+                }
+                .pullRefresh(pullRefreshState),
+            content = content,
+            contentAlignment = contentAlignment
+        )
     }
-    content(
-        Modifier
-            .graphicsLayer {
-                indicatorWidth.value = size.width
-            }
-            .pullRefresh(pullRefreshState),
-        indicatorOffset.value
-    )
 }

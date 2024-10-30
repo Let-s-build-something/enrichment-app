@@ -1,6 +1,9 @@
 package data.io.base
 
+import kotlinx.serialization.Serializable
+
 /** Information about current pagination */
+@Serializable
 data class PaginationInfo(
     /** number of current page, starts from 0 */
     val page: Int,

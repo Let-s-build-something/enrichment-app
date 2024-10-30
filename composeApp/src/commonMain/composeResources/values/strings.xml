@@ -6,6 +6,8 @@
   <string name="screen_account_title">Found puppy</string>
   <string name="screen_water_please">Water, please!</string>
   <string name="screen_account_logout">I\'m outta here!</string>
+  <string name="screen_network_management">Your social network</string>
+  <string name="screen_network_new">Include another human</string>
 
   <string name="navigate_home">Back</string>
   <string name="navigate_back">Back</string>
@@ -25,7 +27,7 @@
   <string name="login_password_method">Sign in with password</string>
   <string name="login_password_email_hint">Email</string>
   <string name="login_password_password_hint">Password</string>
-  <string name="error_general">Even we failed communicating (with the server)</string>
+  <string name="error_general">Even we failed communicating (with the server), we apologize. Try again later.</string>
 
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
@@ -51,7 +53,7 @@
   <string name="account_username_error_long">We'll add an option to write an essay on your profile, just for you.</string>
   <string name="account_username_error_short">Your username should be at least 3 characters long.</string>
   <string name="account_username_error_spaces">How do you pronounce a white space? No white spaces at the beginning or end.</string>
-  <string name="account_username_error_format">Make sure the username is between 5 and 128 characters long and doesn't contain ultra special characters.</string>
+  <string name="account_username_error_format">Make sure the username is between 3 and 128 characters long and doesn't contain mega ultra special characters.</string>
   <string name="account_username_error_duplicate">You're copying someone. Try expressing the uniqueness of yourself.</string>
   <string name="account_username_success">Welcome aboard, %1$s</string>
   <string name="account_username_empty">Mrs. Woo Dat</string>
@@ -72,9 +74,22 @@
   <string name="account_settings_title_offline">You're offline :-(</string>
   <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
 
+  <string name="network_request_accepted">A human being considers you being part of their social network. That's awesome!</string>
+  <string name="network_received">Requests</string>
+  <string name="network_list">Manage network</string>
+  <string name="network_inclusion_hint_tag">Tag</string>
+  <string name="network_inclusion_format_tag">Tag should be 6 characters long.</string>
+  <string name="network_inclusion_error_duplicate">You've already included this person into your social network. However, they may have to accept your inclusion first.</string>
+  <string name="network_inclusion_error_non_existent">Such human being doesn't exist, ensure you've entered the correct name and a tag.</string>
+  <string name="network_inclusion_error_non_format">Incorrect format. Username should be between %1$d and %2$d characters long, whereas tag 6 characters long.</string>
+  <string name="network_inclusion_error_blocked">There doesn't seem to be mutual connection, we are sorry.</string>
+  <string name="network_inclusion_success">You've successfully included this person into your online world. Consider welcoming them.</string>
+  <string name="network_inclusion_success_action">Say hi</string>
+  <string name="network_inclusion_action">Confirm</string>
+  <string name="network_inclusion_description">Include another human being into your social circle. However, if the recipient has set privacy setting to private, a response from the is needed.</string>
+
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
-
 
 
   <string name="button_yes">Yes</string>

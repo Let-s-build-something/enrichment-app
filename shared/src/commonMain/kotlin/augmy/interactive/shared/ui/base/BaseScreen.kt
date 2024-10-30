@@ -70,12 +70,12 @@ fun BaseScreen(
     onNavigationIconClick: () -> Unit = {},
     shape: Shape = if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
         RoundedCornerShape(
-            topEnd = 24.dp,
-            topStart = 24.dp
+            topEnd = LocalTheme.current.shapes.screenCornerRadius,
+            topStart = LocalTheme.current.shapes.screenCornerRadius
         )
     }else RoundedCornerShape(
-        topEnd = 24.dp,
-        bottomEnd = 24.dp,
+        topEnd = LocalTheme.current.shapes.screenCornerRadius,
+        bottomEnd = LocalTheme.current.shapes.screenCornerRadius,
         //bottomStart = 24.dp
     ),
     actionIcons: @Composable (Boolean) -> Unit = {},
@@ -147,7 +147,6 @@ fun BaseScreen(
                                     } else platformModifier
                                 )
                                 .clip(shape)
-                                .padding(top = 12.dp)
                         ) {
                             content(this)
                         }
@@ -323,19 +322,26 @@ fun BoxScope.ModalScreenContent(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
+    Box(
         modifier = modifier
-            .align(Alignment.TopCenter)
-            .widthIn(max = MaxModalWidthDp.dp)
-            .fillMaxHeight()
-            .padding(
-                top = 24.dp,
-                start = 16.dp,
-                end = 16.dp
-            ),
-        verticalArrangement = verticalArrangement,
-        horizontalAlignment = horizontalAlignment,
-        content = content
+            .fillMaxWidth()
+            .align(Alignment.TopCenter),
+        content = {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = MaxModalWidthDp.dp)
+                    .fillMaxHeight()
+                    .padding(
+                        top = 24.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
+                verticalArrangement = verticalArrangement,
+                horizontalAlignment = horizontalAlignment,
+                content = content
+            )
+        },
+        contentAlignment = Alignment.Center
     )
 }
 
@@ -357,7 +363,7 @@ val LocalScreenSize = staticCompositionLocalOf {
 }
 
 /** Maximum width of a modal element - this can include a screen in case the device is a desktop */
-const val MaxModalWidthDp = 520
+const val MaxModalWidthDp = 640
 
 /** Platform using this application */
 expect val currentPlatform: PlatformType

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -189,7 +190,17 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                         isEnabled = (customUrl.value ?: selectedImageUrl.value)
                                 != try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
                         onClick = {
-                            viewModel.requestPictureChange(selectedImageUrl.value)
+                            if(currentPlatform != PlatformType.Jvm) {
+                                viewModel.requestPictureChange(selectedImageUrl.value)
+                            }else {
+                                onDismissRequest()
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    snackbarHostState?.showSnackbar(
+                                        message = getString(Res.string.function_unavailable),
+                                        duration = SnackbarDuration.Long
+                                    )
+                                }
+                            }
                         }
                     )
                 }
@@ -334,7 +345,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                 .heightIn(min = 100.dp)
                                 .fillMaxSize()
                                 .padding(8.dp),
-                            asset = peep,
+                            model = peep.url,
                             contentDescription = null
                         )
                     }

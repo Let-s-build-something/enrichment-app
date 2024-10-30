@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -91,6 +92,7 @@ fun MultiChoiceSwitch(
     modifier: Modifier = Modifier,
     unselectedTextColor: Color = LocalTheme.current.colors.brandMainDark,
     selectedTextColor: Color = LocalTheme.current.colors.tetrial,
+    selectedBlockColor: Color = LocalTheme.current.colors.brandMain,
     state: TabSwitchState = rememberTabSwitchState(scrollState = rememberScrollState()),
     onItemCreation: (@Composable (Modifier, index: Int, animatedColor: Color) -> Unit)? = null,
     shape: Shape = CircleShape
@@ -138,6 +140,11 @@ fun MultiChoiceSwitch(
                             }
                         )
                         .background(unselectedTextColor, shape = shape)
+                        .border(
+                            width = 0.5.dp,
+                            color = selectedBlockColor,
+                            shape = shape
+                        )
                         .align(Alignment.Center)
                 )
             }
