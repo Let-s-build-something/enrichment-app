@@ -4,13 +4,18 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
@@ -21,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
@@ -55,7 +61,9 @@ fun EditFieldInput(
     maxCharacters: Int = -1,
     hint: String? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
+    leadingIcon: ImageVector? = null,
     errorText: String? = null,
+    suggestText: String? = null,
     isCorrect: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     isClearable: Boolean = false,
@@ -80,9 +88,10 @@ fun EditFieldInput(
         label = "controlColorChange"
     )
 
-    Column {
+    Column(modifier = modifier.width(IntrinsicSize.Min)) {
         CustomTextField(
-            modifier = modifier
+            modifier = Modifier
+                .fillMaxWidth()
                 .border(
                     if (isFocused.value) 1.dp else 0.25.dp,
                     controlColor,
@@ -118,7 +127,7 @@ fun EditFieldInput(
             keyboardActions = keyboardActions,
             isError = errorText != null,
             enabled = enabled,
-            trailingIcon = trailingIcon ?: if(isClearable) {
+            trailingIcon = trailingIcon ?: if(isClearable || maxCharacters > 0) {
                 {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if(maxCharacters > 0) {
@@ -131,7 +140,7 @@ fun EditFieldInput(
                                 )
                             )
                         }
-                        AnimatedVisibility(enabled) {
+                        AnimatedVisibility(enabled && isClearable) {
                             MinimalisticIcon(
                                 contentDescription = stringResource(Res.string.accessibility_clear),
                                 imageVector = Icons.Outlined.Clear,
@@ -145,11 +154,34 @@ fun EditFieldInput(
                     }
                 }
             }else trailingIcon,
+            leadingIcon = if(leadingIcon != null) {
+                {
+                    Icon(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(2.dp),
+                        imageVector = leadingIcon,
+                        contentDescription = null,
+                        tint = controlColor
+                    )
+                }
+            }else null,
             onValueChange = { output ->
                 onValueChange(output.text)
                 text.value = output
             }
         )
+        AnimatedVisibility(suggestText.isNullOrBlank().not()) {
+            Text(
+                modifier = Modifier.padding(
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 4.dp
+                ),
+                text = suggestText ?: "",
+                style = LocalTheme.current.styles.regular
+            )
+        }
         AnimatedVisibility(errorText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier.padding(

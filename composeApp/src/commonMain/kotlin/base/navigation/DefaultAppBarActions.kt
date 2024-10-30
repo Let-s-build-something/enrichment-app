@@ -30,6 +30,8 @@ fun DefaultAppBarActions(
     expanded: Boolean = true
 ) {
     val navController = LocalNavController.current
+    val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
+
     val currentEntry = navController?.currentBackStackEntryAsState()
 
     // first action
@@ -38,7 +40,7 @@ fun DefaultAppBarActions(
         NavigationNode.Home.route -> {
             if(isUserSignedIn) {
                 ActionBarIcon(
-                    text = if(expanded && userPhotoUrl == null) {
+                    text = if(expanded && (userPhotoUrl == null || !isPhone)) {
                         stringResource(Res.string.screen_account_title)
                     } else null,
                     imageUrl = userPhotoUrl,
@@ -59,7 +61,7 @@ fun DefaultAppBarActions(
         }
         else -> {
             //enforce the same height of the appbar
-            if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
+            if(isPhone) {
                 ActionBarIcon(
                     modifier = Modifier.requiredWidth(0.dp),
                     imageVector = Icons.Outlined.PersonAddAlt,

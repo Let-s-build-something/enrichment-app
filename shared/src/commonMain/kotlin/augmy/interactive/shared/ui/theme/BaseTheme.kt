@@ -48,33 +48,22 @@ interface BaseTheme {
 
 private object DefaultValues {
     val defaultThemeShapes = object: ThemeShapes {
-        override val circularActionShape: Shape
-            get() = RectangleShape
-        override val rectangularActionShape: Shape
-            get() = RectangleShape
-        override val componentShape: Shape
-            get() = RectangleShape
-        override val chipShape: Shape
-            get() = RectangleShape
-        override val componentCornerRadius: Dp
-            get() = 0.dp
-        override val iconSizeSmall: Dp
-            get() = 0.dp
-        override val iconSizeMedium: Dp
-            get() = 0.dp
-        override val betweenItemsSpace: Dp
-            get() = 0.dp
-        override val iconSizeLarge: Dp
-            get() = 0.dp
+        override val circularActionShape: Shape = RectangleShape
+        override val rectangularActionShape: Shape = RectangleShape
+        override val componentShape: Shape = RectangleShape
+        override val chipShape: Shape = RectangleShape
+        override val componentCornerRadius: Dp = 0.dp
+        override val iconSizeSmall: Dp = 0.dp
+        override val iconSizeMedium: Dp = 0.dp
+        override val betweenItemsSpace: Dp = 0.dp
+        override val iconSizeLarge: Dp = 0.dp
+        override val screenCornerRadius: Dp = 0.dp
     }
 
     val defaultThemeStyle = object: ThemeStyle {
-        override val componentElevation: Dp
-            get() = 0.dp
-        override val actionElevation: Dp
-            get() = 0.dp
-        override val minimumElevation: Dp
-            get() = 0.dp
+        override val componentElevation: Dp = 0.dp
+        override val actionElevation: Dp = 0.dp
+        override val minimumElevation: Dp = 0.dp
 
         override val link: TextLinkStyles
             @Composable

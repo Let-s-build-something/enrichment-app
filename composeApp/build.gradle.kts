@@ -24,8 +24,8 @@ plugins {
 
 val vCode = libs.versions.version.code.get().toInt()
 val vName = "${libs.versions.version.name.get()}.$vCode"
-val debugHostname = "api.fly-here.com/api"
-val releaseHostname = "api.fly-here.com/api"
+val debugHostname = "api.augmy.org/api"
+val releaseHostname = "api.augmy.org/api"
 
 kotlin {
     androidTarget {
@@ -129,11 +129,11 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
+            implementation(libs.compose.paging.common)
 
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.view.model)
-
             implementation(libs.settings.no.arg)
 
             implementation(libs.kotlin.crypto.sha2)

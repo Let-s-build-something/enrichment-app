@@ -85,12 +85,12 @@ fun Modifier.brandShimmerEffect(
  */
 @Composable
 fun Modifier.scalingClickable(
-    onTap: ((Offset) -> Unit)? = null,
     enabled: Boolean = true,
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
     onPress: ((Offset, isPressed: Boolean) -> Unit)? = null,
-    scaleInto: Float = 0.85f
+    scaleInto: Float = 0.85f,
+    onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
     val isPressed = remember { mutableStateOf(false) }
     val scale = animateFloatAsState(

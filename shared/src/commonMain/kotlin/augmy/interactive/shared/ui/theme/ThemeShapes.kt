@@ -18,6 +18,9 @@ interface ThemeShapes {
     /** base component corner radius */
     val componentCornerRadius: Dp
 
+    /** base screen top corner radius */
+    val screenCornerRadius: Dp
+
     /** default size of a small icon */
     val iconSizeSmall: Dp
 

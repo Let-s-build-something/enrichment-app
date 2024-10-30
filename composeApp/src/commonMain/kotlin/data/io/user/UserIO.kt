@@ -8,9 +8,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class UserIO(
     /** username of the current user */
-    val username: String? = null,
+    val displayName: String? = null,
 
-    /** tag of the current user, unique in combination with [username]  */
+    /** tag of the current user, unique in combination with [displayName]  */
     val tag: String? = null,
 
     /** current idToken which should be active and can be associated with data in Cloud Identity */
@@ -21,9 +21,7 @@ data class UserIO(
 
     /** current configuration specific to this user */
     val configuration: UserConfiguration? = null
-) {
+)
 
-    /** Color derived from the tag */
-    val tagColor: Color?
-        get() = if(tag != null) Color(("ff$tag").toLong(16)) else null
-}
+/** Color derived from a user tag */
+fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else null

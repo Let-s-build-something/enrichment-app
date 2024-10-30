@@ -15,8 +15,8 @@ sealed class Asset {
         open val thumbnail = BASE_URL + appendix + "thumbnail/" + "tn_$name"
 
 
-        data object SignIn: Image("i0_sign_up.webp")
-        data object SignUp: Image("i1_sign_in.webp")
+        data object SignIn: Image("i1_sign_in.webp")
+        data object SignUp: Image("i0_sign_up.webp")
 
         data object NaturePalette: Image("7b270e82-4ceb-43dc-bbc1-b5d47ff1cfc0.jpg")
         data object EarHelp: Image("e66f02af-b274-4acc-b25a-7bbcdd8e0131.jpg")

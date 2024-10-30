@@ -15,6 +15,9 @@ interface RefreshableViewModel {
         /** minimum amount of millis required for refresh to take place */
         const val MINIMUM_REFRESH_DELAY = 2000L
 
+        /** minimum amount of millis required for response action to take place */
+        const val MINIMUM_RESPONSE_DELAY = 500L
+
         /** requests data from the ViewModel */
         fun ViewModel.requestData(isSpecial: Boolean, isPullRefresh: Boolean = false) {
             if(this is RefreshableViewModel) {

@@ -1,6 +1,8 @@
 package ui.account.profile
 
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import data.io.base.BaseResponse
 import data.io.social.username.ResponseUsernameChange
 import data.shared.SharedViewModel
@@ -42,7 +44,7 @@ class ProfileChangeViewModel (
                 success?.data?.let { data ->
                     sharedDataManager.currentUser.update { old ->
                         old?.copy(
-                            username = data.username ?: old.username,
+                            displayName = data.username ?: old.displayName,
                             tag = data.tag ?: old.tag
                         )
                     }

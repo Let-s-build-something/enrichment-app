@@ -217,7 +217,10 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.Center)
-                            .heightIn(max = (LocalScreenSize.current.height / 3).dp),
+                            .heightIn(
+                                min = 150.dp,
+                                max = (LocalScreenSize.current.height / 3).dp
+                            ),
                         image = if(type == LoginScreenType.SIGN_UP) {
                             Asset.Image.SignUp
                         }else Asset.Image.SignIn,

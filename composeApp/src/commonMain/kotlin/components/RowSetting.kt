@@ -1,7 +1,5 @@
 package components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -11,9 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material.Text
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -108,33 +104,6 @@ fun RowSetting(
             }
         }
 
-        AnimatedVisibility(response != null) {
-            Crossfade(targetState = response) { response ->
-                if(response is BaseResponse.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.requiredSize(32.dp),
-                        color = LocalTheme.current.colors.brandMainDark,
-                        trackColor = LocalTheme.current.colors.tetrial
-                    )
-                }else {
-                    val comp by rememberLottieComposition {
-                        LottieCompositionSpec.DotLottie(
-                            Res.readBytes("files/${
-                                if(response is BaseResponse.Success) "success" else "error"
-                            }.lottie")
-                        )
-                    }
-
-                    Image(
-                        modifier = Modifier.requiredSize(32.dp),
-                        painter = rememberLottiePainter(
-                            reverseOnRepeat = false,
-                            composition = comp
-                        ),
-                        contentDescription = null
-                    )
-                }
-            }
-        }
+        LoadingIndicator(response = response)
     }
 }

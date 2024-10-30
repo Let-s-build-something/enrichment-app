@@ -23,6 +23,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +63,7 @@ import augmy.composeapp.generated.resources.account_username_empty
 import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
 import augmy.composeapp.generated.resources.screen_account_title
+import augmy.composeapp.generated.resources.screen_network_management
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.ModalScreenContent
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
@@ -69,14 +71,16 @@ import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
+import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberTabSwitchState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
-import coil3.compose.AsyncImage
+import components.AsyncSvgImage
 import components.RowSetting
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
+import data.io.user.tagToColor
 import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -121,7 +125,16 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
     }
 
     BrandBaseScreen(
-        title = stringResource(Res.string.screen_account_title)
+        title = stringResource(Res.string.screen_account_title),
+        actionIcons = { isExpanded ->
+            ActionBarIcon(
+                text = if(isExpanded) stringResource(Res.string.screen_network_management) else null,
+                imageVector = Icons.Outlined.Handshake,
+                onClick = {
+                    navController?.navigate(NavigationNode.NetworkManagement)
+                }
+            )
+        }
     ) {
         ModalScreenContent(
             modifier = Modifier
@@ -192,7 +205,7 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
         onTap = {
             if(privacyResponse.value == null) {
                 viewModel.requestPrivacyChange(
-                    if(privacy == UserPrivacy.PUBLIC) {
+                    if(currentUser.value?.configuration?.privacy == UserPrivacy.PUBLIC) {
                         UserPrivacy.PRIVATE
                     }else UserPrivacy.PUBLIC
                 )
@@ -289,11 +302,11 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                 .aspectRatio(1f)
                 .scale(liveScaleBackground)
                 .background(
-                    color = currentUser.value?.tagColor ?: LocalTheme.current.colors.tetrial,
+                    color = tagToColor(currentUser.value?.tag) ?: LocalTheme.current.colors.tetrial,
                     shape = CircleShape
                 )
         )
-        AsyncImage(
+        AsyncSvgImage(
             modifier = Modifier
                 .fillMaxWidth(.4f)
                 .aspectRatio(1f)
@@ -325,7 +338,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
     ) {
         Text(
             modifier = Modifier.padding(end = 8.dp),
-            text = currentUser.value?.username ?: stringResource(Res.string.account_username_empty),
+            text = currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty),
             style = LocalTheme.current.styles.subheading
         )
         MinimalisticBrandIcon(

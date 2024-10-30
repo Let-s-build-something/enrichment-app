@@ -82,7 +82,7 @@ fun UsernameChangeLauncher(
     val isLoading = viewModel.isLoading.collectAsState()
 
     val username = rememberSaveable(currentUser.value) {
-        mutableStateOf(currentUser.value?.username ?: "")
+        mutableStateOf(currentUser.value?.displayName ?: "")
     }
     val errorMessage = remember {
         mutableStateOf<String?>(null)
@@ -153,7 +153,7 @@ fun UsernameChangeLauncher(
         Text(
             text = stringResource(
                 Res.string.username_change_launcher_title,
-                currentUser.value?.username ?: stringResource(Res.string.account_username_empty)
+                currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty)
             ),
             style = LocalTheme.current.styles.category
         )
@@ -230,5 +230,5 @@ fun UsernameChangeLauncher(
     }
 }
 
-private const val USERNAME_MIN_LENGTH = 3
-private const val USERNAME_MAX_LENGTH = 48
+const val USERNAME_MIN_LENGTH = 3
+const val USERNAME_MAX_LENGTH = 48

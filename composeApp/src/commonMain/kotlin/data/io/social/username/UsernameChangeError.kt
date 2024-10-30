@@ -7,7 +7,7 @@ enum class UsernameChangeError {
     /**
      * display name has white space at the beginning or end,
      * contains disallowed characters,
-     * has less than 6 characters,
+     * has less than 3 characters,
      * or more than 256 characters
      */
     INVALID_FORMAT
