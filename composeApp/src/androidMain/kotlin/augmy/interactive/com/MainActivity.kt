@@ -15,6 +15,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import io.github.vinceglb.filekit.core.FileKit
+import koin.commonModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -41,6 +45,11 @@ class MainActivity: ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        startKoin {
+            androidContext(this@MainActivity)
+            androidLogger()
+            modules(commonModule)
+        }
         installSplashScreen()
 
         super.onCreate(savedInstanceState)

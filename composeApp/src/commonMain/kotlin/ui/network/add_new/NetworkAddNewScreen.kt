@@ -135,7 +135,6 @@ fun NetworkAddNewScreen(viewModel: NetworkAddNewViewModel = koinViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 EditFieldInput(
-                    modifier = Modifier.weight(1f),
                     hint = stringResource(Res.string.account_username_hint),
                     value = inputDisplayName.value,
                     suggestText = if(!isDisplayNameValid) {
@@ -153,6 +152,7 @@ fun NetworkAddNewScreen(viewModel: NetworkAddNewViewModel = koinViewModel()) {
                     }
                 )
                 EditFieldInput(
+                    modifier = Modifier.weight(1f),
                     hint = stringResource(Res.string.network_inclusion_hint_tag),
                     value = inputTag.value,
                     maxCharacters = 6,
