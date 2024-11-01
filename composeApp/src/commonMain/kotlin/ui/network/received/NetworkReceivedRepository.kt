@@ -1,4 +1,4 @@
-package ui.network
+package ui.network.received
 
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -9,8 +9,8 @@ import data.io.social.network.CirclingRequest
 import data.io.social.network.CirclingRequestsResponse
 import data.shared.setPaging
 import io.ktor.client.HttpClient
+import io.ktor.client.request.get
 import io.ktor.client.request.patch
-import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -19,10 +19,10 @@ import kotlinx.coroutines.withContext
 /** Class for calling APIs and remote work in general */
 class NetworkReceivedRepository(private val httpClient: HttpClient) {
 
-    /** Makes a request to change user's privacy setting */
-    suspend fun getRequests(page: Int, size: Int): BaseResponse<CirclingRequestsResponse> {
+    /** Returns list of network requests */
+    private suspend fun getRequests(page: Int, size: Int): BaseResponse<CirclingRequestsResponse> {
         return withContext(Dispatchers.IO) {
-            httpClient.post(
+            httpClient.get(
                 urlString = "/api/v1/social/requests",
                 block =  {
                     setPaging(

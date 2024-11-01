@@ -1,4 +1,4 @@
-package ui.network
+package ui.network.received
 
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.network.list.NetworkListRepository
+import ui.network.list.NetworkListViewModel
 
 /** Communication between the UI, the control layers, and control and data layers */
 class NetworkReceivedViewModel(
@@ -86,7 +88,10 @@ class NetworkReceivedViewModel(
     }
 }
 
-internal val networkReceivedModule = module {
+internal val networkManagementModule = module {
     factory { NetworkReceivedRepository(get()) }
     viewModelOf(::NetworkReceivedViewModel)
+
+    factory { NetworkListRepository(get()) }
+    viewModelOf(::NetworkListViewModel)
 }

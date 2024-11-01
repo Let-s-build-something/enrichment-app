@@ -30,6 +30,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.network.list.NetworkListScreen
+import ui.network.received.NetworkReceivedContent
+import ui.network.received.NetworkReceivedViewModel
 
 /** Screen for user managing their social network */
 @Composable
@@ -43,7 +46,7 @@ fun NetworkManagementScreen(
 
     val pagerState = rememberPagerState(
         pageCount = {
-            if(currentUser.value?.configuration?.privacy == UserPrivacy.PRIVATE) 2 else 1
+            if(currentUser.value?.configuration?.privacy != UserPrivacy.PUBLIC) 2 else 1
         }
     )
     val switchThemeState = rememberTabSwitchState(
@@ -71,7 +74,7 @@ fun NetworkManagementScreen(
                 text = if(isExpanded) stringResource(Res.string.screen_network_new) else null,
                 imageVector = Icons.AutoMirrored.Outlined.Send,
                 onClick = {
-                    navController?.navigate(NavigationNode.NetworkNew)
+                    navController?.navigate(NavigationNode.NetworkNew())
                 }
             )
         }
@@ -89,7 +92,8 @@ fun NetworkManagementScreen(
             }
             HorizontalPager(
                 modifier = Modifier.weight(1f),
-                state = pagerState
+                state = pagerState,
+                beyondViewportPageCount = 1
             ) { index ->
                 if(index == 0) {
                     NetworkListScreen()

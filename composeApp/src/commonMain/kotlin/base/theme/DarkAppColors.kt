@@ -19,6 +19,6 @@ object DarkAppColors: BaseColors {
     override val backgroundLight: Color = Colors.Night
     override val backgroundDark: Color = Colors.EerieBlack
 
-    override val shimmer: Color = Colors.HunterGreen16
-    override val overShimmer: Color = Colors.HunterGreen42
+    override val shimmer: Color = secondary.copy(.16f)
+    override val overShimmer: Color = secondary.copy(.42f)
 }
