@@ -81,7 +81,7 @@
   <string name="network_list_empty_action">Find my people</string>
   <string name="network_received_empty_title">There are no requests yet.</string>
   <string name="network_received_empty-description">Seems like you are expecting someone, you can share your uniqueness with them.</string>
-  <string name="network_received_empty_action">Baby, I'm home</string>
+  <string name="network_received_empty_action">Honey, I'm home</string>
   <string name="network_inclusion_hint_tag">Tag</string>
   <string name="network_inclusion_format_tag">Tag should be 6 characters long.</string>
   <string name="network_inclusion_error_duplicate">You've already included this person into your social network. However, they may have to accept your inclusion first.</string>
