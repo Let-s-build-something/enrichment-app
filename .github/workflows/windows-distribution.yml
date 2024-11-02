@@ -32,10 +32,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Decode Local properties
+      - name: Decode Local properties and add bearerToken
         run: |
           echo "${{ secrets.LOCAL_PROPERTIES }}" > local.properties.b64
           certutil -decode local.properties.b64 ${{ github.workspace }}\local.properties
+          Add-Content -Path ${{ github.workspace }}\local.properties -Value "bearerToken=${{ secrets.BEARER_TOKEN }}"
           (Get-Content ${{ github.workspace }}\local.properties) -replace 'storeFile=.*', 'storeFile=${{ github.workspace }}\keystore.jks' | Set-Content ${{ github.workspace }}\local.properties
 
       - name: Decode Keystore
