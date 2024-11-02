@@ -27,10 +27,9 @@ jobs:
       # Prepare access to everything and decode secrets
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      - name: Decode Local properties and add bearerToken
+      - name: Decode Local properties
         run: |
           echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}/local.properties
-          echo bearerToken=${{ secrets.BEARER_TOKEN }} >> "${{ github.workspace }}/local.properties"
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > /Users/runner/work/keystore.jks
       - name: Decode google-services.json
