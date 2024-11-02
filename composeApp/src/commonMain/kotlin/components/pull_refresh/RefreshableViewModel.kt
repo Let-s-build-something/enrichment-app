@@ -46,7 +46,7 @@ interface RefreshableViewModel {
     }
 
     /** sets the value or refreshing */
-    suspend fun CoroutineScope.setRefreshing(refreshing: Boolean) {
+    private suspend fun setRefreshing(refreshing: Boolean) {
         if(refreshing) {
             lastRefreshTimeMillis = Clock.System.now().toEpochMilliseconds()
             isRefreshing.value = true

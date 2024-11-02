@@ -25,6 +25,7 @@ import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import collectResult
 import components.EmptyLayout
+import components.network.CircleSentRequestRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import org.jetbrains.compose.resources.stringResource
@@ -83,12 +84,18 @@ fun NetworkListScreen(viewModel: NetworkListViewModel = koinViewModel()) {
                 key = { index -> networkItems.getOrNull(index)?.uid ?: Uuid.random().toString() }
             ) { index ->
                 networkItems.getOrNull(index).let { data ->
-                    //TODO
+                    CircleSentRequestRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateItem(),
+                        data = data,
+                        response = response.value[data?.uid],
+                        onResponse = { }
+                    )
                     if(networkItems.itemCount - 1 != index) {
                         Divider(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            color = LocalTheme.current.colors.tetrial,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = LocalTheme.current.colors.disabledComponent,
                             thickness = .3.dp
                         )
                     }

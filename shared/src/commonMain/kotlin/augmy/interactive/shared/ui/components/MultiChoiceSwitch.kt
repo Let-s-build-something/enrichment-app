@@ -1,7 +1,6 @@
 package augmy.interactive.shared.ui.components
 
 import androidx.compose.animation.Animatable
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -148,7 +147,6 @@ fun MultiChoiceSwitch(
                             shape = shape
                         )
                         .align(Alignment.Center)
-                        .animateContentSize()
                 )
             }
         ) { measurables, constraints ->

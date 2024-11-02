@@ -99,9 +99,8 @@ fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()
                     )
                     if(requests.itemCount - 1 != index) {
                         Divider(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            color = LocalTheme.current.colors.tetrial,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = LocalTheme.current.colors.disabledComponent,
                             thickness = .3.dp
                         )
                     }

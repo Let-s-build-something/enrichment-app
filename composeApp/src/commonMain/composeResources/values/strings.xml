@@ -53,7 +53,7 @@
   <string name="account_username_error_long">We'll add an option to write an essay on your profile, just for you.</string>
   <string name="account_username_error_short">Your username should be at least 3 characters long.</string>
   <string name="account_username_error_spaces">How do you pronounce a white space? No white spaces at the beginning or end.</string>
-  <string name="account_username_error_format">Make sure the username is between 3 and 128 characters long and doesn't contain mega ultra special characters.</string>
+  <string name="account_username_error_format">Make sure the username is between 3 and 48 characters long and doesn't contain mega ultra special characters.</string>
   <string name="account_username_error_duplicate">You're copying someone. Try expressing the uniqueness of yourself.</string>
   <string name="account_username_success">Welcome aboard, %1$s</string>
   <string name="account_username_empty">Mrs. Woo Dat</string>
