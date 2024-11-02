@@ -26,7 +26,7 @@ jobs:
       - name: Decode Local properties and add bearerToken
         run: |
           echo "${{ secrets.LOCAL_PROPERTIES }}" | base64 --decode > ${{ github.workspace }}/local.properties
-          echo "bearerToken=${{ secrets.BEARER_TOKEN }}" >> ${{ github.workspace }}/local.properties
+          echo bearerToken=${{ secrets.BEARER_TOKEN }} >> "${{ github.workspace }}/local.properties"
           awk '{if ($1 == "storeFile=") print "storeFile=${{ github.workspace }}/keystore.jks"; else print $0}' ${{ github.workspace }}/local.properties > temp && mv temp ${{ github.workspace }}/local.properties
       - name: Decode Keystore
         run: echo "${{ secrets.KEYSTORE }}" | base64 --decode > ${{ github.workspace }}/keystore.jks

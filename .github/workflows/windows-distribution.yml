@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "${{ secrets.LOCAL_PROPERTIES }}" > local.properties.b64
           certutil -decode local.properties.b64 ${{ github.workspace }}\local.properties
-          Add-Content -Path ${{ github.workspace }}\local.properties -Value "bearerToken=${{ secrets.BEARER_TOKEN }}"
+          Add-Content -Path "${{ github.workspace }}\local.properties" -Value "bearerToken=${{ secrets.BEARER_TOKEN }}"
           (Get-Content ${{ github.workspace }}\local.properties) -replace 'storeFile=.*', 'storeFile=${{ github.workspace }}\keystore.jks' | Set-Content ${{ github.workspace }}\local.properties
 
       - name: Decode Keystore
