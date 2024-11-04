@@ -18,7 +18,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
         return withContext(Dispatchers.IO) {
             httpClient.post(
-                urlString = "/api/v1/users",
+                urlString = "/v1/users",
                 block =  {
                     setBody(data)
                     println(data)

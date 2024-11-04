@@ -9,7 +9,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.parameters
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +22,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
     suspend fun authenticateUser(localSettings: LocalSettings?): UserIO? {
         return withContext(Dispatchers.IO) {
             if(Firebase.auth.currentUser != null) {
-                httpClient.get(urlString = "/api/v1/users") {
+                httpClient.post(urlString = "/v1/auth/init-app") {
                     setBody(
                         RequestGetUser(
                             fcmToken = localSettings?.fcmToken,

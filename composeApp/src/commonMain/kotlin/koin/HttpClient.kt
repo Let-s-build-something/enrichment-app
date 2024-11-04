@@ -31,10 +31,10 @@ internal fun httpClientFactory(
 
             // assign current idToken
             sharedViewModel.currentUser.value?.idToken?.let { idToken ->
-                headers.append(HttpHeaders.Authorization, idToken)
+                headers.append(HttpHeaders.IdToken, idToken)
             }
 
-            host = BuildKonfig.HttpsHostName
+            host = BuildKonfig.HttpsHostName + "/api"
             url {
                 protocol = URLProtocol.HTTPS
             }
@@ -62,6 +62,10 @@ internal fun httpClientFactory(
         }
     }
 }
+
+/** Authorization type header with Firebase identification token */
+val HttpHeaders.IdToken: String
+    get() = "Id-Token"
 
 /** http response code indicating expired token */
 internal val EXPIRED_TOKEN_CODE = HttpStatusCode.Unauthorized

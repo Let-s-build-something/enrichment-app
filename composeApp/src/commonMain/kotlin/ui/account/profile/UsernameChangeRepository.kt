@@ -26,7 +26,7 @@ class UsernameChangeRepository(private val httpClient: HttpClient) {
     suspend fun changeUsername(username: String): BaseResponse<ResponseUsernameChange> {
         return withContext(Dispatchers.IO) {
             httpClient.post(
-                urlString = "/api/v1/social/username",
+                urlString = "/v1/social/username",
                 block =  {
                     setBody(RequestUsernameChange(username))
                 }

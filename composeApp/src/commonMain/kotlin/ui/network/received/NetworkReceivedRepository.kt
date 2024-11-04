@@ -23,7 +23,7 @@ class NetworkReceivedRepository(private val httpClient: HttpClient) {
     private suspend fun getRequests(page: Int, size: Int): BaseResponse<CirclingRequestsResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.get(
-                urlString = "/api/v1/social/requests",
+                urlString = "/v1/social/requests",
                 block =  {
                     setPaging(
                         size = size,
@@ -61,7 +61,7 @@ class NetworkReceivedRepository(private val httpClient: HttpClient) {
     suspend fun acceptRequest(action: CirclingActionRequest): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.patch(
-                urlString = "/api/v1/social/requests/${action.uid}",
+                urlString = "/v1/social/requests/${action.uid}",
                 block =  {
                     setBody(action)
                 }
