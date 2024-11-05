@@ -34,7 +34,7 @@ internal fun httpClientFactory(
                 headers.append(HttpHeaders.IdToken, idToken)
             }
 
-            host = BuildKonfig.HttpsHostName + "/api"
+            host = BuildKonfig.HttpsHostName
             url {
                 protocol = URLProtocol.HTTPS
             }

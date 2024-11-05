@@ -22,7 +22,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
     suspend fun authenticateUser(localSettings: LocalSettings?): UserIO? {
         return withContext(Dispatchers.IO) {
             if(Firebase.auth.currentUser != null) {
-                httpClient.post(urlString = "/v1/auth/init-app") {
+                httpClient.post(urlString = "/api/v1/auth/init-app") {
                     setBody(
                         RequestGetUser(
                             fcmToken = localSettings?.fcmToken,

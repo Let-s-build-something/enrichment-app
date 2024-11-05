@@ -20,7 +20,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
     private suspend fun getNetworkList(page: Int, size: Int): BaseResponse<CirclingRequestsResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.get(
-                urlString = "/v1/social/network",
+                urlString = "/api/v1/social/network",
                 block =  {
                     setPaging(
                         size = size,

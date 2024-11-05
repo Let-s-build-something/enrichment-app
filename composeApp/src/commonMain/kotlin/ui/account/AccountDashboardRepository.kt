@@ -18,7 +18,7 @@ class AccountDashboardRepository(private val httpClient: HttpClient): SharedRepo
     suspend fun changeUserConfiguration(configuration: UserConfiguration): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.post(
-                urlString = "/v1/social/configuration",
+                urlString = "/api/v1/social/configuration",
                 block =  {
                     setBody(configuration)
                 }

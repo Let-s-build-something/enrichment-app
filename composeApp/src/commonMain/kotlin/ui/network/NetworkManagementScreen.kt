@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.runtime.Composable
@@ -24,7 +23,6 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberTabSwitchState
-import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import data.io.social.UserPrivacy
@@ -91,10 +89,6 @@ fun NetworkManagementScreen(
             if(pagerState.pageCount > 1) {
                 MultiChoiceSwitch(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(
-                        topStart = LocalTheme.current.shapes.screenCornerRadius,
-                        topEnd = LocalTheme.current.shapes.screenCornerRadius
-                    ),
                     state = switchThemeState
                 )
             }
