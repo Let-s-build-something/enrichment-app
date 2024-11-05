@@ -8,6 +8,7 @@ import com.russhwolf.settings.Settings
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
+import data.io.user.UserIO
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
@@ -30,6 +31,9 @@ open class SharedViewModel: ViewModel() {
 
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager = KoinPlatform.getKoin().get()
+
+    /** lazily loaded repository for calling API */
+    protected val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
 
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<Settings>()
@@ -66,7 +70,7 @@ open class SharedViewModel: ViewModel() {
 
     /** Initializes the application */
     fun initApp() {
-        viewModelScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             if (sharedDataManager.localSettings.value == null) {
                 val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
 
@@ -88,11 +92,17 @@ open class SharedViewModel: ViewModel() {
                     fcmToken = fcmToken
                 )
             }
-        }
-        CoroutineScope(Dispatchers.IO).launch {
+
             if (firebaseUser.value != null) {
-                sharedDataManager.currentUser.update {
-                    it?.copy(idToken = firebaseUser.value?.getIdToken(false))
+                if(sharedDataManager.currentUser.value == null) {
+                    firebaseUser.value?.getIdToken(false)?.let { idToken ->
+                        sharedDataManager.currentUser.value = UserIO(idToken = idToken)
+                        sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
+                            localSettings = sharedDataManager.localSettings.value
+                        )?.copy(
+                            idToken = idToken
+                        )
+                    }
                 }
                 Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
                     sharedDataManager.currentUser.update {

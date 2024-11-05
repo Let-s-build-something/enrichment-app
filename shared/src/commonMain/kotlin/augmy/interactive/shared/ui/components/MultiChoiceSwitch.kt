@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -95,7 +95,7 @@ fun MultiChoiceSwitch(
     selectedBlockColor: Color = LocalTheme.current.colors.brandMain,
     state: TabSwitchState = rememberTabSwitchState(scrollState = rememberScrollState()),
     onItemCreation: (@Composable (Modifier, index: Int, animatedColor: Color) -> Unit)? = null,
-    shape: Shape = CircleShape
+    shape: Shape = RectangleShape
 ) {
     val localDensity = LocalDensity.current
     val colors = LocalTheme.current.colors
@@ -120,10 +120,11 @@ fun MultiChoiceSwitch(
     }
 
     Box(
-        modifier = modifier.background(
-            color = selectedTextColor,
-            shape = shape
-        )
+        modifier = modifier
+            .background(
+                color = selectedTextColor,
+                shape = shape
+            )
     ) {
         Layout(
             content = {

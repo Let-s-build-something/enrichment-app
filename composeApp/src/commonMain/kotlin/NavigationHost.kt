@@ -19,7 +19,7 @@ import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
 import ui.network.add_new.NetworkAddNewScreen
 import ui.network.add_new.networkAddNewModule
-import ui.network.networkReceivedModule
+import ui.network.received.networkManagementModule
 
 /** Host of the main navigation tree */
 @Composable
@@ -48,7 +48,7 @@ fun NavigationHost(
             AccountDashboardScreen()
         }
         composable<NavigationNode.NetworkManagement> {
-            loadKoinModules(networkReceivedModule)
+            loadKoinModules(networkManagementModule)
             NetworkManagementScreen()
         }
         composable<NavigationNode.NetworkNew> {

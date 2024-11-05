@@ -13,9 +13,12 @@ import dev.gitlive.firebase.auth.FirebaseAuthEmailException
 import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.auth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.module.Module
 
 /** Communication between the UI, the control layers, and control and data layers */
@@ -109,8 +112,15 @@ class LoginViewModel(
 
     /** Authenticates user with a token */
     private suspend fun authenticateUser(email: String?) {
-        sharedDataManager.currentUser.value = repository.authenticateUser()
-        finalizeSignIn(email)
+        withContext(Dispatchers.IO) {
+            firebaseUser.value?.getIdToken(false)?.let { idToken ->
+                sharedDataManager.currentUser.value = UserIO(idToken = idToken)
+                sharedDataManager.currentUser.value = repository.authenticateUser(
+                    localSettings = sharedDataManager.localSettings.value
+                )
+            }
+            finalizeSignIn(email)
+        }
     }
 
     /** finalizes full flow with a result */

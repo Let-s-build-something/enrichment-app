@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
 object Colors {
     val Onyx: Color = Color(0xFF3b3d41)
     val Coffee: Color = Color(0xFF4d5155)
-    val Coffee12: Color = Color(0x1f4d5155)
+    val Coffee18: Color = Color(0x2e4d5155)
     val GrayLight: Color = Color(0xFFD7D9DD)
     val White7: Color = Color(0x12FFFFFF)
     val EerieBlack: Color = Color(0xFF221F1C)

@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -25,6 +24,8 @@ import augmy.interactive.shared.ui.components.getDefaultPullRefreshSize
 import augmy.interactive.shared.ui.components.navigation.AppBarHeightDp
 import base.BrandBaseScreen
 import base.navigation.NavIconType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Implementation of the [BrandBaseScreen] with pull to refresh logic
@@ -47,7 +48,6 @@ fun RefreshableScreen(
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable BoxScope.() -> Unit
 ) {
-    val refreshScope = rememberCoroutineScope()
     val pullRefreshSize = getDefaultPullRefreshSize(
         isSmallDevice = LocalDeviceType.current == WindowWidthSizeClass.Compact
     )
@@ -60,7 +60,11 @@ fun RefreshableScreen(
         refreshing = isRefreshing.value,
         onRefresh = {
             onRefresh()
-            viewModel.requestData(scope = refreshScope, isSpecial = true, isPullRefresh = true)
+            viewModel.requestData(
+                scope = CoroutineScope(Dispatchers.Default),
+                isSpecial = true,
+                isPullRefresh = true
+            )
         },
         refreshingOffset = pullRefreshSize.plus(AppBarHeightDp.dp),
         refreshThreshold = pullRefreshSize

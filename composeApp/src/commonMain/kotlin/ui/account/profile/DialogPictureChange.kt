@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -39,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -157,6 +157,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                         ),
                     model = customUrl.value ?: selectedImageUrl.value,
                     contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     onState = { loadState ->
                         if(isUrlInEdit.value) {
                             if(loadState is AsyncImagePainter.State.Success) {
@@ -342,9 +343,8 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                         selectedImageUrl.value = peep.url
                                     }
                                 )
-                                .heightIn(min = 100.dp)
-                                .fillMaxSize()
-                                .padding(8.dp),
+                                .aspectRatio(1f)
+                                .fillMaxSize(),
                             model = peep.url,
                             contentDescription = null
                         )

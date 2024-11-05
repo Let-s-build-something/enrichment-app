@@ -56,7 +56,10 @@ sealed class NavigationNode {
 
     /** screen for adding new people to a social network */
     @Serializable
-    data object NetworkNew: NavigationNode() {
+    data class NetworkNew(
+        val displayName: String? = null,
+        val tag: String? = null
+    ): NavigationNode() {
         override val deepLink: String = "/network/new"
     }
 

@@ -53,7 +53,7 @@
   <string name="account_username_error_long">We'll add an option to write an essay on your profile, just for you.</string>
   <string name="account_username_error_short">Your username should be at least 3 characters long.</string>
   <string name="account_username_error_spaces">How do you pronounce a white space? No white spaces at the beginning or end.</string>
-  <string name="account_username_error_format">Make sure the username is between 3 and 128 characters long and doesn't contain mega ultra special characters.</string>
+  <string name="account_username_error_format">Make sure the username is between 3 and 48 characters long and doesn't contain mega ultra special characters.</string>
   <string name="account_username_error_duplicate">You're copying someone. Try expressing the uniqueness of yourself.</string>
   <string name="account_username_success">Welcome aboard, %1$s</string>
   <string name="account_username_empty">Mrs. Woo Dat</string>
@@ -68,7 +68,7 @@
   <string name="account_settings_public_content">Anyone can interact with you. If you don't like how they interact with you, you can always mute them.</string>
 
   <string name="account_settings_title_online">You're online</string>
-  <string name="account_settings_content_online">There are no limits, enjoy the app!</string>
+  <string name="account_settings_content_online">There are no limits, enjoy the ride!</string>
   <string name="account_settings_title_invisible">You're invisible</string>
   <string name="account_settings_content_invisible">You can't be seen by other users.</string>
   <string name="account_settings_title_offline">You're offline :-(</string>
@@ -77,6 +77,11 @@
   <string name="network_request_accepted">A human being considers you being part of their social network. That's awesome!</string>
   <string name="network_received">Requests</string>
   <string name="network_list">Manage network</string>
+  <string name="network_list_empty_title">Your social circle doesn't seem to reflect your real social circle, let's change that together.</string>
+  <string name="network_list_empty_action">Find my people</string>
+  <string name="network_received_empty_title">There are no requests yet.</string>
+  <string name="network_received_empty-description">Seems like you are expecting someone, you can share your uniqueness with them.</string>
+  <string name="network_received_empty_action">Honey, I'm home</string>
   <string name="network_inclusion_hint_tag">Tag</string>
   <string name="network_inclusion_format_tag">Tag should be 6 characters long.</string>
   <string name="network_inclusion_error_duplicate">You've already included this person into your social network. However, they may have to accept your inclusion first.</string>

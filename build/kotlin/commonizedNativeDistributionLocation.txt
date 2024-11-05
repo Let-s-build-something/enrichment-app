@@ -1,1 +1,1 @@
-/Users/jakubkostka/.konan/kotlin-native-prebuilt-macos-aarch64-2.1.0-Beta2/klib/commonized/2.1.0-Beta2
+/Users/jakubkostka/.konan/kotlin-native-prebuilt-macos-aarch64-2.1.0-RC/klib/commonized/2.1.0-RC

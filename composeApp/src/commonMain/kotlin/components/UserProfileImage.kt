@@ -19,9 +19,10 @@ fun UserProfileImage(
     contentDescription: String? = null
 ) {
     Box(modifier = modifier
-        .background(
-            color = tagToColor(tag) ?: LocalTheme.current.colors.tetrial,
-            shape = CircleShape
+        .then(
+            tagToColor(tag)?.let { tagColor ->
+                Modifier.background(color = tagColor, shape = CircleShape)
+            } ?: Modifier
         )
     ) {
         AsyncSvgImage(

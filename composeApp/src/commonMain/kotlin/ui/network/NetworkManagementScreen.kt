@@ -4,13 +4,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import augmy.composeapp.generated.resources.Res
@@ -22,7 +23,6 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberTabSwitchState
-import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import data.io.social.UserPrivacy
@@ -30,6 +30,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.network.list.NetworkListScreen
+import ui.network.received.NetworkReceivedContent
+import ui.network.received.NetworkReceivedViewModel
 
 /** Screen for user managing their social network */
 @Composable
@@ -41,10 +44,15 @@ fun NetworkManagementScreen(
     val navController = LocalNavController.current
     val coroutineScope = rememberCoroutineScope()
 
+    val selectedTabIndex = rememberSaveable {
+        mutableStateOf(0)
+    }
+
     val pagerState = rememberPagerState(
         pageCount = {
-            if(currentUser.value?.configuration?.privacy == UserPrivacy.PRIVATE) 2 else 1
-        }
+            if(currentUser.value?.configuration?.privacy != UserPrivacy.PUBLIC) 2 else 1
+        },
+        initialPage = selectedTabIndex.value
     )
     val switchThemeState = rememberTabSwitchState(
         tabs = mutableListOf(
@@ -55,7 +63,8 @@ fun NetworkManagementScreen(
             coroutineScope.launch {
                 pagerState.animateScrollToPage(it)
             }
-        }
+        },
+        selectedTabIndex = selectedTabIndex
     )
 
     LaunchedEffect(pagerState) {
@@ -71,7 +80,7 @@ fun NetworkManagementScreen(
                 text = if(isExpanded) stringResource(Res.string.screen_network_new) else null,
                 imageVector = Icons.AutoMirrored.Outlined.Send,
                 onClick = {
-                    navController?.navigate(NavigationNode.NetworkNew)
+                    navController?.navigate(NavigationNode.NetworkNew())
                 }
             )
         }
@@ -80,16 +89,13 @@ fun NetworkManagementScreen(
             if(pagerState.pageCount > 1) {
                 MultiChoiceSwitch(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(
-                        topStart = LocalTheme.current.shapes.screenCornerRadius,
-                        topEnd = LocalTheme.current.shapes.screenCornerRadius
-                    ),
                     state = switchThemeState
                 )
             }
             HorizontalPager(
                 modifier = Modifier.weight(1f),
-                state = pagerState
+                state = pagerState,
+                beyondViewportPageCount = 1
             ) { index ->
                 if(index == 0) {
                     NetworkListScreen()

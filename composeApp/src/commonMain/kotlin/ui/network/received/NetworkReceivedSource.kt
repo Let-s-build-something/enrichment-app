@@ -1,4 +1,4 @@
-package ui.network
+package ui.network.received
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
