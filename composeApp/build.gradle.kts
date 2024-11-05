@@ -334,7 +334,6 @@ tasks.register("syncWithGradleFiles") {
         ":composeApp:podBuildFirebaseMessagingIphoneos",
         ":composeApp:cinteropFirebaseMessagingIosArm64",
         ":composeApp:podSetupBuildFirebaseMessagingIphonesimulator",
-        ":composeApp:podBuildFirebaseMessagingIphonesimulator",
         ":composeApp:cinteropFirebaseMessagingIosSimulatorArm64",
         ":composeApp:cinteropFirebaseMessagingIosX64",
         ":composeApp:generateDefFirebaseStorage",
