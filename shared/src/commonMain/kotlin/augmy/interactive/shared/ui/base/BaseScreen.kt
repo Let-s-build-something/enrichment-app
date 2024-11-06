@@ -372,7 +372,7 @@ expect val currentPlatform: PlatformType
 val LocalHeyIamScreen = staticCompositionLocalOf { false }
 
 /** Current device frame type */
-val LocalDeviceType = staticCompositionLocalOf { WindowWidthSizeClass.Medium }
+val LocalDeviceType = staticCompositionLocalOf { WindowWidthSizeClass.Compact }
 
 /** current snackbar host for showing snackbars */
 val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
