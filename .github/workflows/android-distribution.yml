@@ -46,7 +46,7 @@ jobs:
         run: |
           git fetch origin
           git checkout -b releases/${{ env.VERSION }}
-          git pull origin releases/${{ env.VERSION }} --no-rebase  # Ensure no rebase happens, just merge
+          git pull origin releases/${{ env.VERSION }} --allow-unrelated-histories --no-rebase  # Allow unrelated histories to be merged
 
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
