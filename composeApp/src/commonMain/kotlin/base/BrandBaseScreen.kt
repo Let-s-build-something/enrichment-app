@@ -8,19 +8,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import base.navigation.DefaultAppBarActions
-import base.navigation.NavIconType
-import base.navigation.NavigationNode
 import augmy.interactive.shared.ui.base.BaseScreen
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalOnBackPressDispatcher
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.navigation.DefaultAppBarActions
+import base.navigation.NavIconType
+import base.navigation.NavigationNode
 import components.navigation.VerticalAppBar
 import data.shared.SharedViewModel
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.annotation.KoinExperimentalAPI
 
 /**
  * Screen with a brand-specific layout and behavior.

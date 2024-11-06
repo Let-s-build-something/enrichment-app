@@ -2,9 +2,11 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import com.russhwolf.settings.Settings
+import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
@@ -13,6 +15,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
 import dev.gitlive.firebase.storage.Data
+import koin.DeveloperUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -25,6 +28,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedViewModel: ViewModel() {
@@ -38,8 +43,21 @@ open class SharedViewModel: ViewModel() {
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<Settings>()
 
+
+    //======================================== variables ==========================================
+
+
     /** Current configuration specific to this app */
     val localSettings = sharedDataManager.localSettings.asStateFlow()
+
+    /** developer console size */
+    val developerConsoleSize = sharedDataManager.developerConsoleSize.asStateFlow()
+
+    /** log data associated with this apps' http calls */
+    val httpLogData = sharedDataManager.httpLogData.asStateFlow()
+
+    /** Current host override if there is any */
+    val hostOverride = sharedDataManager.hostOverride.asStateFlow()
 
 
     /** currently signed in firebase user */
@@ -53,11 +71,20 @@ open class SharedViewModel: ViewModel() {
     val currentUser = sharedDataManager.currentUser.asStateFlow()
 
     /** whether toolbar is currently expanded */
-    val isToolbarExpanded = sharedDataManager.isToolbarExpanded
+    val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
+
+
+    //======================================== functions ==========================================
+
 
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {
         sharedDataManager.isToolbarExpanded.value = expand
+    }
+
+    /** Changes the state of the developer console */
+    fun changeDeveloperConsole(size: Float = developerConsoleSize.value) {
+        sharedDataManager.developerConsoleSize.value = size
     }
 
     /** Logs out the currently signed in user */
@@ -89,7 +116,10 @@ open class SharedViewModel: ViewModel() {
                     theme = ThemeChoice.entries.find {
                         it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
                     } ?: ThemeChoice.SYSTEM,
-                    fcmToken = fcmToken
+                    fcmToken = fcmToken,
+                    clientStatus = ClientStatus.entries.find {
+                        it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
+                    } ?: ClientStatus.NEW
                 )
             }
 
@@ -122,6 +152,25 @@ open class SharedViewModel: ViewModel() {
         viewModelScope.launch {
             //TODO send token to BE
         }
+    }
+
+    /** Overrides current host */
+    fun changeHost(host: String) {
+        sharedDataManager.hostOverride.value = host
+    }
+
+    /** appends new or updates existing http log */
+    @OptIn(ExperimentalUuidApi::class)
+    fun appendHttpLog(call: DeveloperUtils.HttpCall?) {
+        if(call == null) return
+        sharedDataManager.httpLogData.value = DeveloperUtils.HttpLogData(
+            id = Uuid.random().toString(),
+            httpCalls = sharedDataManager.httpLogData.value.httpCalls.apply {
+                find { it.id == call.id }?.update(call).ifNull {
+                    add(call)
+                }
+            }
+        )
     }
 }
 
