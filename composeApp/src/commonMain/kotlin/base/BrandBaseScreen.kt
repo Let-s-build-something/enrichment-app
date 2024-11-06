@@ -1,19 +1,14 @@
 package base
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.FabPosition
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import augmy.interactive.shared.ui.base.BaseScreen
-import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalOnBackPressDispatcher
 import augmy.interactive.shared.ui.base.PlatformType
@@ -25,7 +20,6 @@ import base.navigation.NavigationNode
 import components.navigation.VerticalAppBar
 import data.shared.SharedViewModel
 import org.koin.compose.viewmodel.koinViewModel
-import ui.dev.DeveloperContent
 
 /**
  * Screen with a brand-specific layout and behavior.
@@ -69,9 +63,6 @@ fun BrandBaseScreen(
 
     val currentUser = sharedViewModel.firebaseUser.collectAsState(null)
 
-    val isInternalUser = try {
-        currentUser.value?.email
-    } catch(e: NotImplementedError) { null }?.endsWith("@augmy.org") == true
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
             || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)
 
@@ -112,23 +103,7 @@ fun BrandBaseScreen(
         navigationIcon = navIconType?.imageVector ?: if(isPreviousHome) {
             NavIconType.HOME.imageVector
         }else NavIconType.BACK.imageVector,
-        content = {
-            if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
-                Column {
-                    if(isInternalUser) DeveloperContent()
-                    Box {
-                        content()
-                    }
-                }
-            }else {
-                Row {
-                    if(isInternalUser) DeveloperContent()
-                    Box {
-                        content()
-                    }
-                }
-            }
-        },
+        content = content,
         verticalAppBar = {
             VerticalAppBar(
                 modifier = Modifier

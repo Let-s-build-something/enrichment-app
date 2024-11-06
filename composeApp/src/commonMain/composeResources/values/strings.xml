@@ -42,7 +42,6 @@
   <string name="login_password_action_go">Here I go!</string>
 
 
-  <string name="account_dashboard_fcm">Your FCM token on this device is:</string>
   <string name="account_dashboard_theme">Mr. Theme</string>
   <string name="account_dashboard_theme_light">Light</string>
   <string name="account_dashboard_theme_dark">Dark</string>

@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -28,7 +30,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.theme.LocalTheme
 import future_shared_module.ext.scalingClickable
 
@@ -95,7 +97,12 @@ fun MultiChoiceSwitch(
     selectedBlockColor: Color = LocalTheme.current.colors.brandMain,
     state: TabSwitchState = rememberTabSwitchState(scrollState = rememberScrollState()),
     onItemCreation: (@Composable (Modifier, index: Int, animatedColor: Color) -> Unit)? = null,
-    shape: Shape = RectangleShape
+    shape: Shape = RoundedCornerShape(
+        topStart = if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
+            LocalTheme.current.shapes.screenCornerRadius
+        }else 0.dp,
+        topEnd = LocalTheme.current.shapes.screenCornerRadius
+    )
 ) {
     val localDensity = LocalDensity.current
     val colors = LocalTheme.current.colors

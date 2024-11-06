@@ -1,8 +1,12 @@
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -20,6 +24,7 @@ import data.io.app.ThemeChoice
 import data.shared.SharedViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
+import ui.dev.DeveloperContent
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -54,7 +59,29 @@ fun App(viewModel: SharedViewModel = koinViewModel()) {
                 LocalSnackbarHost provides snackbarHostState,
                 LocalDeviceType provides windowSizeClass.widthSizeClass
             ) {
-                NavigationHost(navController = navController)
+                val currentUser = viewModel.firebaseUser.collectAsState(null)
+
+                val isInternalUser = try {
+                    currentUser.value?.email
+                } catch(e: NotImplementedError) {
+                    "@augmy.org" // allow all JVM for now
+                }?.endsWith("@augmy.org") == true
+
+                if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
+                    Column {
+                        if(isInternalUser) DeveloperContent()
+                        Box {
+                            NavigationHost(navController = navController)
+                        }
+                    }
+                }else {
+                    Row {
+                        if(isInternalUser) DeveloperContent()
+                        Box {
+                            NavigationHost(navController = navController)
+                        }
+                    }
+                }
             }
         }
     }
