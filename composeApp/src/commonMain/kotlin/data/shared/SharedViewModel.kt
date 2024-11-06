@@ -41,6 +41,9 @@ open class SharedViewModel: ViewModel() {
     /** Current configuration specific to this app */
     val localSettings = sharedDataManager.localSettings.asStateFlow()
 
+    /** developer console size */
+    val developerConsoleSize = sharedDataManager.developerConsoleSize.asStateFlow()
+
 
     /** currently signed in firebase user */
     val firebaseUser = Firebase.auth.authStateChanged.stateIn(
@@ -58,6 +61,11 @@ open class SharedViewModel: ViewModel() {
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {
         sharedDataManager.isToolbarExpanded.value = expand
+    }
+
+    /** Changes the state of the developer console */
+    fun changeDeveloperConsole(size: Float = developerConsoleSize.value) {
+        sharedDataManager.developerConsoleSize.value = size
     }
 
     /** Logs out the currently signed in user */

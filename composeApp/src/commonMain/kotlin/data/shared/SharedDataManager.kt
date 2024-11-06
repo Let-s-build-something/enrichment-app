@@ -10,6 +10,9 @@ class SharedDataManager {
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = MutableStateFlow(true)
 
+    /** developer console size */
+    val developerConsoleSize = MutableStateFlow(0f)
+
     /** Current configuration specific to this app */
     val localSettings = MutableStateFlow<LocalSettings?>(null)
 

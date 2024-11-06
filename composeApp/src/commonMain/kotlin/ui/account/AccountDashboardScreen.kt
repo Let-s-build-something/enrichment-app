@@ -1,6 +1,5 @@
 package ui.account
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -36,13 +35,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
-import augmy.composeapp.generated.resources.account_dashboard_fcm
 import augmy.composeapp.generated.resources.account_dashboard_sign_out
 import augmy.composeapp.generated.resources.account_dashboard_theme
 import augmy.composeapp.generated.resources.account_dashboard_theme_dark
@@ -81,7 +77,6 @@ import components.RowSetting
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
 import data.io.user.tagToColor
-import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DialogPictureChange
@@ -148,8 +143,6 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
             ProfileSection(viewModel)
 
             SettingsSection(viewModel)
-
-            DeveloperSection(viewModel)
 
             ErrorHeaderButton(
                 modifier = Modifier
@@ -348,34 +341,5 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             imageVector = Icons.Outlined.Edit,
             contentDescription = stringResource(Res.string.accessibility_change_username)
         )
-    }
-}
-
-@Composable
-private fun ColumnScope.DeveloperSection(viewModel: AccountDashboardViewModel) {
-    val localSettings = viewModel.localSettings.collectAsState()
-    val clipboardManager = LocalClipboardManager.current
-
-    AnimatedVisibility(
-        modifier = Modifier.padding(top = LocalTheme.current.shapes.betweenItemsSpace),
-        visible = localSettings.value?.fcmToken != null
-    ) {
-        Column {
-            Text(
-                stringResource(Res.string.account_dashboard_fcm),
-                style = LocalTheme.current.styles.category
-            )
-            Text(
-                modifier = Modifier.scalingClickable(
-                    onTap = {
-                        clipboardManager.setText(
-                            AnnotatedString(localSettings.value?.fcmToken ?: "")
-                        )
-                    }
-                ),
-                text = localSettings.value?.fcmToken ?: "",
-                style = LocalTheme.current.styles.title
-            )
-        }
     }
 }

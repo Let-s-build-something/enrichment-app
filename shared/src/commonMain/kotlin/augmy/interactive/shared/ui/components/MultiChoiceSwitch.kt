@@ -31,7 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -102,7 +102,7 @@ fun MultiChoiceSwitch(
 
     val indicatorWidth = remember { mutableStateOf((-1f)) }
     val indicatorHeight = remember { mutableStateOf((-1f)) }
-    val offsetX = remember {
+    val offsetX = remember(indicatorWidth.value) {
         Animatable(indicatorWidth.value.times(state.selectedTabIndex.value))
     }
 
@@ -206,10 +206,10 @@ fun MultiChoiceSwitch(
                     )
                 }).invoke(
                     Modifier
-                        .onGloballyPositioned { coordinates ->
+                        .onSizeChanged { coordinates ->
                             if (state.selectedTabIndex.value == index) {
-                                indicatorWidth.value = coordinates.size.width.toFloat()
-                                indicatorHeight.value = coordinates.size.height.toFloat()
+                                indicatorWidth.value = coordinates.width.toFloat()
+                                indicatorHeight.value = coordinates.height.toFloat()
                             }
                         }
                         .fillMaxHeight()
