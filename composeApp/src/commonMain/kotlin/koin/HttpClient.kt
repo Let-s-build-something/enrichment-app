@@ -10,6 +10,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.plugins.plugin
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -51,7 +52,6 @@ internal fun httpClientFactory(
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    // Here you can save the log message to a file or other destination
                     println("HTTP --> $message")
                 }
             }
@@ -59,13 +59,14 @@ internal fun httpClientFactory(
 
             sanitizeHeader { header -> header == HttpHeaders.Authorization }
         }
+        ResponseObserver { response ->
+            sharedViewModel.appendHttpLog(
+                DeveloperUtils.processResponse(response)
+            )
+        }
         HttpResponseValidator {
             validateResponse { response ->
                 try {
-                    sharedViewModel.appendHttpLog(
-                        DeveloperUtils.processResponse(response)
-                    )
-
                     if (response.status == EXPIRED_TOKEN_CODE) {
                         println("Unauthorized - handle token refresh or log the user out")
                     }

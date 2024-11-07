@@ -125,7 +125,7 @@ class LoginViewModel(
 
     /** finalizes full flow with a result */
     private suspend fun finalizeSignIn(email: String?) {
-        if(sharedDataManager.currentUser.value == null) {
+        if(sharedDataManager.currentUser.value?.publicId == null) {
             Firebase.auth.currentUser?.uid?.let { clientId ->
                 sharedDataManager.currentUser.value = UserIO(
                     publicId = repository.createUser(
