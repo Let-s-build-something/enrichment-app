@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 /** user object of another use specific to our database */
 @Serializable
-data class OtherUserIO(
+data class NetworkItemIO(
     /** username of the current user */
     val displayName: String? = null,
 

@@ -92,6 +92,9 @@
   <string name="network_inclusion_action">Confirm</string>
   <string name="network_inclusion_description">Include another human being into your social circle. However, if the recipient has set privacy setting to private, a response from the is needed.</string>
 
+  <string name="network_action_circle_move">Circle move</string>
+  <string name="network_action_block">Block</string>
+
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
 
@@ -115,6 +118,7 @@
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload from files</string>
   <string name="accessibility_upload_url">Upload from URL input</string>
+  <string name="accessibility_more_options">More options</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

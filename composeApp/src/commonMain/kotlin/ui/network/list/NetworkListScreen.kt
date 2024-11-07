@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -23,7 +25,7 @@ import base.getOrNull
 import base.navigation.NavigationArguments
 import collectResult
 import components.EmptyLayout
-import components.network.CircleSentRequestRow
+import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import org.jetbrains.compose.resources.stringResource
@@ -44,6 +46,10 @@ fun NetworkListContent(
 
     val navController = LocalNavController.current
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
+
+    val checkedItems = remember {
+        mutableStateListOf<String?>()
+    }
 
 
     navController?.collectResult(
@@ -79,16 +85,28 @@ fun NetworkListContent(
             }
             items(
                 count = if(networkItems.itemCount == 0 && isLoadingInitialPage) SHIMMER_ITEM_COUNT else networkItems.itemCount,
-                key = { index -> networkItems.getOrNull(index)?.uid ?: Uuid.random().toString() }
+                key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
             ) { index ->
                 networkItems.getOrNull(index).let { data ->
-                    CircleSentRequestRow(
+                    NetworkItemRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .animateItem(),
+                        isSelected = if(checkedItems.size > 0) {
+                            checkedItems.contains(data?.publicId)
+                        }else null,
                         data = data,
-                        response = response.value[data?.uid],
-                        onResponse = { }
+                        response = response.value[data?.publicId],
+                        onAction = { action ->
+                            viewModel.onNetworkAction(data, action)
+                        },
+                        onCheckChange = { isLongClick ->
+                            if(checkedItems.contains(data?.publicId)) {
+                                checkedItems.remove(data?.publicId)
+                            } else if(isLongClick || checkedItems.size > 0) {
+                                checkedItems.add(data?.publicId)
+                            }
+                        }
                     )
                     if(networkItems.itemCount - 1 != index) {
                         Divider(

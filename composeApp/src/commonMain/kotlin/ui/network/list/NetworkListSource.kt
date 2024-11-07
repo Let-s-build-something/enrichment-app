@@ -4,24 +4,24 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.social.network.CirclingRequest
-import data.io.social.network.CirclingRequestsResponse
+import data.io.social.network.NetworkListResponse
+import data.io.user.NetworkItemIO
 import kotlinx.io.IOException
 
 /** factory for making paging requests */
 class NetworkListSource(
     private val size: Int,
-    private val getRequests: suspend (page: Int, size: Int) -> BaseResponse<CirclingRequestsResponse>
-): PagingSource<Int, CirclingRequest>() {
+    private val getRequests: suspend (page: Int, size: Int) -> BaseResponse<NetworkListResponse>
+): PagingSource<Int, NetworkItemIO>() {
 
-    override fun getRefreshKey(state: PagingState<Int, CirclingRequest>): Int? {
+    override fun getRefreshKey(state: PagingState<Int, NetworkItemIO>): Int? {
         return state.anchorPosition?.let {
             state.closestPageToPosition(it)?.prevKey?.plus(1)
                 ?: state.closestPageToPosition(it)?.nextKey?.minus(1)
         }
     }
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, CirclingRequest> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, NetworkItemIO> {
         return try {
             val response = getRequests(params.key ?: 0, size)
             val data = response.success?.data ?: return LoadResult.Error(
