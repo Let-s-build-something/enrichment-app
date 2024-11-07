@@ -72,11 +72,11 @@ import augmy.interactive.shared.ui.components.rememberTabSwitchState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
+import base.tagToColor
 import components.AsyncSvgImage
 import components.RowSetting
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
-import data.io.user.tagToColor
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DialogPictureChange
@@ -126,7 +126,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                 text = if(isExpanded) stringResource(Res.string.screen_network_management) else null,
                 imageVector = Icons.Outlined.Handshake,
                 onClick = {
-                    navController?.navigate(NavigationNode.NetworkManagement)
+                    navController?.navigate(NavigationNode.NetworkManagement())
                 }
             )
         }

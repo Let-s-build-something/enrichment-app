@@ -6,6 +6,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,33 +20,37 @@ import augmy.composeapp.generated.resources.network_list
 import augmy.composeapp.generated.resources.network_received
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_network_new
-import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberTabSwitchState
 import base.BrandBaseScreen
-import base.navigation.NavigationNode
 import data.io.social.UserPrivacy
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.network.list.NetworkListScreen
+import ui.network.add_new.NetworkAddNewLauncher
+import ui.network.list.NetworkListContent
 import ui.network.received.NetworkReceivedContent
 import ui.network.received.NetworkReceivedViewModel
 
 /** Screen for user managing their social network */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NetworkManagementScreen(
+    displayName: String? = null,
+    tag: String? = null,
     viewModel: NetworkReceivedViewModel = koinViewModel()
 ) {
     val currentUser = viewModel.currentUser.collectAsState()
 
-    val navController = LocalNavController.current
     val coroutineScope = rememberCoroutineScope()
 
     val selectedTabIndex = rememberSaveable {
         mutableStateOf(0)
+    }
+    val showAddNewModal = rememberSaveable {
+        mutableStateOf(displayName != null || tag != null)
     }
 
     val pagerState = rememberPagerState(
@@ -73,6 +78,16 @@ fun NetworkManagementScreen(
         }
     }
 
+    if(showAddNewModal.value) {
+        NetworkAddNewLauncher(
+            displayName = displayName,
+            tag = tag,
+            onDismissRequest = {
+                showAddNewModal.value = false
+            }
+        )
+    }
+
     BrandBaseScreen(
         title = stringResource(Res.string.screen_network_management),
         actionIcons = { isExpanded ->
@@ -80,7 +95,7 @@ fun NetworkManagementScreen(
                 text = if(isExpanded) stringResource(Res.string.screen_network_new) else null,
                 imageVector = Icons.AutoMirrored.Outlined.Send,
                 onClick = {
-                    navController?.navigate(NavigationNode.NetworkNew())
+                    showAddNewModal.value = true
                 }
             )
         }
@@ -98,7 +113,11 @@ fun NetworkManagementScreen(
                 beyondViewportPageCount = 1
             ) { index ->
                 if(index == 0) {
-                    NetworkListScreen()
+                    NetworkListContent(
+                        openAddNewModal = {
+                            showAddNewModal.value = true
+                        }
+                    )
                 }else {
                     NetworkReceivedContent()
                 }

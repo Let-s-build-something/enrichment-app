@@ -18,11 +18,9 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.getOrNull
 import base.navigation.NavigationArguments
-import base.navigation.NavigationNode
 import collectResult
 import components.EmptyLayout
 import components.network.CircleSentRequestRow
@@ -36,12 +34,14 @@ import kotlin.uuid.Uuid
 /** Screen containing current user's network and offers its management */
 @OptIn(ExperimentalUuidApi::class)
 @Composable
-fun NetworkListScreen(viewModel: NetworkListViewModel = koinViewModel()) {
+fun NetworkListContent(
+    openAddNewModal: () -> Unit,
+    viewModel: NetworkListViewModel = koinViewModel()
+) {
     val networkItems = viewModel.requests.collectAsLazyPagingItems()
     val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
 
-    val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
 
@@ -73,9 +73,7 @@ fun NetworkListScreen(viewModel: NetworkListViewModel = koinViewModel()) {
                     EmptyLayout(
                         title = stringResource(Res.string.network_list_empty_title),
                         action = stringResource(Res.string.network_list_empty_action),
-                        onClick = {
-                            navController?.navigate(NavigationNode.NetworkNew())
-                        }
+                        onClick = openAddNewModal
                     )
                 }
             }

@@ -1,5 +1,6 @@
 package augmy.interactive.shared.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -31,6 +33,8 @@ fun SimpleModalBottomSheet(
     onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     windowInsets: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
     // hotfix, native onDismissRequest doesn't work when collapsing by drag
@@ -49,7 +53,9 @@ fun SimpleModalBottomSheet(
             Column(
                 modifier = Modifier
                     .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
-                    .navigationBarsPadding()
+                    .navigationBarsPadding(),
+                verticalArrangement = verticalArrangement,
+                horizontalAlignment = horizontalAlignment
             ) {
                 content()
             }

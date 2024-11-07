@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import data.io.user.tagToColor
+import base.tagToColor
 
 @Composable
 fun UserProfileImage(
