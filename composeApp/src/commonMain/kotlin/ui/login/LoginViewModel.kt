@@ -117,7 +117,7 @@ class LoginViewModel(
                 sharedDataManager.currentUser.value = UserIO(idToken = idToken)
                 sharedDataManager.currentUser.value = repository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
-                )
+                )?.copy(idToken = idToken)
             }
             finalizeSignIn(email)
         }

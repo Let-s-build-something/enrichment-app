@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import components.network.NetworkAction
+import components.OptionsLayoutAction
 import components.pull_refresh.RefreshableViewModel
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_RESPONSE_DELAY
@@ -46,7 +46,7 @@ class NetworkListViewModel(
     ).flow.cachedIn(viewModelScope)
 
     /** Makes a request for an action */
-    fun onNetworkAction(data: NetworkItemIO?, action: NetworkAction) {
+    fun onNetworkAction(data: NetworkItemIO?, action: OptionsLayoutAction) {
         if(data?.publicId == null || _response.value[data.publicId] != null) return
 
         viewModelScope.launch {
