@@ -21,7 +21,6 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
                 urlString = "/api/v1/users",
                 block =  {
                     setBody(data)
-                    println(data)
                 }
             ).getResponse<ResponseCreateUser>().success?.data
         }

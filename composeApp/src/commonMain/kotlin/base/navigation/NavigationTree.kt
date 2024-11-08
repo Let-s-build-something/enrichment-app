@@ -50,17 +50,11 @@ sealed class NavigationNode {
 
     /** screen for managing social circle of this app, specific to the current user */
     @Serializable
-    data object NetworkManagement: NavigationNode() {
-        override val deepLink: String = "/network/management"
-    }
-
-    /** screen for adding new people to a social network */
-    @Serializable
-    data class NetworkNew(
+    data class NetworkManagement(
         val displayName: String? = null,
         val tag: String? = null
     ): NavigationNode() {
-        override val deepLink: String = "/network/new"
+        override val deepLink: String = "/network"
     }
 
     /** home screen of the whole app */
