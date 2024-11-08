@@ -32,7 +32,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
                 println(it.toString())
             }
 
-            if(page < 3) {
+            /*if(page < 3) {
                 BaseResponse.Success(NetworkListResponse(
                     content = demoData.subList(page * size, ((page + 1) * size) - 1),
                     pagination = PaginationInfo(
@@ -41,7 +41,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
                         totalPages = 2
                     )
                 ))
-            }else BaseResponse.Error()
+            }else BaseResponse.Error()*/
         }
     }
 
