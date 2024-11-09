@@ -18,7 +18,7 @@ class NetworkAddNewRepository(private val httpClient: HttpClient) {
     suspend fun includeNewUser(action: CirclingRequest): BaseResponse<CircleRequestResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.post(
-                urlString = "/api/v1/social/requests/create",
+                urlString = "/api/v1/social/network/requests",
                 block =  {
                     setBody(action)
                 }

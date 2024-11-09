@@ -32,7 +32,7 @@
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
-  <string name="login_error_duplicate_email">Some pirate out there took the wind out of your sails. Try another email or sing in.</string>
+  <string name="login_error_duplicate_email">Some pirate out there took the wind out of your sails. Try another email or sign in.</string>
   <string name="login_password_condition_empty">Is not empty, duh!</string>
   <string name="login_password_condition_0">Minimum 8 characters long.</string>
   <string name="login_password_condition_1">At least one algebra character.</string>
