@@ -87,7 +87,7 @@ private fun ContentLayout(
         ) {
             UserProfileImage(
                 modifier = Modifier.size(48.dp),
-                model = data.pictureUrl,
+                model = data.photoUrl,
                 tag = data.tag,
                 contentDescription = null
             )

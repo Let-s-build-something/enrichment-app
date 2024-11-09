@@ -21,5 +21,5 @@ data class CirclingRequest(
 	val date: Long? = null,
 
 	/** URL of profile picture of the initiating user */
-	val pictureUrl: String? = null
+	val photoUrl: String? = null
 )

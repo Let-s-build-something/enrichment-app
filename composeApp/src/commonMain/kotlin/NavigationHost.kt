@@ -17,8 +17,6 @@ import ui.home.HomeScreen
 import ui.home.homeModule
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
-import ui.network.add_new.NetworkAddNewScreen
-import ui.network.add_new.networkAddNewModule
 import ui.network.received.networkManagementModule
 
 /** Host of the main navigation tree */
@@ -50,10 +48,6 @@ fun NavigationHost(
         composable<NavigationNode.NetworkManagement> {
             loadKoinModules(networkManagementModule)
             NetworkManagementScreen()
-        }
-        composable<NavigationNode.NetworkNew> {
-            loadKoinModules(networkAddNewModule)
-            NetworkAddNewScreen()
         }
         composable<NavigationNode.Conversation> {
             it.arguments?.getString("userUid")

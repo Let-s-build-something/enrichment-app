@@ -73,10 +73,8 @@ fun UsernameChangeLauncher(
     loadKoinModules(profileChangeModule)
     val viewModel: ProfileChangeViewModel = koinViewModel()
     val coroutineScope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
     val snackbarHostState = LocalSnackbarHost.current
-    val focusRequester = remember {
-        FocusRequester()
-    }
 
     val currentUser = viewModel.currentUser.collectAsState()
     val isLoading = viewModel.isLoading.collectAsState()
