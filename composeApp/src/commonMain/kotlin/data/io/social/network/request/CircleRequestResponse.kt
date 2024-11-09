@@ -1,4 +1,4 @@
-package data.io.social.network
+package data.io.social.network.request
 
 import kotlinx.serialization.Serializable
 
@@ -15,5 +15,5 @@ data class CircleRequestResponse(
      * unique public identifier of the recipient user,
      * value propagated only if [isInclusionImmediate] is true
      */
-    val userUid: String? = null
+    val targetPublicId: String? = null
 )

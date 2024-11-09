@@ -2,8 +2,8 @@ package ui.network.add_new
 
 import androidx.lifecycle.viewModelScope
 import data.io.base.BaseResponse
-import data.io.social.network.CircleRequestResponse
-import data.io.social.network.CirclingRequest
+import data.io.social.network.request.CircleRequestResponse
+import data.io.social.network.request.CirclingRequest
 import data.shared.SharedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow

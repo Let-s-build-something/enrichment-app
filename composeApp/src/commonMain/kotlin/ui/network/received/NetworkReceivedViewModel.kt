@@ -8,8 +8,8 @@ import components.pull_refresh.RefreshableViewModel
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_RESPONSE_DELAY
 import data.io.base.BaseResponse
-import data.io.social.network.CirclingActionRequest
-import data.io.social.network.CirclingRequest
+import data.io.social.network.request.CirclingActionRequest
+import data.io.social.network.request.CirclingRequest
 import data.shared.SharedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

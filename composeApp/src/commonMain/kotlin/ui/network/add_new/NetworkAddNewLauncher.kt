@@ -50,7 +50,7 @@ import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
-import data.io.social.network.RequestCircleErrorCode
+import data.io.ApiErrorCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -109,10 +109,10 @@ fun NetworkAddNewLauncher(
             it?.error?.let { error ->
                 errorMessage.value = getString(
                     when(error.errors.firstOrNull()) {
-                        RequestCircleErrorCode.DUPLICATE.name -> Res.string.network_inclusion_error_duplicate
-                        RequestCircleErrorCode.NON_EXISTENT.name -> Res.string.network_inclusion_error_non_existent
-                        RequestCircleErrorCode.INCORRECT_FORMAT.name -> Res.string.network_inclusion_error_non_format
-                        RequestCircleErrorCode.USER_BLOCKED.name -> Res.string.network_inclusion_error_blocked
+                        ApiErrorCode.DUPLICATE.name -> Res.string.network_inclusion_error_duplicate
+                        ApiErrorCode.NON_EXISTENT.name -> Res.string.network_inclusion_error_non_existent
+                        ApiErrorCode.INCORRECT_FORMAT.name -> Res.string.network_inclusion_error_non_format
+                        ApiErrorCode.USER_BLOCKED.name -> Res.string.network_inclusion_error_blocked
                         else -> Res.string.error_general
                     }
                 )
@@ -121,14 +121,14 @@ fun NetworkAddNewLauncher(
                 CoroutineScope(Dispatchers.Main).launch {
                     if(snackbarHostState?.showSnackbar(
                             message = getString(Res.string.network_inclusion_success),
-                            actionLabel = if(data.isInclusionImmediate == true && data.userUid != null) {
+                            actionLabel = if(data.isInclusionImmediate == true && data.targetPublicId != null) {
                                 getString(Res.string.network_inclusion_success_action)
                             }else null,
                             duration = SnackbarDuration.Short
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userUid = data.userUid))
+                        navController?.navigate(NavigationNode.Conversation(userUid = data.targetPublicId))
                     }
                 }
                 navController?.previousBackStackEntry

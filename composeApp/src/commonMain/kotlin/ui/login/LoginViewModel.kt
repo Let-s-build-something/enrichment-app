@@ -1,6 +1,7 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.currentPlatform
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
@@ -139,14 +140,19 @@ class LoginViewModel(
                         )
                     )?.publicId
                 )
+                authenticateUser(email)
+                clientId
+            }.ifNull {
+                _loginResult.emit(LoginResultType.FAILURE)
             }
+        }else {
+            _loginResult.emit(
+                if(sharedDataManager.currentUser.value != null) {
+                    clientStatus = ClientStatus.REGISTERED
+                    LoginResultType.SUCCESS
+                } else LoginResultType.FAILURE
+            )
         }
-        _loginResult.emit(
-            if(sharedDataManager.currentUser.value != null) {
-                clientStatus = ClientStatus.REGISTERED
-                LoginResultType.SUCCESS
-            } else LoginResultType.FAILURE
-        )
     }
 }
 

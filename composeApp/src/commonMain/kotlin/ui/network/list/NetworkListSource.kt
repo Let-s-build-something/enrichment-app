@@ -4,7 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.social.network.NetworkListResponse
+import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import kotlinx.io.IOException
 
