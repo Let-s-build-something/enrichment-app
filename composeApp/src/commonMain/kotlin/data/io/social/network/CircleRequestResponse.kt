@@ -1,5 +1,7 @@
 package data.io.social.network
 
+import kotlinx.serialization.Serializable
+
 /** successful response to an inclusion request */
 @Serializable
 data class CircleRequestResponse(

@@ -121,14 +121,14 @@ fun NetworkAddNewLauncher(
                 CoroutineScope(Dispatchers.Main).launch {
                     if(snackbarHostState?.showSnackbar(
                             message = getString(Res.string.network_inclusion_success),
-                            actionLabel = if(data.isInclusionImmediate == true && data.userUid != null) {
+                            actionLabel = if(data.isInclusionImmediate == true && data.targetPublicId != null) {
                                 getString(Res.string.network_inclusion_success_action)
                             }else null,
                             duration = SnackbarDuration.Short
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userUid = data.userUid))
+                        navController?.navigate(NavigationNode.Conversation(userUid = data.targetPublicId))
                     }
                 }
                 navController?.previousBackStackEntry
