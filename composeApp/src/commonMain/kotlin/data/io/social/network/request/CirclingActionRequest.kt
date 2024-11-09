@@ -1,4 +1,4 @@
-package data.io.social.network
+package data.io.social.network.request
 
 import kotlinx.serialization.Serializable
 

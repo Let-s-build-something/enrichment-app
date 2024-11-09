@@ -4,8 +4,8 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.social.network.CirclingRequest
-import data.io.social.network.CirclingRequestsResponse
+import data.io.social.network.request.CirclingRequest
+import data.io.social.network.request.CirclingRequestsResponse
 import kotlinx.io.IOException
 
 /** factory for making paging requests */

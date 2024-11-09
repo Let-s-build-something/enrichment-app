@@ -4,8 +4,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.getResponse
-import data.io.base.PaginationInfo
-import data.io.social.network.NetworkListResponse
+import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
 import io.ktor.client.HttpClient

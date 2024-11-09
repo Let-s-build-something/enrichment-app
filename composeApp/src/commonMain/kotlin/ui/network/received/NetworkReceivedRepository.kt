@@ -4,9 +4,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.getResponse
-import data.io.social.network.CirclingActionRequest
-import data.io.social.network.CirclingRequest
-import data.io.social.network.CirclingRequestsResponse
+import data.io.social.network.request.CirclingActionRequest
+import data.io.social.network.request.CirclingRequest
+import data.io.social.network.request.CirclingRequestsResponse
 import data.shared.setPaging
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get

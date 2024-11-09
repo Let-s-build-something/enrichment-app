@@ -2,8 +2,8 @@ package ui.network.add_new
 
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.getResponse
-import data.io.social.network.CircleRequestResponse
-import data.io.social.network.CirclingRequest
+import data.io.social.network.request.CircleRequestResponse
+import data.io.social.network.request.CirclingRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
