@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowDecoration
 import androidx.compose.ui.window.WindowPlacement
@@ -24,6 +25,8 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.app_name
 import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import com.github.sarxos.winreg.HKey
+import com.github.sarxos.winreg.WindowsRegistry
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
@@ -56,6 +59,8 @@ fun main() = application {
         initializeFirebase()
         isAppInitialized = true
     }
+
+    //initializeRegistry()
 
     val crashException = remember {
         mutableStateOf<Throwable?>(null)
@@ -132,6 +137,22 @@ fun main() = application {
     }
 }
 
+
+private fun ApplicationScope.initializeRegistry() {
+    val reg: WindowsRegistry = WindowsRegistry.getInstance()
+    val appExecutablePath = ProcessHandle.current()
+        .info()
+        .command()
+        .orElseThrow()
+
+    val protocolRegKey = "Software\\Classes\\augmy"
+    val protocolCmdRegKey = "shell\\open\\command"
+
+    val regKeyUri = reg.createKey(HKey.HKCU, protocolRegKey)
+    val regKeyShellCommand = reg.createKey(HKey.HKCU, protocolCmdRegKey)
+    reg.writeStringValue(HKey.HKCU,protocolRegKey,"URL Protocol","")
+    reg.writeStringValue(HKey.HKCU,protocolCmdRegKey,"","$appExecutablePath %1")
+}
 
 
 /**

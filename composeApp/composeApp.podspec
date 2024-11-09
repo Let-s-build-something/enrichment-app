@@ -1,14 +1,15 @@
 Pod::Spec.new do |spec|
     spec.name                     = 'ComposeApp'
     spec.version                  = '1.0'
-    spec.homepage                 = 'Link to a Kotlin/Native module homepage'
+    spec.homepage                 = 'https://augmy.org'
     spec.source                   = { :http=> ''}
     spec.authors                  = ''
     spec.license                  = ''
-    spec.summary                  = 'Some description for a Kotlin/Native module'
+    spec.summary                  = 'Communicate meaningfully'
     spec.vendored_frameworks      = 'build/cocoapods/framework/ComposeApp.framework'
     spec.libraries                = 'c++'
-    spec.ios.deployment_target    = '14.0'
+    spec.ios.deployment_target    = '15.3'
+    spec.osx.deployment_target    = '14.4'
     spec.dependency 'FirebaseAuth'
     spec.dependency 'FirebaseCore'
     spec.dependency 'FirebaseMessaging'

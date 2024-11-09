@@ -49,6 +49,9 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL(perform: { url in
+                    HelperKt.onNewUrl(path: url.path)
+                })
         }
     }
 }

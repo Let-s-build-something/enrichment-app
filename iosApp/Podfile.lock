@@ -136,7 +136,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AppAuth: 501c04eda8a8d11f179dbe8637b7a91bb7e5d2fa
   AppCheckCore: e25aaaac234b333320b0bebb8fc21ed3576819ba
-  ComposeApp: aba4fcb070c89b01abef1c8011ed391489f7a832
+  ComposeApp: 931dfc49ade32072fc983180dfc9c2da4f5c07d7
   FirebaseAppCheckInterop: e59b52f2c0e188e6ba77b9e3f6acead2117f2abf
   FirebaseAuth: 7348b13e29d46f4a9aa9a343cffa80449db8b116
   FirebaseAuthInterop: 49e8faefaf254ce578e278a84a8fe0aebe23b546

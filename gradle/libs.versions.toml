@@ -34,6 +34,7 @@ androidxSplashscreen = "1.2.0-alpha02"
 androidFirebaseAuth = "23.1.0"
 androidFirebaseCommon = "21.0.0"
 androidFirebaseMessaging = "24.0.3"
+windowsRegistry = "0.3"
 
 
 [libraries]
@@ -94,7 +95,8 @@ android-firebase-messaging = { module = "com.google.firebase:firebase-messaging"
 android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 
-
+#------------------- WINDOWS -------------------
+windows-registry = { module = "com.github.sarxos:windows-registry-util", version.ref = "windowsRegistry" }
 
 [bundles]
 ktor-common = [

@@ -92,3 +92,9 @@ private fun configureFirebase(): Boolean {
     )
     return true
 }
+
+/** Called whenever iOS catches a new url routing to the app */
+fun onNewUrl(path: String) {
+    println("NEW_URL, path: $path")
+
+}
