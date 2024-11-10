@@ -42,7 +42,7 @@ jobs:
 
       - name: Simulate Sync with Gradle files
         run: |
-          ./gradlew -q syncWithGradleFiles
+          ./gradlew -q assembleDebug
 
       - name: Install the Apple certificate and provisioning profile
         env:

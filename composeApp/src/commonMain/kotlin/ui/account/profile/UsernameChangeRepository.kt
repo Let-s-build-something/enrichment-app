@@ -10,6 +10,7 @@ import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import ui.login.safeRequest
 
 /** Class for making DB requests */
 class UsernameChangeRepository(private val httpClient: HttpClient) {
@@ -17,12 +18,14 @@ class UsernameChangeRepository(private val httpClient: HttpClient) {
     /** Makes a request to change username */
     suspend fun changeUsername(username: String): BaseResponse<ResponseUsernameChange> {
         return withContext(Dispatchers.IO) {
-            httpClient.post(
-                urlString = "/api/v1/social/username",
-                block =  {
-                    setBody(RequestUsernameChange(username))
-                }
-            ).getResponse<ResponseUsernameChange>()
+            httpClient.safeRequest<ResponseUsernameChange> {
+                post(
+                    urlString = "/api/v1/social/username",
+                    block =  {
+                        setBody(RequestUsernameChange(username))
+                    }
+                )
+            }
         }
     }
 }

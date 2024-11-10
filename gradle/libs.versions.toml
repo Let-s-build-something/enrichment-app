@@ -95,7 +95,6 @@ android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", 
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 
 
-
 [bundles]
 ktor-common = [
     "ktor-client-core",

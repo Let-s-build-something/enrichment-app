@@ -48,7 +48,7 @@ private var isAppInitialized = false
 
 /** Initialization of the Jvm application. */
 @OptIn(ExperimentalComposeUiApi::class)
-fun main() = application {
+fun main(args: Array<String>) = application {
     if(isAppInitialized.not()) {
         startKoin {
             modules(commonModule)
@@ -56,6 +56,21 @@ fun main() = application {
         initializeFirebase()
         isAppInitialized = true
     }
+
+    Dialog(Frame(), "arguments").apply {
+        layout = FlowLayout()
+        add(Label(args.toString()))
+        add(
+            Button("Okay, FINE").apply {
+                addActionListener { dispose() }
+            }
+        )
+        setSize(1200, 300)
+        isAutoRequestFocus = true
+        isResizable = true
+        isVisible = true
+    }
+    initWindowsRegistry()
 
     val crashException = remember {
         mutableStateOf<Throwable?>(null)
@@ -132,6 +147,32 @@ fun main() = application {
     }
 }
 
+
+private fun initWindowsRegistry() {
+    if(System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
+        val protocol = "augmy"
+        val appPath = System.getProperty("java.class.path") // or the path to the actual .exe or .jar if packaged
+
+        val commands = listOf(
+            // Step 1: Create the 'augmy' key with URL Protocol settings
+            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol", "/ve", "/d", "URL:$protocol Protocol", "/f"),
+            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol", "/v", "URL Protocol", "/d", "", "/f"),
+
+            // Step 2: Create the 'command' subkey that specifies how to open the link
+            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol\\shell\\open\\command",
+                "/ve", "/d", "\"javaw -jar $appPath\" \"%1\"", "/f")
+        )
+
+        commands.forEach { command ->
+            try {
+                ProcessBuilder(command).start().waitFor()
+                println("Registered command: ${command.joinToString(" ")}")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}
 
 
 /**

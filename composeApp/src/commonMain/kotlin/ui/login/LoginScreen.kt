@@ -121,34 +121,36 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
             stringResource(Res.string.login_screen_type_sign_up),
             stringResource(Res.string.login_screen_type_sign_in)
         ),
-        selectedTabIndex = screenStateIndex
+        selectedTabIndex = screenStateIndex,
+        onSelectionChange = {
+            screenStateIndex.value = it
+            errorMessage.value = null
+        }
     )
 
-    if(screenType != LoginScreenType.SIGN_IN) {
-        LaunchedEffect(password.value) {
-            coroutineScope.launch(Dispatchers.Default) {
-                validations.value = listOf(
-                    FieldValidation(
-                        isValid = password.value.length >= PASSWORD_MIN_LENGTH,
-                        message = getString(if(password.value.isEmpty()) {
-                            Res.string.login_password_condition_empty
-                        }else Res.string.login_password_condition_0)
-                    ),
-                    FieldValidation(
-                        isValid = password.value.contains("""\d""".toRegex()),
-                        message = getString(Res.string.login_password_condition_1),
-                        isRequired = false
-                    ),
-                    FieldValidation(
-                        isValid = password.value.isNotEmpty()
-                                && password.value.matches("""[A-Za-z0-9]+""".toRegex()).not(),
-                        message = getString(Res.string.login_password_condition_2),
-                        isRequired = false
-                    )
+    LaunchedEffect(password.value) {
+        coroutineScope.launch(Dispatchers.Default) {
+            validations.value = listOf(
+                FieldValidation(
+                    isValid = password.value.length >= PASSWORD_MIN_LENGTH,
+                    message = getString(if(password.value.isEmpty()) {
+                        Res.string.login_password_condition_empty
+                    }else Res.string.login_password_condition_0)
+                ),
+                FieldValidation(
+                    isValid = password.value.contains("""\d""".toRegex()),
+                    message = getString(Res.string.login_password_condition_1),
+                    isRequired = false
+                ),
+                FieldValidation(
+                    isValid = password.value.isNotEmpty()
+                            && password.value.matches("""[A-Za-z0-9]+""".toRegex()).not(),
+                    message = getString(Res.string.login_password_condition_2),
+                    isRequired = false
                 )
-            }
+            )
         }
-    }else validations.value = listOf()
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loginResult.collectLatest { res ->

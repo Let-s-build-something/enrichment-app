@@ -12,6 +12,7 @@ import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import ui.login.safeRequest
 
 /** Class for calling APIs and remote work in general */
 class NetworkListRepository(private val httpClient: HttpClient) {
@@ -19,16 +20,16 @@ class NetworkListRepository(private val httpClient: HttpClient) {
     /** returns a list of network list */
     private suspend fun getNetworkList(page: Int, size: Int): BaseResponse<NetworkListResponse> {
         return withContext(Dispatchers.IO) {
-            httpClient.get(
-                urlString = "/api/v1/social/network/users",
-                block =  {
-                    setPaging(
-                        size = size,
-                        page = page
-                    )
-                }
-            ).getResponse<NetworkListResponse>().also {
-                println(it.toString())
+            httpClient.safeRequest<NetworkListResponse> {
+                get(
+                    urlString = "/api/v1/social/network/users",
+                    block =  {
+                        setPaging(
+                            size = size,
+                            page = page
+                        )
+                    }
+                )
             }
 
             /*if(page < 3) {

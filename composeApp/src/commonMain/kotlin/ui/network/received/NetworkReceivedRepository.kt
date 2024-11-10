@@ -15,6 +15,7 @@ import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import ui.login.safeRequest
 
 /** Class for calling APIs and remote work in general */
 class NetworkReceivedRepository(private val httpClient: HttpClient) {
@@ -22,16 +23,16 @@ class NetworkReceivedRepository(private val httpClient: HttpClient) {
     /** Returns list of network requests */
     private suspend fun getRequests(page: Int, size: Int): BaseResponse<CirclingRequestsResponse> {
         return withContext(Dispatchers.IO) {
-            httpClient.get(
-                urlString = "/api/v1/social/network/requests",
-                block =  {
-                    setPaging(
-                        size = size,
-                        page = page
-                    )
-                }
-            ).getResponse<CirclingRequestsResponse>().also {
-                println(it.toString())
+            httpClient.safeRequest<CirclingRequestsResponse> {
+                get(
+                    urlString = "/api/v1/social/network/requests",
+                    block =  {
+                        setPaging(
+                            size = size,
+                            page = page
+                        )
+                    }
+                )
             }
 
             /*if(page < 3) {
@@ -60,13 +61,13 @@ class NetworkReceivedRepository(private val httpClient: HttpClient) {
     /** Acts upon a circling request */
     suspend fun acceptRequest(action: CirclingActionRequest): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
-            httpClient.patch(
-                urlString = "/api/v1/social/network/requests/${action.uid}",
-                block =  {
-                    setBody(action)
-                }
-            ).getResponse<Any>().also {
-                println(it.toString())
+            httpClient.safeRequest<Any> {
+                patch(
+                    urlString = "/api/v1/social/network/requests/${action.uid}",
+                    block =  {
+                        setBody(action)
+                    }
+                )
             }
         }
     }
