@@ -81,7 +81,9 @@ fun main(args: Array<String>) = application {
     Thread.setDefaultUncaughtExceptionHandler { _, e ->
         Dialog(Frame(), e.message ?: "Error").apply {
             layout = FlowLayout()
-            add(Label("We apologize, an unexpected error occurred: ${e.message}"))
+            add(Label("We apologize, an unexpected error occurred: " +
+                    "message: ${e.message}" +
+                    "stacktrace: ${e.stackTrace.joinToString(separator = "\n")}"))
             add(
                 Button("Okay, FINE").apply {
                     addActionListener { dispose() }
