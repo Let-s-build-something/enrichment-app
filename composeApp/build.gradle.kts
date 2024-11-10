@@ -113,7 +113,6 @@ kotlin {
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.windows.registry)
         }
 
         commonMain.dependencies {
@@ -246,7 +245,7 @@ compose.desktop {
         mainClass = "MainKt"
 
         buildTypes.release.proguard {
-            //version.set("7.5.0")
+            //version.set("7.4.0")
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
 

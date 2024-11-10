@@ -14,7 +14,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowDecoration
 import androidx.compose.ui.window.WindowPlacement
@@ -25,8 +24,6 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.app_name
 import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ui.base.LocalScreenSize
-import com.github.sarxos.winreg.HKey
-import com.github.sarxos.winreg.WindowsRegistry
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
@@ -51,7 +48,7 @@ private var isAppInitialized = false
 
 /** Initialization of the Jvm application. */
 @OptIn(ExperimentalComposeUiApi::class)
-fun main() = application {
+fun main(args: Array<String>) = application {
     if(isAppInitialized.not()) {
         startKoin {
             modules(commonModule)
@@ -60,7 +57,20 @@ fun main() = application {
         isAppInitialized = true
     }
 
-    //initializeRegistry()
+    Dialog(Frame(), "arguments").apply {
+        layout = FlowLayout()
+        add(Label(args.toString()))
+        add(
+            Button("Okay, FINE").apply {
+                addActionListener { dispose() }
+            }
+        )
+        setSize(1200, 300)
+        isAutoRequestFocus = true
+        isResizable = true
+        isVisible = true
+    }
+    initWindowsRegistry()
 
     val crashException = remember {
         mutableStateOf<Throwable?>(null)
@@ -138,20 +148,30 @@ fun main() = application {
 }
 
 
-private fun ApplicationScope.initializeRegistry() {
-    val reg: WindowsRegistry = WindowsRegistry.getInstance()
-    val appExecutablePath = ProcessHandle.current()
-        .info()
-        .command()
-        .orElseThrow()
+private fun initWindowsRegistry() {
+    if(System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
+        val protocol = "augmy"
+        val appPath = System.getProperty("java.class.path") // or the path to the actual .exe or .jar if packaged
 
-    val protocolRegKey = "Software\\Classes\\augmy"
-    val protocolCmdRegKey = "shell\\open\\command"
+        val commands = listOf(
+            // Step 1: Create the 'augmy' key with URL Protocol settings
+            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol", "/ve", "/d", "URL:$protocol Protocol", "/f"),
+            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol", "/v", "URL Protocol", "/d", "", "/f"),
 
-    val regKeyUri = reg.createKey(HKey.HKCU, protocolRegKey)
-    val regKeyShellCommand = reg.createKey(HKey.HKCU, protocolCmdRegKey)
-    reg.writeStringValue(HKey.HKCU,protocolRegKey,"URL Protocol","")
-    reg.writeStringValue(HKey.HKCU,protocolCmdRegKey,"","$appExecutablePath %1")
+            // Step 2: Create the 'command' subkey that specifies how to open the link
+            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol\\shell\\open\\command",
+                "/ve", "/d", "\"javaw -jar $appPath\" \"%1\"", "/f")
+        )
+
+        commands.forEach { command ->
+            try {
+                ProcessBuilder(command).start().waitFor()
+                println("Registered command: ${command.joinToString(" ")}")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 }
 
 
