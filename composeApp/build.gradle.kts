@@ -251,7 +251,7 @@ compose.desktop {
         mainClass = "MainKt"
 
         buildTypes.release.proguard {
-            //version.set("7.4.0")
+            version.set("7.4.0")
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
         jvmArgs.add("-Djava.version=17")

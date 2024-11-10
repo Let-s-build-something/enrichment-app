@@ -105,7 +105,7 @@ fun main(args: Array<String>) = application {
 
             add(scrollPane)
             add(
-                Button("Okay, FINE").apply {
+                Button("I'll report this to info@augmy.org").apply {
                     addActionListener { dispose() }
                 }
             )
