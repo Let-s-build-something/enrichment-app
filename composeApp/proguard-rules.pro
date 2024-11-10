@@ -29,6 +29,7 @@
 -keep class base.navigation.NavigationNode { *; }
 -keep class kotlinx.coroutines.** { *; }
 -keep class androidx.compose.foundation.** { *; }
+-keep class java.net.http.** { *; }
 
 # Keep Coil classes
 -keep class coil3.** { *; }
