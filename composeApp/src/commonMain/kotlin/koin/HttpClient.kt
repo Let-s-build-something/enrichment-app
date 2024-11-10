@@ -10,6 +10,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.plugins.plugin
 import io.ktor.http.ContentType
@@ -50,11 +51,7 @@ internal fun httpClientFactory(
             json(json)
         }
         install(Logging) {
-            logger = object : Logger {
-                override fun log(message: String) {
-                    println("HTTP --> $message")
-                }
-            }
+            logger = Logger.SIMPLE
             level = LogLevel.ALL
 
             sanitizeHeader { header -> header == HttpHeaders.Authorization }

@@ -36,11 +36,15 @@ import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
 import java.awt.Button
 import java.awt.Dialog
+import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
-import java.awt.Label
 import java.awt.Toolkit
+import java.io.PrintWriter
+import java.io.StringWriter
+import javax.swing.JScrollPane
+import javax.swing.JTextArea
 
 
 // paranoid check
@@ -48,6 +52,7 @@ private var isAppInitialized = false
 
 /** Initialization of the Jvm application. */
 @OptIn(ExperimentalComposeUiApi::class)
+
 fun main(args: Array<String>) = application {
     if(isAppInitialized.not()) {
         startKoin {
@@ -57,9 +62,9 @@ fun main(args: Array<String>) = application {
         isAppInitialized = true
     }
 
-    Dialog(Frame(), "arguments").apply {
+    /*Dialog(Frame(), "arguments").apply {
         layout = FlowLayout()
-        add(Label(args.toString()))
+        add(Label(args.joinToString(separator = ", ") + " ${System.getProperty("user.dir")}"))
         add(
             Button("Okay, FINE").apply {
                 addActionListener { dispose() }
@@ -69,7 +74,7 @@ fun main(args: Array<String>) = application {
         isAutoRequestFocus = true
         isResizable = true
         isVisible = true
-    }
+    }*/
     initWindowsRegistry()
 
     val crashException = remember {
@@ -81,11 +86,26 @@ fun main(args: Array<String>) = application {
     Thread.setDefaultUncaughtExceptionHandler { _, e ->
         Dialog(Frame(), e.message ?: "Error").apply {
             layout = FlowLayout()
-            add(Label("We apologize, an unexpected error occurred: " +
-                    "message: ${e.message}" +
-                    "stacktrace: ${e.stackTrace.joinToString(separator = "\n")}"))
+
+            val stringWriter = StringWriter()
+            e.printStackTrace(PrintWriter(stringWriter))
+            val stackTraceText = "We apologize, an unexpected error occurred:\n\n$stringWriter"
+
+            val errorMessageTextArea = JTextArea(stackTraceText, 10, 80).apply {
+                lineWrap = true
+                wrapStyleWord = true
+                isEditable = false
+            }
+
+            val scrollPane = JScrollPane(errorMessageTextArea).apply {
+                preferredSize = Dimension(1100, 200)
+                verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+                horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+            }
+
+            add(scrollPane)
             add(
-                Button("Okay, FINE").apply {
+                Button("I'll report this to info@augmy.org").apply {
                     addActionListener { dispose() }
                 }
             )
@@ -152,26 +172,30 @@ fun main(args: Array<String>) = application {
 
 private fun initWindowsRegistry() {
     if(System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
-        val protocol = "augmy"
-        val appPath = System.getProperty("java.class.path") // or the path to the actual .exe or .jar if packaged
+        try {
+            val exePath = System.getProperty("user.dir") + "\\Augmy.exe"
 
-        val commands = listOf(
-            // Step 1: Create the 'augmy' key with URL Protocol settings
-            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol", "/ve", "/d", "URL:$protocol Protocol", "/f"),
-            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol", "/v", "URL Protocol", "/d", "", "/f"),
+            val commands = listOf(
+                """reg add "HKCU\Software\Classes\augmy" /ve /d "Description here" /f""",
+                """reg add "HKCU\Software\Classes\augmy" /v "URL Protocol" /f""",
+                """reg add "HKCU\Software\Classes\augmy\shell" /f""",
+                """reg add "HKCU\Software\Classes\augmy\shell\open" /f""",
+                """reg add "HKCU\Software\Classes\augmy\shell\open\command" /ve /d "\"$exePath\" \"%1\"" /f"""
+            )
 
-            // Step 2: Create the 'command' subkey that specifies how to open the link
-            listOf("reg", "add", "HKEY_CURRENT_USER\\Software\\Classes\\$protocol\\shell\\open\\command",
-                "/ve", "/d", "\"javaw -jar $appPath\" \"%1\"", "/f")
-        )
-
-        commands.forEach { command ->
-            try {
-                ProcessBuilder(command).start().waitFor()
-                println("Registered command: ${command.joinToString(" ")}")
-            } catch (e: Exception) {
-                e.printStackTrace()
+            for (cmd in commands) {
+                val process = Runtime.getRuntime().exec(cmd)
+                process.waitFor()
+                if (process.exitValue() != 0) {
+                    println("Command failed: $cmd")
+                    process.errorStream.bufferedReader()
+                        .use { it.lines().forEach { line -> println(line) } }
+                } else {
+                    println("Command succeeded: $cmd")
+                }
             }
+        }catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

@@ -1,7 +1,6 @@
 
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
@@ -29,17 +28,24 @@ val releaseHostname = "api.augmy.org"
 
 kotlin {
     androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
-    jvm()
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -248,6 +254,7 @@ compose.desktop {
             version.set("7.4.0")
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
+        jvmArgs.add("-Djava.version=17")
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
@@ -259,13 +266,28 @@ compose.desktop {
                 iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
             }
             windows {
-                modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported")
+                modules(
+                    "java.instrument",
+                    "java.management",
+                    "java.naming",
+                    "java.sql",
+                    "jdk.unsupported",
+                    "java.net.http"
+                )
                 menuGroup = "Augmy Interactive"
                 shortcut = true
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
             }
             linux {
-                modules("java.instrument", "java.management", "java.naming", "java.sql", "jdk.unsupported", "jdk.security.auth")
+                modules(
+                    "java.instrument",
+                    "java.management",
+                    "java.naming",
+                    "java.sql",
+                    "jdk.unsupported",
+                    "jdk.security.auth",
+                    "java.net.http"
+                )
                 menuGroup = "Augmy Interactive"
                 iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
             }
