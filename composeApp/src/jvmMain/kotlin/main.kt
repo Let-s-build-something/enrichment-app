@@ -41,6 +41,7 @@ import java.awt.FlowLayout
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
+import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 import javax.swing.JScrollPane
@@ -75,7 +76,7 @@ fun main(args: Array<String>) = application {
         isResizable = true
         isVisible = true
     }*/
-    initWindowsRegistry()
+    associateWithDomain()
 
     val crashException = remember {
         mutableStateOf<Throwable?>(null)
@@ -170,34 +171,100 @@ fun main(args: Array<String>) = application {
 }
 
 
-private fun initWindowsRegistry() {
-    if(System.getProperty("os.name").contains("Windows", ignoreCase = true)) {
-        try {
-            val exePath = System.getProperty("user.dir") + "\\Augmy.exe"
+private fun associateWithDomain() {
+    val os = System.getProperty("os.name").lowercase()
 
-            val commands = listOf(
-                """reg add "HKCU\Software\Classes\augmy" /ve /d "Description here" /f""",
-                """reg add "HKCU\Software\Classes\augmy" /v "URL Protocol" /f""",
-                """reg add "HKCU\Software\Classes\augmy\shell" /f""",
-                """reg add "HKCU\Software\Classes\augmy\shell\open" /f""",
-                """reg add "HKCU\Software\Classes\augmy\shell\open\command" /ve /d "\"$exePath\" \"%1\"" /f"""
-            )
-
-            for (cmd in commands) {
-                val process = Runtime.getRuntime().exec(cmd)
-                process.waitFor()
-                if (process.exitValue() != 0) {
-                    println("Command failed: $cmd")
-                    process.errorStream.bufferedReader()
-                        .use { it.lines().forEach { line -> println(line) } }
-                } else {
-                    println("Command succeeded: $cmd")
-                }
-            }
-        }catch (e: Exception) {
-            e.printStackTrace()
+    when {
+        os.contains("windows") -> {
+            initWindowsRegistry()
+        }
+        os.contains("linux") -> {
+            registerUriSchemeLinux()
         }
     }
+}
+
+private fun initWindowsRegistry() {
+    try {
+        val exePath = System.getProperty("user.dir") + File.separator + "Augmy.exe"
+
+        val commands = listOf(
+            """reg add "HKCU\Software\Classes\augmy" /ve /d "Description here" /f""",
+            """reg add "HKCU\Software\Classes\augmy" /v "URL Protocol" /f""",
+            """reg add "HKCU\Software\Classes\augmy\shell" /f""",
+            """reg add "HKCU\Software\Classes\augmy\shell\open" /f""",
+            """reg add "HKCU\Software\Classes\augmy\shell\open\command" /ve /d "\"$exePath\" \"%1\"" /f"""
+        )
+
+        for (cmd in commands) {
+            val process = Runtime.getRuntime().exec(cmd)
+            process.waitFor()
+            if (process.exitValue() != 0) {
+                println("Command failed: $cmd")
+                process.errorStream.bufferedReader()
+                    .use { it.lines().forEach { line -> println(line) } }
+            } else {
+                println("Command succeeded: $cmd")
+            }
+        }
+    }catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+private fun registerUriSchemeLinux() {
+    val appPath = System.getProperty("user.dir") + File.separator + "Augmy"
+    val desktopFilePath = System.getProperty("user.home") + "/.local/share/applications/augmy.desktop"
+    val desktopFileContent = """
+        [Desktop Entry]
+        Name=Augmy
+        Exec=$appPath %u
+        Type=Application
+        MimeType=x-scheme-handler/augmy
+        Terminal=false
+    """.trimIndent()
+
+    try {
+        // Create and write to the .desktop file
+        val desktopFile = File(desktopFilePath)
+        desktopFile.parentFile.mkdirs() // Ensure directory exists
+        desktopFile.writeText(desktopFileContent)
+
+        // Register with xdg-mime and xdg-settings
+        val commands = listOf(
+            "xdg-mime default augmy.desktop x-scheme-handler/augmy",
+            "xdg-settings set default-url-scheme-handler augmy augmy.desktop"
+        )
+
+        for (cmd in commands) {
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
+            process.waitFor()
+            if (process.exitValue() == 0) {
+                println("Command succeeded: $cmd")
+            } else {
+                println("Command failed: $cmd")
+                process.errorStream.bufferedReader().use { it.lines().forEach { line -> println(line) } }
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+private fun createLinuxMimeTypeFile() {
+    val desktopFilePath = System.getProperty("user.home") + "/.local/share/applications/augmy.desktop"
+    val desktopFileContent = """
+        [Desktop Entry]
+        Name=Augmy
+        Exec=/path/to/Augmy %u
+        Type=Application
+        MimeType=x-scheme-handler/augmy
+        Terminal=false
+    """.trimIndent()
+
+    val desktopFile = File(desktopFilePath)
+    desktopFile.parentFile.mkdirs()
+    desktopFile.writeText(desktopFileContent)
 }
 
 
