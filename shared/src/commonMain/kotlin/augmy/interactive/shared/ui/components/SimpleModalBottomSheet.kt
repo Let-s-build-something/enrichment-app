@@ -33,6 +33,9 @@ fun SimpleModalBottomSheet(
     onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     windowInsets: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
+    dragHandle: @Composable (() -> Unit)? = {
+        BottomSheetDefaults.DragHandle(color = LocalTheme.current.colors.secondary)
+    },
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit = {}
@@ -67,9 +70,7 @@ fun SimpleModalBottomSheet(
             topEnd = LocalTheme.current.shapes.componentCornerRadius
         ),
         tonalElevation = LocalTheme.current.styles.actionElevation,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = LocalTheme.current.colors.secondary)
-        },
+        dragHandle = dragHandle,
         contentWindowInsets = windowInsets
     )
 }

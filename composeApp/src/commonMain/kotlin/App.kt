@@ -12,8 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.navigation.compose.rememberNavController
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -80,6 +83,10 @@ fun AppContent(
         "@augmy.org" // allow all JVM for now
     }?.endsWith("@augmy.org") == true
 
+    val modalDeepLink = rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
 
     LaunchedEffect(Unit) {
         viewModel.newDeeplink.collectLatest {
@@ -90,19 +97,22 @@ fun AppContent(
                     } ?: false
                 }?.let { node ->
                     navController.navigate(node)
+                }.ifNull {
+                    modalDeepLink.value = it
                 }
             }catch (e: IllegalArgumentException) {
-                e.printStackTrace()
+                modalDeepLink.value = it
             }
         }
     }
 
-    /*
-    loadKoinModules(userProfileModule)
-            UserProfileLauncher(
-                publicId = it.arguments?.getString("publicId")
-            )
-    */
+    ModalHost(
+        deepLink = modalDeepLink.value,
+        onDismissRequest = {
+            modalDeepLink.value = null
+        }
+    )
+
     if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
         Column {
             if(isInternalUser) DeveloperContent()

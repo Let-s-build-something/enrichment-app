@@ -16,8 +16,6 @@ import ui.account.accountDashboardModule
 import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
-import ui.network.profile.UserProfileLauncher
-import ui.network.profile.userProfileModule
 import ui.network.received.networkManagementModule
 
 /** Host of the main navigation tree */
