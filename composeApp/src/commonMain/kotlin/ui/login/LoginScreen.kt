@@ -128,6 +128,10 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
         }
     )
 
+    LaunchedEffect(Unit) {
+        if(viewModel.currentUser.value != null) navController?.popBackStack()
+    }
+
     LaunchedEffect(password.value) {
         coroutineScope.launch(Dispatchers.Default) {
             validations.value = listOf(

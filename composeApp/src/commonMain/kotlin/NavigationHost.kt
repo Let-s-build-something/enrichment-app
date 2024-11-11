@@ -14,9 +14,10 @@ import ui.account.AccountDashboardScreen
 import ui.account.WaterPleaseScreen
 import ui.account.accountDashboardModule
 import ui.home.HomeScreen
-import ui.home.homeModule
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
+import ui.network.profile.UserProfileLauncher
+import ui.network.profile.userProfileModule
 import ui.network.received.networkManagementModule
 
 /** Host of the main navigation tree */
@@ -35,11 +36,16 @@ fun NavigationHost(
             LoginScreen()
         }
         composable<NavigationNode.Home> {
-            loadKoinModules(homeModule)
             HomeScreen()
         }
         composable<NavigationNode.Water> {
             WaterPleaseScreen()
+        }
+        composable<NavigationNode.UserProfile> {
+            loadKoinModules(userProfileModule)
+            UserProfileLauncher(
+                publicId = it.arguments?.getString("publicId")
+            )
         }
         composable<NavigationNode.AccountDashboard> {
             loadKoinModules(accountDashboardModule)

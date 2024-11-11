@@ -20,16 +20,18 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.AugmyTheme
+import base.navigation.NavigationNode
 import data.io.app.ThemeChoice
-import data.shared.SharedViewModel
+import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ui.dev.DeveloperContent
+import ui.home.HomeViewModel
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 @Preview
-fun App(viewModel: SharedViewModel = koinViewModel()) {
+fun App(viewModel: HomeViewModel = koinViewModel()) {
     val localSettings = viewModel.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -59,29 +61,55 @@ fun App(viewModel: SharedViewModel = koinViewModel()) {
                 LocalSnackbarHost provides snackbarHostState,
                 LocalDeviceType provides windowSizeClass.widthSizeClass
             ) {
-                val currentUser = viewModel.firebaseUser.collectAsState(null)
+                AppContent(viewModel, navController)
+            }
+        }
+    }
+}
 
-                val isInternalUser = try {
-                    currentUser.value?.email
-                } catch(e: NotImplementedError) {
-                    "@augmy.org" // allow all JVM for now
-                }?.endsWith("@augmy.org") == true
+@Composable
+fun AppContent(
+    viewModel: HomeViewModel,
+    navController: androidx.navigation.NavHostController
+) {
+    val currentUser = viewModel.firebaseUser.collectAsState(null)
 
-                if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
-                    Column {
-                        if(isInternalUser) DeveloperContent()
-                        Box {
-                            NavigationHost(navController = navController)
-                        }
-                    }
-                }else {
-                    Row {
-                        if(isInternalUser) DeveloperContent()
-                        Box {
-                            NavigationHost(navController = navController)
-                        }
-                    }
+    val isInternalUser = try {
+        currentUser.value?.email
+    } catch(e: NotImplementedError) {
+        "@augmy.org" // allow all JVM for now
+    }?.endsWith("@augmy.org") == true
+
+
+    LaunchedEffect(Unit) {
+        viewModel.newDeeplink.collectLatest {
+            try {
+                NavigationNode.allNodes.find { node ->
+                    node.deepLink?.let { link ->
+                        it.contains(link)
+                    } ?: false
+                }?.let { node ->
+                    navController.navigate(node)
                 }
+            }catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+
+    if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
+        Column {
+            if(isInternalUser) DeveloperContent()
+            Box {
+                NavigationHost(navController = navController)
+            }
+        }
+    }else {
+        Row {
+            if(isInternalUser) DeveloperContent()
+            Box {
+                NavigationHost(navController = navController)
             }
         }
     }

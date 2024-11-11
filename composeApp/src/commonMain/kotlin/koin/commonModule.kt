@@ -11,12 +11,11 @@ import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.login.signInServiceModule
 
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class)
 internal val commonModule = module {
-    includes(signInServiceModule())
+    includes(ui.home.homeModule)
 
     single { SharedDataManager() }
     single { Settings() }

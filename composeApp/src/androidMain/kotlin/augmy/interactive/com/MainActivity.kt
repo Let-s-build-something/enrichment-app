@@ -2,6 +2,7 @@ package augmy.interactive.com
 
 import App
 import android.Manifest.permission.POST_NOTIFICATIONS
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -16,9 +17,11 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import io.github.vinceglb.filekit.core.FileKit
 import koin.commonModule
+import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
+import ui.home.HomeViewModel
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -51,6 +54,7 @@ class MainActivity: ComponentActivity() {
             modules(commonModule)
         }
         installSplashScreen()
+        handleDeepLink(intent)
 
         super.onCreate(savedInstanceState)
         FileKit.init(this)
@@ -67,6 +71,18 @@ class MainActivity: ComponentActivity() {
             ) {
                 App()
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent) {
+        if(intent.data != null) {
+            val viewModel: HomeViewModel = getKoin().get()
+            viewModel.emitDeepLink(intent.data?.path)
         }
     }
 }
