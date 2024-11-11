@@ -41,12 +41,6 @@ fun NavigationHost(
         composable<NavigationNode.Water> {
             WaterPleaseScreen()
         }
-        composable<NavigationNode.UserProfile> {
-            loadKoinModules(userProfileModule)
-            UserProfileLauncher(
-                publicId = it.arguments?.getString("publicId")
-            )
-        }
         composable<NavigationNode.AccountDashboard> {
             loadKoinModules(accountDashboardModule)
             AccountDashboardScreen()

@@ -42,7 +42,6 @@ fun UserProfileLauncher(
         photoUrl = "https://picsum.photos/100"
     ),
 ) {
-    val navController = LocalNavController.current
     val pictureSize = LocalScreenSize.current.width.div(10).coerceIn(
         minimumValue = 75,
         maximumValue = 200
@@ -60,7 +59,7 @@ fun UserProfileLauncher(
     SimpleModalBottomSheet(
         modifier = modifier,
         onDismissRequest = {
-            navController?.popBackStack(NavigationNode.UserProfile, inclusive = true)
+            //TODO
         }
     ) {
         Crossfade(targetState = response.value is BaseResponse.Loading) { isLoading ->

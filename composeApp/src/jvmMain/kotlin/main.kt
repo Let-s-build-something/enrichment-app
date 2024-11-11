@@ -37,7 +37,6 @@ import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
-import java.awt.Label
 import java.awt.Toolkit
 import java.io.File
 import java.io.PrintWriter
@@ -61,20 +60,6 @@ fun main(args: Array<String>) = application {
         initializeFirebase()
         isAppInitialized = true
     }
-
-    /*Dialog(Frame(), "arguments").apply {
-        layout = FlowLayout()
-        add(Label(args.joinToString(separator = ", ") + " ${System.getProperty("user.dir")}"))
-        add(
-            Button("Okay, FINE").apply {
-                addActionListener { dispose() }
-            }
-        )
-        setSize(1200, 300)
-        isAutoRequestFocus = true
-        isResizable = true
-        isVisible = true
-    }*/
     associateWithDomain()
 
     val density = LocalDensity.current
@@ -156,22 +141,6 @@ fun main(args: Array<String>) = application {
                 delay(500)
                 arguments?.firstOrNull()?.let { arg ->
                     viewModel.emitDeepLink(arg)
-                    Dialog(Frame(), "").apply {
-                        layout = FlowLayout()
-
-                        add(Label(arg.replace("""^\/""".toRegex(), "")
-                            .replace("""\/$""".toRegex(), "")
-                            .replace("augmy://", "")))
-                        add(
-                            Button("OK").apply {
-                                addActionListener { dispose() }
-                            }
-                        )
-                        setSize(1000, 500)
-                        isAutoRequestFocus = true
-                        isResizable = false
-                        isVisible = true
-                    }
                     arguments = null
                 }
             }

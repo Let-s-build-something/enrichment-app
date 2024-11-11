@@ -97,7 +97,12 @@ fun AppContent(
         }
     }
 
-
+    /*
+    loadKoinModules(userProfileModule)
+            UserProfileLauncher(
+                publicId = it.arguments?.getString("publicId")
+            )
+    */
     if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
         Column {
             if(isInternalUser) DeveloperContent()

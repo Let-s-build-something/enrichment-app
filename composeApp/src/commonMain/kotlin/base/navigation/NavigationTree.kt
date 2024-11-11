@@ -30,15 +30,6 @@ sealed class NavigationNode {
         override val deepLink: String? = null
     }
 
-    /** Detail screen for a user profile */
-    @Serializable
-    data class UserProfile(
-        val publicId: String? = null,
-        //val userProfile: NetworkItemIO? = null
-    ): NavigationNode() {
-        override val deepLink: String = "user/"
-    }
-
     /** Conversation detail screen */
     @Serializable
     data class Conversation(
@@ -78,8 +69,7 @@ sealed class NavigationNode {
             Water,
             Conversation(),
             AccountDashboard,
-            NetworkManagement(),
-            UserProfile(),
+            NetworkManagement()
         )
     }
 }
