@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -122,7 +123,6 @@ fun UserProfileLauncher(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
                     .animateContentSize()
             ) {
                 if(isLoading) {
@@ -177,16 +177,24 @@ private fun DataContent(
     val currentUser = viewModel.currentUser.collectAsState()
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .padding(top = 14.dp, start = 8.dp)
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        UserProfileImage(
-            modifier = Modifier
-                .size(pictureSize)
-                .zIndex(1f),
-            model = userProfile.photoUrl,
-            tag = userProfile.tag
-        )
+        Box(
+            modifier = Modifier.height(pictureSize * 1.15f),
+            contentAlignment = Alignment.Center
+        ) {
+            UserProfileImage(
+                modifier = Modifier
+                    .size(pictureSize)
+                    .zIndex(1f),
+                animate = true,
+                model = userProfile.photoUrl,
+                tag = userProfile.tag
+            )
+        }
         Text(
             modifier = Modifier.padding(start = 16.dp),
             text = userProfile.displayName ?: "",
