@@ -174,6 +174,7 @@ private fun DataContent(
 ) {
     val navController = LocalNavController.current
     val responseInclusion = viewModel.responseInclusion.collectAsState()
+    val currentUser = viewModel.currentUser.collectAsState()
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -192,33 +193,35 @@ private fun DataContent(
             style = LocalTheme.current.styles.subheading
         )
     }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.End)
-    ) {
-        if(userProfile.isPublic == true) {
-            ContrastHeaderButton(
-                text = stringResource(Res.string.network_inclusion_success_action),
-                endImageVector = Icons.AutoMirrored.Outlined.Send,
+    if(currentUser.value?.publicId != userProfile.publicId) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.End)
+        ) {
+            if(userProfile.isPublic == true) {
+                ContrastHeaderButton(
+                    text = stringResource(Res.string.network_inclusion_success_action),
+                    endImageVector = Icons.AutoMirrored.Outlined.Send,
+                    onClick = {
+                        onDismissRequest()
+                        navController?.navigate(
+                            NavigationNode.Conversation(userUid = userProfile.publicId)
+                        )
+                    }
+                )
+            }
+            BrandHeaderButton(
+                isLoading = responseInclusion.value is BaseResponse.Loading,
+                text = stringResource(Res.string.network_inclusion_action_2),
                 onClick = {
-                    onDismissRequest()
-                    navController?.navigate(
-                        NavigationNode.Conversation(userUid = userProfile.publicId)
+                    viewModel.includeNewUser(
+                        displayName = userProfile.displayName ?: "",
+                        tag = userProfile.tag ?: ""
                     )
                 }
             )
         }
-        BrandHeaderButton(
-            isLoading = responseInclusion.value is BaseResponse.Loading,
-            text = stringResource(Res.string.network_inclusion_action_2),
-            onClick = {
-                viewModel.includeNewUser(
-                    displayName = userProfile.displayName ?: "",
-                    tag = userProfile.tag ?: ""
-                )
-            }
-        )
     }
 }
