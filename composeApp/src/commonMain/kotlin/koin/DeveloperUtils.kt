@@ -75,7 +75,6 @@ object DeveloperUtils {
                 if(key == HttpHeaders.XRequestId) id = values.firstOrNull()
             }
 
-            println("developer_utils request, url: ${request.url}")
             if(id == null) return@withContext null
             HttpCall(
                 headers = headers,
@@ -89,7 +88,6 @@ object DeveloperUtils {
 
     suspend fun processResponse(response: HttpResponse): HttpCall? {
         return withContext(Dispatchers.Default) {
-            println("developer_utils response, headers: ${response.request.headers.entries()}, ${response.headers.entries()}")
             response.request.headers.entries().find {
                 it.key == HttpHeaders.XRequestId
             }?.value?.firstOrNull()?.let { id ->

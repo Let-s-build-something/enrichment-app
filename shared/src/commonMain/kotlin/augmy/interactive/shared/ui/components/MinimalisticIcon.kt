@@ -76,3 +76,33 @@ fun MinimalisticBrandIcon(
         tint = tint
     )
 }
+
+/**
+ * Clickable basic Icon with vector image with minimalistic size
+ */
+@Composable
+fun MinimalisticComponentIcon(
+    modifier: Modifier = Modifier,
+    imageVector: ImageVector,
+    tint: Color = LocalTheme.current.colors.secondary,
+    contentDescription: String? = null,
+    onTap: ((Offset) -> Unit)? = null
+) {
+    Icon(
+        modifier = modifier
+            .size(34.dp)
+            .then(if(onTap != null) {
+                Modifier.scalingClickable(onTap = onTap)
+            }else Modifier)
+            .border(
+                width = 0.5.dp,
+                color = tint,
+                shape = CircleShape
+            )
+            .clip(CircleShape)
+            .padding(5.dp),
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        tint = tint
+    )
+}

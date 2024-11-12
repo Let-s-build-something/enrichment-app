@@ -1,44 +1,40 @@
 package ui.account
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Handshake
+import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
+import augmy.composeapp.generated.resources.accessibility_share
 import augmy.composeapp.generated.resources.account_dashboard_sign_out
 import augmy.composeapp.generated.resources.account_dashboard_theme
 import augmy.composeapp.generated.resources.account_dashboard_theme_dark
@@ -56,14 +52,18 @@ import augmy.composeapp.generated.resources.account_settings_title_offline
 import augmy.composeapp.generated.resources.account_settings_title_online
 import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.account_username_empty
+import augmy.composeapp.generated.resources.action_link_copied
 import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
+import augmy.composeapp.generated.resources.network_action_share
 import augmy.composeapp.generated.resources.screen_account_title
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.ModalScreenContent
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
+import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
@@ -72,11 +72,13 @@ import augmy.interactive.shared.ui.components.rememberTabSwitchState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
-import base.tagToColor
-import components.AsyncSvgImage
 import components.RowSetting
+import components.UserProfileImage
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
+import koin.HttpDomain
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DialogPictureChange
@@ -260,20 +262,9 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
         mutableStateOf(false)
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "infiniteScaleBackground")
-    val liveScaleBackground by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = 7000
-                1.15f at 2500 using LinearEasing // Takes 2.5 seconds to reach 1.15f
-                1f at 7000 using LinearEasing // Takes 4.5 seconds to return to 1f
-            },
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "liveScaleBackground"
-    )
+    val clipboardManager = LocalClipboardManager.current
+    val snackbarHostState = LocalSnackbarHost.current
+    val coroutineScope = rememberCoroutineScope()
 
     if(isUsernameInEdit.value) {
         UsernameChangeLauncher {
@@ -289,29 +280,11 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
     }
 
     Box {
-        Box(
-            Modifier
-                .fillMaxWidth(.4f)
-                .aspectRatio(1f)
-                .scale(liveScaleBackground)
-                .background(
-                    color = tagToColor(currentUser.value?.tag) ?: LocalTheme.current.colors.tetrial,
-                    shape = CircleShape
-                )
-        )
-        AsyncSvgImage(
-            modifier = Modifier
-                .fillMaxWidth(.4f)
-                .aspectRatio(1f)
-                .clip(CircleShape)
-                .background(
-                    color = LocalTheme.current.colors.brandMain,
-                    shape = CircleShape
-                ),
-            model = try {
-                firebaseUser.value?.photoURL
-            }catch (e: NotImplementedError) { null },
-            contentDescription = null
+        UserProfileImage(
+            modifier = Modifier.fillMaxWidth(.4f),
+            animate = true,
+            model = try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
+            tag = currentUser.value?.tag
         )
         MinimalisticBrandIcon(
             modifier = Modifier
@@ -320,7 +293,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             onTap = {
                 isPictureInEdit.value = true
             },
-            imageVector = Icons.Outlined.Edit,
+            imageVector = Icons.Outlined.Brush,
             contentDescription = stringResource(Res.string.accessibility_change_avatar)
         )
     }
@@ -334,12 +307,38 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             text = currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty),
             style = LocalTheme.current.styles.subheading
         )
-        MinimalisticBrandIcon(
+        MinimalisticComponentIcon(
+            imageVector = Icons.Outlined.Edit,
+            contentDescription = stringResource(Res.string.accessibility_change_username),
             onTap = {
                 isUsernameInEdit.value = true
-            },
-            imageVector = Icons.Outlined.Edit,
-            contentDescription = stringResource(Res.string.accessibility_change_username)
+            }
+        )
+        MinimalisticComponentIcon(
+            modifier = Modifier.padding(start = 4.dp),
+            imageVector = Icons.Outlined.IosShare,
+            contentDescription = stringResource(Res.string.accessibility_share),
+            onTap = {
+                val url = HttpDomain + "/users/" + currentUser.value?.publicId
+                coroutineScope.launch {
+                    if(!shareLink(
+                            title = getString(Res.string.network_action_share),
+                            link = url
+                        )
+                    ) {
+                        clipboardManager.setText(buildAnnotatedString {
+                            withLink(LinkAnnotation.Url(url)) {
+                                append(url)
+                            }
+                        })
+                        snackbarHostState?.showSnackbar(
+                            message = getString(Res.string.action_link_copied)
+                        )
+                    }
+                }
+            }
         )
     }
 }
+
+expect fun shareLink(title: String, link: String): Boolean

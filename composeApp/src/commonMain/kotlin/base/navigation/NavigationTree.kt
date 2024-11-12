@@ -21,7 +21,7 @@ sealed class NavigationNode {
     /** screen for both login and signup */
     @Serializable
     data object Login: NavigationNode() {
-        override val deepLink: String = "/login"
+        override val deepLink: String = "login"
     }
 
     /** Easter-egg screen, just because */
@@ -39,13 +39,13 @@ sealed class NavigationNode {
         /** unique identifier of the recipient user */
         val userUid: String? = null
     ): NavigationNode() {
-        override val deepLink: String? = null
+        override val deepLink: String = "messages?conversation=$conversationUid&user=$userUid"
     }
 
     /** dashboard screen for user information and general user-related actions */
     @Serializable
     data object AccountDashboard: NavigationNode() {
-        override val deepLink: String = "/account/dashboard"
+        override val deepLink: String = "account/dashboard"
     }
 
     /** screen for managing social circle of this app, specific to the current user */
@@ -54,12 +54,22 @@ sealed class NavigationNode {
         val displayName: String? = null,
         val tag: String? = null
     ): NavigationNode() {
-        override val deepLink: String = "/network"
+        override val deepLink: String = "network"
     }
 
     /** home screen of the whole app */
     @Serializable
     data object Home: NavigationNode() {
-        override val deepLink: String = "/"
+        override val deepLink: String = ""
+    }
+
+    companion object {
+        val allNodes = listOf(
+            Login,
+            Water,
+            Conversation(),
+            AccountDashboard,
+            NetworkManagement()
+        )
     }
 }

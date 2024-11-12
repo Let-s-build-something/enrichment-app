@@ -1,19 +1,13 @@
 
 import android.app.Application
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Text
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowDecoration
 import androidx.compose.ui.window.WindowPlacement
@@ -31,9 +25,14 @@ import com.google.firebase.initialize
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 import koin.commonModule
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
+import ui.home.HomeViewModel
 import java.awt.Button
 import java.awt.Dialog
 import java.awt.Dimension
@@ -55,6 +54,7 @@ private var isAppInitialized = false
 @OptIn(ExperimentalComposeUiApi::class)
 
 fun main(args: Array<String>) = application {
+    var arguments: Array<String>? = args
     if(isAppInitialized.not()) {
         startKoin {
             modules(commonModule)
@@ -62,25 +62,8 @@ fun main(args: Array<String>) = application {
         initializeFirebase()
         isAppInitialized = true
     }
-
-    /*Dialog(Frame(), "arguments").apply {
-        layout = FlowLayout()
-        add(Label(args.joinToString(separator = ", ") + " ${System.getProperty("user.dir")}"))
-        add(
-            Button("Okay, FINE").apply {
-                addActionListener { dispose() }
-            }
-        )
-        setSize(1200, 300)
-        isAutoRequestFocus = true
-        isResizable = true
-        isVisible = true
-    }*/
     associateWithDomain()
 
-    val crashException = remember {
-        mutableStateOf<Throwable?>(null)
-    }
     val density = LocalDensity.current
     val toolkit = Toolkit.getDefaultToolkit()
 
@@ -110,17 +93,18 @@ fun main(args: Array<String>) = application {
                     addActionListener { dispose() }
                 }
             )
-            setSize(1200, 300)
+            setSize(1000, 500)
             isAutoRequestFocus = true
-            isResizable = true
+            isResizable = false
             isVisible = true
         }
         e.printStackTrace()
-        crashException.value = e
     }
 
     Window(
         onCloseRequest = {
+            unloadKoinModules(commonModule)
+            stopKoin()
             exitApplication()
         },
         state = rememberWindowState(
@@ -153,17 +137,15 @@ fun main(args: Array<String>) = application {
                 width = with(density) { containerSize.width.toDp() }.value.toInt()
             )
         ) {
-            Crossfade(targetState = crashException.value == null) {
-                if(it) {
-                    App()
-                }else {
-                    if(crashException.value != null) {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = "Error: ${crashException.value?.message}",
-                            fontSize = 30.sp
-                        )
-                    }
+            val viewModel: HomeViewModel = koinViewModel()
+
+            App(viewModel)
+
+            LaunchedEffect(arguments) {
+                delay(500)
+                arguments?.firstOrNull()?.let { arg ->
+                    viewModel.emitDeepLink(arg)
+                    arguments = null
                 }
             }
         }
@@ -250,23 +232,6 @@ private fun registerUriSchemeLinux() {
         e.printStackTrace()
     }
 }
-
-private fun createLinuxMimeTypeFile() {
-    val desktopFilePath = System.getProperty("user.home") + "/.local/share/applications/augmy.desktop"
-    val desktopFileContent = """
-        [Desktop Entry]
-        Name=Augmy
-        Exec=/path/to/Augmy %u
-        Type=Application
-        MimeType=x-scheme-handler/augmy
-        Terminal=false
-    """.trimIndent()
-
-    val desktopFile = File(desktopFilePath)
-    desktopFile.parentFile.mkdirs()
-    desktopFile.writeText(desktopFileContent)
-}
-
 
 /**
  * initializes Firebase, which is specific to JVM,

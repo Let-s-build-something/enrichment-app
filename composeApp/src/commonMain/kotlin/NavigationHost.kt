@@ -14,7 +14,6 @@ import ui.account.AccountDashboardScreen
 import ui.account.WaterPleaseScreen
 import ui.account.accountDashboardModule
 import ui.home.HomeScreen
-import ui.home.homeModule
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
 import ui.network.received.networkManagementModule
@@ -35,7 +34,6 @@ fun NavigationHost(
             LoginScreen()
         }
         composable<NavigationNode.Home> {
-            loadKoinModules(homeModule)
             HomeScreen()
         }
         composable<NavigationNode.Water> {

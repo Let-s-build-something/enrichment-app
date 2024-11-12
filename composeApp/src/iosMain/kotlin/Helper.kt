@@ -6,7 +6,13 @@ import cocoapods.GoogleSignIn.GIDConfiguration
 import cocoapods.GoogleSignIn.GIDSignIn
 import koin.commonModule
 import kotlinx.cinterop.ExperimentalForeignApi
+import org.koin.compose.getKoin
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.core.context.unloadKoinModules
+import org.koin.mp.KoinPlatform
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDelegateProtocol
 import platform.UIKit.registerForRemoteNotifications
@@ -19,15 +25,24 @@ import platform.UserNotifications.UNNotification
 import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNUserNotificationCenter
 import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
+import ui.home.HomeViewModel
 
 /**
  * initializes iOS app this includes:
  * koin
  */
-fun doAppInit() {
+fun onAppInitialized() {
     startKoin {
         modules(commonModule)
     }
+}
+
+/**
+ * Recycles iOS application
+ */
+fun onAppTerminate() {
+    unloadKoinModules(commonModule)
+    stopKoin()
 }
 
 /**
@@ -95,6 +110,6 @@ private fun configureFirebase(): Boolean {
 
 /** Called whenever iOS catches a new url routing to the app */
 fun onNewUrl(path: String) {
-    println("NEW_URL, path: $path")
-
+    val viewModel: HomeViewModel = KoinPlatform.getKoin().get()
+    viewModel.emitDeepLink(path)
 }

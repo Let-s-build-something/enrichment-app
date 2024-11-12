@@ -3,6 +3,7 @@ package augmy.interactive.shared.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -20,9 +21,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import future_shared_module.ext.scalingClickable
@@ -38,13 +37,16 @@ private fun HeaderButton(
     text: String = "",
     contentColor: Color,
     containerColor: Color,
-    endIconVector: ImageVector? = null,
+    showBorder: Boolean = false,
+    endImageVector: ImageVector? = null,
     additionalContent: @Composable RowScope.() -> Unit = {},
     isEnabled: Boolean = true,
-    textStyle: TextStyle? = null,
+    textStyle: TextStyle = LocalTheme.current.styles.category,
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
     onClick: () -> Unit = {}
 ) {
+    val density = LocalDensity.current
+
     val animContentColor by animateColorAsState(
         when {
             isEnabled -> contentColor
@@ -73,6 +75,15 @@ private fun HeaderButton(
                 color = animContainerColor,
                 shape = shape
             )
+            .then(
+                if(showBorder) {
+                    Modifier.border(
+                        width = .5.dp,
+                        color = animContentColor,
+                        shape = shape
+                    )
+                }else Modifier
+            )
             .padding(
                 vertical = 14.dp,
                 horizontal = 24.dp
@@ -85,20 +96,19 @@ private fun HeaderButton(
                 modifier = Modifier
                     .padding(end = 6.dp),
                 text = text,
-                style = textStyle ?: TextStyle(
-                    fontSize = 16.sp,
-                    color = animContentColor,
-                    fontWeight = FontWeight.Bold
-                )
+                style = textStyle.copy(color = animContentColor)
             )
         }
-        if(endIconVector != null) {
+        if(endImageVector != null) {
             Icon(
-                endIconVector,
-                contentDescription = null,
-                tint = animContentColor,
                 modifier = Modifier
-                    .requiredSize(24.dp)
+                    .padding(start = 4.dp)
+                    .requiredSize(
+                        with(density) { textStyle.fontSize.toDp() }
+                    ),
+                imageVector = endImageVector,
+                contentDescription = null,
+                tint = animContentColor
             )
         }
         additionalContent()
@@ -115,7 +125,6 @@ fun ComponentHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    textStyle: TextStyle? = null,
     startIconVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
@@ -124,10 +133,10 @@ fun ComponentHeaderButton(
         modifier = modifier,
         text = text,
         shape = shape,
+        showBorder = true,
         onClick = onClick,
-        textStyle = textStyle,
         additionalContent = extraContent,
-        endIconVector = startIconVector,
+        endImageVector = startIconVector,
         contentColor = LocalTheme.current.colors.secondary,
         containerColor = LocalTheme.current.colors.backgroundLight
     )
@@ -143,7 +152,6 @@ fun ErrorHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    textStyle: TextStyle? = null,
     endIconVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
@@ -153,9 +161,8 @@ fun ErrorHeaderButton(
         text = text,
         shape = shape,
         onClick = onClick,
-        textStyle = textStyle,
         additionalContent = extraContent,
-        endIconVector = endIconVector,
+        endImageVector = endIconVector,
         contentColor = Color.White,
         containerColor = SharedColors.RED_ERROR
     )
@@ -179,14 +186,17 @@ fun BrandHeaderButton(
         text = text,
         isEnabled = isEnabled && isLoading.not(),
         onClick = onClick,
+        showBorder = isEnabled,
         additionalContent = {
             AnimatedVisibility(isLoading) {
                 val density = LocalDensity.current
-                // Loading indicator
+
                 CircularProgressIndicator(
                     modifier = Modifier
                         .padding(start = 12.dp)
-                        .requiredSize(with(density) { 16.sp.toDp() }),
+                        .requiredSize(
+                            with(density) { LocalTheme.current.styles.category.fontSize.toDp() }
+                        ),
                     color = LocalTheme.current.colors.brandMainDark,
                     trackColor = LocalTheme.current.colors.tetrial
                 )
@@ -194,5 +204,32 @@ fun BrandHeaderButton(
         },
         contentColor = LocalTheme.current.colors.tetrial,
         containerColor = LocalTheme.current.colors.brandMain
+    )
+}
+
+/**
+ * Item displaying collection and shortened information about it
+ * @param text text content
+ */
+@Preview
+@Composable
+fun ContrastHeaderButton(
+    modifier: Modifier = Modifier,
+    text: String = "",
+    isEnabled: Boolean = true,
+    endImageVector: ImageVector? = null,
+    contentColor: Color = LocalTheme.current.colors.brandMainDark,
+    containerColor: Color = LocalTheme.current.colors.tetrial,
+    onClick: () -> Unit = {}
+) {
+    HeaderButton(
+        modifier = modifier,
+        text = text,
+        isEnabled = isEnabled,
+        showBorder = isEnabled,
+        endImageVector = endImageVector,
+        onClick = onClick,
+        contentColor = contentColor,
+        containerColor = containerColor
     )
 }
