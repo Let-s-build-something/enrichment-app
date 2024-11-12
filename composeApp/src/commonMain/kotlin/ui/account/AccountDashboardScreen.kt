@@ -323,9 +323,6 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                 coroutineScope.launch {
                     if(!shareLink(
                             title = getString(Res.string.network_action_share),
-                            imageUrl = try {
-                                firebaseUser.value?.photoURL
-                            }catch (e: NotImplementedError) { null },
                             link = url
                         )
                     ) {
@@ -344,4 +341,4 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
     }
 }
 
-expect fun shareLink(title: String, imageUrl: String?, link: String): Boolean
+expect fun shareLink(title: String, link: String): Boolean

@@ -1,3 +1,3 @@
 package ui.account
 
-actual fun shareLink(title: String, imageUrl: String?, link: String) = false
+actual fun shareLink(title: String, link: String) = false

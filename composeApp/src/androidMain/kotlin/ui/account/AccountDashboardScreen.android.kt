@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import org.koin.mp.KoinPlatform.getKoin
 
-actual fun shareLink(title: String, imageUrl: String?, link: String): Boolean {
+actual fun shareLink(title: String, link: String): Boolean {
     val context: Context = getKoin().get()
 
     val share = Intent.createChooser(Intent().apply {

@@ -4,10 +4,8 @@ import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
 
-actual fun shareLink(title: String, imageUrl: String?, link: String): Boolean {
-    val itemsToShare = mutableListOf(title, link).apply {
-        if(imageUrl != null) add(imageUrl)
-    }
+actual fun shareLink(title: String, link: String): Boolean {
+    val itemsToShare = listOf(link)
 
     val activityViewController = UIActivityViewController(
         activityItems = itemsToShare,
