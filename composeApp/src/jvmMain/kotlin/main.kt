@@ -29,6 +29,8 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.home.HomeViewModel
 import java.awt.Button
@@ -101,6 +103,8 @@ fun main(args: Array<String>) = application {
 
     Window(
         onCloseRequest = {
+            unloadKoinModules(commonModule)
+            stopKoin()
             exitApplication()
         },
         state = rememberWindowState(

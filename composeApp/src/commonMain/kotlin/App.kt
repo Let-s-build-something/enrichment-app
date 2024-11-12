@@ -83,7 +83,7 @@ fun AppContent(
         "@augmy.org" // allow all JVM for now
     }?.endsWith("@augmy.org") == true
 
-    val modalDeepLink = rememberSaveable {
+    val modalDeepLink = rememberSaveable(viewModel) {
         mutableStateOf<String?>(null)
     }
 

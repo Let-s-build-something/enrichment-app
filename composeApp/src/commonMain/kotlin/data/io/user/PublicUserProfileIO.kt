@@ -15,5 +15,8 @@ data class PublicUserProfileIO(
     val publicId: String? = null,
 
     /** url of a photo of the current user, derived from FirebaseUser object */
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+
+    /** Whether the user's configuration is public */
+    val isPublic: Boolean? = null
 )

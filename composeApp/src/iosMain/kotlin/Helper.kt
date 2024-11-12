@@ -10,6 +10,8 @@ import org.koin.compose.getKoin
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDelegateProtocol
@@ -29,10 +31,18 @@ import ui.home.HomeViewModel
  * initializes iOS app this includes:
  * koin
  */
-fun doAppInit() {
+fun onAppInitialized() {
     startKoin {
         modules(commonModule)
     }
+}
+
+/**
+ * Recycles iOS application
+ */
+fun onAppTerminate() {
+    unloadKoinModules(commonModule)
+    stopKoin()
 }
 
 /**

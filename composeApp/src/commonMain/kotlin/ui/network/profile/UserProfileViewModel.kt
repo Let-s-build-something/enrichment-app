@@ -2,8 +2,11 @@ package ui.network.profile
 
 import androidx.lifecycle.viewModelScope
 import data.io.base.BaseResponse
-import data.io.user.NetworkItemIO
+import data.io.social.network.request.CircleRequestResponse
+import data.io.social.network.request.CirclingRequest
+import data.io.user.PublicUserProfileIO
 import data.shared.SharedViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -20,15 +23,35 @@ class UserProfileViewModel(
     private val repository: UserProfileRepository
 ): SharedViewModel() {
 
-    private val _response = MutableStateFlow<BaseResponse<NetworkItemIO>>(BaseResponse.Loading)
+    private val _responseProfile = MutableStateFlow<BaseResponse<PublicUserProfileIO>>(BaseResponse.Idle)
 
     /** Result of the requested user profile */
-    val response = _response.asStateFlow()
+    val responseProfile = _responseProfile.asStateFlow()
+
+    private val _responseInclusion = MutableStateFlow<BaseResponse<CircleRequestResponse>>(BaseResponse.Idle)
+
+    /** Result of the requested user profile */
+    val responseInclusion = _responseInclusion.asStateFlow()
 
     /** Makes a request for a user profile */
     fun getUserProfile(publicId: String) {
+        _responseInclusion.value = BaseResponse.Idle
+        _responseProfile.value = BaseResponse.Loading
         viewModelScope.launch {
-            _response.value = repository.getUserProfile(publicId)
+            _responseProfile.value = repository.getUserProfile(publicId)
+        }
+    }
+
+    /** Makes a request for user's inclusion to one's social network */
+    fun includeNewUser(displayName: String, tag: String) {
+        _responseInclusion.value = BaseResponse.Loading
+        viewModelScope.launch {
+            delay(200)
+            _responseInclusion.emit(
+                repository.includeNewUser(
+                    CirclingRequest(displayName = displayName, tag = tag)
+                )
+            )
         }
     }
 }

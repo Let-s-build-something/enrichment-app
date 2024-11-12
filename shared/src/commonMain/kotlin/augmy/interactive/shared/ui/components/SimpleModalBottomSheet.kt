@@ -13,15 +13,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
+import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Simple bottom sheet layout
@@ -31,7 +33,13 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 fun SimpleModalBottomSheet(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    sheetState: SheetState = rememberStandardBottomSheetState(
+        confirmValueChange = {
+            it != SheetValue.PartiallyExpanded
+        },
+        initialValue = SheetValue.Expanded,
+        skipHiddenState = false
+    ),
     windowInsets: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
     dragHandle: @Composable (() -> Unit)? = {
         BottomSheetDefaults.DragHandle(color = LocalTheme.current.colors.secondary)
@@ -42,11 +50,18 @@ fun SimpleModalBottomSheet(
 ) {
     // hotfix, native onDismissRequest doesn't work when collapsing by drag
     val previousValue = remember { mutableStateOf(sheetState.currentValue) }
-    LaunchedEffect(sheetState.currentValue) {
-        if(previousValue.value != SheetValue.Hidden && sheetState.currentValue == SheetValue.Hidden) {
-            onDismissRequest()
+
+    LaunchedEffect(Unit) {
+        sheetState.show()
+    }
+
+    LaunchedEffect(sheetState) {
+        snapshotFlow { sheetState.currentValue }.collectLatest { currentState ->
+            if(previousValue.value != SheetValue.Hidden && currentState == SheetValue.Hidden) {
+                onDismissRequest()
+            }
+            previousValue.value = currentState
         }
-        previousValue.value = sheetState.currentValue
     }
 
     ModalBottomSheet(

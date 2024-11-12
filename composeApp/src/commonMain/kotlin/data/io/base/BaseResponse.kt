@@ -8,6 +8,8 @@ import kotlinx.serialization.Serializable
 
 sealed class BaseResponse<out T> {
 
+    data object Idle: BaseResponse<Nothing>()
+
     data object Loading: BaseResponse<Nothing>()
 
     data class Success<out T>(val data: T) : BaseResponse<T>()
