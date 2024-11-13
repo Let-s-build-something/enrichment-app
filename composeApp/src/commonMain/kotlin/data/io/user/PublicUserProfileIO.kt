@@ -18,5 +18,8 @@ data class PublicUserProfileIO(
     val photoUrl: String? = null,
 
     /** Whether the user's configuration is public */
-    val isPublic: Boolean? = null
+    val isPublic: Boolean? = null,
+
+    /** Whether the user is a mutually included */
+    val isMutual: Boolean? = null
 )

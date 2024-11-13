@@ -106,6 +106,7 @@
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Block</string>
+  <string name="button_search">Search</string>
 
   <string name="action_link_copied">Link successfully copied!</string>
 

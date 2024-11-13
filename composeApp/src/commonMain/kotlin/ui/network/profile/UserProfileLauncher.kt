@@ -50,17 +50,20 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.context.loadKoinModules
 
 /** Launcher for quick actions relevant to a single user other than currently signed in */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileLauncher(
     modifier: Modifier = Modifier,
-    viewModel: UserProfileViewModel = koinViewModel(),
     onDismissRequest: () -> Unit,
     publicId: String? = null,
     userProfile: PublicUserProfileIO? = null
 ) {
+    loadKoinModules(userProfileModule)
+    val viewModel: UserProfileViewModel = koinViewModel()
+
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
     val pictureSize = LocalScreenSize.current.width.div(5).coerceIn(
@@ -177,9 +180,7 @@ private fun DataContent(
     val currentUser = viewModel.currentUser.collectAsState()
 
     Row(
-        modifier = Modifier
-            .padding(top = 14.dp, start = 8.dp)
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -208,7 +209,7 @@ private fun DataContent(
                 .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.End)
         ) {
-            if(userProfile.isPublic == true) {
+            if(userProfile.isPublic == true || userProfile.isMutual == true) {
                 ContrastHeaderButton(
                     text = stringResource(Res.string.network_inclusion_success_action),
                     endImageVector = Icons.AutoMirrored.Outlined.Send,
@@ -220,16 +221,19 @@ private fun DataContent(
                     }
                 )
             }
-            BrandHeaderButton(
-                isLoading = responseInclusion.value is BaseResponse.Loading,
-                text = stringResource(Res.string.network_inclusion_action_2),
-                onClick = {
-                    viewModel.includeNewUser(
-                        displayName = userProfile.displayName ?: "",
-                        tag = userProfile.tag ?: ""
-                    )
-                }
-            )
+            // TODO check whether the user is already included from local database
+            if(userProfile.isMutual != true) {
+                BrandHeaderButton(
+                    isLoading = responseInclusion.value is BaseResponse.Loading,
+                    text = stringResource(Res.string.network_inclusion_action_2),
+                    onClick = {
+                        viewModel.includeNewUser(
+                            displayName = userProfile.displayName ?: "",
+                            tag = userProfile.tag ?: ""
+                        )
+                    }
+                )
+            }
         }
     }
 }

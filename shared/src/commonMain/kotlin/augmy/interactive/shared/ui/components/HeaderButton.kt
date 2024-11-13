@@ -203,7 +203,7 @@ fun BrandHeaderButton(
             }
         },
         contentColor = LocalTheme.current.colors.tetrial,
-        containerColor = LocalTheme.current.colors.brandMain
+        containerColor = LocalTheme.current.colors.brandMainDark
     )
 }
 

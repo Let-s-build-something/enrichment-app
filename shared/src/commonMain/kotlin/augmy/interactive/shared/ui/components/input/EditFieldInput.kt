@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -62,6 +63,7 @@ fun EditFieldInput(
     hint: String? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     leadingIcon: ImageVector? = null,
+    shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
     suggestText: String? = null,
     isCorrect: Boolean = false,
@@ -93,14 +95,14 @@ fun EditFieldInput(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
-                    if (isFocused.value) 1.dp else 0.25.dp,
-                    controlColor,
-                    LocalTheme.current.shapes.rectangularActionShape
+                    width = if (isFocused.value) 1.dp else 0.25.dp,
+                    color = controlColor,
+                    shape = shape
                 )
                 .onFocusChanged {
                     isFocused.value = it.isFocused
                 },
-            shape = LocalTheme.current.shapes.rectangularActionShape,
+            shape = shape,
             value = text.value,
             paddingValues = paddingValues,
             minLines = minLines,
