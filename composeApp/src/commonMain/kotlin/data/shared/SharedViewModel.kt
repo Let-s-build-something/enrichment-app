@@ -2,12 +2,12 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ext.ifNull
 import com.russhwolf.settings.Settings
+import data.io.app.SettingsKeys
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.storage.Data
-import koin.DeveloperUtils
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -15,8 +15,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedViewModel: ViewModel() {
@@ -30,20 +28,7 @@ open class SharedViewModel: ViewModel() {
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<Settings>()
 
-
-    //======================================== developer tools ==========================================
-
-    /** developer console size */
-    val developerConsoleSize = sharedDataManager.developerConsoleSize.asStateFlow()
-
-    /** log data associated with this apps' http calls */
-    val httpLogData = sharedDataManager.httpLogData.asStateFlow()
-
-    /** Current host override if there is any */
-    val hostOverride = sharedDataManager.hostOverride.asStateFlow()
-
-
-    //======================================== variables ==========================================
+    //======================================== public variables ==========================================
 
     /** Current configuration specific to this app */
     val localSettings = sharedDataManager.localSettings.asStateFlow()
@@ -58,8 +43,12 @@ open class SharedViewModel: ViewModel() {
     /** currently signed in user */
     val currentUser = sharedDataManager.currentUser.asStateFlow()
 
+    private val _isToolbarExpanded = MutableStateFlow(
+        settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
+    )
+
     /** whether toolbar is currently expanded */
-    val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
+    val isToolbarExpanded = _isToolbarExpanded.asStateFlow()
 
 
     //======================================== functions ==========================================
@@ -67,12 +56,8 @@ open class SharedViewModel: ViewModel() {
 
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {
-        sharedDataManager.isToolbarExpanded.value = expand
-    }
-
-    /** Changes the state of the developer console */
-    fun changeDeveloperConsole(size: Float = developerConsoleSize.value) {
-        sharedDataManager.developerConsoleSize.value = size
+        _isToolbarExpanded.value = expand
+        settings.putBoolean(SettingsKeys.KEY_TOOLBAR_EXPANDED, expand)
     }
 
     /** Logs out the currently signed in user */
@@ -92,25 +77,6 @@ open class SharedViewModel: ViewModel() {
         viewModelScope.launch {
             //TODO send token to BE
         }
-    }
-
-    /** Overrides current host */
-    fun changeHost(host: String) {
-        sharedDataManager.hostOverride.value = host
-    }
-
-    /** appends new or updates existing http log */
-    @OptIn(ExperimentalUuidApi::class)
-    fun appendHttpLog(call: DeveloperUtils.HttpCall?) {
-        if(call == null) return
-        sharedDataManager.httpLogData.value = DeveloperUtils.HttpLogData(
-            id = Uuid.random().toString(),
-            httpCalls = sharedDataManager.httpLogData.value.httpCalls.apply {
-                find { it.id == call.id }?.update(call).ifNull {
-                    add(call)
-                }
-            }
-        )
     }
 }
 

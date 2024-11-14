@@ -9,7 +9,7 @@ import augmy.interactive.shared.ui.theme.ThemeShapes
 
 /** Styles specific to main app theme [LocalTheme.current] */
 class AppThemeShapes: ThemeShapes {
-    override val betweenItemsSpace: Dp = 8.dp
+    override val betweenItemsSpace: Dp = 10.dp
     override val iconSizeSmall: Dp = 32.dp
     override val iconSizeMedium: Dp = 48.dp
     override val iconSizeLarge: Dp = 64.dp

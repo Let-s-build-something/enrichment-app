@@ -10,8 +10,10 @@ import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
@@ -32,9 +34,11 @@ import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.account.shareProfile
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+/** Layout displaying currently pending requests for inclusion to social circles */
 @OptIn(ExperimentalUuidApi::class)
 @Composable
 fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()) {
@@ -43,6 +47,8 @@ fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
 
     val snackbarHostState = LocalSnackbarHost.current
+    val clipboardManager = LocalClipboardManager.current
+    val coroutineScope = rememberCoroutineScope()
     val isLoadingInitialPage = requests.loadState.refresh is LoadState.Loading
 
     LaunchedEffect(Unit) {
@@ -77,7 +83,12 @@ fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()
                         description = stringResource(Res.string.network_received_empty_description),
                         action = stringResource(Res.string.network_received_empty_action),
                         onClick = {
-                            //TODO shareable profile
+                            shareProfile(
+                                publicId = viewModel.currentUser.value?.publicId,
+                                snackbarHostState = snackbarHostState,
+                                clipboardManager = clipboardManager,
+                                coroutineScope = coroutineScope
+                            )
                         }
                     )
                 }

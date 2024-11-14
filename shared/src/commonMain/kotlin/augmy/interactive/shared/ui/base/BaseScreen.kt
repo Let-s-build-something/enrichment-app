@@ -381,4 +381,4 @@ val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
 val LocalNavController = staticCompositionLocalOf<NavHostController?> { null }
 
 /** Custom on back pressed provided by parent */
-val LocalOnBackPressDispatcher = staticCompositionLocalOf<(() -> Unit)?> { null }
+val LocalBackPressDispatcher = staticCompositionLocalOf<BackPressDispatcher?> { null }

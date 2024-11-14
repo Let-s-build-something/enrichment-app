@@ -69,7 +69,8 @@ import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.components.rememberTabSwitchState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import data.shared.SharedViewModel
+import data.shared.DeveloperConsoleViewModel
+import data.shared.developerConsoleModule
 import future_shared_module.ext.scalingClickable
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
@@ -79,9 +80,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.context.loadKoinModules
 
 @Composable
-fun DeveloperContent(viewModel: SharedViewModel = koinViewModel()) {
+fun DeveloperContent() {
+    loadKoinModules(developerConsoleModule)
+    val viewModel: DeveloperConsoleViewModel = koinViewModel()
+
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
@@ -153,9 +158,9 @@ fun DeveloperContent(viewModel: SharedViewModel = koinViewModel()) {
 }
 
 @Composable
-private fun ColumnScope.InformationContent(viewModel: SharedViewModel, isCompact: Boolean) {
+private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel, isCompact: Boolean) {
     val currentUser = viewModel.currentUser.collectAsState()
-    val firebaseUser = viewModel.firebaseUser.collectAsState()
+    //val firebaseUser = viewModel.firebaseUser.collectAsState()
     val localSettings = viewModel.localSettings.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()

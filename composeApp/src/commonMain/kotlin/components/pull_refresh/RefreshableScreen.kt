@@ -41,6 +41,7 @@ fun RefreshableScreen(
     onBackPressed: () -> Boolean = { true },
     onRefresh: () -> Unit = {},
     actionIcons: (@Composable (expanded: Boolean) -> Unit)? = null,
+    showDefaultActions: Boolean = actionIcons == null,
     onNavigationIconClick: (() -> Unit)? = null,
     appBarVisible: Boolean = true,
     contentColor: Color = Color.Transparent,
@@ -92,6 +93,7 @@ fun RefreshableScreen(
         subtitle = subtitle,
         onBackPressed = onBackPressed,
         actionIcons = actionIcons,
+        showDefaultActions = showDefaultActions,
         contentModifier = Modifier
             .graphicsLayer {
                 translationY = indicatorOffset.value

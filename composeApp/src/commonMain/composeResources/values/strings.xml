@@ -7,6 +7,8 @@
   <string name="screen_water_please">Water, please!</string>
   <string name="screen_account_logout">I\'m outta here!</string>
   <string name="screen_network_management">Your social network</string>
+  <string name="screen_search_network">Search</string>
+  <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
 
   <string name="navigate_home">Back</string>
@@ -96,10 +98,20 @@
   <string name="network_action_circle_move">Circle move</string>
   <string name="network_action_share">Share your profile, so that others can include you to their social circles.</string>
 
+  <string name="category_family">Family</string>
+  <string name="category_peers">Peers</string>
+  <string name="category_community">Community</string>
+  <string name="category_contacts">Contacts</string>
+  <string name="category_public">Public</string>
+
+  <string name="leave_app_dialog_title">Aboutta outta here</string>
+  <string name="leave_app_dialog_message">Are you sure you want to leave this app?</string>
+  <string name="leave_app_dialog_show_again">Don't show this message again</string>
+
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
 
-
+  <string name="button_confirm">Confirm</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
   <string name="button_add_to">Add to</string>
@@ -107,6 +119,7 @@
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Block</string>
   <string name="button_search">Search</string>
+  <string name="button_tune">Tune</string>
 
   <string name="action_link_copied">Link successfully copied!</string>
 

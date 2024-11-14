@@ -17,6 +17,8 @@ import androidx.compose.ui.window.rememberWindowState
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.app_name
 import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ui.base.BackPressDispatcher
+import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
@@ -24,6 +26,7 @@ import com.google.firebase.FirebasePlatform
 import com.google.firebase.initialize
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
+import data.shared.AppServiceViewModel
 import koin.commonModule
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
@@ -32,7 +35,6 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
-import ui.home.HomeViewModel
 import java.awt.Button
 import java.awt.Dialog
 import java.awt.Dimension
@@ -46,20 +48,22 @@ import java.io.StringWriter
 import javax.swing.JScrollPane
 import javax.swing.JTextArea
 
-
 // paranoid check
 private var isAppInitialized = false
 
 /** Initialization of the Jvm application. */
 @OptIn(ExperimentalComposeUiApi::class)
-
 fun main(args: Array<String>) = application {
     var arguments: Array<String>? = args
     if(isAppInitialized.not()) {
+        initializeFirebase(
+            settings = {
+                KoinPlatform.getKoin().get<Settings>()
+            }
+        )
         startKoin {
             modules(commonModule)
         }
-        initializeFirebase()
         isAppInitialized = true
     }
     associateWithDomain()
@@ -101,11 +105,23 @@ fun main(args: Array<String>) = application {
         e.printStackTrace()
     }
 
-    Window(
-        onCloseRequest = {
+    val backPressDispatcher = object: BackPressDispatcher {
+        var listener: (() -> Unit)? = null
+
+        override fun addOnBackPressedListener(listener: () -> Unit) {
+            this.listener = listener
+        }
+
+        override fun executeBackPress() {
             unloadKoinModules(commonModule)
             stopKoin()
             exitApplication()
+        }
+    }
+
+    Window(
+        onCloseRequest = {
+            backPressDispatcher.listener?.invoke()
         },
         state = rememberWindowState(
             placement = WindowPlacement.Floating,
@@ -132,12 +148,13 @@ fun main(args: Array<String>) = application {
         val containerSize = LocalWindowInfo.current.containerSize
 
         CompositionLocalProvider(
+            LocalBackPressDispatcher provides backPressDispatcher,
             LocalScreenSize provides IntSize(
                 height = with(density) { containerSize.height.toDp() }.value.toInt(),
                 width = with(density) { containerSize.width.toDp() }.value.toInt()
             )
         ) {
-            val viewModel: HomeViewModel = koinViewModel()
+            val viewModel: AppServiceViewModel = koinViewModel()
 
             App(viewModel)
 
@@ -237,15 +254,15 @@ private fun registerUriSchemeLinux() {
  * initializes Firebase, which is specific to JVM,
  * see https://github.com/GitLiveApp/firebase-java-sdk?tab=readme-ov-file#initializing-the-sdk
  */
-private fun initializeFirebase(setting: Settings = KoinPlatform.getKoin().get<Settings>()) {
+private fun initializeFirebase(settings: () -> Settings) {
     FirebasePlatform.initializeFirebasePlatform(
         object : FirebasePlatform() {
             override fun store(key: String, value: String) {
-                setting[key] = value
+                settings()[key] = value
             }
-            override fun retrieve(key: String) = setting.getString(key, "").ifEmpty { null }
+            override fun retrieve(key: String) = settings().getString(key, "").ifEmpty { null }
             override fun clear(key: String) {
-                setting.remove(key)
+                settings().remove(key)
             }
             override fun log(msg: String) = println(msg)
         }

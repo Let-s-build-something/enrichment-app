@@ -18,5 +18,6 @@ object Colors {
     val HunterGreen16: Color = Color(0x29365E32)
     val Asparagus: Color = Color(0xFF81A263)
     val Flax: Color = Color(0xFFE7D37F)
+    val DutchWhite: Color = Color(0xFFF3E9BF)
     val AtomicTangerine: Color = Color(0xFFFD9B63)
 }

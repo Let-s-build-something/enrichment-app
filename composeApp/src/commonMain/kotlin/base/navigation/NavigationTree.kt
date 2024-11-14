@@ -48,6 +48,18 @@ sealed class NavigationNode {
         override val deepLink: String = "account/dashboard"
     }
 
+    /** screen for searching within one's account, preferences, and settings */
+    @Serializable
+    data object SearchAccount: NavigationNode() {
+        override val deepLink: String = "account/search"
+    }
+
+    /** Screen for searching within one's network */
+    @Serializable
+    data object SearchNetwork: NavigationNode() {
+        override val deepLink: String = "network/search"
+    }
+
     /** screen for managing social circle of this app, specific to the current user */
     @Serializable
     data class NetworkManagement(

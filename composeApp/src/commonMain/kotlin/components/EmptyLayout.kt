@@ -4,9 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,9 +47,9 @@ fun EmptyLayout(
 
         Image(
             modifier = Modifier
-                .padding(top = 16.dp)
+                .padding(top = 24.dp)
                 .fillMaxWidth()
-                .aspectRatio(2f, matchHeightConstraintsFirst = false),
+                .requiredHeight(200.dp),
             painter = rememberLottiePainter(
                 composition = composition,
                 reverseOnRepeat = true,

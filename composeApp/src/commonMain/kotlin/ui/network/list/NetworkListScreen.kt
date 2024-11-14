@@ -33,7 +33,6 @@ import components.OptionsLayoutAction
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
-import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -61,7 +60,7 @@ fun NetworkListContent(
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.Add -> {
+            OptionsLayoutAction.AddTo -> {
                 // TODO
             }
             OptionsLayoutAction.Block -> {
@@ -123,7 +122,7 @@ fun NetworkListContent(
                 }
             }
             items(
-                count = if(networkItems.itemCount == 0 && isLoadingInitialPage) SHIMMER_ITEM_COUNT else networkItems.itemCount,
+                count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
                 key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
             ) { index ->
                 networkItems.getOrNull(index).let { data ->
@@ -164,4 +163,5 @@ fun NetworkListContent(
     }
 }
 
-private const val SHIMMER_ITEM_COUNT = 10
+/** Number of network items within one screen to be shimmered */
+const val NETWORK_SHIMMER_ITEM_COUNT = 20

@@ -1,6 +1,7 @@
 package koin
 
 import augmy.interactive.com.BuildKonfig
+import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpResponseValidator
@@ -29,6 +30,7 @@ internal expect fun httpClient(): HttpClient
 @OptIn(ExperimentalUuidApi::class)
 internal fun httpClientFactory(
     sharedViewModel: SharedViewModel,
+    developerViewModel: DeveloperConsoleViewModel?,
     json: Json
 ): HttpClient {
     return httpClient().config {
@@ -42,7 +44,7 @@ internal fun httpClientFactory(
                 headers.append(HttpHeaders.IdToken, idToken)
             }
 
-            host = sharedViewModel.hostOverride.value ?: BuildKonfig.HttpsHostName
+            host = developerViewModel?.hostOverride?.value ?: BuildKonfig.HttpsHostName
             url {
                 protocol = URLProtocol.HTTPS
             }
@@ -57,7 +59,7 @@ internal fun httpClientFactory(
             sanitizeHeader { header -> header == HttpHeaders.Authorization }
         }
         ResponseObserver { response ->
-            sharedViewModel.appendHttpLog(
+            developerViewModel?.appendHttpLog(
                 DeveloperUtils.processResponse(response)
             )
         }
@@ -72,7 +74,7 @@ internal fun httpClientFactory(
         }
     }.apply {
         plugin(HttpSend).intercept { request ->
-            sharedViewModel.appendHttpLog(
+            developerViewModel?.appendHttpLog(
                 DeveloperUtils.processRequest(request)
             )
             execute(request)

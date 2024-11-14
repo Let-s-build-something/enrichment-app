@@ -16,7 +16,9 @@ import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.IosShare
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
@@ -58,6 +61,7 @@ import augmy.composeapp.generated.resources.button_yes
 import augmy.composeapp.generated.resources.network_action_share
 import augmy.composeapp.generated.resources.screen_account_title
 import augmy.composeapp.generated.resources.screen_network_management
+import augmy.composeapp.generated.resources.screen_search_preferences
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.ModalScreenContent
@@ -77,6 +81,7 @@ import components.UserProfileImage
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
 import koin.HttpDomain
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -124,6 +129,13 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
     BrandBaseScreen(
         title = stringResource(Res.string.screen_account_title),
         actionIcons = { isExpanded ->
+            ActionBarIcon(
+                text = if(isExpanded) stringResource(Res.string.screen_search_preferences) else null,
+                imageVector = Icons.Outlined.Search,
+                onClick = {
+                    navController?.navigate(NavigationNode.SearchAccount)
+                }
+            )
             ActionBarIcon(
                 text = if(isExpanded) stringResource(Res.string.screen_network_management) else null,
                 imageVector = Icons.Outlined.Handshake,
@@ -319,25 +331,40 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             imageVector = Icons.Outlined.IosShare,
             contentDescription = stringResource(Res.string.accessibility_share),
             onTap = {
-                val url = HttpDomain + "/users/" + currentUser.value?.publicId
-                coroutineScope.launch {
-                    if(!shareLink(
-                            title = getString(Res.string.network_action_share),
-                            link = url
-                        )
-                    ) {
-                        clipboardManager.setText(buildAnnotatedString {
-                            withLink(LinkAnnotation.Url(url)) {
-                                append(url)
-                            }
-                        })
-                        snackbarHostState?.showSnackbar(
-                            message = getString(Res.string.action_link_copied)
-                        )
-                    }
-                }
+                shareProfile(
+                    coroutineScope = coroutineScope,
+                    publicId = currentUser.value?.publicId,
+                    clipboardManager = clipboardManager,
+                    snackbarHostState = snackbarHostState
+                )
             }
         )
+    }
+}
+
+/** Shares current user's profile */
+fun shareProfile(
+    coroutineScope: CoroutineScope,
+    publicId: String?,
+    clipboardManager: ClipboardManager,
+    snackbarHostState: SnackbarHostState?
+) {
+    val url = "$HttpDomain/users/$publicId"
+    coroutineScope.launch {
+        if(!shareLink(
+                title = getString(Res.string.network_action_share),
+                link = url
+            )
+        ) {
+            clipboardManager.setText(buildAnnotatedString {
+                withLink(LinkAnnotation.Url(url)) {
+                    append(url)
+                }
+            })
+            snackbarHostState?.showSnackbar(
+                message = getString(Res.string.action_link_copied)
+            )
+        }
     }
 }
 

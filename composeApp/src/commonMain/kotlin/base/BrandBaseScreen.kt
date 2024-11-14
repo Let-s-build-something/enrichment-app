@@ -9,8 +9,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import augmy.interactive.shared.ui.base.BaseScreen
+import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.base.LocalOnBackPressDispatcher
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -48,6 +48,7 @@ fun BrandBaseScreen(
     subtitle: String? = null,
     onBackPressed: () -> Boolean = { true },
     actionIcons: (@Composable (expanded: Boolean) -> Unit)? = null,
+    showDefaultActions: Boolean = actionIcons == null,
     onNavigationIconClick: (() -> Unit)? = null,
     contentModifier: Modifier = Modifier,
     appBarVisible: Boolean = true,
@@ -59,7 +60,7 @@ fun BrandBaseScreen(
 ) {
     val sharedViewModel: SharedViewModel = koinViewModel()
     val navController = LocalNavController.current
-    val onBackPressedDispatcher = LocalOnBackPressDispatcher.current
+    val onBackPressedDispatcher = LocalBackPressDispatcher.current
 
     val currentUser = sharedViewModel.firebaseUser.collectAsState(null)
 
@@ -76,12 +77,16 @@ fun BrandBaseScreen(
         else -> null
     }
 
-    val actions = actionIcons ?: { expanded ->
-        DefaultAppBarActions(
-            isUserSignedIn = currentUser.value != null,
-            userPhotoUrl = try { currentUser.value?.photoURL } catch (e: NotImplementedError) { null },
-            expanded = expanded
-        )
+    val actions: @Composable (expanded: Boolean) -> Unit = { expanded ->
+        actionIcons?.invoke(expanded)
+
+        if(showDefaultActions) {
+            DefaultAppBarActions(
+                isUserSignedIn = currentUser.value != null,
+                userPhotoUrl = try { currentUser.value?.photoURL } catch (e: NotImplementedError) { null },
+                expanded = expanded
+            )
+        }
     }
 
     BaseScreen(
@@ -95,7 +100,7 @@ fun BrandBaseScreen(
         contentColor = contentColor,
         onNavigationIconClick = {
             navIconClick?.invoke() ?: if(onBackPressed()) {
-                onBackPressedDispatcher?.invoke() ?: navController?.popBackStack()
+                onBackPressedDispatcher?.executeBackPress() ?: navController?.popBackStack()
             } else { }
         },
         floatingActionButtonPosition = floatingActionButtonPosition,

@@ -29,7 +29,7 @@ fun AlertDialog(
     message: String,
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
-    extraContent: @Composable (() -> Unit)? = null,
+    additionalContent: @Composable (() -> Unit)? = null,
     properties: DialogProperties = dismissibleDialogProperties,
     onDismissRequest: () -> Unit,
     icon: ImageVector,
@@ -67,7 +67,7 @@ fun AlertDialog(
                         color = LocalTheme.current.colors.primary
                     )
                 )
-                extraContent?.invoke()
+                additionalContent?.invoke()
             }
         },
         onDismissRequest = {

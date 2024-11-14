@@ -45,7 +45,7 @@ open class DefaultThemeStyles: ThemeStyle {
             @Composable get() = Font(Res.font.quicksand_medium)
 
         @JvmStatic
-        protected val fontQuicksandSemiBold
+        val fontQuicksandSemiBold
             @Composable get() = Font(Res.font.quicksand_semi_bold)
     }
 

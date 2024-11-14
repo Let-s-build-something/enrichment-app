@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
@@ -14,7 +15,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import augmy.interactive.shared.ui.base.BackPressDispatcher
+import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import data.shared.AppServiceViewModel
 import io.github.vinceglb.filekit.core.FileKit
 import koin.commonModule
 import org.koin.android.ext.android.getKoin
@@ -23,7 +27,6 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
-import ui.home.HomeViewModel
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -62,10 +65,27 @@ class MainActivity: ComponentActivity() {
         FileKit.init(this)
         askForPermissions()
 
+        val backPressDispatcher = object: BackPressDispatcher {
+            var listener: (() -> Unit)? = null
+
+            override fun addOnBackPressedListener(listener: () -> Unit) {
+                this.listener = listener
+            }
+
+            override fun executeBackPress() {
+                this@MainActivity.finish()
+            }
+        }
+
         setContent {
             val configuration = LocalConfiguration.current
 
+            BackHandler {
+                backPressDispatcher.listener?.invoke()
+            }
+
             CompositionLocalProvider(
+                LocalBackPressDispatcher provides backPressDispatcher,
                 LocalScreenSize provides IntSize(
                     height = configuration.screenHeightDp,
                     width = configuration.screenWidthDp
@@ -89,7 +109,7 @@ class MainActivity: ComponentActivity() {
 
     private fun handleDeepLink(intent: Intent) {
         if(intent.data != null) {
-            val viewModel: HomeViewModel = getKoin().get()
+            val viewModel: AppServiceViewModel = getKoin().get()
             viewModel.emitDeepLink(intent.data?.path)
         }
     }

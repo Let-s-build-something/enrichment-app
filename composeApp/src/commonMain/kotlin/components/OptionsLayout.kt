@@ -2,9 +2,7 @@ package components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -34,12 +32,13 @@ import augmy.composeapp.generated.resources.network_action_circle_move
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import base.theme.Colors
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** default option for items selection */
 val checkedOptionsItems = listOf(
-    OptionsLayoutAction.Add,
+    OptionsLayoutAction.AddTo,
     OptionsLayoutAction.SelectAll,
     OptionsLayoutAction.DeselectAll,
     OptionsLayoutAction.Block
@@ -92,6 +91,7 @@ fun OptionsLayout(
                     onClick = {
                         onClick(action)
                     },
+                    contentColor = Colors.DutchWhite,
                     containerColor = action.containerColor ?: LocalTheme.current.colors.brandMain
                 )
             }
@@ -108,13 +108,14 @@ fun OptionsLayout(
 sealed class OptionsLayoutAction(
     open val textRes: StringResource,
     open val leadingImageVector: ImageVector,
-    open val containerColor: Color? = null
+    open val containerColor: Color? = null,
+    open val textColor: Color? = null
 ) {
     data object CircleMove: OptionsLayoutAction(
         textRes = Res.string.network_action_circle_move,
         leadingImageVector = Icons.Outlined.TrackChanges
     )
-    data object Add: OptionsLayoutAction(
+    data object AddTo: OptionsLayoutAction(
         textRes = Res.string.button_add_to,
         leadingImageVector = Icons.Outlined.Add
     )
@@ -129,6 +130,7 @@ sealed class OptionsLayoutAction(
     data object Block: OptionsLayoutAction(
         textRes = Res.string.button_block,
         leadingImageVector = Icons.Outlined.Block,
-        containerColor = SharedColors.RED_ERROR
+        containerColor = SharedColors.RED_ERROR,
+        textColor = Colors.GrayLight
     )
 }
