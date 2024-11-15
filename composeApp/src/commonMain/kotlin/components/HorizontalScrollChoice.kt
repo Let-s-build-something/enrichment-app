@@ -190,22 +190,18 @@ fun <T> HorizontalScrollChoice(
                         visible = isSelected,
                         enter = when {
                             isSelectedBefore && isSelectedAfter -> expandIn()
-                            isSelectedBefore || index == 0 -> slideInHorizontally {
-                                -it
+                            isSelectedAfter || index == choices.lastIndex || (isSelectedAfter && index == 0) -> {
+                                slideInHorizontally { it }
                             }
-                            isSelectedAfter || index == choices.lastIndex -> slideInHorizontally {
-                                it
-                            }
+                            isSelectedBefore || index == 0 -> slideInHorizontally { -it }
                             else -> expandIn()
                         } + fadeIn(),
                         exit = when {
                             isSelectedBefore && isSelectedAfter -> shrinkOut()
-                            isSelectedBefore || index == 0 -> slideOutHorizontally {
-                                -it
+                            isSelectedAfter || index == choices.lastIndex || (isSelectedAfter && index == 0) -> {
+                                slideOutHorizontally { it }
                             }
-                            isSelectedAfter || index == choices.lastIndex -> slideOutHorizontally {
-                                it
-                            }
+                            isSelectedBefore || index == 0 -> slideOutHorizontally { -it }
                             else -> shrinkOut()
                         } + fadeOut()
                     ) {

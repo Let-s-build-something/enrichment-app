@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,7 +35,6 @@ import components.LoadingIndicator
 import components.OptionsLayout
 import components.OptionsLayoutAction
 import components.UserProfileImage
-import data.NetworkProximityCategory
 import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
 import future_shared_module.ext.brandShimmerEffect
@@ -53,6 +53,7 @@ fun NetworkItemRow(
     isChecked: Boolean? = null,
     isSelected: Boolean = false,
     data: NetworkItemIO?,
+    color: Color?,
     onAction: (OptionsLayoutAction) -> Unit = {},
     onCheckChange: (Boolean) -> Unit = {},
     response: BaseResponse<*>? = null
@@ -70,6 +71,7 @@ fun NetworkItemRow(
                             onCheckChange(true)
                         }
                     ),
+                color = color,
                 isChecked = isChecked,
                 isSelected = isSelected,
                 data = data,
@@ -86,15 +88,12 @@ fun NetworkItemRow(
 private fun ContentLayout(
     modifier: Modifier = Modifier,
     data: NetworkItemIO,
+    color: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
     onAction: (OptionsLayoutAction) -> Unit,
     response: BaseResponse<*>?
 ) {
-    val category = NetworkProximityCategory.entries.firstOrNull {
-        it.range.contains(data.proximity ?: 1f)
-    }
-
     Column(
         modifier
             .fillMaxWidth()
@@ -114,7 +113,7 @@ private fun ContentLayout(
                     Alignment.CenterVertically
                 }else Alignment.Top
             ) {
-                category?.color?.let { color ->
+                color?.let { color ->
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()

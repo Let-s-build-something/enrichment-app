@@ -20,4 +20,11 @@ object Colors {
     val Flax: Color = Color(0xFFE7D37F)
     val DutchWhite: Color = Color(0xFFF3E9BF)
     val AtomicTangerine: Color = Color(0xFFFD9B63)
+
+    val ProximityFamily: Color = Color(0xFFB57057)
+    val ProximityPeers: Color = Color(0xFFC7BA6F)
+    val ProximityCommunity: Color = Color(0xFFD5A497)
+    val ProximityContacts: Color = Color(0xFF7BA6B2)
+    val ProximityPublic: Color = Color(0xFFA3CCE6)
+
 }

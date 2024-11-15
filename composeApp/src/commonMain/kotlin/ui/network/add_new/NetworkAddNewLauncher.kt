@@ -128,7 +128,7 @@ fun NetworkAddNewLauncher(
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userUid = data.targetPublicId))
+                        navController?.navigate(NavigationNode.Conversation(userPublicId = data.targetPublicId))
                     }
                 }
                 navController?.previousBackStackEntry

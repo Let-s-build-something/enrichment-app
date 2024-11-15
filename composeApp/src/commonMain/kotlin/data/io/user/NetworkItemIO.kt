@@ -26,6 +26,9 @@ data class NetworkItemIO(
      */
     val proximity: Float? = null,
 
+    /** Override color for this network item */
+    val color: String? = null,
+
     /** Last mutual message with this individual */
     val lastMessage: String? = null
 )

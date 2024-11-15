@@ -33,6 +33,7 @@ import components.OptionsLayoutAction
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
+import data.NetworkProximityCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -50,6 +51,7 @@ fun NetworkListContent(
     val networkItems = viewModel.requests.collectAsLazyPagingItems()
     val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
+    val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
     val navController = LocalNavController.current
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
@@ -136,6 +138,11 @@ fun NetworkListContent(
                         data = data,
                         response = response.value[data?.publicId],
                         onAction = onAction,
+                        color = NetworkProximityCategory.entries.firstOrNull {
+                            it.range.contains(data?.proximity ?: 1f)
+                        }.let {
+                            customColors.value[it] ?: it?.color
+                        },
                         isSelected = selectedItem.value == data?.publicId,
                         onCheckChange = { isLongClick ->
                             when {

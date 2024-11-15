@@ -57,11 +57,11 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import components.UserProfileImage
+import data.io.user.NetworkItemIO
 import data.io.user.PublicUserProfileIO
 import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import ui.network.list.NetworkListRepository.Companion.demoData
 import ui.network.profile.UserProfileLauncher
 import kotlin.math.sqrt
 import kotlin.uuid.ExperimentalUuidApi
@@ -198,7 +198,7 @@ private fun SocialCircleTier(
         verticalArrangement = Arrangement.Bottom
     ) {
         items(
-            items = demoData,
+            items = listOf<NetworkItemIO>(),
             key = { data -> data.publicId ?: Uuid.random().toString() }
         ) { data ->
             val offsetX = remember(data.publicId) {

@@ -42,7 +42,7 @@ import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun CircleSentRequestRow(
+fun CircleRequestRow(
     modifier: Modifier = Modifier,
     data: CirclingRequest?,
     onResponse: (accept: Boolean) -> Unit,

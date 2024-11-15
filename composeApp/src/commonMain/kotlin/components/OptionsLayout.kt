@@ -73,12 +73,10 @@ fun OptionsLayout(
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .zIndex(zIndex),
-            horizontalArrangement = Arrangement.spacedBy(
-                LocalTheme.current.shapes.betweenItemsSpace
-            )
+            horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
         ) {
             item {
-                Spacer(modifier = Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
+                Spacer(Modifier)
             }
             items(
                 items = actions,
@@ -108,8 +106,7 @@ fun OptionsLayout(
 sealed class OptionsLayoutAction(
     open val textRes: StringResource,
     open val leadingImageVector: ImageVector,
-    open val containerColor: Color? = null,
-    open val textColor: Color? = null
+    open val containerColor: Color? = null
 ) {
     data object CircleMove: OptionsLayoutAction(
         textRes = Res.string.network_action_circle_move,
@@ -130,7 +127,6 @@ sealed class OptionsLayoutAction(
     data object Block: OptionsLayoutAction(
         textRes = Res.string.button_block,
         leadingImageVector = Icons.Outlined.Block,
-        containerColor = SharedColors.RED_ERROR,
-        textColor = Colors.GrayLight
+        containerColor = SharedColors.RED_ERROR
     )
 }

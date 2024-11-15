@@ -3,6 +3,8 @@ package data.shared
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
+import base.asSimpleString
+import data.NetworkProximityCategory
 import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
@@ -69,7 +71,9 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
                     fcmToken = fcmToken,
                     clientStatus = ClientStatus.entries.find {
                         it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
-                    } ?: ClientStatus.NEW
+                    } ?: ClientStatus.NEW,
+                    networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
+                        ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
             }
 

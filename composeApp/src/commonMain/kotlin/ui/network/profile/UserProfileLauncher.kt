@@ -15,8 +15,11 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,6 +61,13 @@ import org.koin.core.context.loadKoinModules
 fun UserProfileLauncher(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
+    state: SheetState =  rememberStandardBottomSheetState(
+        confirmValueChange = {
+            it != SheetValue.PartiallyExpanded
+        },
+        initialValue = SheetValue.Expanded,
+        skipHiddenState = false
+    ),
     publicId: String? = null,
     userProfile: PublicUserProfileIO? = null
 ) {
@@ -87,7 +97,7 @@ fun UserProfileLauncher(
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userUid = it.data.targetPublicId))
+                        navController?.navigate(NavigationNode.Conversation(userPublicId = it.data.targetPublicId))
                     }
                 }
                 onDismissRequest()
@@ -120,6 +130,7 @@ fun UserProfileLauncher(
     SimpleModalBottomSheet(
         modifier = modifier,
         onDismissRequest = onDismissRequest,
+        sheetState = state,
         dragHandle = null
     ) {
         Crossfade(targetState = responseProfile.value is BaseResponse.Loading) { isLoading ->
@@ -216,7 +227,7 @@ private fun DataContent(
                     onClick = {
                         onDismissRequest()
                         navController?.navigate(
-                            NavigationNode.Conversation(userUid = userProfile.publicId)
+                            NavigationNode.Conversation(userPublicId = userProfile.publicId)
                         )
                     }
                 )

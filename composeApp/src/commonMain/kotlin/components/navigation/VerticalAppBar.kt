@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableFloatStateOf
@@ -27,15 +28,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import base.navigation.NavIconType
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_refresh
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.navigation.HorizontalAppBar
 import augmy.interactive.shared.ui.components.navigation.NavigationIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.navigation.NavIconType
+import components.pull_refresh.LocalRefreshCallback
 import data.shared.SharedViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.annotation.KoinExperimentalAPI
 
 /**
  * Custom app bar with options of customization
@@ -69,7 +75,8 @@ fun VerticalAppBar(
                 .onGloballyPositioned {
                     actionsWidth.value = it.size.width.toFloat()
                 }
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             actions(isBarExpanded.value)
             CustomDivider(actionsWidth.value)
@@ -77,6 +84,18 @@ fun VerticalAppBar(
         }
 
         Column {
+            if(currentPlatform == PlatformType.Jvm) {
+                LocalRefreshCallback.current?.let { refresher ->
+                    NavigationIcon(
+                        onClick = {
+                            refresher()
+                        },
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = stringResource(Res.string.accessibility_refresh)
+                    )
+                }
+            }
+
             CustomDivider(actionsWidth.value)
 
             NavIconType.HAMBURGER.imageVector?.let {

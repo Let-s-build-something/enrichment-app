@@ -26,7 +26,7 @@ import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.getOrNull
 import components.EmptyLayout
-import components.network.CircleSentRequestRow
+import components.network.CircleRequestRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.io.base.BaseResponse
@@ -98,7 +98,7 @@ fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()
                 key = { index -> requests.getOrNull(index)?.uid ?: Uuid.random().toString() }
             ) { index ->
                 requests.getOrNull(index).let { data ->
-                    CircleSentRequestRow(
+                    CircleRequestRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .animateItem(),

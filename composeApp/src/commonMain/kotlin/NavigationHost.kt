@@ -13,6 +13,7 @@ import org.koin.core.context.loadKoinModules
 import ui.account.AccountDashboardScreen
 import ui.account.WaterPleaseScreen
 import ui.account.accountDashboardModule
+import ui.conversation.ConversationScreen
 import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
@@ -57,8 +58,10 @@ fun NavigationHost(
             NetworkManagementScreen()
         }
         composable<NavigationNode.Conversation> {
-            it.arguments?.getString("userUid")
-            it.arguments?.getString("conversationId")
+            ConversationScreen(
+                userPublicId = it.arguments?.getString("userPublicId"),
+                conversationId = it.arguments?.getString("conversationId")
+            )
         }
     }
 }

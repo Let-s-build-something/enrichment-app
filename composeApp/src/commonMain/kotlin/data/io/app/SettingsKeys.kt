@@ -15,6 +15,9 @@ object SettingsKeys {
     /** key for current last selected network categories */
     const val KEY_NETWORK_CATEGORIES = "network_categories"
 
+    /** key for currently selected color preferences */
+    const val KEY_NETWORK_COLORS = "network_colors"
+
     /** Whether toolbar is currently expanded or not */
     const val KEY_TOOLBAR_EXPANDED = "toolbar_expanded"
 

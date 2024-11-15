@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,6 +31,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.paging.LoadState
+import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_search_network
@@ -38,6 +40,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.getOrNull
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import components.HorizontalScrollChoice
@@ -47,7 +50,6 @@ import components.ScrollChoice
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
-import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -59,26 +61,20 @@ import kotlin.uuid.Uuid
 /**
  * Screen for the home page
  */
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
+    val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
     val density = LocalDensity.current
-    val coroutineScope = rememberCoroutineScope()
 
-    val networkItems = viewModel.networkItems.collectAsState()
+    val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
+    val categories = viewModel.categories.collectAsState()
+    val customColors = viewModel.customColors.collectAsState(initial = mapOf())
+    val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
 
-    val stickyHeaderHeight = rememberSaveable {
-        mutableStateOf(0f)
-    }
-    val categoryChoices = remember {
-        mutableStateListOf(
-            *viewModel.defaultChoices?.toTypedArray() ?: arrayOf(
-                NetworkProximityCategory.Family,
-                NetworkProximityCategory.Peers
-            )
-        )
-    }
+    val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
+    val showTuner = rememberSaveable { mutableStateOf(false) }
     val checkedItems = remember { mutableStateListOf<String?>() }
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
@@ -97,7 +93,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 coroutineScope.launch(Dispatchers.Default) {
                     checkedItems.addAll(
                         checkedItems.toMutableSet().apply {
-                            addAll(networkItems.value?.map { it?.publicId }.orEmpty())
+                            addAll(networkItems.itemSnapshotList.items.map { it.publicId })
                         }
                     )
                 }
@@ -105,11 +101,23 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         }
     }
 
+    if(showTuner.value) {
+        NetworkPreferencesLauncher(
+            viewModel = viewModel,
+            onDismissRequest = {
+                showTuner.value = false
+            }
+        )
+    }
+
     RefreshableScreen(
         title = stringResource(Res.string.screen_home),
         navIconType = NavIconType.TUNE,
         onNavigationIconClick = {
-            // TODO bottom sheet with tune options?
+            showTuner.value = true
+        },
+        onRefresh = {
+            networkItems.refresh()
         },
         showDefaultActions = true,
         viewModel = viewModel,
@@ -135,19 +143,20 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     )
                 },
                 onSelectionChange = { item, isSelected ->
+                    val newList = categories.value.toMutableList()
                     if(isSelected) {
-                        categoryChoices.add(item)
+                        newList.add(item)
                     }else {
-                        categoryChoices.removeAll { it == item }
+                        newList.removeAll { it == item }
                     }
-                    if(categoryChoices.isEmpty()) {
-                        categoryChoices.add(if(item == NetworkProximityCategory.Family) {
+                    if(newList.isEmpty()) {
+                        newList.add(if(item == NetworkProximityCategory.Family) {
                             NetworkProximityCategory.Peers
                         }else NetworkProximityCategory.Family)
                     }
-                    viewModel.filterNetworkItems(categories = categoryChoices)
+                    viewModel.filterNetworkItems(filter = newList)
                 },
-                selectedItems = categoryChoices
+                selectedItems = categories.value
             )
             Box(
                 modifier = Modifier.weight(1f, fill = true)
@@ -183,35 +192,39 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             }
                         }
                     }
-                    itemsIndexed(
-                        items = if(networkItems.value == null) {
-                            arrayOfNulls<NetworkItemIO?>(NETWORK_SHIMMER_ITEM_COUNT).toList()
-                        } else networkItems.value.orEmpty(),
-                        key = { _, item -> item?.publicId ?: Uuid.random().toString() }
-                    ) { index, data ->
-                        Column {
-                            NetworkItemRow(
-                                modifier = Modifier.animateItem(),
-                                data = data,
-                                isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.publicId) else null,
-                                onCheckChange = { isLongClick ->
-                                    when {
-                                        checkedItems.contains(data?.publicId) -> checkedItems.remove(data?.publicId)
-                                        isLongClick || checkedItems.size > 0 -> {
-                                            checkedItems.add(data?.publicId)
+                    items(
+                        count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
+                        key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
+                    ) { index ->
+                        networkItems.getOrNull(index).let { data ->
+                            Column(modifier = Modifier.animateItem()) {
+                                NetworkItemRow(
+                                    data = data,
+                                    isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.publicId) else null,
+                                    color = NetworkProximityCategory.entries.firstOrNull {
+                                        it.range.contains(data?.proximity ?: 1f)
+                                    }.let {
+                                        customColors.value[it] ?: it?.color
+                                    },
+                                    onCheckChange = { isLongClick ->
+                                        when {
+                                            checkedItems.contains(data?.publicId) -> checkedItems.remove(data?.publicId)
+                                            isLongClick || checkedItems.size > 0 -> {
+                                                checkedItems.add(data?.publicId)
+                                            }
+                                            else -> navController?.navigate(
+                                                NavigationNode.Conversation(userPublicId = data?.publicId)
+                                            )
                                         }
-                                        else -> navController?.navigate(
-                                            NavigationNode.Conversation(userUid = data?.publicId)
-                                        )
                                     }
-                                }
-                            )
-                            if(index != networkItems.value?.size?.minus(1)) {
-                                Divider(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = LocalTheme.current.colors.disabledComponent,
-                                    thickness = .3.dp
                                 )
+                                if(index != networkItems.itemCount - 1) {
+                                    Divider(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = LocalTheme.current.colors.disabledComponent,
+                                        thickness = .3.dp
+                                    )
+                                }
                             }
                         }
                     }

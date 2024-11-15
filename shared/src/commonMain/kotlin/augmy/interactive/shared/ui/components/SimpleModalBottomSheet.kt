@@ -3,17 +3,20 @@ package augmy.interactive.shared.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberStandardBottomSheetState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -33,13 +36,10 @@ import kotlinx.coroutines.flow.collectLatest
 fun SimpleModalBottomSheet(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
-    sheetState: SheetState = rememberStandardBottomSheetState(
-        confirmValueChange = {
-            it != SheetValue.PartiallyExpanded
-        },
-        initialValue = SheetValue.Expanded,
-        skipHiddenState = false
+    contentPadding: PaddingValues = PaddingValues(
+        start = 12.dp, end = 12.dp, bottom = 12.dp
     ),
+    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     windowInsets: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
     dragHandle: @Composable (() -> Unit)? = {
         BottomSheetDefaults.DragHandle(color = LocalTheme.current.colors.secondary)
@@ -48,11 +48,12 @@ fun SimpleModalBottomSheet(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
+
     // hotfix, native onDismissRequest doesn't work when collapsing by drag
     val previousValue = remember { mutableStateOf(sheetState.currentValue) }
 
     LaunchedEffect(Unit) {
-        sheetState.show()
+        sheetState.expand()
     }
 
     LaunchedEffect(sheetState) {
@@ -70,8 +71,9 @@ fun SimpleModalBottomSheet(
         content = {
             Column(
                 modifier = Modifier
-                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
-                    .navigationBarsPadding(),
+                    .padding(contentPadding)
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = verticalArrangement,
                 horizontalAlignment = horizontalAlignment
             ) {
