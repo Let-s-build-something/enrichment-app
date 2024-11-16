@@ -1,4 +1,4 @@
-package ui.home
+package ui.network
 
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +71,7 @@ import kotlin.uuid.Uuid
 /**
  * Screen for the home page
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsScreen() {
     val density = LocalDensity.current
