@@ -200,12 +200,12 @@ fun ColorTile(
 ) {
     Box(
         modifier = modifier
-            .animateContentSize()
             .size(if(isSelected) 48.dp else 32.dp)
             .background(
                 color = color,
                 shape = LocalTheme.current.shapes.rectangularActionShape
             )
+            .animateContentSize()
             .scalingClickable {
                 onClick()
             }

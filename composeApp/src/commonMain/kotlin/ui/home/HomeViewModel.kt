@@ -18,9 +18,9 @@ import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,7 +57,13 @@ class HomeViewModel(repository: NetworkListRepository
     )
 
     /** Last selected network categories */
-    val categories = _categories.asStateFlow()
+    val categories = _categories.transform {
+        emit(
+            it.sortedBy {
+                NetworkProximityCategory.entries.indexOf(it) + 1
+            }
+        )
+    }
 
     /** Customized colors */
     val customColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->

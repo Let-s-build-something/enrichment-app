@@ -1,6 +1,7 @@
 package ui.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,9 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -26,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -38,6 +42,7 @@ import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.getOrNull
@@ -69,12 +74,13 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val density = LocalDensity.current
 
     val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
-    val categories = viewModel.categories.collectAsState()
+    val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
 
     val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
     val showTuner = rememberSaveable { mutableStateOf(false) }
+    val isCompactView = rememberSaveable { mutableStateOf(true) }
     val checkedItems = remember { mutableStateListOf<String?>() }
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
@@ -159,7 +165,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 selectedItems = categories.value
             )
             Box(
-                modifier = Modifier.weight(1f, fill = true)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = true)
             ) {
                 OptionsLayout(
                     modifier = Modifier
@@ -172,64 +180,92 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     show = checkedItems.size > 0,
                     onClick = onAction
                 )
-                LazyVerticalGrid(
-                    modifier = Modifier.fillMaxSize(),
-                    columns = GridCells.Fixed(
-                        if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
+                androidx.compose.animation.AnimatedVisibility(
+                    modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
+                    visible = checkedItems.size == 0
                 ) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Column {
-                            Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
-                            AnimatedVisibility(checkedItems.size > 0) {
-                                Spacer(
-                                    Modifier
-                                        .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                                        .animateContentSize()
-                                        .height(stickyHeaderHeight.value.dp - LocalTheme.current.shapes.betweenItemsSpace)
-                                )
+                    Crossfade(
+                        modifier = Modifier.zIndex(1f),
+                        targetState = isCompactView.value
+                    ) { isList ->
+                        MinimalisticIcon(
+                            modifier = Modifier.zIndex(1f),
+                            imageVector = if(isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
+                            tint = LocalTheme.current.colors.tetrial,
+                            onTap = {
+                                isCompactView.value = !isCompactView.value
                             }
-                        }
+                        )
                     }
-                    items(
-                        count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
-                        key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
-                    ) { index ->
-                        networkItems.getOrNull(index).let { data ->
-                            Column(modifier = Modifier.animateItem()) {
-                                NetworkItemRow(
-                                    data = data,
-                                    isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.publicId) else null,
-                                    color = NetworkProximityCategory.entries.firstOrNull {
-                                        it.range.contains(data?.proximity ?: 1f)
-                                    }.let {
-                                        customColors.value[it] ?: it?.color
-                                    },
-                                    onCheckChange = { isLongClick ->
-                                        when {
-                                            checkedItems.contains(data?.publicId) -> checkedItems.remove(data?.publicId)
-                                            isLongClick || checkedItems.size > 0 -> {
-                                                checkedItems.add(data?.publicId)
+                }
+                Crossfade(isCompactView.value) { isList ->
+                    if(isList) {
+                        LazyVerticalGrid(
+                            modifier = Modifier.fillMaxSize(),
+                            columns = GridCells.Fixed(
+                                if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
+                        ) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Column {
+                                    Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
+                                    AnimatedVisibility(checkedItems.size > 0) {
+                                        Spacer(
+                                            Modifier
+                                                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                                                .height(stickyHeaderHeight.value.dp - LocalTheme.current.shapes.betweenItemsSpace)
+                                                .animateContentSize()
+                                        )
+                                    }
+                                }
+                            }
+                            items(
+                                count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
+                                key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
+                            ) { index ->
+                                networkItems.getOrNull(index).let { data ->
+                                    Column(modifier = Modifier.animateItem()) {
+                                        NetworkItemRow(
+                                            data = data,
+                                            isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.publicId) else null,
+                                            color = NetworkProximityCategory.entries.firstOrNull {
+                                                it.range.contains(data?.proximity ?: 1f)
+                                            }.let {
+                                                customColors.value[it] ?: it?.color
+                                            },
+                                            onCheckChange = { isLongClick ->
+                                                when {
+                                                    checkedItems.contains(data?.publicId) -> checkedItems.remove(data?.publicId)
+                                                    isLongClick || checkedItems.size > 0 -> {
+                                                        checkedItems.add(data?.publicId)
+                                                    }
+                                                    else -> navController?.navigate(
+                                                        NavigationNode.Conversation(userPublicId = data?.publicId)
+                                                    )
+                                                }
                                             }
-                                            else -> navController?.navigate(
-                                                NavigationNode.Conversation(userPublicId = data?.publicId)
+                                        )
+                                        if(index != networkItems.itemCount - 1) {
+                                            Divider(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                color = LocalTheme.current.colors.disabledComponent,
+                                                thickness = .3.dp
                                             )
                                         }
                                     }
-                                )
-                                if(index != networkItems.itemCount - 1) {
-                                    Divider(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        color = LocalTheme.current.colors.disabledComponent,
-                                        thickness = .3.dp
-                                    )
                                 }
                             }
+                            item {
+                                Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace * 2))
+                            }
                         }
-                    }
-                    item {
-                        Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace * 2))
+                    }else {
+                        SocialCircleContent(
+                            modifier = Modifier.fillMaxSize(),
+                            viewModel = viewModel,
+                            headerHeightDp = stickyHeaderHeight.value
+                        )
                     }
                 }
             }

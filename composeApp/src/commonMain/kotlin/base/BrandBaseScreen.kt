@@ -9,7 +9,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import augmy.interactive.shared.ui.base.BaseScreen
-import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
@@ -60,7 +59,6 @@ fun BrandBaseScreen(
 ) {
     val sharedViewModel: SharedViewModel = koinViewModel()
     val navController = LocalNavController.current
-    val onBackPressedDispatcher = LocalBackPressDispatcher.current
 
     val currentUser = sharedViewModel.firebaseUser.collectAsState(null)
 
@@ -100,7 +98,7 @@ fun BrandBaseScreen(
         contentColor = contentColor,
         onNavigationIconClick = {
             navIconClick?.invoke() ?: if(onBackPressed()) {
-                onBackPressedDispatcher?.executeBackPress() ?: navController?.popBackStack()
+                navController?.popBackStack()
             } else { }
         },
         floatingActionButtonPosition = floatingActionButtonPosition,

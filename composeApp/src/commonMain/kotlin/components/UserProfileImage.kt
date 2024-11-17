@@ -61,10 +61,10 @@ fun UserProfileImage(
             modifier = modifier
                 .height(IntrinsicSize.Max)
                 .width(IntrinsicSize.Max)
-                .animateContentSize()
                 .padding(
                     avatarSize.value.dp * .15f / 2f
                 )
+                .animateContentSize()
         ) {
             Box(
                 Modifier

@@ -98,7 +98,7 @@
   <string name="network_preferences_title">Your preferences</string>
   <string name="network_preferences_circle_colors">Social circle colors</string>
   <string name="network_preferences_default_name">Mr. Puff</string>
-  <string name="network_preferences_default_message">Hey, about last night...I usually don't explode onto ppl like this. Alright. Maybe I do, but it's my temperament, but I'm working on it, I swear.</string>
+  <string name="network_preferences_default_message">Hey, about last night...I usually don't explode onto ppl like this. Alright. Maybe I do, it's my temperament. But I'm working on it, I swear.</string>
 
   <string name="network_action_circle_move">Circle move</string>
   <string name="network_action_share">Share your profile, so that others can include you to their social circles.</string>

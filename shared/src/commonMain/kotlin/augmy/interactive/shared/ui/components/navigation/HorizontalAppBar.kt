@@ -67,15 +67,15 @@ fun HorizontalAppBar(
         }
         Column(
             modifier = Modifier
+                .padding(start = 4.dp)
+                .weight(1f)
+                .heightIn(min = AppBarHeightDp.dp)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMedium
                     )
-                )
-                .padding(start = 4.dp)
-                .weight(1f)
-                .heightIn(min = AppBarHeightDp.dp),
+                ),
             verticalArrangement = Arrangement.Center
         ) {
             var fontSizeValue by remember { mutableFloatStateOf(22f) }

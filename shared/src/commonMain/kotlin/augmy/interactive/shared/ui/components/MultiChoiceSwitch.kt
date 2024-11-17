@@ -89,6 +89,7 @@ fun rememberTabSwitchState(
 const val DEFAULT_ANIMATION_LENGTH_SHORT = 300
 const val DEFAULT_ANIMATION_LENGTH_LONG = 600
 
+/** Single choice between multiple options defined in [TabSwitchState.tabs] */
 @Composable
 fun MultiChoiceSwitch(
     modifier: Modifier = Modifier,
