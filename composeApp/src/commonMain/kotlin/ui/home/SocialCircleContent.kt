@@ -178,6 +178,25 @@ fun SocialCircleContent(
                     val shares = category.share + additionalShares + previousShares
                     val itemDimension = smallerDimension * (previousShares - shares)
 
+                    val zIndex = categories.value.size - categories.value.indexOf(category) + 1f
+                    val emptySpaceWidth = smallerDimension * (previousShares - shares)
+                    val endIndex = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount
+
+                    val items = mutableListOf<NetworkItemIO?>()
+                    var finished = false
+                    for(index in startingIndex..endIndex) {
+                        if(!finished) {
+                            networkItems.getOrNull(index).let { data ->
+                                if(data == null || category.range.contains(data.proximity ?: -1f)) {
+                                    items.add(data)
+                                }else {
+                                    startingIndex = index
+                                    finished = true
+                                }
+                            }
+                        }
+                    }
+
                     Layout(
                         modifier = Modifier
                             .background(
@@ -192,31 +211,17 @@ fun SocialCircleContent(
                                     stiffness = Spring.StiffnessMedium
                                 )
                             )
-                            .zIndex(categories.value.size - categories.value.indexOf(category) + 1f)
+                            .zIndex(zIndex)
                             .size((smallerDimension * shares).dp),
                         content = {
-                            val emptySpaceWidth = smallerDimension * (previousShares - shares)
-                            val endIndex = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount
-
-                            val items = mutableListOf<NetworkItemIO?>()
-                            for(index in startingIndex..endIndex) {
-                                networkItems.getOrNull(index).let { data ->
-                                    if(data == null || category.range.contains(data.proximity ?: -1f)) {
-                                        items.add(data)
-                                    }else {
-                                        startingIndex = index
-                                        return@forEach
-                                    }
-                                }
-                            }
-
-                            val itemWidth =  emptySpaceWidth //2 * PI * smallerDimension * shares / items.size
+                            val itemWidth = 2 * PI * smallerDimension * shares / items.size
 
                             items.forEach { data ->
                                 NetworkItemCompact(
                                     modifier = Modifier
                                         .align(Alignment.Center)
-                                        .width(itemWidth.dp - 6.dp),
+                                        .width(itemWidth.dp - 6.dp)
+                                        .zIndex(zIndex),
                                     data = data
                                 )
                             }
@@ -230,26 +235,19 @@ fun SocialCircleContent(
                             val centerX = constraints.maxWidth / 2
                             val centerY = constraints.maxHeight / 2
 
-                            // Calculate the radius for placement (inner radius + some padding)
-                            val radius = smallerDimension * shares / 2 // Assuming shares determines the proportional size
+                            val radius = smallerDimension * shares / 2
 
-                            // Number of items to place
                             val itemCount = placeables.size
                             if (itemCount == 0) return@layout
 
-                            // Angle increment between each item (in radians)
                             val angleIncrement = (2 * PI) / itemCount
 
-                            // Place each item
                             placeables.forEachIndexed { index, placeable ->
-                                // Calculate the angle for this item
                                 val angle = angleIncrement * index
 
-                                // Calculate the x and y offset based on the angle
                                 val xOffset = (radius * cos(angle)).toInt()
                                 val yOffset = (radius * sin(angle)).toInt()
 
-                                // Place the item relative to the center
                                 placeable.placeRelative(
                                     x = centerX + xOffset - placeable.width / 2,
                                     y = centerY + yOffset - placeable.height / 2
