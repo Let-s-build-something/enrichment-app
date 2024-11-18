@@ -56,9 +56,9 @@ class NetworkListRepository(private val httpClient: HttpClient) {
         }
     }
 
-    private companion object {
+    internal companion object {
 
-        private val family = listOf(
+        internal val family = listOf(
             NetworkItemIO(proximity = 10.1f, displayName = "Dad", photoUrl = "https://picsum.photos/100", tag = "2098d6", publicId = "20l98d6"),
             NetworkItemIO(proximity = 10.7f, displayName = "Mom", photoUrl = "https://picsum.photos/101", tag = "2098d6", publicId = "2098d6d"),
             NetworkItemIO(proximity = 10.9f, displayName = "Sister", photoUrl = "https://picsum.photos/102", tag = "2098d6", publicId = "2098dc6d"),

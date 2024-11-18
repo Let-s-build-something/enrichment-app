@@ -305,9 +305,7 @@ private fun NetworkItemCompact(
                         .padding(top = 2.dp)
                         .brandShimmerEffect(),
                     text = "",
-                    style = LocalTheme.current.styles.category.copy(
-                        fontFamily = FontFamily(fontQuicksandSemiBold)
-                    )
+                    style = LocalTheme.current.styles.category
                 )
             }else if(data != null) {
                 UserProfileImage(

@@ -139,9 +139,9 @@ fun EditFieldInput(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if(maxCharacters > 0) {
                             Text(
-                                text = "${value.length}/$maxCharacters",
+                                text = "${text.value.text.length}/$maxCharacters",
                                 style = LocalTheme.current.styles.regular.copy(
-                                    color = if(value.length > maxCharacters) {
+                                    color = if(text.value.text.length > maxCharacters) {
                                         SharedColors.RED_ERROR
                                     }else LocalTheme.current.colors.disabled
                                 )

@@ -222,8 +222,7 @@ fun <T> HorizontalScrollChoice(
                         text = item.text,
                         style = LocalTheme.current.styles.category.copy(
                             color = textColor.value,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily(fontQuicksandSemiBold)
+                            textAlign = TextAlign.Center
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

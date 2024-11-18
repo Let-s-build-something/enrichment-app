@@ -29,7 +29,7 @@ class DarkThemeStyles: DefaultThemeStyles() {
         get() = TextStyle(
             color = LocalTheme.current.colors.primary,
             fontSize = 16.sp,
-            fontFamily = FontFamily(fontQuicksandMedium)
+            fontFamily = FontFamily(fontQuicksandSemiBold)
         )
 
     override val title: TextStyle

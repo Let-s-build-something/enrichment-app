@@ -1,9 +1,10 @@
 package ui.network.add_new
 
+import data.NetworkProximityCategory
 import data.io.base.BaseResponse
-import data.io.base.BaseResponse.Companion.getResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
+import data.io.user.NetworkItemIO
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -26,6 +27,14 @@ class NetworkAddNewRepository(private val httpClient: HttpClient) {
                     }
                 )
             }
+        }
+    }
+
+    /** Returns list of recommended users from each proximity category */
+    suspend fun getUserRecommendations(): BaseResponse<Map<NetworkProximityCategory, List<NetworkItemIO>>> {
+        return withContext(Dispatchers.IO) {
+            // TODO local Room database required here
+            BaseResponse.Error()
         }
     }
 }
