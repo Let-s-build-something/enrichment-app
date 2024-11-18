@@ -68,11 +68,13 @@ class HomeViewModel(
 
     /** Customized colors */
     val customColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
-        settings?.networkColors?.mapIndexedNotNull { index, s ->
-            tagToColor(s)?.let { color ->
-                NetworkProximityCategory.entries[index] to color
-            }
-        }.orEmpty().toMap()
+        withContext(Dispatchers.Default) {
+            settings?.networkColors?.mapIndexedNotNull { index, s ->
+                tagToColor(s)?.let { color ->
+                    NetworkProximityCategory.entries[index] to color
+                }
+            }.orEmpty().toMap()
+        }
     }
 
     /** flow of current requests */

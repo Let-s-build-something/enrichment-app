@@ -94,6 +94,7 @@
   <string name="network_inclusion_action">Confirm</string>
   <string name="network_inclusion_action_2">Include</string>
   <string name="network_inclusion_description">Include another human being into your social circle. However, if the recipient has set privacy setting to private, a response from the is needed.</string>
+  <string name="network_inclusion_proximity_title">Align the person to your social circle</string>
 
   <string name="network_preferences_title">Your preferences</string>
   <string name="network_preferences_circle_colors">Social circle colors</string>

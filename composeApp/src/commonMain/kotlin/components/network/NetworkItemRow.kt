@@ -18,19 +18,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import components.LoadingIndicator
 import components.OptionsLayout
 import components.OptionsLayoutAction
@@ -53,7 +51,7 @@ fun NetworkItemRow(
     isChecked: Boolean? = null,
     isSelected: Boolean = false,
     data: NetworkItemIO?,
-    color: Color?,
+    color: Color? = null,
     onAction: (OptionsLayoutAction) -> Unit = {},
     onCheckChange: (Boolean) -> Unit = {},
     response: BaseResponse<*>? = null
@@ -109,7 +107,7 @@ private fun ContentLayout(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                verticalAlignment = if(data.lastMessage == null) {
+                verticalAlignment = if(data.lastMessage.isNullOrBlank()) {
                     Alignment.CenterVertically
                 }else Alignment.Top
             ) {
@@ -146,9 +144,7 @@ private fun ContentLayout(
                 ) {
                     Text(
                         text = data.displayName ?: "",
-                        style = LocalTheme.current.styles.category.copy(
-                            fontFamily = FontFamily(fontQuicksandSemiBold)
-                        ),
+                        style = LocalTheme.current.styles.category,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -215,9 +211,7 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
                         .fillMaxWidth((30..40).random().toFloat()/100f)
                         .brandShimmerEffect(),
                     text = "",
-                    style = LocalTheme.current.styles.category.copy(
-                        fontFamily = FontFamily(fontQuicksandSemiBold)
-                    )
+                    style = LocalTheme.current.styles.category
                 )
                 Text(
                     modifier = Modifier
