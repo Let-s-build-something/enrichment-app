@@ -44,7 +44,7 @@ internal fun httpClientFactory(
                 headers.append(HttpHeaders.IdToken, idToken)
             }
 
-            host = developerViewModel?.hostOverride?.value ?: BuildKonfig.HttpsHostName
+            host = developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName
             url {
                 protocol = URLProtocol.HTTPS
             }

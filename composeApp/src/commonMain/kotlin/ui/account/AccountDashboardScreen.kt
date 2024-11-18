@@ -87,7 +87,7 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DialogPictureChange
-import ui.account.profile.UsernameChangeLauncher
+import ui.account.profile.DisplayNameChangeLauncher
 
 /**
  * Screen for the home page
@@ -267,10 +267,10 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
     val firebaseUser = viewModel.firebaseUser.collectAsState(null)
     val currentUser = viewModel.currentUser.collectAsState(null)
 
-    val isUsernameInEdit = rememberSaveable {
+    val showNameChangeLauncher = rememberSaveable {
         mutableStateOf(false)
     }
-    val isPictureInEdit = rememberSaveable {
+    val showPictureChangeDialog = rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -278,15 +278,15 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 
-    if(isUsernameInEdit.value) {
-        UsernameChangeLauncher {
-            isUsernameInEdit.value = false
+    if(showNameChangeLauncher.value) {
+        DisplayNameChangeLauncher {
+            showNameChangeLauncher.value = false
         }
     }
-    if(isPictureInEdit.value) {
+    if(showPictureChangeDialog.value) {
         DialogPictureChange(
             onDismissRequest = {
-                isPictureInEdit.value = false
+                showPictureChangeDialog.value = false
             }
         )
     }
@@ -303,7 +303,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                 .padding(bottom = 8.dp, end = 8.dp)
                 .align(Alignment.BottomEnd),
             onTap = {
-                isPictureInEdit.value = true
+                showPictureChangeDialog.value = true
             },
             imageVector = Icons.Outlined.Brush,
             contentDescription = stringResource(Res.string.accessibility_change_avatar)
@@ -323,7 +323,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             imageVector = Icons.Outlined.Edit,
             contentDescription = stringResource(Res.string.accessibility_change_username),
             onTap = {
-                isUsernameInEdit.value = true
+                showNameChangeLauncher.value = true
             }
         )
         MinimalisticComponentIcon(

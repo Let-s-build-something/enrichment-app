@@ -208,8 +208,6 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
     ) { index ->
         when(index) {
             0 -> {
-                val hostOverride = viewModel.hostOverride.collectAsState()
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -242,7 +240,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                     EditFieldInput(
                         modifier = Modifier.padding(top = 12.dp),
                         hint = "Host, default: ${BuildKonfig.HttpsHostName}",
-                        value = hostOverride.value ?: "",
+                        value = viewModel.hostOverride ?: "",
                         isClearable = true,
                         paddingValues = PaddingValues(start = 16.dp),
                         onValueChange = { value ->

@@ -237,7 +237,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                                 .padding(horizontal = 8.dp)
                                                 .fillMaxWidth(),
                                             hint = stringResource(Res.string.image_field_url_hint),
-                                            value = customUrl.value ?: "",
+                                            value = "",
                                             keyboardOptions = KeyboardOptions(
                                                 keyboardType = KeyboardType.Text,
                                                 imeAction = ImeAction.Done

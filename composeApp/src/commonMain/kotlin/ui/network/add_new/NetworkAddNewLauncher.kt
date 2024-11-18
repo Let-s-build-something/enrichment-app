@@ -100,7 +100,7 @@ fun NetworkAddNewLauncher(
     }
 
     LaunchedEffect(Unit) {
-        delay(500)
+        delay(400)
         focusRequester.requestFocus()
     }
 
@@ -111,7 +111,7 @@ fun NetworkAddNewLauncher(
                     when(error.errors.firstOrNull()) {
                         ApiErrorCode.DUPLICATE.name -> Res.string.network_inclusion_error_duplicate
                         ApiErrorCode.NON_EXISTENT.name -> Res.string.network_inclusion_error_non_existent
-                        ApiErrorCode.INCORRECT_FORMAT.name -> Res.string.network_inclusion_error_non_format
+                        ApiErrorCode.INVALID_FORMAT.name -> Res.string.network_inclusion_error_non_format
                         ApiErrorCode.USER_BLOCKED.name -> Res.string.network_inclusion_error_blocked
                         else -> Res.string.error_general
                     }
@@ -165,7 +165,7 @@ fun NetworkAddNewLauncher(
                     .focusRequester(focusRequester)
                     .weight(1f, fill = true),
                 hint = stringResource(Res.string.account_username_hint),
-                value = inputDisplayName.value,
+                value = displayName ?: "",
                 suggestText = if(!isDisplayNameValid) {
                     stringResource(Res.string.account_username_error_format)
                 } else null,
@@ -183,9 +183,9 @@ fun NetworkAddNewLauncher(
             EditFieldInput(
                 modifier = Modifier.weight(.75f),
                 hint = stringResource(Res.string.network_inclusion_hint_tag),
-                value = inputTag.value,
+                value = tag ?: "",
                 maxCharacters = 6,
-                suggestText = if(!isTagValid) {
+                errorText = if(!isTagValid) {
                     stringResource(Res.string.network_inclusion_format_tag)
                 } else null,
                 keyboardOptions = KeyboardOptions(

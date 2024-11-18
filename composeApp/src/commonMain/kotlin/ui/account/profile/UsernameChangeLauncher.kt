@@ -47,10 +47,12 @@ import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
-import data.io.social.username.UsernameChangeError
+import data.io.ApiErrorCode
+import data.io.DELAY_BETWEEN_REQUESTS_SHORT
 import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -65,14 +67,16 @@ import ui.login.FieldValidation
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UsernameChangeLauncher(
+fun DisplayNameChangeLauncher(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     onDismissRequest: () -> Unit
 ) {
     loadKoinModules(profileChangeModule)
     val viewModel: ProfileChangeViewModel = koinViewModel()
+
     val coroutineScope = rememberCoroutineScope()
+    val cancellableScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val snackbarHostState = LocalSnackbarHost.current
 
@@ -92,7 +96,7 @@ fun UsernameChangeLauncher(
             && errorMessage.value == null
 
     LaunchedEffect(Unit) {
-        delay(500)
+        delay(400)
         focusRequester.requestFocus()
     }
 
@@ -115,20 +119,34 @@ fun UsernameChangeLauncher(
                     isVisibleCorrect = false
                 )
             )
+            if(validations.value.isEmpty()) {
+                cancellableScope.coroutineContext.cancel()
+                cancellableScope.launch {
+                    delay(DELAY_BETWEEN_REQUESTS_SHORT)
+                    viewModel.validateDisplayName(username.value)
+                }
+            }
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.usernameResponse.collectLatest { res ->
-            errorMessage.value = when(res?.error?.errors?.firstOrNull()) {
-                UsernameChangeError.DUPLICATE.name -> {
+        val respondToError: suspend (String?) -> Unit = { error: String? ->
+            errorMessage.value = when(error) {
+                ApiErrorCode.DUPLICATE.name -> {
                     getString(Res.string.account_username_error_duplicate)
                 }
-                UsernameChangeError.INVALID_FORMAT.name-> {
+                ApiErrorCode.INVALID_FORMAT.name-> {
                     getString(Res.string.account_username_error_format)
                 }
                 else -> null
             }
+        }
+
+        viewModel.displayNameValidationResponse.collectLatest { res ->
+            respondToError(res?.error?.errors?.firstOrNull())
+        }
+        viewModel.displayNameChangeResponse.collectLatest { res ->
+            respondToError(res?.error?.errors?.firstOrNull())
             res?.success?.data?.username?.let { newUsername ->
                 CoroutineScope(Dispatchers.Main).launch {
                     snackbarHostState?.showSnackbar(
@@ -167,7 +185,7 @@ fun UsernameChangeLauncher(
                 .focusRequester(focusRequester)
                 .fillMaxWidth(0.8f),
             hint = stringResource(Res.string.account_username_hint),
-            value = username.value,
+            value = currentUser.value?.displayName ?: "",
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done
@@ -221,7 +239,7 @@ fun UsernameChangeLauncher(
                 text = stringResource(Res.string.username_change_launcher_confirm),
                 isEnabled = isUsernameValid && errorMessage.value == null,
                 onClick = {
-                    viewModel.requestUsernameChange(username.value)
+                    viewModel.requestDisplayNameChange(username.value)
                 }
             )
         }

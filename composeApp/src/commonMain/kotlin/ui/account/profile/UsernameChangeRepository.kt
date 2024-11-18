@@ -1,11 +1,11 @@
 package ui.account.profile
 
 import data.io.base.BaseResponse
-import data.io.base.BaseResponse.Companion.getResponse
-import data.io.social.username.RequestUsernameChange
-import data.io.social.username.ResponseUsernameChange
+import data.io.social.username.RequestUserPropertiesChange
+import data.io.social.username.ResponseDisplayNameChange
 import io.ktor.client.HttpClient
-import io.ktor.client.request.post
+import io.ktor.client.request.get
+import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -16,15 +16,24 @@ import ui.login.safeRequest
 class UsernameChangeRepository(private val httpClient: HttpClient) {
 
     /** Makes a request to change username */
-    suspend fun changeUsername(username: String): BaseResponse<ResponseUsernameChange> {
+    suspend fun changeDisplayName(value: String): BaseResponse<ResponseDisplayNameChange> {
         return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<ResponseUsernameChange> {
-                post(
-                    urlString = "/api/v1/social/username",
+            httpClient.safeRequest<ResponseDisplayNameChange> {
+                patch(
+                    urlString = "/api/v1/users",
                     block =  {
-                        setBody(RequestUsernameChange(username))
+                        setBody(RequestUserPropertiesChange(displayName = value))
                     }
                 )
+            }
+        }
+    }
+
+    /** Validates input value by user */
+    suspend fun validateDisplayName(value: String): BaseResponse<Any> {
+        return withContext(Dispatchers.IO) {
+            httpClient.safeRequest<Any> {
+                get(urlString = "/api/v1/users/validate/display-name?value=$value")
             }
         }
     }

@@ -13,7 +13,7 @@ enum class ApiErrorCode {
      * In case the token is not valid - 6 integers only,
      * or display name contains spaces, or is shorter than 6 characters or longer than 256 characters
      */
-    INCORRECT_FORMAT,
+    INVALID_FORMAT,
 
     /** User requesting the circle is blocked by the initiator */
     USER_BLOCKED,
@@ -21,3 +21,5 @@ enum class ApiErrorCode {
     /** A field within the request body is missing or empty */
     MISSING_FIELD
 }
+
+const val DELAY_BETWEEN_REQUESTS_SHORT = 500L

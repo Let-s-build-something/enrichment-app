@@ -84,7 +84,7 @@
   <string name="network_received_empty-description">Seems like you are expecting someone, you can share your uniqueness with them.</string>
   <string name="network_received_empty_action">Honey, I'm home</string>
   <string name="network_inclusion_hint_tag">Tag</string>
-  <string name="network_inclusion_format_tag">Tag should be 6 characters long.</string>
+  <string name="network_inclusion_format_tag">Tag is a 6 characters long hexadecimal number.</string>
   <string name="network_inclusion_error_duplicate">You've already included this person into your social network. However, they may have to accept your inclusion first.</string>
   <string name="network_inclusion_error_non_existent">Such human being doesn't exist, ensure you've entered the correct name and a tag.</string>
   <string name="network_inclusion_error_non_format">Incorrect format. Username should be between %1$d and %2$d characters long, whereas tag 6 characters long.</string>
