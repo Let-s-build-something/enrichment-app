@@ -42,7 +42,7 @@ import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun CircleSentRequestRow(
+fun CircleRequestRow(
     modifier: Modifier = Modifier,
     data: CirclingRequest?,
     onResponse: (accept: Boolean) -> Unit,
@@ -114,7 +114,6 @@ private fun ContentLayout(
                 }else {
                     Row(
                         modifier = Modifier
-                            .animateContentSize()
                             .align(Alignment.CenterEnd)
                             .height(IntrinsicSize.Min)
                             .background(
@@ -134,7 +133,8 @@ private fun ContentLayout(
                                 },
                                 shape = LocalTheme.current.shapes.componentShape
                             )
-                            .padding(4.dp),
+                            .padding(4.dp)
+                            .animateContentSize(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

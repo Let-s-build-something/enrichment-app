@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -34,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -88,6 +91,7 @@ fun BaseScreen(
     verticalAppBar: @Composable () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
 
     val previousSnackbarHostState = LocalSnackbarHost.current
     val snackbarHostState = remember {
@@ -128,8 +132,9 @@ fun BaseScreen(
                             .fillMaxWidth()
                     )
 
+                    Modifier.padding(paddingValues)
                     ShelledContent(
-                        modifier = Modifier.padding(paddingValues),
+                        modifier = Modifier,//.padding(paddingValues),
                         appBarVisible = appBarVisible,
                         title = title,
                         subtitle = subtitle,
@@ -138,6 +143,9 @@ fun BaseScreen(
                         onNavigationIconClick = onNavigationIconClick,
                         verticalAppBar = verticalAppBar
                     ) { platformModifier ->
+                        val contentSize = remember {
+                            mutableStateOf(IntSize(0, 0))
+                        }
                         Box(
                             modifier = contentModifier
                                 .then(
@@ -147,8 +155,20 @@ fun BaseScreen(
                                     } else platformModifier
                                 )
                                 .clip(shape)
+                                .onSizeChanged {
+                                    contentSize.value = with(density) {
+                                        IntSize(
+                                            it.width.toDp().value.toInt(),
+                                            it.height.toDp().value.toInt()
+                                        )
+                                    }
+                                }
                         ) {
-                            content(this)
+                            CompositionLocalProvider(
+                                LocalContentSize provides contentSize.value
+                            ) {
+                                content(this)
+                            }
                         }
                     }
                 }
@@ -362,6 +382,11 @@ val LocalScreenSize = staticCompositionLocalOf {
     IntSize(0, 0)
 }
 
+/** Current content size in DP (density pixels) */
+val LocalContentSize = staticCompositionLocalOf {
+    IntSize(0, 0)
+}
+
 /** Maximum width of a modal element - this can include a screen in case the device is a desktop */
 const val MaxModalWidthDp = 640
 
@@ -381,4 +406,4 @@ val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
 val LocalNavController = staticCompositionLocalOf<NavHostController?> { null }
 
 /** Custom on back pressed provided by parent */
-val LocalOnBackPressDispatcher = staticCompositionLocalOf<(() -> Unit)?> { null }
+val LocalBackPressDispatcher = staticCompositionLocalOf<BackPressDispatcher?> { null }

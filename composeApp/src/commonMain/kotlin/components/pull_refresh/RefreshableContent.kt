@@ -54,8 +54,6 @@ fun RefreshableContent(
                 .width(with(LocalDensity.current) {
                     indicatorWidth.value.toDp()
                 })
-                .systemBarsPadding()
-                .statusBarsPadding()
                 .zIndex(100f),
             pullRefreshSize = pullRefreshSize,
             state = pullRefreshState,

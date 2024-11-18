@@ -12,11 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 
 /** Simple action with image and maximum two line text */
 @Composable
@@ -56,9 +58,11 @@ fun ImageAction(
                 modifier = Modifier
                     .padding(horizontal = 8.dp),
                 text = text,
-                color = LocalTheme.current.colors.tetrial,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                style = TextStyle(
+                    color = contentColor,
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily(fontQuicksandSemiBold)
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

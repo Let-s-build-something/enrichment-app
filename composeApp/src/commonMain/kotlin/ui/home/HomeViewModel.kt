@@ -1,106 +1,119 @@
 package ui.home
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.filter
+import base.asSimpleString
+import base.tagToColor
+import com.russhwolf.settings.set
 import components.pull_refresh.RefreshableViewModel
-import data.io.app.ClientStatus
-import data.io.app.LocalSettings
-import data.io.app.SettingsKeys
-import data.io.app.ThemeChoice
-import data.io.user.UserIO
+import data.NetworkProximityCategory
+import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
+import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
+import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
-import dev.gitlive.firebase.messaging.messaging
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.network.list.NetworkListRepository
+import ui.network.received.networkManagementModule
 
 internal val homeModule = module {
-    factory { HomeViewModel() }
+    includes(networkManagementModule)
+    factory { HomeViewModel(get<NetworkListRepository>()) }
     viewModelOf(::HomeViewModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-class HomeViewModel: SharedViewModel(), RefreshableViewModel {
+class HomeViewModel(
+    repository: NetworkListRepository
+): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
-    /** Newly emitted deep link which should be handled */
-    val newDeeplink = sharedDataManager.newDeeplink.asSharedFlow()
-
-    /** Initializes the application */
-    fun initApp() {
-        CoroutineScope(Dispatchers.IO).launch {
-            if (sharedDataManager.localSettings.value == null) {
-                val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
-
-                val fcmToken = if(defaultFcm == null) {
-                    val newFcm = try {
-                        // gotta wait for APNS to be ready before FCM request
-                        if(currentPlatform == PlatformType.Native) delay(500)
-                        Firebase.messaging.getToken()
-                    }catch (e: NotImplementedError) { null }?.apply {
-                        settings.putString(SettingsKeys.KEY_FCM, this)
-                    }
-                    newFcm
-                }else defaultFcm
-
-                sharedDataManager.localSettings.value = LocalSettings(
-                    theme = ThemeChoice.entries.find {
-                        it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
-                    } ?: ThemeChoice.SYSTEM,
-                    fcmToken = fcmToken,
-                    clientStatus = ClientStatus.entries.find {
-                        it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
-                    } ?: ClientStatus.NEW
-                )
+    private val _categories = MutableStateFlow(
+        settings.getStringOrNull(KEY_NETWORK_CATEGORIES)
+            ?.split(",")
+            ?.mapNotNull {
+                NetworkProximityCategory.entries.firstOrNull { category -> category.name == it }
             }
+            ?: listOf(
+                NetworkProximityCategory.Family,
+                NetworkProximityCategory.Peers
+            )
+    )
 
-            if (firebaseUser.value != null) {
-                if(sharedDataManager.currentUser.value == null) {
-                    firebaseUser.value?.getIdToken(false)?.let { idToken ->
-                        sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                        sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value
-                        )?.copy(
-                            idToken = idToken
-                        )
-                    }
-                }
-                Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
-                    sharedDataManager.currentUser.update {
-                        it?.copy(idToken = firebaseUser?.getIdToken(false))
-                    }
+    /** Last selected network categories */
+    val categories = _categories.transform {
+        emit(
+            it.sortedBy {
+                NetworkProximityCategory.entries.indexOf(it) + 1
+            }
+        )
+    }
+
+    /** Customized colors */
+    val customColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
+        settings?.networkColors?.mapIndexedNotNull { index, s ->
+            tagToColor(s)?.let { color ->
+                NetworkProximityCategory.entries[index] to color
+            }
+        }.orEmpty().toMap()
+    }
+
+    /** flow of current requests */
+    val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
+        PagingConfig(
+            pageSize = 20,
+            enablePlaceholders = true,
+            initialLoadSize = 20
+        )
+    ).flow
+        .cachedIn(viewModelScope)
+        .combine(_categories) { pagingData, categories ->
+            withContext(Dispatchers.Default) {
+                pagingData.filter { data ->
+                    categories.any { it.range.contains(data.proximity ?: 1f) }
                 }
             }
         }
+
+    /** Filters currently downloaded network items */
+    fun filterNetworkItems(filter: List<NetworkProximityCategory>) {
+        viewModelScope.launch(Dispatchers.Default) {
+            _categories.value = filter
+            settings[KEY_NETWORK_CATEGORIES] = filter.joinToString(",")
+        }
     }
 
-    /** Emits a new deep link for handling */
-    fun emitDeepLink(uri: String?) {
-        println("emitDeepLink, path: $uri")
-
-        if(uri == null) return
-        viewModelScope.launch {
-            sharedDataManager.newDeeplink.emit(
-                uri
-                    .replace("""^\/""".toRegex(), "")
-                    .replace("""\/$""".toRegex(), "")
-                    .replace("augmy://", "")
-            )
+    /** Updates color preference */
+    fun updateColorPreference(
+        category: NetworkProximityCategory,
+        color: Color
+    ) {
+        viewModelScope.launch(Dispatchers.Default) {
+            sharedDataManager.localSettings.update {
+                it?.copy(
+                    networkColors = it.networkColors.toMutableList().apply {
+                        set(category.ordinal, color.asSimpleString())
+                    }
+                )
+            }
+            settings[KEY_NETWORK_COLORS] = sharedDataManager.localSettings.value?.networkColors?.joinToString(",")
         }
     }
 }

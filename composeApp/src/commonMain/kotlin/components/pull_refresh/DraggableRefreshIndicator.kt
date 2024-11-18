@@ -72,35 +72,37 @@ fun DraggableRefreshIndicator(
     }
 
     LaunchedEffect(key1 = state.progress, isRefreshing) {
-        if (state.progress == 0f
-            && lastProgressValue >= 1f
-        ) {
-            // confirmed refresh, lets go to the right position
-            animateTo(
-                fromProgress = lastProgressValue,
-                toProgress = 1f
-            )
-        } else if(state.progress == 0f
-            && lastProgressValue == 0f
-            && isRefreshing.not()
-            && indicatorOffset.value.dp > 0.dp
-        ) {
-            // refresh ended, return back
-            animateTo(
-                fromProgress = 1f,
-                toProgress = 0f
-            )
-        } else if(lastProgressValue in 0.1f..1f && state.progress == 0f) {
-            // something in between confirmation and beginning - failed refresh
-            animateTo(
-                fromProgress = lastProgressValue,
-                toProgress = if(isRefreshing) 1f else 0f
-            )
-        }else if(isRefreshing.not()) {
-            // normal move, only if there is no ongoing animation - active lastAnimator
-            onScrollChange(
-                pullRefreshSize.times(kotlin.math.min(state.progress, 2f)).value.dp
-            )
+        when {
+            state.progress == 0f && lastProgressValue >= 1f || isRefreshing -> {
+                // confirmed refresh, lets go to the right position
+                animateTo(
+                    fromProgress = lastProgressValue,
+                    toProgress = 1f
+                )
+            }
+            state.progress == 0f
+                    && lastProgressValue == 0f
+                    && isRefreshing.not()
+                    && indicatorOffset.value.dp > 0.dp -> {
+                // refresh ended, return back
+                animateTo(
+                    fromProgress = 1f,
+                    toProgress = 0f
+                )
+            }
+            lastProgressValue in 0.1f..1f && state.progress == 0f -> {
+                // something in between confirmation and beginning - failed refresh
+                animateTo(
+                    fromProgress = lastProgressValue,
+                    toProgress = if(isRefreshing) 1f else 0f
+                )
+            }
+            isRefreshing.not() -> {
+                // normal move, only if there is no ongoing animation - active lastAnimator
+                onScrollChange(
+                    pullRefreshSize.times(kotlin.math.min(state.progress, 2f)).value.dp
+                )
+            }
         }
         lastProgressValue = kotlin.math.min(state.progress, 2f)
     }

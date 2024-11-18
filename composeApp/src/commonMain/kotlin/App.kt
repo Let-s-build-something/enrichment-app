@@ -1,10 +1,18 @@
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DoorBack
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -15,26 +23,39 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.leave_app_dialog_message
+import augmy.composeapp.generated.resources.leave_app_dialog_show_again
+import augmy.composeapp.generated.resources.leave_app_dialog_title
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
+import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.components.dialog.AlertDialog
+import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.AugmyTheme
 import base.navigation.NavigationNode
 import data.io.app.ThemeChoice
+import data.shared.AppServiceViewModel
 import kotlinx.coroutines.flow.collectLatest
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ui.dev.DeveloperContent
-import ui.home.HomeViewModel
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 @Preview
-fun App(viewModel: HomeViewModel = koinViewModel()) {
+fun App(viewModel: AppServiceViewModel = koinViewModel()) {
     val localSettings = viewModel.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -71,10 +92,12 @@ fun App(viewModel: HomeViewModel = koinViewModel()) {
 }
 
 @Composable
-fun AppContent(
-    viewModel: HomeViewModel,
+private fun AppContent(
+    viewModel: AppServiceViewModel,
     navController: androidx.navigation.NavHostController
 ) {
+    val backPressDispatcher = LocalBackPressDispatcher.current
+    val deviceType = LocalDeviceType.current
     val currentUser = viewModel.firebaseUser.collectAsState(null)
 
     val isInternalUser = try {
@@ -86,7 +109,20 @@ fun AppContent(
     val modalDeepLink = rememberSaveable(viewModel) {
         mutableStateOf<String?>(null)
     }
+    val showDialogLeave = rememberSaveable(viewModel) {
+        mutableStateOf(false)
+    }
+    val showDialogAgain = remember {
+        mutableStateOf(true)
+    }
 
+    LaunchedEffect(Unit) {
+        backPressDispatcher?.addOnBackPressedListener {
+            if(viewModel.showLeaveDialog) {
+                showDialogLeave.value = !showDialogLeave.value
+            }else backPressDispatcher.executeBackPress()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.newDeeplink.collectLatest {
@@ -106,6 +142,48 @@ fun AppContent(
         }
     }
 
+    if(showDialogLeave.value) {
+        AlertDialog(
+            title = stringResource(Res.string.leave_app_dialog_title),
+            message = stringResource(Res.string.leave_app_dialog_message),
+            icon = Icons.Outlined.DoorBack,
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_confirm)
+            ) {
+                viewModel.saveDialogSetting(showDialogAgain.value)
+                backPressDispatcher?.executeBackPress()
+            },
+            dismissButtonState = ButtonState(
+                text = stringResource(Res.string.button_dismiss)
+            ),
+            additionalContent = {
+                if(deviceType == WindowWidthSizeClass.Expanded) {
+                    Row(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
+                    ) {
+                        Checkbox(
+                            checked = !showDialogAgain.value,
+                            onCheckedChange = { isChecked ->
+                                showDialogAgain.value = !isChecked
+                            },
+                            colors = LocalTheme.current.styles.checkBoxColorsDefault
+                        )
+                        Text(
+                            text = stringResource(Res.string.leave_app_dialog_show_again),
+                        )
+                    }
+                }
+            },
+            onDismissRequest = {
+                showDialogLeave.value = false
+            }
+        )
+    }
+
     ModalHost(
         deepLink = modalDeepLink.value,
         onDismissRequest = {
@@ -115,7 +193,9 @@ fun AppContent(
 
     if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
         Column {
-            if(isInternalUser) DeveloperContent()
+            if(isInternalUser) DeveloperContent(
+                modifier = Modifier.statusBarsPadding()
+            )
             Box {
                 NavigationHost(navController = navController)
             }

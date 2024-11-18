@@ -15,8 +15,11 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,17 +53,27 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.context.loadKoinModules
 
 /** Launcher for quick actions relevant to a single user other than currently signed in */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileLauncher(
     modifier: Modifier = Modifier,
-    viewModel: UserProfileViewModel = koinViewModel(),
     onDismissRequest: () -> Unit,
+    state: SheetState =  rememberStandardBottomSheetState(
+        confirmValueChange = {
+            it != SheetValue.PartiallyExpanded
+        },
+        initialValue = SheetValue.Expanded,
+        skipHiddenState = false
+    ),
     publicId: String? = null,
     userProfile: PublicUserProfileIO? = null
 ) {
+    loadKoinModules(userProfileModule)
+    val viewModel: UserProfileViewModel = koinViewModel()
+
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
     val pictureSize = LocalScreenSize.current.width.div(5).coerceIn(
@@ -84,7 +97,7 @@ fun UserProfileLauncher(
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userUid = it.data.targetPublicId))
+                        navController?.navigate(NavigationNode.Conversation(userPublicId = it.data.targetPublicId))
                     }
                 }
                 onDismissRequest()
@@ -117,6 +130,7 @@ fun UserProfileLauncher(
     SimpleModalBottomSheet(
         modifier = modifier,
         onDismissRequest = onDismissRequest,
+        sheetState = state,
         dragHandle = null
     ) {
         Crossfade(targetState = responseProfile.value is BaseResponse.Loading) { isLoading ->
@@ -177,9 +191,7 @@ private fun DataContent(
     val currentUser = viewModel.currentUser.collectAsState()
 
     Row(
-        modifier = Modifier
-            .padding(top = 14.dp, start = 8.dp)
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -208,28 +220,31 @@ private fun DataContent(
                 .padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.End)
         ) {
-            if(userProfile.isPublic == true) {
+            if(userProfile.isPublic == true || userProfile.isMutual == true) {
                 ContrastHeaderButton(
                     text = stringResource(Res.string.network_inclusion_success_action),
                     endImageVector = Icons.AutoMirrored.Outlined.Send,
                     onClick = {
                         onDismissRequest()
                         navController?.navigate(
-                            NavigationNode.Conversation(userUid = userProfile.publicId)
+                            NavigationNode.Conversation(userPublicId = userProfile.publicId)
                         )
                     }
                 )
             }
-            BrandHeaderButton(
-                isLoading = responseInclusion.value is BaseResponse.Loading,
-                text = stringResource(Res.string.network_inclusion_action_2),
-                onClick = {
-                    viewModel.includeNewUser(
-                        displayName = userProfile.displayName ?: "",
-                        tag = userProfile.tag ?: ""
-                    )
-                }
-            )
+            // TODO check whether the user is already included from local database
+            if(userProfile.isMutual != true) {
+                BrandHeaderButton(
+                    isLoading = responseInclusion.value is BaseResponse.Loading,
+                    text = stringResource(Res.string.network_inclusion_action_2),
+                    onClick = {
+                        viewModel.includeNewUser(
+                            displayName = userProfile.displayName ?: "",
+                            tag = userProfile.tag ?: ""
+                        )
+                    }
+                )
+            }
         }
     }
 }

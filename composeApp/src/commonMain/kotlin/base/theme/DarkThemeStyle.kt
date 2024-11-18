@@ -27,7 +27,7 @@ class DarkThemeStyles: DefaultThemeStyles() {
     override val category: TextStyle
         @Composable
         get() = TextStyle(
-            color = LocalTheme.current.colors.secondary,
+            color = LocalTheme.current.colors.primary,
             fontSize = 16.sp,
             fontFamily = FontFamily(fontQuicksandMedium)
         )

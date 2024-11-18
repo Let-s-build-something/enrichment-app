@@ -17,13 +17,20 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import components.LoadingIndicator
 import components.OptionsLayout
 import components.OptionsLayoutAction
@@ -33,15 +40,23 @@ import data.io.user.NetworkItemIO
 import future_shared_module.ext.brandShimmerEffect
 import future_shared_module.ext.scalingClickable
 
+/**
+ * Horizontal layout visualizing a user with ability for actions and checked state
+ * @param isSelected whether additional information should be displayed about this user
+ * @param isChecked whether this user is checked and it should be indicated
+ * @param onAction callback for actions from a selected state
+ * @param response currently pending response to any action relevant to this user
+ */
 @Composable
 fun NetworkItemRow(
     modifier: Modifier = Modifier,
     isChecked: Boolean? = null,
-    isSelected: Boolean,
+    isSelected: Boolean = false,
     data: NetworkItemIO?,
-    onAction: (OptionsLayoutAction) -> Unit,
-    onCheckChange: (Boolean) -> Unit,
-    response: BaseResponse<*>?
+    color: Color?,
+    onAction: (OptionsLayoutAction) -> Unit = {},
+    onCheckChange: (Boolean) -> Unit = {},
+    response: BaseResponse<*>? = null
 ) {
     Crossfade(targetState = data != null) { isData ->
         if(isData && data != null) {
@@ -56,6 +71,7 @@ fun NetworkItemRow(
                             onCheckChange(true)
                         }
                     ),
+                color = color,
                 isChecked = isChecked,
                 isSelected = isSelected,
                 data = data,
@@ -72,7 +88,8 @@ fun NetworkItemRow(
 private fun ContentLayout(
     modifier: Modifier = Modifier,
     data: NetworkItemIO,
-    isChecked: Boolean? = null,
+    color: Color?,
+    isChecked: Boolean?,
     isSelected: Boolean = false,
     onAction: (OptionsLayoutAction) -> Unit,
     response: BaseResponse<*>?
@@ -86,34 +103,72 @@ private fun ContentLayout(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = LocalTheme.current.colors.backgroundLight)
-                .padding(top = 8.dp, bottom = 8.dp, end = 12.dp)
+                .padding(top = 8.dp, bottom = 8.dp, end = 4.dp)
                 .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AnimatedVisibility(isChecked == true) {
+            Row(
+                verticalAlignment = if(data.lastMessage == null) {
+                    Alignment.CenterVertically
+                }else Alignment.Top
+            ) {
+                color?.let { color ->
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(8.dp)
-                            .background(color = LocalTheme.current.colors.brandMainDark)
+                            .background(
+                                color = color,
+                                shape = RoundedCornerShape(
+                                    bottomEnd = LocalTheme.current.shapes.screenCornerRadius,
+                                    topEnd = LocalTheme.current.shapes.screenCornerRadius,
+                                    bottomStart = 0.dp,
+                                    topStart = 0.dp
+                                )
+                            )
                     )
                 }
                 UserProfileImage(
                     modifier = Modifier
-                        .padding(start = 12.dp)
+                        .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                         .size(48.dp),
                     model = data.photoUrl,
                     tag = data.tag,
                     contentDescription = null
                 )
-                Text(
-                    modifier = Modifier.padding(start = 12.dp),
-                    text = data.displayName ?: "",
-                    style = LocalTheme.current.styles.category,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = data.displayName ?: "",
+                        style = LocalTheme.current.styles.category.copy(
+                            fontFamily = FontFamily(fontQuicksandSemiBold)
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = data.lastMessage ?: "",
+                        style = LocalTheme.current.styles.regular,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                AnimatedVisibility(isChecked == true) {
+                    Icon(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(32.dp),
+                        imageVector = Icons.Filled.Check,
+                        tint = LocalTheme.current.colors.secondary,
+                        contentDescription = null
+                    )
+                }
             }
             AnimatedVisibility(response != null) {
                 LoadingIndicator(
@@ -133,7 +188,9 @@ private fun ContentLayout(
 @Composable
 private fun ShimmerLayout(modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.padding(vertical = 8.dp, horizontal = 12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -143,16 +200,33 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
         ) {
             Box(
                 Modifier
+                    .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                     .size(48.dp)
                     .brandShimmerEffect(shape = CircleShape)
             )
-            Text(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth((30..62).random().toFloat()/100f)
-                    .brandShimmerEffect(),
-                text = "",
-                style = LocalTheme.current.styles.category,
-            )
+                    .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth((30..40).random().toFloat()/100f)
+                        .brandShimmerEffect(),
+                    text = "",
+                    style = LocalTheme.current.styles.category.copy(
+                        fontFamily = FontFamily(fontQuicksandSemiBold)
+                    )
+                )
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth((40..70).random().toFloat()/100f)
+                        .brandShimmerEffect(),
+                    text = "",
+                    style = LocalTheme.current.styles.regular
+                )
+            }
         }
     }
 }

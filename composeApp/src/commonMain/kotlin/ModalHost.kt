@@ -1,8 +1,9 @@
-import androidx.compose.runtime.Composable
-import org.koin.core.context.loadKoinModules
-import ui.network.profile.UserProfileLauncher
-import ui.network.profile.userProfileModule
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.Composable
+import ui.network.profile.UserProfileLauncher
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModalHost(
     deepLink: String?,
@@ -10,7 +11,6 @@ fun ModalHost(
 ) {
     when {
         deepLink?.matches("""users\/.+""".toRegex()) == true -> {
-            loadKoinModules(userProfileModule)
             UserProfileLauncher(
                 publicId = deepLink.split("/").getOrNull(1),
                 onDismissRequest = onDismissRequest

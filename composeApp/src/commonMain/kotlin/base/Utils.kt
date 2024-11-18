@@ -10,3 +10,6 @@ fun <T: Any> LazyPagingItems<T>.getOrNull(index: Int): T? {
 
 /** Color derived from a user tag */
 fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else null
+
+/** Converts color to 6 hexadecimal numbers representing it without transparency */
+fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)

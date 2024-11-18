@@ -33,7 +33,7 @@ import components.OptionsLayoutAction
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
-import future_shared_module.ext.scalingClickable
+import data.NetworkProximityCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -51,6 +51,7 @@ fun NetworkListContent(
     val networkItems = viewModel.requests.collectAsLazyPagingItems()
     val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
+    val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
     val navController = LocalNavController.current
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
@@ -61,7 +62,7 @@ fun NetworkListContent(
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.Add -> {
+            OptionsLayoutAction.AddTo -> {
                 // TODO
             }
             OptionsLayoutAction.Block -> {
@@ -123,7 +124,7 @@ fun NetworkListContent(
                 }
             }
             items(
-                count = if(networkItems.itemCount == 0 && isLoadingInitialPage) SHIMMER_ITEM_COUNT else networkItems.itemCount,
+                count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
                 key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
             ) { index ->
                 networkItems.getOrNull(index).let { data ->
@@ -137,6 +138,11 @@ fun NetworkListContent(
                         data = data,
                         response = response.value[data?.publicId],
                         onAction = onAction,
+                        color = NetworkProximityCategory.entries.firstOrNull {
+                            it.range.contains(data?.proximity ?: 1f)
+                        }.let {
+                            customColors.value[it] ?: it?.color
+                        },
                         isSelected = selectedItem.value == data?.publicId,
                         onCheckChange = { isLongClick ->
                             when {
@@ -164,4 +170,5 @@ fun NetworkListContent(
     }
 }
 
-private const val SHIMMER_ITEM_COUNT = 10
+/** Number of network items within one screen to be shimmered */
+const val NETWORK_SHIMMER_ITEM_COUNT = 20

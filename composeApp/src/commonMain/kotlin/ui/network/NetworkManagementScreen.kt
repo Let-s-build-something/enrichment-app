@@ -112,14 +112,14 @@ fun NetworkManagementScreen(
                 state = pagerState,
                 beyondViewportPageCount = 1
             ) { index ->
-                if(index == 0) {
+                if(index == 0 && pagerState.pageCount == 2) {
+                    NetworkReceivedContent()
+                }else {
                     NetworkListContent(
                         openAddNewModal = {
                             showAddNewModal.value = true
                         }
                     )
-                }else {
-                    NetworkReceivedContent()
                 }
             }
         }

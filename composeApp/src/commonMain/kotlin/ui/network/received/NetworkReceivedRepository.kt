@@ -111,7 +111,7 @@ class NetworkReceivedRepository(private val httpClient: HttpClient) {
         CirclingRequest(displayName = "Peter Pan 36", photoUrl = "https://picsum.photos/135", tag = "2e4ee8", uid = "2e4ee8"),
         CirclingRequest(displayName = "John Doe 37", photoUrl = "https://picsum.photos/136", tag = "9b84cc", uid = "9b84cc"),
         CirclingRequest(displayName = "Peter Pan 38", photoUrl = "https://picsum.photos/137", tag = "01bb31", uid = "01bb31"),
-        CirclingRequest(displayName = "John Doe 39", photoUrl = "https://picsum.photos/138", tag = "644da4", uid = "644da4"),
+        CirclingRequest(displayName = "Very interesting John Doe 39", photoUrl = "https://picsum.photos/138", tag = "644da4", uid = "644da4"),
         CirclingRequest(displayName = "Peter Pan 40", photoUrl = "https://picsum.photos/139", tag = "3b806c", uid = "3b806c"),
         CirclingRequest(displayName = "John Doe 41", photoUrl = "https://picsum.photos/140", tag = "3dbecc", uid = "3dbecc")
     )

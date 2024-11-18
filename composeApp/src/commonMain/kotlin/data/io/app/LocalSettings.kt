@@ -10,8 +10,18 @@ data class LocalSettings(
     var fcmToken: String? = null,
 
     /** current client status */
-    val clientStatus: ClientStatus = ClientStatus.NEW
-)
+    val clientStatus: ClientStatus = ClientStatus.NEW,
+
+    /** Hexadecimal representations of colors for each category */
+    var networkColors: List<String> = listOf(),
+
+    /** instance pointer */
+    val uuid: String? = null
+) {
+    override fun toString(): String {
+        return "LocalSettings(theme=$theme, fcmToken=$fcmToken, clientStatus=$clientStatus, networkColors=$networkColors, uuid=$uuid)"
+    }
+}
 
 enum class ClientStatus {
     NEW,
