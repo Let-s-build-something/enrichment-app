@@ -132,8 +132,9 @@ fun BaseScreen(
                             .fillMaxWidth()
                     )
 
+                    Modifier.padding(paddingValues)
                     ShelledContent(
-                        modifier = Modifier.padding(paddingValues),
+                        modifier = Modifier,//.padding(paddingValues),
                         appBarVisible = appBarVisible,
                         title = title,
                         subtitle = subtitle,

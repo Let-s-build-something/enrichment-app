@@ -3,6 +3,8 @@ package ui.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,16 +40,19 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.network_list_empty_action
+import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.components.MinimalisticIcon
+import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.getOrNull
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import components.EmptyLayout
 import components.HorizontalScrollChoice
 import components.OptionsLayout
 import components.OptionsLayoutAction
@@ -59,6 +64,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -82,6 +88,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
     val checkedItems = remember { mutableStateListOf<String?>() }
+    val showAddNewModal = rememberSaveable {
+        mutableStateOf(false)
+    }
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
@@ -114,6 +123,10 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 showTuner.value = false
             }
         )
+    }else if(showAddNewModal.value) {
+        NetworkAddNewLauncher(onDismissRequest = {
+            showAddNewModal.value = false
+        })
     }
 
     RefreshableScreen(
@@ -182,16 +195,17 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 )
                 androidx.compose.animation.AnimatedVisibility(
                     modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
-                    visible = checkedItems.size == 0
+                    visible = checkedItems.size == 0 && !(networkItems.itemCount == 0 && !isLoadingInitialPage)
                 ) {
                     Crossfade(
                         modifier = Modifier.zIndex(1f),
                         targetState = isCompactView.value
                     ) { isList ->
-                        MinimalisticIcon(
-                            modifier = Modifier.zIndex(1f),
+                        MinimalisticBrandIcon(
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .zIndex(1f),
                             imageVector = if(isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
-                            tint = LocalTheme.current.colors.tetrial,
                             onTap = {
                                 isCompactView.value = !isCompactView.value
                             }
@@ -218,6 +232,20 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                                 .animateContentSize()
                                         )
                                     }
+                                }
+                            }
+                            item {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    enter = expandVertically() + fadeIn(),
+                                    visible = networkItems.itemCount == 0 && !isLoadingInitialPage
+                                ) {
+                                    EmptyLayout(
+                                        title = stringResource(Res.string.network_list_empty_title),
+                                        action = stringResource(Res.string.network_list_empty_action),
+                                        onClick = {
+                                            showAddNewModal.value = true
+                                        }
+                                    )
                                 }
                             }
                             items(

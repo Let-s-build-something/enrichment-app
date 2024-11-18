@@ -36,7 +36,8 @@ internal val homeModule = module {
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-class HomeViewModel(repository: NetworkListRepository
+class HomeViewModel(
+    repository: NetworkListRepository
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)

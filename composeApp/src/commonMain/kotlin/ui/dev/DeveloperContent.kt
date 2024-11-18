@@ -83,7 +83,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 
 @Composable
-fun DeveloperContent() {
+fun DeveloperContent(modifier: Modifier = Modifier) {
     loadKoinModules(developerConsoleModule)
     val viewModel: DeveloperConsoleViewModel = koinViewModel()
 
@@ -100,7 +100,7 @@ fun DeveloperContent() {
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()

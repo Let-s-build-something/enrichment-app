@@ -61,13 +61,13 @@ fun UserProfileImage(
             modifier = modifier
                 .height(IntrinsicSize.Max)
                 .width(IntrinsicSize.Max)
-                .padding(
-                    avatarSize.value.dp * .15f / 2f
-                )
                 .animateContentSize()
         ) {
             Box(
                 Modifier
+                    .padding(
+                        avatarSize.value.dp * .15f / 2f
+                    )
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .scale(liveScaleBackground)
@@ -78,6 +78,9 @@ fun UserProfileImage(
             )
             AsyncSvgImage(
                 modifier = Modifier
+                    .padding(
+                        avatarSize.value.dp * .15f / 2f
+                    )
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(CircleShape)

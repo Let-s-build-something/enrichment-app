@@ -1,8 +1,6 @@
 package components.pull_refresh
 
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -82,8 +80,6 @@ fun RefreshableScreen(
             .width(with(LocalDensity.current) {
                 indicatorWidth.value.toDp()
             })
-            .systemBarsPadding()
-            .statusBarsPadding()
             .zIndex(100f),
         pullRefreshSize = pullRefreshSize,
         state = pullRefreshState,

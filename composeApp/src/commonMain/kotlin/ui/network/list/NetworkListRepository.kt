@@ -3,7 +3,6 @@ package ui.network.list
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
-import data.io.base.PaginationInfo
 import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
@@ -34,7 +33,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
                 )
             }
 
-            if(page <= proximityDemoData.size/size) {
+            /*if(page <= proximityDemoData.size/size) {
                 BaseResponse.Success(NetworkListResponse(
                     content = proximityDemoData.subList(page * size, ((page + 1) * size) - 1),
                     pagination = PaginationInfo(
@@ -43,7 +42,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
                         totalPages = proximityDemoData.size/size
                     )
                 ))
-            }else BaseResponse.Error()
+            }else BaseResponse.Error()*/
         }
     }
 

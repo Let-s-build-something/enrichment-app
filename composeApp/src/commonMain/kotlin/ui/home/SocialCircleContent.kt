@@ -32,12 +32,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -76,6 +79,8 @@ fun SocialCircleContent(
     val contentHeightPx = with(density) {
         contentSize.height.dp.toPx() - headerHeightDp.dp.toPx()
     }
+    val itemPaddingPx = with(density) { 2.dp.toPx() }
+    val layerPadding = 12.dp
     val isVertical = contentSize.width < contentSize.height
     val largerDimension = (if(isVertical) contentSize.height - headerHeightDp else contentSize.width).toFloat()
     val smallerDimension = (if(isVertical) contentSize.width else contentSize.height - headerHeightDp).toFloat()
@@ -87,9 +92,7 @@ fun SocialCircleContent(
     val scale = remember {
         Animatable(initialValue = 1f)
     }
-    val initialScale = rememberSaveable {
-        1 / (smallerDimension / largerDimension)
-    }
+    val initialScale = rememberSaveable { 1f }
 
     LaunchedEffect(Unit) {
         delay(500)
@@ -102,7 +105,7 @@ fun SocialCircleContent(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -120,8 +123,8 @@ fun SocialCircleContent(
                                 (contentSize.width.dp.toPx() / 2f).toInt(),
                                 (contentHeightPx / 2f).toInt()
                             )
-                            val xDiff = (tapCenter.x - center.width) * initialScale
-                            val yDiff = ((tapCenter.y - center.height) * initialScale).coerceIn(
+                            val xDiff = (tapCenter.x - center.width) * initialScale * 2f
+                            val yDiff = ((tapCenter.y - center.height) * initialScale * 2f).coerceIn(
                                 minimumValue = -(center.height * 2f),
                                 maximumValue = (center.height * 2f)
                             )
@@ -132,22 +135,24 @@ fun SocialCircleContent(
             }
             .transformable(
                 rememberTransformableState { zoomChange, panChange, _ ->
-                    val topX = contentSize.width * scale.value * 2 - smallerDimension
-                    val topY = contentHeightPx * scale.value - smallerDimension
+                    val maxCoordinate = largerDimension * scale.value
 
                     coroutineScope.launch {
                         scale.animateTo(
-                            (scale.value * zoomChange * zoomChange).coerceIn(1f, initialScale * 3.5f)
+                            (scale.value * zoomChange * zoomChange).coerceIn(
+                                minimumValue = smallerDimension / largerDimension,
+                                maximumValue = initialScale * 3.5f
+                            )
                         )
                     }
                     offset.value = Offset(
                         x = (offset.value.x + panChange.x).coerceIn(
-                            minimumValue = (-topX / 2),
-                            maximumValue = (topX / 2)
+                            minimumValue = kotlin.math.min(-maxCoordinate / 2, maxCoordinate / 2),
+                            maximumValue = kotlin.math.max(maxCoordinate / 2, -maxCoordinate / 2)
                         ),
                         y = (offset.value.y + panChange.y).coerceIn(
-                            minimumValue = (-topY / 4),
-                            maximumValue = (topY / 4)
+                            minimumValue = kotlin.math.min(-maxCoordinate / 2, maxCoordinate / 2),
+                            maximumValue = kotlin.math.max(maxCoordinate / 2, -maxCoordinate / 2)
                         )
                     )
                 }
@@ -156,7 +161,7 @@ fun SocialCircleContent(
     ) {
         Box(
             modifier = Modifier
-                .requiredSize(smallerDimension.dp)
+                .requiredSize(largerDimension.dp)
                 .aspectRatio(1f)
                 .graphicsLayer {
                     scaleX = scale.value
@@ -176,15 +181,13 @@ fun SocialCircleContent(
                 if(categories.value.contains(category)) {
                     val additionalShares = category.share / presentShares * missingShares
                     val shares = category.share + additionalShares + previousShares
-                    val itemDimension = smallerDimension * (previousShares - shares)
 
                     val zIndex = categories.value.size - categories.value.indexOf(category) + 1f
-                    val emptySpaceWidth = smallerDimension * (previousShares - shares)
                     val endIndex = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount
 
                     val items = mutableListOf<NetworkItemIO?>()
                     var finished = false
-                    for(index in startingIndex..endIndex) {
+                    for(index in startingIndex until endIndex) {
                         if(!finished) {
                             networkItems.getOrNull(index).let { data ->
                                 if(data == null || category.range.contains(data.proximity ?: -1f)) {
@@ -197,10 +200,25 @@ fun SocialCircleContent(
                         }
                     }
 
+                    val radius = with(density) {
+                        (largerDimension * shares / 2).dp.minus(layerPadding).toPx()
+                    }
+                    val minRadius = with(density) {
+                        (largerDimension * previousShares / 2).dp.toPx()
+                    }
+                    val mappings = getMappings(
+                        radius = radius,
+                        minRadius = minRadius,
+                        paddingPx = itemPaddingPx,
+                        items = items
+                    )
+                    val circleSize = mappings.first
+                    val mappedItems = mappings.second
+
                     Layout(
                         modifier = Modifier
                             .background(
-                                color = customColors.value[category] ?: category.color,
+                                color = (customColors.value[category] ?: category.color).copy(alpha = .5f),
                                 shape = CircleShape
                             )
                             .clip(CircleShape)
@@ -212,17 +230,16 @@ fun SocialCircleContent(
                                 )
                             )
                             .zIndex(zIndex)
-                            .size((smallerDimension * shares).dp),
+                            .size((largerDimension * shares).dp),
                         content = {
-                            val itemWidth = 2 * PI * smallerDimension * shares / items.size
-
                             items.forEach { data ->
                                 NetworkItemCompact(
                                     modifier = Modifier
                                         .align(Alignment.Center)
-                                        .width(itemWidth.dp - 6.dp)
+                                        .animateContentSize()
                                         .zIndex(zIndex),
-                                    data = data
+                                    data = data,
+                                    size = with(density) { circleSize.toDp() }
                                 )
                             }
                         }
@@ -232,26 +249,24 @@ fun SocialCircleContent(
                         }
 
                         layout(constraints.maxWidth, constraints.minHeight) {
-                            val centerX = constraints.maxWidth / 2
-                            val centerY = constraints.maxHeight / 2
+                            var placeableIndex = 0
+                            val centerX = constraints.maxWidth / 2 - circleSize / 2
+                            val centerY = constraints.maxHeight / 2 - circleSize / 2
 
-                            val radius = smallerDimension * shares / 2
+                            mappedItems.map { it.value }.forEachIndexed { indexLayer, items ->
+                                var verticalDistance = (indexLayer / mappedItems.size) * circleSize
+                                val radiusOverride = radius - (indexLayer * circleSize) - circleSize / 2
 
-                            val itemCount = placeables.size
-                            if (itemCount == 0) return@layout
+                                for(index in items.indices) {
+                                    val x = centerX + (radiusOverride * cos(verticalDistance / radiusOverride))
+                                    val y = centerY + (radiusOverride * sin(verticalDistance / radiusOverride))
 
-                            val angleIncrement = (2 * PI) / itemCount
-
-                            placeables.forEachIndexed { index, placeable ->
-                                val angle = angleIncrement * index
-
-                                val xOffset = (radius * cos(angle)).toInt()
-                                val yOffset = (radius * sin(angle)).toInt()
-
-                                placeable.placeRelative(
-                                    x = centerX + xOffset - placeable.width / 2,
-                                    y = centerY + yOffset - placeable.height / 2
-                                )
+                                    placeables[placeableIndex++].placeRelative(
+                                        x = x.toInt(),
+                                        y = y.toInt()
+                                    )
+                                    verticalDistance += circleSize + itemPaddingPx
+                                }
                             }
                         }
                     }
@@ -265,17 +280,23 @@ fun SocialCircleContent(
 @Composable
 private fun NetworkItemCompact(
     modifier: Modifier = Modifier,
+    size: Dp,
     data: NetworkItemIO?
 ) {
+    val density = LocalDensity.current
+
     Crossfade(data == null) { isShimmer ->
         Column(
-            modifier = modifier.width(IntrinsicSize.Min),
+            modifier = modifier
+                .requiredSize(size)
+                .width(IntrinsicSize.Min),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if(isShimmer) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .aspectRatio(1f)
+                        .weight(1f)
                         .brandShimmerEffect(shape = CircleShape)
                 )
                 Text(
@@ -290,22 +311,74 @@ private fun NetworkItemCompact(
                 )
             }else if(data != null) {
                 UserProfileImage(
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .weight(1f),
                     model = data.photoUrl,
                     tag = data.tag
                 )
                 Text(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp),
+                        .fillMaxWidth(.8f)
+                        .align(Alignment.CenterHorizontally),
                     text = data.displayName ?: "",
-                    style = LocalTheme.current.styles.category.copy(
-                        fontFamily = FontFamily(fontQuicksandSemiBold)
+                    style = TextStyle(
+                        fontFamily = FontFamily(fontQuicksandSemiBold),
+                        fontSize = with(density) { (size / 6).toSp() },
+                        textAlign = TextAlign.Center,
+                        color = Color.White
                     ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 1
                 )
             }
         }
     }
+}
+
+/** Utils function which calculates the appropriate circleSize and maps items based on their layers */
+private fun <T> getMappings(
+    radius: Float,
+    minRadius: Float,
+    paddingPx: Float,
+    items: List<T>
+): Pair<Float, HashMap<Int, List<T>>> {
+    val itemsLeft = items.toMutableList()
+    var circleSize = radius
+    val mappedItems = hashMapOf<Int, List<T>>()
+
+    //step 1 -> first circle with the largest value
+    //step 2 -> check if the circle fits all the items
+    //step 3 -> take the number of items it does fit
+    //step 4 -> reiterate until in the middle of the circle
+    //step 5 -> if there are items left, decrease the circleSize and start at the step 2 at index 0
+    var index = 0
+    while (itemsLeft.isNotEmpty()) {
+        val circleSizeWPadding = circleSize + paddingPx
+        val currentRadius = radius - (index * circleSize) - circleSizeWPadding / 2
+
+        val circumference = 2 * PI * currentRadius
+        val itemsToFit = (circumference / circleSizeWPadding).toInt()
+
+        if (itemsToFit > 0
+            && circleSizeWPadding < currentRadius
+            && currentRadius >= minRadius + circleSize / 2
+        ) {
+            val itemsToBeTaken = itemsLeft.take(itemsToFit.coerceAtMost(itemsLeft.size))
+            mappedItems[index] = itemsToBeTaken
+            itemsLeft.removeAll(itemsToBeTaken)
+
+            // Check if there can be another layer
+            if(itemsLeft.size > 0) index++
+        } else {
+            // If there's no more space for a new layer, reduce circleSize
+            circleSize = (circleSize - 1).coerceAtLeast(1f)
+            index = 0
+            mappedItems.clear()
+            itemsLeft.clear()
+            itemsLeft.addAll(items)
+        }
+
+        if(circleSize == 1f) break
+    }
+    return circleSize to mappedItems
 }

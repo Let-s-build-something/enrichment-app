@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DoorBack
 import androidx.compose.material3.Checkbox
@@ -192,7 +193,9 @@ private fun AppContent(
 
     if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
         Column {
-            if(isInternalUser) DeveloperContent()
+            if(isInternalUser) DeveloperContent(
+                modifier = Modifier.statusBarsPadding()
+            )
             Box {
                 NavigationHost(navController = navController)
             }
