@@ -2,6 +2,7 @@ package augmy.interactive.shared.ui.components.input
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -90,7 +91,11 @@ fun EditFieldInput(
         label = "controlColorChange"
     )
 
-    Column(modifier = modifier.width(IntrinsicSize.Min)) {
+    Column(
+        modifier = modifier
+            .width(IntrinsicSize.Min)
+            .animateContentSize()
+    ) {
         CustomTextField(
             modifier = Modifier
                 .fillMaxWidth()

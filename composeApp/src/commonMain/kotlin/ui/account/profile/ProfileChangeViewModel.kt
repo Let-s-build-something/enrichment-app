@@ -1,10 +1,8 @@
 package ui.account.profile
 
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
 import data.io.base.BaseResponse
-import data.io.social.username.ResponseUsernameChange
+import data.io.social.username.ResponseDisplayNameChange
 import data.shared.SharedViewModel
 import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
@@ -25,7 +23,8 @@ class ProfileChangeViewModel (
 
     private val _isLoading = MutableStateFlow(false)
     private val _isPictureChangeSuccess = MutableSharedFlow<Boolean?>()
-    private val _userNameResponse = MutableStateFlow<BaseResponse<ResponseUsernameChange>?>(null)
+    private val _displayNameChangeResponse = MutableStateFlow<BaseResponse<ResponseDisplayNameChange>?>(null)
+    private val _displayNameValidationResponse = MutableStateFlow<BaseResponse<Any>?>(null)
 
     /** whether there is a pending request */
     val isLoading = _isLoading.asStateFlow()
@@ -33,14 +32,28 @@ class ProfileChangeViewModel (
     /** whether change of profile picture was successful */
     val isPictureChangeSuccess = _isPictureChangeSuccess.asSharedFlow()
 
-    /** response to the latest request for username change */
-    val usernameResponse = _userNameResponse.asStateFlow()
+    /** response to the latest request for display name change */
+    val displayNameChangeResponse = _displayNameChangeResponse.asStateFlow()
 
-    /** Makes a request to change user's username */
-    fun requestUsernameChange(username: String) {
+    /** response to the latest request display name input validation */
+    val displayNameValidationResponse = _displayNameValidationResponse.asStateFlow()
+
+    /** Validates currently entered display name */
+    fun validateDisplayName(value: String) {
+        if(value == sharedDataManager.currentUser.value?.displayName) return
+
         viewModelScope.launch {
             _isLoading.value = true
-            _userNameResponse.value = repository.changeUsername(username).apply {
+            _displayNameValidationResponse.value = repository.validateDisplayName(value)
+            _isLoading.value = false
+        }
+    }
+
+    /** Makes a request to change user's username */
+    fun requestDisplayNameChange(value: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _displayNameChangeResponse.value = repository.changeDisplayName(value).apply {
                 success?.data?.let { data ->
                     sharedDataManager.currentUser.update { old ->
                         old?.copy(

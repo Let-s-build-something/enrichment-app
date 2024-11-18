@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 /** Response from request for a username change */
 @Serializable
-data class ResponseUsernameChange(
+data class ResponseDisplayNameChange(
     /** isn't null in case a new tag was generated */
     val tag: String? = null,
 

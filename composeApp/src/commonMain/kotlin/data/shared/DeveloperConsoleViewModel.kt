@@ -37,7 +37,8 @@ class DeveloperConsoleViewModel(private val dataManager: DeveloperConsoleDataMan
     val httpLogData = dataManager.httpLogData.asStateFlow()
 
     /** Current host override if there is any */
-    val hostOverride = dataManager.hostOverride.asStateFlow()
+    val hostOverride
+        get() = dataManager.hostOverride.value
 
 
     //======================================== functions ==========================================
