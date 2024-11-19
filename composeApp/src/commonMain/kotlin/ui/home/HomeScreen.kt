@@ -234,7 +234,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                     }
                                 }
                             }
-                            item {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
                                 androidx.compose.animation.AnimatedVisibility(
                                     enter = expandVertically() + fadeIn(),
                                     visible = networkItems.itemCount == 0 && !isLoadingInitialPage

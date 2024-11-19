@@ -4,11 +4,9 @@ import cocoapods.FirebaseMessaging.FIRMessaging
 import cocoapods.FirebaseMessaging.FIRMessagingDelegateProtocol
 import cocoapods.GoogleSignIn.GIDConfiguration
 import cocoapods.GoogleSignIn.GIDSignIn
+import data.shared.AppServiceViewModel
 import koin.commonModule
 import kotlinx.cinterop.ExperimentalForeignApi
-import org.koin.compose.getKoin
-import org.koin.compose.koinInject
-import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
@@ -25,16 +23,13 @@ import platform.UserNotifications.UNNotification
 import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNUserNotificationCenter
 import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
-import ui.home.HomeViewModel
 
 /**
  * initializes iOS app this includes:
  * koin
  */
 fun onAppInitialized() {
-    startKoin {
-        modules(commonModule)
-    }
+
 }
 
 /**
@@ -105,11 +100,15 @@ private fun configureFirebase(): Boolean {
     GIDSignIn.sharedInstance.configuration = GIDConfiguration(
         clientID = FIRApp.defaultApp()?.options?.clientID ?: return false
     )
+
+    startKoin {
+        modules(commonModule)
+    }
     return true
 }
 
 /** Called whenever iOS catches a new url routing to the app */
 fun onNewUrl(path: String) {
-    val viewModel: HomeViewModel = KoinPlatform.getKoin().get()
+    val viewModel: AppServiceViewModel = KoinPlatform.getKoin().get()
     viewModel.emitDeepLink(path)
 }

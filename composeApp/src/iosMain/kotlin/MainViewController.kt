@@ -1,3 +1,4 @@
+
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
@@ -8,7 +9,6 @@ import augmy.interactive.shared.ui.base.BackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import platform.UIKit.UIApplication
-import platform.UIKit.UINavigationController
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UIViewController
 import platform.UIKit.navigationController
@@ -18,7 +18,6 @@ import platform.darwin.NSObject
 fun MainViewController() = ComposeUIViewController {
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
-
 
     val backPressDispatcher = object: BackPressDispatcher {
         var listener: (() -> Unit)? = null
@@ -40,9 +39,9 @@ fun MainViewController() = ComposeUIViewController {
         ?.navigationController
         ?.delegate = object : NSObject(), UINavigationControllerDelegateProtocol {
         override fun navigationController(
-            navigationController: UINavigationController,
+            navigationController: platform.UIKit.UINavigationController,
             willShowViewController: UIViewController,
-            shouldPop: Boolean
+            animated: Boolean
         ) {
             backPressDispatcher.listener?.invoke()
         }
