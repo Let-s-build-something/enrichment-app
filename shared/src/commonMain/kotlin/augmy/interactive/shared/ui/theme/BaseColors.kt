@@ -4,6 +4,9 @@ import androidx.compose.ui.graphics.Color
 
 interface BaseColors {
 
+    /** Color of appbar */
+    val appbarBackground: Color
+
     /** Brand color */
     val brandMain: Color
 

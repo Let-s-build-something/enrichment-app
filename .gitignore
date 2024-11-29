@@ -52,3 +52,4 @@ iosApp/Pods
 build/wix311/
 iosApp/build/XCBuildData
 GoogleService-Info.plist
+commonizedNativeDistributionLocation.txt

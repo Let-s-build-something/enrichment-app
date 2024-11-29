@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FabPosition
@@ -82,7 +86,7 @@ fun BaseScreen(
         //bottomStart = 24.dp
     ),
     actionIcons: @Composable (Boolean) -> Unit = {},
-    appBarVisible: Boolean = LocalHeyIamScreen.current.not(),
+    appBarVisible: Boolean = true,
     containerColor: Color? = null,
     contentColor: Color = Color.Transparent,
     floatingActionButtonPosition: FabPosition = FabPosition.End,
@@ -98,83 +102,67 @@ fun BaseScreen(
         previousSnackbarHostState ?: SnackbarHostState()
     }
 
-    CompositionLocalProvider(
-        LocalSnackbarHost provides snackbarHostState,
-        LocalHeyIamScreen provides true
-    ) {
-        Scaffold(
-            modifier = modifier
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = {
-                        focusManager.clearFocus()
-                    })
-                },
-            snackbarHost = {
-                if(previousSnackbarHostState == null) {
-                    BaseSnackbarHost(hostState = snackbarHostState)
-                }
+    Scaffold(
+        modifier = modifier
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
             },
-            containerColor = Color.Transparent,
-            contentColor = contentColor,
-            floatingActionButton = floatingActionButton,
-            floatingActionButtonPosition = floatingActionButtonPosition,
-            content = { paddingValues ->
-                Box {
-                    // black bottom background in case of paddings of content
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .then(
-                                if (containerColor != null) {
-                                    Modifier.background(containerColor)
-                                } else Modifier
-                            )
-                            .fillMaxWidth()
-                    )
-
-                    Modifier.padding(paddingValues)
-                    ShelledContent(
-                        modifier = Modifier,//.padding(paddingValues),
-                        appBarVisible = appBarVisible,
-                        title = title,
-                        subtitle = subtitle,
-                        navigationIcon = navigationIcon,
-                        actionIcons = actionIcons,
-                        onNavigationIconClick = onNavigationIconClick,
-                        verticalAppBar = verticalAppBar
-                    ) { platformModifier ->
-                        val contentSize = remember {
-                            mutableStateOf(IntSize(0, 0))
-                        }
-                        Box(
-                            modifier = contentModifier
-                                .then(
-                                    if (containerColor != null) {
-                                        platformModifier
-                                            .background(color = containerColor, shape = shape)
-                                    } else platformModifier
+        snackbarHost = {
+            if(previousSnackbarHostState == null) {
+                BaseSnackbarHost(hostState = snackbarHostState)
+            }
+        },
+        containerColor = Color.Transparent,
+        contentColor = contentColor,
+        floatingActionButton = floatingActionButton,
+        floatingActionButtonPosition = floatingActionButtonPosition,
+        contentWindowInsets = if(LocalHeyIamScreen.current) WindowInsets(0, 0, 0, 0)
+        else WindowInsets.statusBars,
+        content = { paddingValues ->
+            ShelledContent(
+                modifier = Modifier.padding(paddingValues),
+                appBarVisible = appBarVisible,
+                title = title,
+                subtitle = subtitle,
+                navigationIcon = navigationIcon,
+                actionIcons = actionIcons,
+                onNavigationIconClick = onNavigationIconClick,
+                verticalAppBar = verticalAppBar
+            ) { platformModifier ->
+                val contentSize = remember {
+                    mutableStateOf(IntSize(0, 0))
+                }
+                Box(
+                    modifier = contentModifier
+                        .then(
+                            if (containerColor != null) {
+                                platformModifier
+                                    .background(color = containerColor, shape = shape)
+                            } else platformModifier
+                        )
+                        .clip(shape)
+                        .onSizeChanged {
+                            contentSize.value = with(density) {
+                                IntSize(
+                                    it.width.toDp().value.toInt(),
+                                    it.height.toDp().value.toInt()
                                 )
-                                .clip(shape)
-                                .onSizeChanged {
-                                    contentSize.value = with(density) {
-                                        IntSize(
-                                            it.width.toDp().value.toInt(),
-                                            it.height.toDp().value.toInt()
-                                        )
-                                    }
-                                }
-                        ) {
-                            CompositionLocalProvider(
-                                LocalContentSize provides contentSize.value
-                            ) {
-                                content(this)
                             }
                         }
+                ) {
+                    CompositionLocalProvider(
+                        LocalContentSize provides contentSize.value,
+                        LocalSnackbarHost provides snackbarHostState,
+                        LocalHeyIamScreen provides true
+                    ) {
+                        content(this)
                     }
                 }
             }
-        )
-    }
+        }
+    )
 }
 
 /**
@@ -357,9 +345,11 @@ fun BoxScope.ModalScreenContent(
                         end = 16.dp
                     ),
                 verticalArrangement = verticalArrangement,
-                horizontalAlignment = horizontalAlignment,
-                content = content
-            )
+                horizontalAlignment = horizontalAlignment
+            ) {
+                content()
+                Spacer(Modifier.padding(WindowInsets.statusBars.asPaddingValues()))
+            }
         },
         contentAlignment = Alignment.Center
     )

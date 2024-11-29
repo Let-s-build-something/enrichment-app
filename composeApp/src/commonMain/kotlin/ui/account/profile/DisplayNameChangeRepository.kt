@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 import ui.login.safeRequest
 
 /** Class for making DB requests */
-class UsernameChangeRepository(private val httpClient: HttpClient) {
+class DisplayNameChangeRepository(private val httpClient: HttpClient) {
 
     /** Makes a request to change username */
     suspend fun changeDisplayName(value: String): BaseResponse<ResponseDisplayNameChange> {

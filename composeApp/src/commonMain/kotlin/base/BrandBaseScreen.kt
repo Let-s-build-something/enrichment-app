@@ -60,7 +60,8 @@ fun BrandBaseScreen(
     val sharedViewModel: SharedViewModel = koinViewModel()
     val navController = LocalNavController.current
 
-    val currentUser = sharedViewModel.firebaseUser.collectAsState(null)
+    val firebaseUser = sharedViewModel.firebaseUser.collectAsState(null)
+    val currentUser = sharedViewModel.currentUser.collectAsState(null)
 
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
             || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)
@@ -80,9 +81,10 @@ fun BrandBaseScreen(
 
         if(showDefaultActions) {
             DefaultAppBarActions(
-                isUserSignedIn = currentUser.value != null,
-                userPhotoUrl = try { currentUser.value?.photoURL } catch (e: NotImplementedError) { null },
-                expanded = expanded
+                isUserSignedIn = firebaseUser.value != null,
+                userPhotoUrl = try { firebaseUser.value?.photoURL } catch (e: NotImplementedError) { null },
+                expanded = expanded,
+                userTag = currentUser.value?.tag
             )
         }
     }

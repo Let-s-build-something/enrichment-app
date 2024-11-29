@@ -5,6 +5,7 @@ import augmy.interactive.shared.ui.theme.BaseColors
 
 object LightAppColors: BaseColors {
 
+    override val appbarBackground: Color = Colors.HunterGreen
     override val primary: Color = Colors.Onyx
     override val secondary: Color = Colors.Coffee
     override val disabled: Color = secondary.copy(alpha = .6f)
