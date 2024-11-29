@@ -9,12 +9,13 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FabPosition
@@ -115,62 +116,46 @@ fun BaseScreen(
         contentColor = contentColor,
         floatingActionButton = floatingActionButton,
         floatingActionButtonPosition = floatingActionButtonPosition,
+        contentWindowInsets = if(LocalHeyIamScreen.current) WindowInsets(0, 0, 0, 0)
+        else WindowInsets.statusBars,
         content = { paddingValues ->
-            Box {
-                // black bottom background in case of paddings of content
+            ShelledContent(
+                modifier = Modifier.padding(paddingValues),
+                appBarVisible = appBarVisible,
+                title = title,
+                subtitle = subtitle,
+                navigationIcon = navigationIcon,
+                actionIcons = actionIcons,
+                onNavigationIconClick = onNavigationIconClick,
+                verticalAppBar = verticalAppBar
+            ) { platformModifier ->
+                val contentSize = remember {
+                    mutableStateOf(IntSize(0, 0))
+                }
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
+                    modifier = contentModifier
                         .then(
                             if (containerColor != null) {
-                                Modifier.background(containerColor)
-                            } else Modifier
+                                platformModifier
+                                    .background(color = containerColor, shape = shape)
+                            } else platformModifier
                         )
-                        .height(if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 100.dp else 0.dp)
-                        .fillMaxWidth()
-                )
-
-                ShelledContent(
-                    modifier = Modifier
-                        .then(if(LocalHeyIamScreen.current) {
-                            Modifier
-                        } else Modifier.padding(paddingValues)),
-                    appBarVisible = appBarVisible,
-                    title = title,
-                    subtitle = subtitle,
-                    navigationIcon = navigationIcon,
-                    actionIcons = actionIcons,
-                    onNavigationIconClick = onNavigationIconClick,
-                    verticalAppBar = verticalAppBar
-                ) { platformModifier ->
-                    val contentSize = remember {
-                        mutableStateOf(IntSize(0, 0))
-                    }
-                    Box(
-                        modifier = contentModifier
-                            .then(
-                                if (containerColor != null) {
-                                    platformModifier
-                                        .background(color = containerColor, shape = shape)
-                                } else platformModifier
-                            )
-                            .clip(shape)
-                            .onSizeChanged {
-                                contentSize.value = with(density) {
-                                    IntSize(
-                                        it.width.toDp().value.toInt(),
-                                        it.height.toDp().value.toInt()
-                                    )
-                                }
+                        .clip(shape)
+                        .onSizeChanged {
+                            contentSize.value = with(density) {
+                                IntSize(
+                                    it.width.toDp().value.toInt(),
+                                    it.height.toDp().value.toInt()
+                                )
                             }
-                    ) {
-                        CompositionLocalProvider(
-                            LocalContentSize provides contentSize.value,
-                            LocalSnackbarHost provides snackbarHostState,
-                            LocalHeyIamScreen provides true
-                        ) {
-                            content(this)
                         }
+                ) {
+                    CompositionLocalProvider(
+                        LocalContentSize provides contentSize.value,
+                        LocalSnackbarHost provides snackbarHostState,
+                        LocalHeyIamScreen provides true
+                    ) {
+                        content(this)
                     }
                 }
             }
