@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Check
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
@@ -117,6 +119,9 @@ fun NetworkPreferencesLauncher(
                         horizontalAlignment = Alignment.End
                     ) {
                         NetworkItemRow(
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
                             data = NetworkItemIO(
                                 displayName = stringResource(Res.string.network_preferences_default_name),
                                 lastMessage = stringResource(Res.string.network_preferences_default_message),

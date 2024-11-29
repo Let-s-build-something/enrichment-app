@@ -5,6 +5,7 @@ import augmy.interactive.shared.ui.theme.BaseColors
 
 object DarkAppColors: BaseColors {
 
+    override val appbarBackground: Color = Colors.EerieBlack
     override val primary: Color = Color.White
     override val secondary: Color = Colors.GrayLight
     override val disabled: Color = secondary.copy(alpha = .6f)

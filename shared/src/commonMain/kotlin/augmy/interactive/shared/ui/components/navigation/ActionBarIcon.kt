@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +47,8 @@ fun ActionBarIcon(
     text: String? = null,
     imageVector: ImageVector? = null,
     imageUrl: String? = null,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    content: @Composable () -> Unit = {}
 ) {
     val density = LocalDensity.current
 
@@ -70,8 +70,6 @@ fun ActionBarIcon(
     ) {
         when {
             imageUrl.isNullOrBlank().not() -> {
-                val placeholder = if(imageVector != null) rememberVectorPainter(imageVector) else null
-
                 AsyncImage(
                     modifier = Modifier
                         .clip(CircleShape)
@@ -79,8 +77,6 @@ fun ActionBarIcon(
                             Modifier.size(22.dp + with(density) { 12.sp.toDp() })
                         }else Modifier.size(24.dp)),
                     model = imageUrl,
-                    fallback = placeholder,
-                    placeholder = placeholder,
                     contentDescription = text,
                     contentScale = ContentScale.Crop
                 )
@@ -111,5 +107,6 @@ fun ActionBarIcon(
                 )
             )
         }
+        content()
     }
 }

@@ -18,12 +18,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ProfileChangeViewModel (
-    private val repository: UsernameChangeRepository
+    private val repository: DisplayNameChangeRepository
 ): SharedViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     private val _isPictureChangeSuccess = MutableSharedFlow<Boolean?>()
-    private val _displayNameChangeResponse = MutableStateFlow<BaseResponse<ResponseDisplayNameChange>?>(null)
+    private val _displayNameChangeResponse = MutableSharedFlow<BaseResponse<ResponseDisplayNameChange>?>()
     private val _displayNameValidationResponse = MutableStateFlow<BaseResponse<Any>?>(null)
 
     /** whether there is a pending request */
@@ -33,7 +33,7 @@ class ProfileChangeViewModel (
     val isPictureChangeSuccess = _isPictureChangeSuccess.asSharedFlow()
 
     /** response to the latest request for display name change */
-    val displayNameChangeResponse = _displayNameChangeResponse.asStateFlow()
+    val displayNameChangeResponse = _displayNameChangeResponse.asSharedFlow()
 
     /** response to the latest request display name input validation */
     val displayNameValidationResponse = _displayNameValidationResponse.asStateFlow()
@@ -53,16 +53,18 @@ class ProfileChangeViewModel (
     fun requestDisplayNameChange(value: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            _displayNameChangeResponse.value = repository.changeDisplayName(value).apply {
-                success?.data?.let { data ->
-                    sharedDataManager.currentUser.update { old ->
-                        old?.copy(
-                            displayName = data.username ?: old.displayName,
-                            tag = data.tag ?: old.tag
-                        )
+            _displayNameChangeResponse.emit(
+                repository.changeDisplayName(value).apply {
+                    success?.data?.let { data ->
+                        sharedDataManager.currentUser.update { old ->
+                            old?.copy(
+                                displayName = data.displayName ?: old.displayName,
+                                tag = data.tag ?: old.tag
+                            )
+                        }
                     }
                 }
-            }
+            )
             _isLoading.value = false
         }
     }

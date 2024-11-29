@@ -95,6 +95,35 @@ fun DisplayNameChangeLauncher(
     val isUsernameValid = validations.value.all { it.isValid || it.isRequired.not() }
             && errorMessage.value == null
 
+    val respondToError: suspend (String?) -> Unit = { error: String? ->
+        errorMessage.value = when(error) {
+            ApiErrorCode.DUPLICATE.name -> {
+                getString(Res.string.account_username_error_duplicate)
+            }
+            ApiErrorCode.INVALID_FORMAT.name-> {
+                getString(Res.string.account_username_error_format)
+            }
+            else -> null
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.displayNameChangeResponse.collectLatest { res ->
+            respondToError(res?.error?.errors?.firstOrNull())
+            res?.success?.data?.displayName?.let { newUsername ->
+                onDismissRequest()
+                CoroutineScope(Dispatchers.Main).launch {
+                    snackbarHostState?.showSnackbar(
+                        message = getString(
+                            Res.string.account_username_success,
+                            newUsername
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         delay(400)
         focusRequester.requestFocus()
@@ -130,34 +159,8 @@ fun DisplayNameChangeLauncher(
     }
 
     LaunchedEffect(Unit) {
-        val respondToError: suspend (String?) -> Unit = { error: String? ->
-            errorMessage.value = when(error) {
-                ApiErrorCode.DUPLICATE.name -> {
-                    getString(Res.string.account_username_error_duplicate)
-                }
-                ApiErrorCode.INVALID_FORMAT.name-> {
-                    getString(Res.string.account_username_error_format)
-                }
-                else -> null
-            }
-        }
-
         viewModel.displayNameValidationResponse.collectLatest { res ->
             respondToError(res?.error?.errors?.firstOrNull())
-        }
-        viewModel.displayNameChangeResponse.collectLatest { res ->
-            respondToError(res?.error?.errors?.firstOrNull())
-            res?.success?.data?.username?.let { newUsername ->
-                CoroutineScope(Dispatchers.Main).launch {
-                    snackbarHostState?.showSnackbar(
-                        message = getString(
-                            Res.string.account_username_success,
-                            newUsername
-                        )
-                    )
-                }
-                sheetState.hide()
-            }
         }
     }
 
@@ -237,7 +240,9 @@ fun DisplayNameChangeLauncher(
                 modifier = Modifier.weight(1f),
                 isLoading = isLoading.value,
                 text = stringResource(Res.string.username_change_launcher_confirm),
-                isEnabled = isUsernameValid && errorMessage.value == null,
+                isEnabled = isUsernameValid
+                        && errorMessage.value == null
+                        && username.value != currentUser.value?.displayName,
                 onClick = {
                     viewModel.requestDisplayNameChange(username.value)
                 }

@@ -37,6 +37,7 @@ import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalHeyIamScreen
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
@@ -75,8 +76,8 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
             snackbarHost = {
                 BaseSnackbarHost(hostState = snackbarHostState)
             },
-            containerColor = LocalTheme.current.colors.brandMainDark,
-            contentColor = LocalTheme.current.colors.brandMainDark
+            containerColor = LocalTheme.current.colors.appbarBackground,
+            contentColor = LocalTheme.current.colors.appbarBackground
         ) { _ ->
             val navController = rememberNavController()
 
@@ -100,6 +101,7 @@ private fun AppContent(
     val deviceType = LocalDeviceType.current
     val currentUser = viewModel.firebaseUser.collectAsState(null)
 
+    val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
     val isInternalUser = try {
         currentUser.value?.email
     } catch(e: NotImplementedError) {
@@ -191,20 +193,24 @@ private fun AppContent(
         }
     )
 
-    if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
-        Column {
-            if(isInternalUser) DeveloperContent(
-                modifier = Modifier.statusBarsPadding()
-            )
-            Box {
-                NavigationHost(navController = navController)
+    CompositionLocalProvider(
+        LocalHeyIamScreen provides (isInternalUser && isPhone)
+    ) {
+        if(isPhone) {
+            Column {
+                if(isInternalUser) DeveloperContent(
+                    modifier = Modifier.statusBarsPadding()
+                )
+                Box {
+                    NavigationHost(navController = navController)
+                }
             }
-        }
-    }else {
-        Row {
-            if(isInternalUser) DeveloperContent()
-            Box {
-                NavigationHost(navController = navController)
+        }else {
+            Row {
+                if(isInternalUser) DeveloperContent()
+                Box {
+                    NavigationHost(navController = navController)
+                }
             }
         }
     }

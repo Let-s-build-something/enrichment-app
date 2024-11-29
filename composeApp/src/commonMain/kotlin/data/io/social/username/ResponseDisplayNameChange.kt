@@ -9,5 +9,5 @@ data class ResponseDisplayNameChange(
     val tag: String? = null,
 
     /** the new username */
-    val username: String? = null
+    val displayName: String? = null
 )
