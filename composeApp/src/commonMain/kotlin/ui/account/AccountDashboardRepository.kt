@@ -5,6 +5,7 @@ import data.io.base.BaseResponse.Companion.getResponse
 import data.io.social.UserConfiguration
 import data.shared.SharedRepository
 import io.ktor.client.HttpClient
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
@@ -19,8 +20,8 @@ class AccountDashboardRepository(private val httpClient: HttpClient): SharedRepo
     suspend fun changeUserConfiguration(configuration: UserConfiguration): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/configuration",
+                patch(
+                    urlString = "/api/v1/social/configurations",
                     block =  {
                         setBody(configuration)
                     }

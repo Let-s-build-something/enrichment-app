@@ -59,12 +59,13 @@ class NetworkAddNewViewModel(
     /** Makes a request for user recommendations from the local database */
     private fun requestRecommendedUsers() {
         viewModelScope.launch {
-            val demoData = proximityDemoData.sortedByDescending { it.proximity }
+            // TODO top network users
+            /*val demoData = proximityDemoData.sortedByDescending { it.proximity }
             repository.getUserRecommendations().success?.data.let { data ->
                 _recommendedUsers.value = data ?: NetworkProximityCategory.entries.associateWith { c ->
                     demoData.filter { c.range.contains(it.proximity ?: -1f) }.take(2)
                 }
-            }
+            }*/
         }
     }
 
