@@ -55,7 +55,7 @@ fun NetworkManagementScreen(
 
     val pagerState = rememberPagerState(
         pageCount = {
-            if(currentUser.value?.configuration?.privacy != UserPrivacy.PUBLIC) 2 else 1
+            if(currentUser.value?.configuration?.privacy != UserPrivacy.Public) 2 else 1
         },
         initialPage = selectedTabIndex.value
     )

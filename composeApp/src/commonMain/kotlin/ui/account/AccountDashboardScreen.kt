@@ -179,8 +179,8 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
     val privacyResponse = viewModel.privacyResponse.collectAsState()
     val visibilityResponse = viewModel.visibilityResponse.collectAsState()
 
-    val privacy = currentUser.value?.configuration?.privacy ?: UserPrivacy.PUBLIC
-    val visibility = currentUser.value?.configuration?.visibility ?: UserVisibility.ONLINE
+    val privacy = currentUser.value?.configuration?.privacy ?: UserPrivacy.Public
+    val visibility = currentUser.value?.configuration?.visibility ?: UserVisibility.Online
 
     val switchThemeState = rememberTabSwitchState(
         tabs = mutableListOf(
@@ -200,21 +200,21 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
 
     RowSetting(
         response = privacyResponse.value,
-        title = stringResource(if(privacy == UserPrivacy.PRIVATE) {
+        title = stringResource(if(privacy == UserPrivacy.Private) {
             Res.string.account_settings_private_title
         }else Res.string.account_settings_public_title),
-        content = stringResource(if(privacy == UserPrivacy.PRIVATE) {
+        content = stringResource(if(privacy == UserPrivacy.Private) {
             Res.string.account_settings_private_content
         }else Res.string.account_settings_public_content),
         lottieFileName = "private_public",
         scale = 2f,
-        progressValue = if(privacy == UserPrivacy.PRIVATE) .5f else 0f,
+        progressValue = if(privacy == UserPrivacy.Private) .5f else 0f,
         onTap = {
             if(privacyResponse.value == null) {
                 viewModel.requestPrivacyChange(
-                    if(currentUser.value?.configuration?.privacy == UserPrivacy.PUBLIC) {
-                        UserPrivacy.PRIVATE
-                    }else UserPrivacy.PUBLIC
+                    if(currentUser.value?.configuration?.privacy == UserPrivacy.Public) {
+                        UserPrivacy.Private
+                    }else UserPrivacy.Public
                 )
             }
         }
@@ -223,18 +223,18 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
     RowSetting(
         response = visibilityResponse.value,
         title = stringResource(when(visibility) {
-            UserVisibility.OFFLINE -> Res.string.account_settings_title_offline
-            UserVisibility.INVISIBLE -> Res.string.account_settings_title_invisible
+            UserVisibility.Offline -> Res.string.account_settings_title_offline
+            UserVisibility.Invisible -> Res.string.account_settings_title_invisible
             else -> Res.string.account_settings_title_online
         }),
         content = stringResource(when(visibility) {
-            UserVisibility.OFFLINE -> Res.string.account_settings_content_offline
-            UserVisibility.INVISIBLE -> Res.string.account_settings_content_invisible
+            UserVisibility.Offline -> Res.string.account_settings_content_offline
+            UserVisibility.Invisible -> Res.string.account_settings_content_invisible
             else -> Res.string.account_settings_content_online
         }),
         lottieFileName = "online_offline",
-        progressValue = if(visibility == UserVisibility.OFFLINE) 0f else .3f,
-        tint = if(visibility == UserVisibility.INVISIBLE) LocalTheme.current.colors.disabled else null,
+        progressValue = if(visibility == UserVisibility.Offline) 0f else .3f,
+        tint = if(visibility == UserVisibility.Invisible) LocalTheme.current.colors.disabled else null,
         onTap = {
             if(visibilityResponse.value == null) {
                 val v = currentUser.value?.configuration?.visibility
