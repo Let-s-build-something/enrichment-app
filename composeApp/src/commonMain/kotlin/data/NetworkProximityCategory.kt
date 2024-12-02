@@ -74,3 +74,6 @@ enum class NetworkProximityCategory(
         share = .134f
     )
 }
+
+/** Proximity of a blocked user connection */
+const val BlockedProximityValue = -1f

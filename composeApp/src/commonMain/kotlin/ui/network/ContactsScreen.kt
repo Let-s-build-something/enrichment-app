@@ -201,9 +201,9 @@ private fun SocialCircleTier(
     ) {
         items(
             items = listOf<NetworkItemIO>(),
-            key = { data -> data.publicId ?: Uuid.random().toString() }
+            key = { data -> data.userPublicId ?: Uuid.random().toString() }
         ) { data ->
-            val offsetX = remember(data.publicId) {
+            val offsetX = remember(data.userPublicId) {
                 mutableStateOf(0f)
             }
 

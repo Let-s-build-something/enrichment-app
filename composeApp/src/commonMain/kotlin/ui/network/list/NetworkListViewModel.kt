@@ -60,11 +60,11 @@ class NetworkListViewModel(
 
     /** Makes a request for an action */
     fun onNetworkAction(data: NetworkItemIO?, action: OptionsLayoutAction) {
-        if(data?.publicId == null || _response.value[data.publicId] != null) return
+        if(data?.userPublicId == null || _response.value[data.userPublicId] != null) return
 
         viewModelScope.launch {
             _response.update {
-                hashMapOf(*it.toList().toTypedArray(), data.publicId to BaseResponse.Loading)
+                hashMapOf(*it.toList().toTypedArray(), data.userPublicId to BaseResponse.Loading)
             }
             val startTime = Clock.System.now().toEpochMilliseconds()
 
@@ -86,7 +86,7 @@ class NetworkListViewModel(
             delay(MINIMUM_REFRESH_DELAY)
             _response.update {
                 hashMapOf(*it.toList().toTypedArray()).apply {
-                    remove(data.publicId)
+                    remove(data.userPublicId)
                 }
             }
         }

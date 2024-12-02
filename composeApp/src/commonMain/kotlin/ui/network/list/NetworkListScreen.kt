@@ -62,7 +62,7 @@ fun NetworkListContent(
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.AddTo -> {
+            OptionsLayoutAction.Mute -> {
                 // TODO
             }
             OptionsLayoutAction.Block -> {
@@ -76,7 +76,7 @@ fun NetworkListContent(
                 coroutineScope.launch(Dispatchers.Default) {
                     checkedItems.addAll(
                         checkedItems.toMutableSet().apply {
-                            addAll(networkItems.itemSnapshotList.items.map { it.publicId })
+                            addAll(networkItems.itemSnapshotList.items.map { it.userPublicId })
                         }
                     )
                 }
@@ -125,7 +125,7 @@ fun NetworkListContent(
             }
             items(
                 count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
-                key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
+                key = { index -> networkItems.getOrNull(index)?.userPublicId ?: Uuid.random().toString() }
             ) { index ->
                 networkItems.getOrNull(index).let { data ->
                     NetworkItemRow(
@@ -133,26 +133,26 @@ fun NetworkListContent(
                             .fillMaxWidth()
                             .animateItem(),
                         isChecked = if(checkedItems.size > 0) {
-                            checkedItems.contains(data?.publicId)
+                            checkedItems.contains(data?.userPublicId)
                         }else null,
                         data = data,
-                        response = response.value[data?.publicId],
+                        response = response.value[data?.userPublicId],
                         onAction = onAction,
                         color = NetworkProximityCategory.entries.firstOrNull {
                             it.range.contains(data?.proximity ?: 1f)
                         }.let {
                             customColors.value[it] ?: it?.color
                         },
-                        isSelected = selectedItem.value == data?.publicId,
+                        isSelected = selectedItem.value == data?.userPublicId,
                         onCheckChange = { isLongClick ->
                             when {
-                                checkedItems.contains(data?.publicId) -> checkedItems.remove(data?.publicId)
+                                checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
                                 isLongClick || checkedItems.size > 0 -> {
                                     selectedItem.value = null
-                                    checkedItems.add(data?.publicId)
+                                    checkedItems.add(data?.userPublicId)
                                 }
                                 else -> {
-                                    selectedItem.value = if(selectedItem.value == data?.publicId) null else data?.publicId
+                                    selectedItem.value = if(selectedItem.value == data?.userPublicId) null else data?.userPublicId
                                 }
                             }
                         }

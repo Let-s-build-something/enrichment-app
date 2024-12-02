@@ -47,13 +47,16 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.interactive.shared.ui.base.LocalContentSize
+import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.getOrNull
+import base.navigation.NavigationNode
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import components.UserProfileImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
 import future_shared_module.ext.brandShimmerEffect
+import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
@@ -70,6 +73,7 @@ fun SocialCircleContent(
 ) {
     val contentSize = LocalContentSize.current
     val density = LocalDensity.current
+    val navController = LocalNavController.current
 
     val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
     val categories = viewModel.categories.collectAsState(initial = listOf())
@@ -147,12 +151,12 @@ fun SocialCircleContent(
                     }
                     offset.value = Offset(
                         x = (offset.value.x + panChange.x).coerceIn(
-                            minimumValue = kotlin.math.min(-maxCoordinate / 2, maxCoordinate / 2),
-                            maximumValue = kotlin.math.max(maxCoordinate / 2, -maxCoordinate / 2)
+                            minimumValue = -maxCoordinate,
+                            maximumValue = maxCoordinate
                         ),
                         y = (offset.value.y + panChange.y).coerceIn(
-                            minimumValue = kotlin.math.min(-maxCoordinate / 2, maxCoordinate / 2),
-                            maximumValue = kotlin.math.max(maxCoordinate / 2, -maxCoordinate / 2)
+                            minimumValue = -maxCoordinate,
+                            maximumValue = maxCoordinate
                         )
                     )
                 }
@@ -237,7 +241,14 @@ fun SocialCircleContent(
                                     modifier = Modifier
                                         .align(Alignment.Center)
                                         .animateContentSize()
-                                        .zIndex(zIndex),
+                                        .zIndex(zIndex)
+                                        .scalingClickable(enabled = data != null) {
+                                            data?.userPublicId?.let { userPublicId ->
+                                                navController?.navigate(NavigationNode.Conversation(
+                                                    userPublicId = userPublicId
+                                                ))
+                                            }
+                                        },
                                     data = data,
                                     size = with(density) { circleSize.toDp() }
                                 )
