@@ -13,20 +13,20 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Deselect
+import androidx.compose.material.icons.outlined.FaceRetouchingOff
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.VoiceOverOff
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.button_add_to
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_deselect
+import augmy.composeapp.generated.resources.button_mute
 import augmy.composeapp.generated.resources.button_select_all
 import augmy.composeapp.generated.resources.network_action_circle_move
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
@@ -38,9 +38,10 @@ import org.jetbrains.compose.resources.stringResource
 
 /** default option for items selection */
 val checkedOptionsItems = listOf(
-    OptionsLayoutAction.AddTo,
+    //OptionsLayoutAction.AddTo,
     OptionsLayoutAction.SelectAll,
     OptionsLayoutAction.DeselectAll,
+    OptionsLayoutAction.Mute,
     OptionsLayoutAction.Block
 )
 
@@ -112,10 +113,10 @@ sealed class OptionsLayoutAction(
         textRes = Res.string.network_action_circle_move,
         leadingImageVector = Icons.Outlined.TrackChanges
     )
-    data object AddTo: OptionsLayoutAction(
+    /*data object AddTo: OptionsLayoutAction(
         textRes = Res.string.button_add_to,
         leadingImageVector = Icons.Outlined.Add
-    )
+    )*/
     data object SelectAll: OptionsLayoutAction(
         textRes = Res.string.button_select_all,
         leadingImageVector = Icons.Outlined.SelectAll
@@ -124,9 +125,14 @@ sealed class OptionsLayoutAction(
         textRes = Res.string.button_deselect,
         leadingImageVector = Icons.Outlined.Deselect
     )
+    data object Mute: OptionsLayoutAction(
+        textRes = Res.string.button_mute,
+        leadingImageVector = Icons.Outlined.VoiceOverOff,
+        containerColor = SharedColors.RED_ERROR
+    )
     data object Block: OptionsLayoutAction(
         textRes = Res.string.button_block,
-        leadingImageVector = Icons.Outlined.Block,
-        containerColor = SharedColors.RED_ERROR
+        leadingImageVector = Icons.Outlined.FaceRetouchingOff,
+        containerColor = SharedColors.RED_ERROR.copy(alpha = 0.6f)
     )
 }

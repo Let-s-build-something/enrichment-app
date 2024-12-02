@@ -16,6 +16,7 @@ import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
 import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -37,7 +38,7 @@ internal val homeModule = module {
 
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeViewModel(
-    repository: NetworkListRepository
+    private val repository: NetworkListRepository
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
@@ -99,6 +100,24 @@ class HomeViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             _categories.value = filter
             settings[KEY_NETWORK_CATEGORIES] = filter.joinToString(",")
+        }
+    }
+
+    /** Makes a request for changes of proximity related to the [selectedConnections] */
+    fun requestProximityChange(
+        selectedConnections: List<String>,
+        proximity: Float,
+        onOperationDone: () -> Unit = {}
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            selectedConnections.forEach { publicId ->
+                // TODO change locally once the local database is in place
+                repository.patchNetworkConnection(
+                    publicId = publicId,
+                    proximity = proximity
+                )
+            }
+            onOperationDone()
         }
     }
 

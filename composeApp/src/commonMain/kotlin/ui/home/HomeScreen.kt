@@ -43,6 +43,12 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.network_dialog_message_block
+import augmy.composeapp.generated.resources.network_dialog_message_mute
+import augmy.composeapp.generated.resources.network_dialog_title_block
+import augmy.composeapp.generated.resources.network_dialog_title_mute
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
@@ -50,6 +56,8 @@ import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
+import augmy.interactive.shared.ui.components.dialog.AlertDialog
+import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.getOrNull
@@ -62,6 +70,7 @@ import components.OptionsLayoutAction
 import components.ScrollChoice
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableScreen
+import data.BlockedProximityValue
 import data.NetworkProximityCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,18 +99,21 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
-    val checkedItems = remember { mutableStateListOf<String?>() }
+    val checkedItems = remember { mutableStateListOf<String>() }
     val showAddNewModal = rememberSaveable {
         mutableStateOf(false)
+    }
+    val showActionDialog = rememberSaveable {
+        mutableStateOf<OptionsLayoutAction?>(null)
     }
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.AddTo -> {
-                // TODO
+            OptionsLayoutAction.Mute -> {
+                showActionDialog.value = OptionsLayoutAction.Mute
             }
             OptionsLayoutAction.Block -> {
-                // TODO
+                showActionDialog.value = OptionsLayoutAction.Block
             }
             OptionsLayoutAction.CircleMove -> {
                 // TODO
@@ -111,12 +123,48 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 coroutineScope.launch(Dispatchers.Default) {
                     checkedItems.addAll(
                         checkedItems.toMutableSet().apply {
-                            addAll(networkItems.itemSnapshotList.items.map { it.publicId })
+                            addAll(networkItems.itemSnapshotList.items.mapNotNull { it.userPublicId })
                         }
                     )
                 }
             }
         }
+    }
+
+    showActionDialog.value?.let { action ->
+        AlertDialog(
+            title = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_title_mute
+                }else Res.string.network_dialog_title_block
+            ),
+            message = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_message_mute
+                }else Res.string.network_dialog_message_block
+            ),
+            icon = action.leadingImageVector,
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_confirm)
+            ) {
+                viewModel.requestProximityChange(
+                    selectedConnections = checkedItems,
+                    proximity = if(action == OptionsLayoutAction.Mute) {
+                        NetworkProximityCategory.Public.range.start
+                    }else BlockedProximityValue,
+                    onOperationDone = {
+                        networkItems.refresh()
+                    }
+                )
+                checkedItems.clear()
+            },
+            dismissButtonState = ButtonState(
+                text = stringResource(Res.string.button_dismiss)
+            ),
+            onDismissRequest = {
+                showActionDialog.value = null
+            }
+        )
     }
 
     if(showTuner.value) {
@@ -165,6 +213,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     )
                 },
                 onSelectionChange = { item, isSelected ->
+                    checkedItems.clear()
                     val newList = categories.value.toMutableList()
                     if(isSelected) {
                         newList.add(item)
@@ -253,13 +302,13 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             }
                             items(
                                 count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
-                                key = { index -> networkItems.getOrNull(index)?.publicId ?: Uuid.random().toString() }
+                                key = { index -> networkItems.getOrNull(index)?.userPublicId ?: Uuid.random().toString() }
                             ) { index ->
                                 networkItems.getOrNull(index).let { data ->
                                     Column(modifier = Modifier.animateItem()) {
                                         NetworkItemRow(
                                             data = data,
-                                            isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.publicId) else null,
+                                            isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.userPublicId) else null,
                                             color = NetworkProximityCategory.entries.firstOrNull {
                                                 it.range.contains(data?.proximity ?: 1f)
                                             }.let {
@@ -267,12 +316,14 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                             },
                                             onCheckChange = { isLongClick ->
                                                 when {
-                                                    checkedItems.contains(data?.publicId) -> checkedItems.remove(data?.publicId)
+                                                    checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
                                                     isLongClick || checkedItems.size > 0 -> {
-                                                        checkedItems.add(data?.publicId)
+                                                        data?.userPublicId?.let { publicId ->
+                                                            checkedItems.add(publicId)
+                                                        }
                                                     }
                                                     else -> navController?.navigate(
-                                                        NavigationNode.Conversation(userPublicId = data?.publicId)
+                                                        NavigationNode.Conversation(userPublicId = data?.userPublicId)
                                                     )
                                                 }
                                             }
