@@ -5,9 +5,12 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -42,6 +45,7 @@ const val AppBarHeightDp = 48
  * Custom app bar with options of customization
  * @param title title of the screen/app
  * @param navigationIcon current icon for navigation back/closing or none in case of null
+ * @param headerPrefix custom content as the prefix of the action bar
  * @param actions other actions on the right side of the action bar
  * @param onNavigationIconClick event upon clicking on navigation back
  */
@@ -51,20 +55,23 @@ fun HorizontalAppBar(
     title: String? = null,
     subtitle: String? = null,
     navigationIcon: Pair<ImageVector, String>? = Icons.Outlined.Home to "",
+    headerPrefix: @Composable RowScope.() -> Unit = {},
     actions: @Composable (Boolean) -> Unit = {},
     onNavigationIconClick: () -> Unit = {}
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier.height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
         navigationIcon?.let { navigationIcon ->
             NavigationIcon(
                 onClick = onNavigationIconClick,
                 imageVector = navigationIcon.first,
-                contentDescription = navigationIcon.second
+                contentDescription = navigationIcon.second,
+                tint = LocalTheme.current.colors.appbarContent
             )
         }
+        headerPrefix()
         Column(
             modifier = Modifier
                 .padding(start = 4.dp)
@@ -97,7 +104,7 @@ fun HorizontalAppBar(
                 },
                 style = TextStyle(
                     fontWeight = FontWeight.Bold,
-                    color = LocalTheme.current.colors.tetrial
+                    color = LocalTheme.current.colors.appbarContent
                 ),
                 fontSizeRange = FontSizeRange(
                     min = 14.sp,
@@ -126,6 +133,7 @@ private fun Preview() {
                 imageVector = Icons.Outlined.PlayArrow
             )
         },
+        headerPrefix = {},
         subtitle = "subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle subtitle ",
         title = "title title title title title title title title title title title title title title title "
     )

@@ -36,10 +36,10 @@ sealed class NavigationNode {
         /** unique identifier of the conversation */
         val conversationUid: String? = null,
 
-        /** unique identifier of the recipient user */
-        val userPublicId: String? = null
+        /** Name of the conversation */
+        val name: String? = null
     ): NavigationNode() {
-        override val deepLink: String = "messages?conversation=$conversationUid&user=$userPublicId"
+        override val deepLink: String = "messages?conversation=$conversationUid&name=$name"
     }
 
     /** dashboard screen for user information and general user-related actions */

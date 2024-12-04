@@ -241,15 +241,18 @@ fun SocialCircleContent(
                                     modifier = Modifier
                                         .align(Alignment.Center)
                                         .animateContentSize()
-                                        .zIndex(zIndex)
-                                        .scalingClickable(enabled = data != null) {
-                                            data?.userPublicId?.let { userPublicId ->
-                                                navController?.navigate(NavigationNode.Conversation(
-                                                    userPublicId = userPublicId
-                                                ))
-                                            }
-                                        },
+                                        .zIndex(zIndex),
                                     data = data,
+                                    onClick = {
+                                        data?.userPublicId?.let { userPublicId ->
+                                            navController?.navigate(
+                                                NavigationNode.Conversation(
+                                                    conversationUid = userPublicId,
+                                                    name = data.displayName
+                                                )
+                                            )
+                                        }
+                                    },
                                     size = with(density) { circleSize.toDp() }
                                 )
                             }
@@ -292,6 +295,7 @@ fun SocialCircleContent(
 private fun NetworkItemCompact(
     modifier: Modifier = Modifier,
     size: Dp,
+    onClick: () -> Unit,
     data: NetworkItemIO?
 ) {
     val density = LocalDensity.current
@@ -322,7 +326,10 @@ private fun NetworkItemCompact(
                 UserProfileImage(
                     modifier = Modifier
                         .aspectRatio(1f)
-                        .weight(1f),
+                        .weight(1f)
+                        .scalingClickable {
+                            onClick()
+                        },
                     model = data.photoUrl,
                     tag = data.tag
                 )

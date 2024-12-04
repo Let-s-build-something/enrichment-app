@@ -22,5 +22,8 @@ object SettingsKeys {
     const val KEY_TOOLBAR_EXPANDED = "toolbar_expanded"
 
     /** Whether dialog when leaving should be displayed */
-    const val SHOW_LEAVE_DIALOG = "show_leave_dialog"
+    const val KEY_SHOW_LEAVE_DIALOG = "show_leave_dialog"
+
+    /** Prefix key for last unsent message */
+    const val KEY_LAST_MESSAGE = "last_message"
 }

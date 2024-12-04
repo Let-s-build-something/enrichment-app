@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.network.list.NetworkListRepository.Companion.proximityDemoData
 
 /** Communication between the UI, the control layers, and control and data layers */
 class NetworkAddNewViewModel(

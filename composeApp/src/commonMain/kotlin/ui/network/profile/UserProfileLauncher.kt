@@ -97,7 +97,12 @@ fun UserProfileLauncher(
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userPublicId = it.data.targetPublicId))
+                        navController?.navigate(
+                            NavigationNode.Conversation(
+                                conversationUid = it.data.targetPublicId,
+                                name = responseProfile.value.success?.data?.displayName
+                            )
+                        )
                     }
                 }
                 onDismissRequest()
@@ -227,7 +232,10 @@ private fun DataContent(
                     onClick = {
                         onDismissRequest()
                         navController?.navigate(
-                            NavigationNode.Conversation(userPublicId = userProfile.publicId)
+                            NavigationNode.Conversation(
+                                conversationUid = userProfile.publicId,
+                                name = userProfile.displayName
+                            )
                         )
                     }
                 )

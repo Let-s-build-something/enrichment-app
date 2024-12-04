@@ -45,7 +45,7 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
 
     /** Whether leave dialog should be shown */
     val showLeaveDialog: Boolean
-        get() = settings.getBooleanOrNull(SettingsKeys.SHOW_LEAVE_DIALOG) ?: true
+        get() = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) ?: true
 
     /** Initializes the application */
     fun initApp() {
@@ -99,7 +99,7 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
 
     /** Save settings for leave dialog */
     fun saveDialogSetting(showAgain: Boolean) {
-        settings.putBoolean(SettingsKeys.SHOW_LEAVE_DIALOG, showAgain)
+        settings.putBoolean(SettingsKeys.KEY_SHOW_LEAVE_DIALOG, showAgain)
     }
 
     /** Emits a new deep link for handling */

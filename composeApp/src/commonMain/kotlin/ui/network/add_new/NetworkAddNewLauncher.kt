@@ -151,6 +151,7 @@ fun NetworkAddNewLauncher(
                 )
             }
             it?.success?.data?.let { data ->
+                val name = inputDisplayName.value + ""
                 CoroutineScope(Dispatchers.Main).launch {
                     if(snackbarHostState?.showSnackbar(
                             message = getString(Res.string.network_inclusion_success),
@@ -161,7 +162,12 @@ fun NetworkAddNewLauncher(
                         ) == SnackbarResult.ActionPerformed
                     ) {
                         onDismissRequest()
-                        navController?.navigate(NavigationNode.Conversation(userPublicId = data.targetPublicId))
+                        navController?.navigate(
+                            NavigationNode.Conversation(
+                                conversationUid = data.targetPublicId,
+                                name = name
+                            )
+                        )
                     }
                 }
                 navController?.previousBackStackEntry

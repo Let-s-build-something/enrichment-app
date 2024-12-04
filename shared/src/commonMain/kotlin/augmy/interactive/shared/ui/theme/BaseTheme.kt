@@ -131,6 +131,7 @@ private object DefaultValues {
         override val backgroundLight: Color = Color(0x00000000)
         override val backgroundDark: Color = Color(0x00000000)
         override val appbarBackground: Color = Color(0x00000000)
+        override val appbarContent: Color = Color(0x00000000)
     }
 }
 

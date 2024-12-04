@@ -10,6 +10,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.ParametersBuilder
 import io.ktor.http.parameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -40,10 +41,12 @@ open class SharedRepository(private val httpClient: HttpClient) {
 /** sets URL parameters for paging */
 fun HttpRequestBuilder.setPaging(
     page: Int,
-    size: Int = 20
+    size: Int = 20,
+    builder: ParametersBuilder.() -> Unit = {}
 ) = this.apply {
     parameters {
         append("page", page.toString())
         append("size", size.toString())
+        builder()
     }
 }

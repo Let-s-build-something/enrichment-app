@@ -133,7 +133,9 @@
   <string name="button_search">Search</string>
   <string name="button_tune">Tune</string>
 
+  <string name="action_settings">Options</string>
   <string name="action_link_copied">Link successfully copied!</string>
+  <string name="action_general_copied">Information copied!</string>
 
   <string name="work_in_progress">We are actively working on this, hang on tight!</string>
   <string name="function_unavailable">This functionality is not supported on your device yet. But you can use Android, iOS, or macOS device to complete your action.</string>
@@ -148,6 +150,8 @@
   <string name="accessibility_change_avatar">Change avatar</string>
   <string name="accessibility_change_username">Change username</string>
   <string name="accessibility_save">Save</string>
+  <string name="accessibility_message_image">Send image as a message</string>
+  <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload from files</string>
   <string name="accessibility_upload_url">Upload from URL input</string>

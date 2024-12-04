@@ -126,7 +126,7 @@ private fun ColumnScope.CustomDivider(actionsWidth: Float) {
             )
             .fillMaxWidth()
             .background(
-                color = LocalTheme.current.colors.tetrial,
+                color = LocalTheme.current.colors.appbarContent,
                 shape = CircleShape
             )
     )

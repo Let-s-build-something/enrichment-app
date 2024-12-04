@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -86,6 +87,7 @@ fun BaseScreen(
         //bottomStart = 24.dp
     ),
     actionIcons: @Composable (Boolean) -> Unit = {},
+    headerPrefix: @Composable RowScope.() -> Unit = {},
     appBarVisible: Boolean = true,
     containerColor: Color? = null,
     contentColor: Color = Color.Transparent,
@@ -126,6 +128,7 @@ fun BaseScreen(
                 appBarVisible = appBarVisible,
                 title = title,
                 subtitle = subtitle,
+                headerPrefix = headerPrefix,
                 navigationIcon = navigationIcon,
                 actionIcons = actionIcons,
                 onNavigationIconClick = onNavigationIconClick,
@@ -177,6 +180,7 @@ private fun ShelledContent(
     subtitle: String? = null,
     navigationIcon: Pair<ImageVector, String>? = null,
     actionIcons: @Composable (Boolean) -> Unit = {},
+    headerPrefix: @Composable RowScope.() -> Unit = {},
     onNavigationIconClick: () -> Unit = {},
     verticalAppBar: @Composable () -> Unit,
     content: @Composable (Modifier) -> Unit
@@ -192,6 +196,7 @@ private fun ShelledContent(
                             navigationIcon = navigationIcon,
                             subtitle = subtitle,
                             actions = actionIcons,
+                            headerPrefix = headerPrefix,
                             onNavigationIconClick = onNavigationIconClick
                         )
                     }
@@ -206,6 +211,7 @@ private fun ShelledContent(
                 title = title,
                 subtitle = subtitle,
                 content = content,
+                headerPrefix = headerPrefix,
                 verticalAppBar = verticalAppBar
             )
         }
@@ -234,6 +240,7 @@ private fun DesktopLayout(
     onNavigationIconClick: () -> Unit,
     title: String?,
     subtitle: String?,
+    headerPrefix: @Composable RowScope.() -> Unit = {},
     content: @Composable (Modifier) -> Unit,
     verticalAppBar: @Composable () -> Unit
 ) {
@@ -256,6 +263,7 @@ private fun DesktopLayout(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    headerPrefix()
                     navigationIcon?.let { navigationIcon ->
                         NavigationIcon(
                             onClick = onNavigationIconClick,
