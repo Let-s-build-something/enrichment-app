@@ -119,6 +119,9 @@
   <string name="leave_app_dialog_message">Are you sure you want to leave this app?</string>
   <string name="leave_app_dialog_show_again">Don't show this message again</string>
 
+
+  <string name="conversation_attached">Attached media</string>
+
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
 

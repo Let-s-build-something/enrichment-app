@@ -46,10 +46,11 @@ fun MinimalisticIcon(
  * Clickable basic Icon with vector image with minimalistic size
  */
 @Composable
-fun MinimalisticBrandIcon(
+fun MinimalisticFilledIcon(
     modifier: Modifier = Modifier,
     imageVector: ImageVector,
     tint: Color = LocalTheme.current.colors.brandMainDark,
+    background: Color = LocalTheme.current.colors.tetrial,
     contentDescription: String? = null,
     onTap: ((Offset) -> Unit)? = null
 ) {
@@ -61,7 +62,7 @@ fun MinimalisticBrandIcon(
                 Modifier.scalingClickable(onTap = onTap)
             }else Modifier)
             .background(
-                color = LocalTheme.current.colors.tetrial,
+                color = background,
                 shape = CircleShape
             )
             .border(

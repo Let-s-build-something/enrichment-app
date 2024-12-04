@@ -13,6 +13,8 @@ import data.shared.setPaging
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -87,6 +89,30 @@ class ConversationRepository(private val httpClient: HttpClient) {
                     urlString = "/api/v1/social/conversation/detail",
                     block = {
                         parameter("conversationId", conversationId)
+                    }
+                )
+            }
+        }
+    }
+
+    /** Sends a message to a conversation */
+    suspend fun sendMessage(
+        conversationId: String,
+        content: String,
+        mediaUrls: List<String>
+    ): BaseResponse<Any> {
+        return withContext(Dispatchers.IO) {
+            httpClient.safeRequest<Any> {
+                post(
+                    urlString = "/api/v1/social/conversation/send",
+                    block = {
+                        parameter("conversationId", conversationId)
+                        setBody(
+                            ConversationMessageIO(
+                                content = content,
+                                mediaURls = mediaUrls
+                            )
+                        )
                     }
                 )
             }

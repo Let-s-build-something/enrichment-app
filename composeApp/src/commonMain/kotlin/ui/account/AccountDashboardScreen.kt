@@ -69,7 +69,7 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.ModalScreenContent
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
-import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
+import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
@@ -302,7 +302,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             model = try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
             tag = currentUser.value?.tag
         )
-        MinimalisticBrandIcon(
+        MinimalisticFilledIcon(
             modifier = Modifier
                 .padding(bottom = 8.dp, end = 8.dp)
                 .align(Alignment.BottomEnd),

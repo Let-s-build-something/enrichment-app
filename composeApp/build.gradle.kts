@@ -158,6 +158,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
+            //implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)

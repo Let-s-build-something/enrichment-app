@@ -263,7 +263,6 @@ private fun DesktopLayout(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    headerPrefix()
                     navigationIcon?.let { navigationIcon ->
                         NavigationIcon(
                             onClick = onNavigationIconClick,
@@ -273,6 +272,7 @@ private fun DesktopLayout(
                             contentDescription = navigationIcon.second
                         )
                     }
+                    headerPrefix()
                     Column(
                         modifier = Modifier
                             .padding(start = 4.dp)

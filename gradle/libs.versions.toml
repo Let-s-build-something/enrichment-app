@@ -12,12 +12,12 @@ ktor = "3.0.1"
 navigationCompose = "2.8.0-alpha10"
 compose-plugin = "1.7.1"
 compottie = "2.0.0-rc02"
+mediaPlayerChaintech = "1.0.26"
 firebaseJavaSdk = "0.4.6"
 kotlinCrypto = "0.5.3"
 koin = "4.0.0"
 pagingCompose = "3.3.0-alpha02-0.5.1"
 lifecycle = "2.8.4"
-credentials = "1.3.0"
 googleId = "1.1.1"
 firebaseGitlive = "2.1.0"
 windowSizeClass = "0.5.0"
@@ -28,6 +28,8 @@ kotlinx-datetime = "0.6.1"
 fileKit = "0.8.7"
 multiplatformSettings = "1.2.0"
 workRuntimeKtx = "2.10.0"
+
+credentials = "1.3.0"
 activityKtx = "1.9.3"
 androidxSplashscreen = "1.2.0-alpha02"
 androidFirebaseAuth = "23.1.0"
@@ -51,6 +53,7 @@ compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref
 compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref = "fileKit" }
 compose-paging-common = { module = "app.cash.paging:paging-compose-common", version.ref = "pagingCompose" }
 
+media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coilCompose" }
 coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coilCompose" }

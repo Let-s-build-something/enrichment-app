@@ -5,6 +5,10 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +21,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -56,7 +60,7 @@ import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
+import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
@@ -97,6 +101,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
 
+    val listState = rememberLazyGridState()
     val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
@@ -254,7 +259,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                         modifier = Modifier.zIndex(1f),
                         targetState = isCompactView.value
                     ) { isList ->
-                        MinimalisticBrandIcon(
+                        MinimalisticFilledIcon(
                             modifier = Modifier
                                 .padding(top = 2.dp)
                                 .zIndex(1f),
@@ -268,10 +273,20 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 Crossfade(isCompactView.value) { isList ->
                     if(isList) {
                         LazyVerticalGrid(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .draggable(
+                                    orientation = Orientation.Vertical,
+                                    state = rememberDraggableState { delta ->
+                                        coroutineScope.launch {
+                                            listState.scrollBy(-delta)
+                                        }
+                                    }
+                                )
+                                .fillMaxSize(),
                             columns = GridCells.Fixed(
                                 if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
                             ),
+                            state = listState,
                             verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
                         ) {
                             item(span = { GridItemSpan(maxLineSpan) }) {

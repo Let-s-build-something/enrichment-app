@@ -11,6 +11,9 @@ import data.shared.SharedViewModel
 import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
+import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.core.baseName
+import io.github.vinceglb.filekit.core.extension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -74,50 +77,50 @@ class ConversationViewModel(
     }
 
 
+    /**
+     * Makes a request to send a conversation message
+     * @param content textual content of the message
+     * @param mediaFiles list of urls in the format of: [Pair.first]: file name, [Pair.second]: [ByteArray] content of the image
+     */
+    fun sendMessage(content: String, mediaFiles: MutableList<PlatformFile>) {
+        viewModelScope.launch {
+            val mediaUrls = mediaFiles.mapNotNull { media ->
+                requestPictureUpload(
+                    mediaByteArray = media.readBytes(),
+                    fileName = media.baseName + media.extension
+                ).takeIf { !it.isNullOrBlank() }
+            }
+
+            repository.sendMessage(
+                conversationId = conversationId,
+                content = content,
+                mediaUrls = mediaUrls
+            )
+        }
+    }
+
     /** Makes a request to change user's profile picture */
-    fun requestPictureUpload(
+    private suspend fun requestPictureUpload(
         mediaByteArray: ByteArray?,
         fileName: String
-    ) {
-        if(mediaByteArray == null) return
-
-        viewModelScope.launch {
-            withContext(Dispatchers.Default) {
-                val previousUrl = "${try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null }}"
-
-                val previousFileSuffix = """.+profile-picture(\.\w*).+""".toRegex()
-                    .matchEntire(previousUrl)
-                    ?.groupValues
-                    ?.getOrNull(1)
-
-                uploadPictureStorage(
-                    byteArray = mediaByteArray,
-                    fileName = fileName,
-                    previousFileSuffix = previousFileSuffix
-                )
-            }
-        }
+    ): String? {
+        return if(mediaByteArray == null) null
+        else uploadPictureStorage(
+            byteArray = mediaByteArray,
+            fileName = fileName
+        )
     }
 
     /** @return if true, it was successful, if false, it failed */
     private suspend fun uploadPictureStorage(
         byteArray: ByteArray,
         fileName: String
-    ): Boolean {
+    ): String {
         return withContext(Dispatchers.IO) {
-            val fileSuffix = ".${fileName.split(".").lastOrNull()}"
-
-            val reference = Firebase.storage.reference.child(
-                "${firebaseUser.value?.uid}/profile-picture$fileSuffix"
-            )
+            val reference = Firebase.storage.reference.child("$conversationId/media/$fileName")
 
             reference.putData(fromByteArrayToData(byteArray))
-            val newUrl = reference.getDownloadUrl()
-
-            if(newUrl.isNotBlank()) { }
-                requestPictureChange(newUrl)
-                true
-            }else false
+            reference.getDownloadUrl()
         }
     }
 }

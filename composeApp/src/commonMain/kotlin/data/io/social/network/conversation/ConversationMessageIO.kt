@@ -12,6 +12,9 @@ data class ConversationMessageIO(
     /** message content */
     val content: String? = null,
 
+    /** List of Urls of attached media to this message */
+    val mediaURls: List<String>? = null,
+
     /** Public id of the author of this message */
     val authorPublicId: String? = null,
 
