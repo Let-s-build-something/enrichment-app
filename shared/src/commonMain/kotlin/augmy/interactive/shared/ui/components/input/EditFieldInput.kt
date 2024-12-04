@@ -34,6 +34,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.components.MinimalisticIcon
@@ -67,6 +68,7 @@ fun EditFieldInput(
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
     suggestText: String? = null,
+    minHeight: Dp = TextFieldDefaults.MinHeight,
     isCorrect: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     isClearable: Boolean = false,
@@ -109,6 +111,7 @@ fun EditFieldInput(
                 },
             shape = shape,
             value = text.value,
+            minHeight = minHeight,
             paddingValues = paddingValues,
             minLines = minLines,
             maxLines = maxLines,

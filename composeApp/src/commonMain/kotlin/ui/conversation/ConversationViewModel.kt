@@ -12,8 +12,6 @@ import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.baseName
-import io.github.vinceglb.filekit.core.extension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -87,7 +85,7 @@ class ConversationViewModel(
             val mediaUrls = mediaFiles.mapNotNull { media ->
                 requestPictureUpload(
                     mediaByteArray = media.readBytes(),
-                    fileName = media.baseName + media.extension
+                    fileName = media.name
                 ).takeIf { !it.isNullOrBlank() }
             }
 

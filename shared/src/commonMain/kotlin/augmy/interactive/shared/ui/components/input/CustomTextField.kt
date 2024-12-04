@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 
 /**
  * <a href="https://m3.material.io/components/text-fields/overview" class="external" target="_blank">Material Design filled text field</a>.
@@ -118,6 +119,7 @@ fun CustomTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = false,
+    minHeight: Dp = TextFieldDefaults.MinHeight,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
@@ -142,7 +144,7 @@ fun CustomTextField(
             modifier = modifier
                 .defaultMinSize(
                     minWidth = TextFieldDefaults.MinWidth,
-                    minHeight = TextFieldDefaults.MinHeight
+                    minHeight = minHeight
                 ),
             onValueChange = onValueChange,
             enabled = enabled,

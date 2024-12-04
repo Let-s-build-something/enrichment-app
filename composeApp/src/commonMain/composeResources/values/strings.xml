@@ -153,7 +153,6 @@
   <string name="accessibility_change_avatar">Change avatar</string>
   <string name="accessibility_change_username">Change username</string>
   <string name="accessibility_save">Save</string>
-  <string name="accessibility_message_image">Send image as a message</string>
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload from files</string>
@@ -161,6 +160,15 @@
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>
+  <string name="accessibility_message_pdf">A pdf file attached to your message</string>
+  <string name="accessibility_message_image">An image attached to your message</string>
+  <string name="accessibility_message_file">Any file attached to your message</string>
+  <string name="accessibility_message_audio">An audio file attached to your message</string>
+  <string name="accessibility_message_text">A textual file attached to your message</string>
+  <string name="accessibility_message_presentation">A presentation attached to your message</string>
+  <string name="accessibility_message_action_audio">Record an audio track that will be attach to your message</string>
+  <string name="accessibility_message_action_image">Attach an image to your message</string>
+  <string name="accessibility_message_action_file">Attach any file to your message</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>
