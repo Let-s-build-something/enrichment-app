@@ -43,6 +43,7 @@ import coil3.compose.AsyncImage
 fun ActionBarIcon(
     modifier: Modifier = Modifier,
     tint: Color = LocalTheme.current.colors.appbarContent,
+    textTint: Color = tint,
     enabled: Boolean = true,
     text: String? = null,
     imageVector: ImageVector? = null,
@@ -96,7 +97,7 @@ fun ActionBarIcon(
                     .wrapContentHeight()
                     .padding(top = 2.dp),
                 text = text ?: "",
-                color = LocalTheme.current.colors.appbarContent,
+                color = textTint,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 maxLines = 1,

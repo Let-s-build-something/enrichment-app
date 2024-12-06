@@ -3,7 +3,7 @@ package data.shared
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
-import base.asSimpleString
+import base.utils.asSimpleString
 import data.NetworkProximityCategory
 import data.io.app.ClientStatus
 import data.io.app.LocalSettings

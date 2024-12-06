@@ -22,6 +22,8 @@ import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
     factory { ConversationRepository(get()) }
@@ -83,7 +85,7 @@ class ConversationViewModel(
     fun sendMessage(content: String, mediaFiles: MutableList<PlatformFile>) {
         viewModelScope.launch {
             val mediaUrls = mediaFiles.mapNotNull { media ->
-                requestPictureUpload(
+                requestMediaUpload(
                     mediaByteArray = media.readBytes(),
                     fileName = media.name
                 ).takeIf { !it.isNullOrBlank() }
@@ -91,22 +93,46 @@ class ConversationViewModel(
 
             repository.sendMessage(
                 conversationId = conversationId,
-                content = content,
-                mediaUrls = mediaUrls
+                message = ConversationMessageIO(
+                    content = content,
+                    mediaUrls = mediaUrls
+                )
+            )
+        }
+    }
+
+    /** Makes a request to send a conversation audio message */
+    @OptIn(ExperimentalUuidApi::class)
+    fun sendAudioMessage(byteArray: ByteArray) {
+        viewModelScope.launch {
+            val audioUrl = requestMediaUpload(
+                mediaByteArray = byteArray,
+                fileName = Uuid.random().toString()
+            ).takeIf { !it.isNullOrBlank() }
+
+            repository.sendMessage(
+                conversationId = conversationId,
+                message = ConversationMessageIO(
+                    audioUrl = audioUrl
+                )
             )
         }
     }
 
     /** Makes a request to change user's profile picture */
-    private suspend fun requestPictureUpload(
+    private suspend fun requestMediaUpload(
         mediaByteArray: ByteArray?,
         fileName: String
     ): String? {
-        return if(mediaByteArray == null) null
-        else uploadPictureStorage(
-            byteArray = mediaByteArray,
-            fileName = fileName
-        )
+        return try {
+            if(mediaByteArray == null) null
+            else uploadPictureStorage(
+                byteArray = mediaByteArray,
+                fileName = fileName
+            )
+        }catch (e: Exception) {
+            null
+        }
     }
 
     /** @return if true, it was successful, if false, it failed */
@@ -115,7 +141,7 @@ class ConversationViewModel(
         fileName: String
     ): String {
         return withContext(Dispatchers.IO) {
-            val reference = Firebase.storage.reference.child("$conversationId/media/$fileName")
+            val reference = Firebase.storage.reference.child("conversations/$conversationId/$fileName")
 
             reference.putData(fromByteArrayToData(byteArray))
             reference.getDownloadUrl()

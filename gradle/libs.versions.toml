@@ -29,6 +29,8 @@ fileKit = "0.8.7"
 multiplatformSettings = "1.2.0"
 workRuntimeKtx = "2.10.0"
 
+# Android
+accompanistPermissions = "0.36.0"
 credentials = "1.3.0"
 activityKtx = "1.9.3"
 androidxSplashscreen = "1.2.0-alpha02"
@@ -95,6 +97,7 @@ androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", v
 android-firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "androidFirebaseMessaging" }
 android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
+android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 
 
 [bundles]

@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.tagToColor
+import base.utils.tagToColor
 import base.theme.Colors
 import data.io.social.network.conversation.ConversationMessageIO
 import future_shared_module.ext.brandShimmerEffect

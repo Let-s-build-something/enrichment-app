@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -37,7 +36,6 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,7 +60,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
-import augmy.composeapp.generated.resources.accessibility_message_action_audio
 import augmy.composeapp.generated.resources.accessibility_message_action_file
 import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_audio
@@ -81,10 +78,10 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.MediaType
-import base.getBitmapFromFile
-import base.getMediaType
 import base.theme.Colors
+import base.utils.MediaType
+import base.utils.getBitmapFromFile
+import base.utils.getMediaType
 import future_shared_module.ext.scalingClickable
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
@@ -195,6 +192,7 @@ internal fun SendMessagePanel(
                                 }
                             }
                         ),
+                    reverseLayout = true,
                     horizontalArrangement = Arrangement.spacedBy(spacing),
                     state = mediaListState
                 ) {
@@ -327,8 +325,8 @@ internal fun SendMessagePanel(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                //.background(color = LocalTheme.current.colors.backgroundLight)
-                .padding(start = 12.dp, end = 10.dp, top = 6.dp)
+                //.background(color = LocalTheme.current.colors.backgroundDark)
+                .padding(start = 12.dp, end = 16.dp, top = 6.dp)
                 .weight(1f, fill = true),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -341,7 +339,7 @@ internal fun SendMessagePanel(
                     imeAction = ImeAction.Send
                 ),
                 minHeight = 44.dp,
-                shape = RoundedCornerShape(LocalTheme.current.shapes.screenCornerRadius),
+                shape = LocalTheme.current.shapes.componentShape,
                 paddingValues = PaddingValues(start = 16.dp),
                 keyboardActions = KeyboardActions(
                     onSend = {
@@ -416,23 +414,11 @@ internal fun SendMessagePanel(
                         contentDescription = stringResource(Res.string.accessibility_message_action_image),
                         tint = Color.White
                     )
-                    Icon(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(
-                                color = LocalTheme.current.colors.brandMainDark,
-                                shape = LocalTheme.current.shapes.circularActionShape
-                            )
-                            .padding(6.dp)
-                            .scalingClickable {
-                                // TODO in-app audio recorder
-                            },
-                        imageVector = Icons.Outlined.Mic,
-                        contentDescription = stringResource(Res.string.accessibility_message_action_audio),
-                        tint = Color.White
-                    )
                 }
             }
+
+            // space for the microphone action
+            Spacer(Modifier.width(38.dp + spacing))
         }
     }
 }

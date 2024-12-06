@@ -27,7 +27,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.tagToColor
+import base.utils.tagToColor
 
 @Composable
 fun UserProfileImage(

@@ -24,7 +24,7 @@ import augmy.composeapp.generated.resources.network_received_empty_title
 import augmy.composeapp.generated.resources.network_request_accepted
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.getOrNull
+import base.utils.getOrNull
 import components.EmptyLayout
 import components.network.CircleRequestRow
 import components.pull_refresh.RefreshableContent

@@ -1,4 +1,4 @@
-package base
+package base.utils
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap

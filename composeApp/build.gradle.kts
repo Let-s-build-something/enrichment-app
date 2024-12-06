@@ -99,6 +99,7 @@ kotlin {
             implementation(libs.koin.android)
 
             implementation(libs.androidx.splashscreen)
+            implementation(libs.android.accompanist.permissions)
 
             //Credentials
             implementation(libs.androidx.credentials)

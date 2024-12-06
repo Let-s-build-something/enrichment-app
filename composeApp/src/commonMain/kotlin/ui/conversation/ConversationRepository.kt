@@ -98,8 +98,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
     /** Sends a message to a conversation */
     suspend fun sendMessage(
         conversationId: String,
-        content: String,
-        mediaUrls: List<String>
+        message: ConversationMessageIO
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<Any> {
@@ -107,12 +106,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
                     urlString = "/api/v1/social/conversation/send",
                     block = {
                         parameter("conversationId", conversationId)
-                        setBody(
-                            ConversationMessageIO(
-                                content = content,
-                                mediaURls = mediaUrls
-                            )
-                        )
+                        setBody(message)
                     }
                 )
             }
@@ -141,7 +135,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
                 createdAt = 10003
             ),
             ConversationMessageIO(
-                content = "I can tell you're excited! I'm great. How are you?",
+                content = "You are visibly excited! I'm great. How are you?",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
                 reactions = listOf(
@@ -167,7 +161,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
                 state = MessageState.FAILED
             ),
             ConversationMessageIO(
-                content = "I can tell, thank you ❤\uFE0F",
+                content = "I can tell! Thank you ❤\uFE0F",
                 id = Uuid.random().toString(),
                 authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
                 createdAt = 10007,

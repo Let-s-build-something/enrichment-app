@@ -39,8 +39,8 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
-import base.getOrNull
 import base.navigation.NavIconType
+import base.utils.getOrNull
 import components.MessageBubble
 import components.UserProfileImage
 import org.jetbrains.compose.resources.stringResource
@@ -104,9 +104,7 @@ fun ConversationScreen(
     ) {
         Box(
             modifier = Modifier
-                .padding(WindowInsets.navigationBars.asPaddingValues())
                 .imePadding()
-                .padding(bottom = 16.dp)
                 .fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
@@ -172,14 +170,26 @@ fun ConversationScreen(
                 }
             }
             SendMessagePanel(
-                modifier = Modifier.onSizeChanged {
-                    if(it.height != 0) {
-                        with(density) {
-                            messagePanelHeight.value = it.height.toDp().value
+                modifier = Modifier
+                    .padding(WindowInsets.navigationBars.asPaddingValues())
+                    .onSizeChanged {
+                        if(it.height != 0) {
+                            with(density) {
+                                messagePanelHeight.value = it.height.toDp().value
+                            }
                         }
-                    }
-                },
+                    },
                 viewModel = viewModel
+            )
+
+            // Has to be outside of message panel in order to lay over everything else
+            PanelMicrophone(
+                modifier = Modifier
+                    .padding(WindowInsets.navigationBars.asPaddingValues())
+                    .align(Alignment.BottomEnd),
+                onSaveRequest = { byteArray ->
+                    viewModel.sendAudioMessage(byteArray)
+                }
             )
         }
     }

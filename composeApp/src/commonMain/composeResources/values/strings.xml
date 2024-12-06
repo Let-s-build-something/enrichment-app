@@ -121,6 +121,8 @@
 
 
   <string name="conversation_attached">Attached media</string>
+  <string name="conversation_action_send">Send</string>
+  <string name="conversation_action_delete">Delete</string>
 
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
@@ -169,6 +171,11 @@
   <string name="accessibility_message_action_audio">Record an audio track that will be attach to your message</string>
   <string name="accessibility_message_action_image">Attach an image to your message</string>
   <string name="accessibility_message_action_file">Attach any file to your message</string>
+  <string name="accessibility_audio_action_delete">Delete the recording</string>
+  <string name="accessibility_audio_action_send">Send the recording as a message</string>
+  <string name="accessibility_audio_action_lock">Lock the recording, so you don't have to hold it</string>
+  <string name="accessibility_pause">Pause</string>
+  <string name="accessibility_resume">Resume</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

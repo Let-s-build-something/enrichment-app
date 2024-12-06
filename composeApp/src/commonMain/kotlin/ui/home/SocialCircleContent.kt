@@ -49,7 +49,7 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.interactive.shared.ui.base.LocalContentSize
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.getOrNull
+import base.utils.getOrNull
 import base.navigation.NavigationNode
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import components.UserProfileImage
