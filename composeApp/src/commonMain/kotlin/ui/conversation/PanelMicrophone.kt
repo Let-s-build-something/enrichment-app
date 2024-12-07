@@ -216,6 +216,7 @@ private fun MicrophoneIcon(
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
     val coroutineScope = rememberCoroutineScope()
+    val animCoroutineScope = rememberCoroutineScope()
 
     val permissionsRequester = rememberPermissionRequesterState(
         type = PermissionType.AUDIO_RECORD,
@@ -339,24 +340,25 @@ private fun MicrophoneIcon(
                                     -1, 2 -> isLockedMode.value = true
                                 }
                                 offset.value = Offset.Zero
-                                coroutineScope.launch {
-                                    animatedOffsetX.animateTo(0f)
+                                animCoroutineScope.coroutineContext.cancelChildren()
+                                animCoroutineScope.launch {
+                                    animatedOffsetX.animateTo(offset.value.y)
                                 }
-                                coroutineScope.launch {
-                                    animatedOffsetY.animateTo(0f)
+                                animCoroutineScope.launch {
+                                    animatedOffsetY.animateTo(offset.value.x)
                                 }
                             }
                         },
                         onDragChange = { _, dragAmount ->
                             offset.value += dragAmount
-                            coroutineScope.launch {
+                            animCoroutineScope.launch {
                                 animatedOffsetX.animateTo(
                                     offset.value.x.plus(
                                         animatedOffsetX.value.absoluteValue / screenSize.width * microphoneSize.value.width / 2
                                     )
                                 )
                             }
-                            coroutineScope.launch {
+                            animCoroutineScope.launch {
                                 animatedOffsetY.animateTo(
                                     offset.value.y
                                         .plus(

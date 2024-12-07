@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.map
 import components.pull_refresh.RefreshableViewModel
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.NetworkConversationIO
@@ -17,6 +18,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
@@ -42,6 +44,11 @@ class ConversationViewModel(
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
+    private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
+
+    /** Detailed information about this conversation */
+    val conversationDetail = _conversationDetail.asStateFlow()
+
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
         config = PagingConfig(
@@ -50,12 +57,17 @@ class ConversationViewModel(
             initialLoadSize = 20
         ),
         conversationId = conversationId
-    ).flow.cachedIn(viewModelScope)
-
-    private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
-
-    /** Detailed information about this conversation */
-    val conversationDetail = _conversationDetail.asStateFlow()
+    ).flow
+        .cachedIn(viewModelScope)
+        .combine(_conversationDetail) { messages, detail ->
+            withContext(Dispatchers.Default) {
+                messages.map {
+                    it.apply {
+                        user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                    }
+                }
+            }
+        }
 
     /** Last saved message relevant to this conversation */
     var savedMessage: String = settings.getStringOrNull("KEY_LAST_MESSAGE_$conversationId") ?: ""

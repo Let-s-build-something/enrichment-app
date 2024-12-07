@@ -135,7 +135,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
                 createdAt = 10003
             ),
             ConversationMessageIO(
-                content = "You are visibly excited! I'm great. How are you?",
+                content = "You are visibly excited!",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
                 reactions = listOf(
@@ -143,6 +143,25 @@ class ConversationRepository(private val httpClient: HttpClient) {
                         content = "\uD83D\uDE2E"
                     )
                 ),
+                createdAt = 10004,
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "Maybe a success of sorts?:)",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                reactions = listOf(
+                    MessageReactionIO(
+                        content = "\uD83D\uDC40"
+                    )
+                ),
+                createdAt = 10004,
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "I'm great. What about yourself?",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
                 createdAt = 10004,
                 state = MessageState.READ
             ),

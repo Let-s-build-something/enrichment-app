@@ -8,6 +8,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.LocalThemeColors
 import augmy.interactive.shared.ui.theme.LocalThemeIcons
 import augmy.interactive.shared.ui.theme.LocalThemeShapes
@@ -96,3 +97,8 @@ fun AugmyTheme(
         )
     }
 }
+
+/** Whether the current theme is dark */
+val isDarkTheme
+    @Composable
+    get() = LocalTheme.current.colors is DarkAppColors

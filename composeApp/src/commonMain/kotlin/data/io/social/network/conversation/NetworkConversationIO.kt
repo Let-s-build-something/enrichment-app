@@ -24,7 +24,7 @@ data class NetworkConversationIO(
     /** Tag of this conversation */
     val tag: String? = null,
 
-    /** Last message within this conversation */
+    /** Last message sent within this conversation */
     val lastMessage: String? = null,
 
     /** Users participating in the conversation */

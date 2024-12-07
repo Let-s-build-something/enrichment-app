@@ -75,7 +75,7 @@ import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
-import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
@@ -157,6 +157,7 @@ internal fun SendMessagePanel(
         }
     }
 
+
     Column(
         modifier = modifier
             .height(IntrinsicSize.Min)
@@ -164,6 +165,7 @@ internal fun SendMessagePanel(
         verticalArrangement = Arrangement.Bottom
     ) {
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
+
         if(mediaAttached.isNotEmpty()) {
             val mediaListState = rememberLazyListState(
                 initialFirstVisibleItemIndex = mediaAttached.lastIndex
@@ -172,16 +174,17 @@ internal fun SendMessagePanel(
             Column {
                 Text(
                     modifier = Modifier.padding(
-                        bottom = 4.dp,
+                        bottom = 8.dp,
                         start = LocalTheme.current.shapes.betweenItemsSpace * 2
                     ),
                     text = stringResource(Res.string.conversation_attached),
                     style = LocalTheme.current.styles.regular
                 )
 
-                val previewHeight = screenSize.height.div(5).coerceAtMost(MEDIA_MAX_HEIGHT_DP)
+                val previewHeight = screenSize.height.div(7).coerceAtMost(MEDIA_MAX_HEIGHT_DP)
                 LazyRow(
                     modifier = Modifier
+                        .padding(bottom = 4.dp)
                         .fillMaxWidth()
                         .height(previewHeight.dp)
                         .draggable(
@@ -210,12 +213,15 @@ internal fun SendMessagePanel(
                                 .animateItem(),
                             contentAlignment = Alignment.Center
                         ) {
-                            MinimalisticFilledIcon(
+                            MinimalisticIcon(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .zIndex(1f),
+                                    .zIndex(1f)
+                                    .background(
+                                        color = LocalTheme.current.colors.backgroundDark,
+                                        shape = LocalTheme.current.shapes.componentShape
+                                    ),
                                 tint = LocalTheme.current.colors.secondary,
-                                background = LocalTheme.current.colors.brandMainDark,
                                 imageVector = Icons.Outlined.Close,
                                 onTap = {
                                     if(index < mediaAttached.size) {
@@ -223,13 +229,15 @@ internal fun SendMessagePanel(
                                     }
                                 }
                             )
+
                             val contentPreviewModifier = Modifier
+                                .widthIn(max = previewHeight.times(1.25).dp)
                                 .fillMaxHeight()
                                 .background(
                                     color = LocalTheme.current.colors.brandMainDark,
                                     shape = LocalTheme.current.shapes.componentShape
                                 )
-                                .padding(vertical = 6.dp, horizontal = 8.dp)
+                                .padding(vertical = 3.dp, horizontal = 4.dp)
                                 .clip(LocalTheme.current.shapes.rectangularActionShape)
 
                             // content preview
@@ -326,7 +334,7 @@ internal fun SendMessagePanel(
             modifier = Modifier
                 .fillMaxWidth()
                 //.background(color = LocalTheme.current.colors.backgroundDark)
-                .padding(start = 12.dp, end = 16.dp, top = 6.dp)
+                .padding(start = 12.dp, end = 16.dp)
                 .weight(1f, fill = true),
             verticalAlignment = Alignment.CenterVertically
         ) {
