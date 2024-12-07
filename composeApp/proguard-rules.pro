@@ -23,6 +23,8 @@
 -keep class com.google.gson.reflect.TypeToken
 -keep class * extends com.google.gson.reflect.TypeToken
 -keep public class * implements java.lang.reflect.Type
+-keep class com.sun.jna.** { *; }
+-keep class * implements com.sun.jna.** { *; }
 
 -keep class data.io.** { *; }
 -keep class base.** { *; }

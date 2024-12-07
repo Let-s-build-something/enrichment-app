@@ -18,11 +18,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -206,16 +207,19 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                val randomFractionTitle = remember { (3..4).random() / 10f }
+                val randomFractionMessage = remember { (4..7).random() / 10f }
+
                 Text(
                     modifier = Modifier
-                        .fillMaxWidth((30..40).random().toFloat()/100f)
+                        .fillMaxWidth(randomFractionTitle)
                         .brandShimmerEffect(),
                     text = "",
                     style = LocalTheme.current.styles.category
                 )
                 Text(
                     modifier = Modifier
-                        .fillMaxWidth((40..70).random().toFloat()/100f)
+                        .fillMaxWidth(randomFractionMessage)
                         .brandShimmerEffect(),
                     text = "",
                     style = LocalTheme.current.styles.regular

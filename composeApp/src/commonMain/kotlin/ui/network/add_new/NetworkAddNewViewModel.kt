@@ -2,7 +2,7 @@ package ui.network.add_new
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
-import base.tagToColor
+import base.utils.tagToColor
 import data.NetworkProximityCategory
 import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.network.list.NetworkListRepository.Companion.proximityDemoData
 
 /** Communication between the UI, the control layers, and control and data layers */
 class NetworkAddNewViewModel(

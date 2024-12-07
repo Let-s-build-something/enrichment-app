@@ -25,7 +25,7 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.tagToColor
+import base.utils.tagToColor
 import org.jetbrains.compose.resources.stringResource
 
 /**

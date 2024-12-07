@@ -7,6 +7,9 @@ interface BaseColors {
     /** Color of appbar */
     val appbarBackground: Color
 
+    /** Color of appbar content */
+    val appbarContent: Color
+
     /** Brand color */
     val brandMain: Color
 

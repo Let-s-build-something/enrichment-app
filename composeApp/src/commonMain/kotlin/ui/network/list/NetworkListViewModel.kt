@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import base.tagToColor
+import base.utils.tagToColor
 import components.OptionsLayoutAction
 import components.pull_refresh.RefreshableViewModel
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY

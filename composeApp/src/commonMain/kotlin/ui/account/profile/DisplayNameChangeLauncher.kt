@@ -53,6 +53,7 @@ import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -149,7 +150,7 @@ fun DisplayNameChangeLauncher(
                 )
             )
             if(validations.value.isEmpty()) {
-                cancellableScope.coroutineContext.cancel()
+                cancellableScope.coroutineContext.cancelChildren()
                 cancellableScope.launch {
                     delay(DELAY_BETWEEN_REQUESTS_SHORT)
                     viewModel.validateDisplayName(username.value)

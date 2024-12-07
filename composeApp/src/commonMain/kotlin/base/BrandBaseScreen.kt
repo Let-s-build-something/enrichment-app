@@ -1,6 +1,7 @@
 package base
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.FabPosition
@@ -47,6 +48,7 @@ fun BrandBaseScreen(
     subtitle: String? = null,
     onBackPressed: () -> Boolean = { true },
     actionIcons: (@Composable (expanded: Boolean) -> Unit)? = null,
+    headerPrefix: @Composable RowScope.() -> Unit = {},
     showDefaultActions: Boolean = actionIcons == null,
     onNavigationIconClick: (() -> Unit)? = null,
     contentModifier: Modifier = Modifier,
@@ -95,6 +97,7 @@ fun BrandBaseScreen(
         subtitle = subtitle,
         contentModifier = contentModifier,
         actionIcons = actions,
+        headerPrefix = headerPrefix,
         appBarVisible = appBarVisible,
         containerColor = containerColor,
         contentColor = contentColor,

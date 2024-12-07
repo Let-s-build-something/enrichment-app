@@ -8,7 +8,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
@@ -29,7 +32,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Dp
@@ -113,6 +120,64 @@ fun Modifier.scalingClickable(
                 onLongPress = onLongPress
             )
         }
+}
+
+/**
+ * Draggable modifier, which enables the draggable to be scaled based on the state of the drag
+ */
+@Composable
+fun Modifier.scalingDraggable(
+    enabled: Boolean = true,
+    onDragChange: ((change: PointerInputChange, dragAmount: Offset) -> Unit)? = null,
+    onDrag: ((dragged: Boolean) -> Unit)? = null,
+    scaleInto: Float = 0.85f
+): Modifier = composed {
+    val isPressed = remember { mutableStateOf(false) }
+    val scale = animateFloatAsState(
+        if (isPressed.value && enabled) scaleInto else 1f,
+        label = "scalingDraggableAnimation"
+    )
+
+    scale(scale.value)
+        .pointerInput(enabled) {
+            detectDragGestures(
+                onDragStart = {
+                    onDrag?.invoke(true)
+                    isPressed.value = true
+                },
+                onDragCancel = {
+                    onDrag?.invoke(false)
+                    isPressed.value = false
+                },
+                onDrag = { change, offset ->
+                    onDragChange?.invoke(change, offset)
+                }
+            )
+        }
+}
+
+private suspend fun PointerInputScope.detectDragGestures(
+    onDragStart: () -> Unit,
+    onDragCancel: () -> Unit,
+    onDrag: (change: PointerInputChange, dragAmount: Offset) -> Unit
+) {
+    awaitEachGesture {
+        val initialDown = awaitFirstDown(
+            requireUnconsumed = false,
+            pass = PointerEventPass.Initial
+        )
+
+        onDragStart.invoke()
+        onDrag(initialDown, initialDown.position)
+        drag(
+            pointerId = initialDown.id,
+            onDrag = {
+                onDrag(it, it.positionChange())
+                it.consume()
+            }
+        )
+        onDragCancel()
+    }
 }
 
 /**

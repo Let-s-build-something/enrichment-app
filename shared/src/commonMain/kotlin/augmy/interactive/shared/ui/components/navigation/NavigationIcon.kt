@@ -21,7 +21,7 @@ fun NavigationIcon(
     size: Dp = 42.dp,
     imageVector: ImageVector,
     contentDescription: String,
-    tint: Color = LocalTheme.current.colors.tetrial
+    tint: Color = LocalTheme.current.colors.appbarContent
 ) {
     Icon(
         modifier = modifier

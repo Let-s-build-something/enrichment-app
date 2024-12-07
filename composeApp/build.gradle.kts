@@ -99,6 +99,7 @@ kotlin {
             implementation(libs.koin.android)
 
             implementation(libs.androidx.splashscreen)
+            implementation(libs.android.accompanist.permissions)
 
             //Credentials
             implementation(libs.androidx.credentials)
@@ -158,6 +159,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
+            //implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)

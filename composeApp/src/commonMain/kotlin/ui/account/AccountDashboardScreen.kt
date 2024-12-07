@@ -31,8 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_change_avatar
@@ -55,6 +57,7 @@ import augmy.composeapp.generated.resources.account_settings_title_offline
 import augmy.composeapp.generated.resources.account_settings_title_online
 import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.account_username_empty
+import augmy.composeapp.generated.resources.action_general_copied
 import augmy.composeapp.generated.resources.action_link_copied
 import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
@@ -66,7 +69,7 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.ModalScreenContent
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
-import augmy.interactive.shared.ui.components.MinimalisticBrandIcon
+import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
@@ -80,6 +83,7 @@ import components.RowSetting
 import components.UserProfileImage
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
+import future_shared_module.ext.scalingClickable
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -298,7 +302,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
             model = try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
             tag = currentUser.value?.tag
         )
-        MinimalisticBrandIcon(
+        MinimalisticFilledIcon(
             modifier = Modifier
                 .padding(bottom = 8.dp, end = 8.dp)
                 .align(Alignment.BottomEnd),
@@ -315,8 +319,28 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            modifier = Modifier.padding(end = 8.dp),
-            text = currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty),
+            modifier = Modifier
+                .padding(end = 8.dp)
+                .scalingClickable(
+                    enabled = currentUser.value?.displayName != null && currentUser.value?.tag != null
+                ) {
+                    clipboardManager.setText(buildAnnotatedString {
+                        append(currentUser.value?.displayName?.plus("#${currentUser.value?.tag}"))
+                    })
+                    coroutineScope.launch {
+                        snackbarHostState?.showSnackbar(
+                            message = getString(Res.string.action_general_copied)
+                        )
+                    }
+                },
+            text = buildAnnotatedString {
+                append(currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty))
+                if(currentUser.value?.tag != null) {
+                    withStyle(SpanStyle(color = LocalTheme.current.colors.disabled)) {
+                        append("#${currentUser.value?.tag}")
+                    }
+                }
+            },
             style = LocalTheme.current.styles.subheading
         )
         MinimalisticComponentIcon(

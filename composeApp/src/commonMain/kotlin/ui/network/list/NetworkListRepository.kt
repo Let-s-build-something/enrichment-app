@@ -3,6 +3,7 @@ package ui.network.list
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
+import data.io.base.PaginationInfo
 import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
@@ -36,7 +37,8 @@ class NetworkListRepository(private val httpClient: HttpClient) {
                 )
             }
 
-            /*if(page <= proximityDemoData.size/size) {
+            // demo data TODO remove once it's not needed
+            if(page <= proximityDemoData.size/size) {
                 BaseResponse.Success(NetworkListResponse(
                     content = proximityDemoData.subList(page * size, ((page + 1) * size) - 1),
                     pagination = PaginationInfo(
@@ -45,7 +47,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
                         totalPages = proximityDemoData.size/size
                     )
                 ))
-            }else BaseResponse.Error()*/
+            }else BaseResponse.Error()
         }
     }
 
@@ -75,7 +77,7 @@ class NetworkListRepository(private val httpClient: HttpClient) {
 
     internal companion object {
 
-        internal val family = listOf(
+        private val family = listOf(
             NetworkItemIO(proximity = 10.1f, displayName = "Dad", photoUrl = "https://picsum.photos/100", tag = "2098d6", userPublicId = "20l98d6"),
             NetworkItemIO(proximity = 10.7f, displayName = "Mom", photoUrl = "https://picsum.photos/101", tag = "2098d6", userPublicId = "2098d6d"),
             NetworkItemIO(proximity = 10.9f, displayName = "Sister", photoUrl = "https://picsum.photos/102", tag = "2098d6", userPublicId = "2098dc6d"),

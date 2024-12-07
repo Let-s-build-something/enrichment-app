@@ -6,8 +6,8 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
-import base.asSimpleString
-import base.tagToColor
+import base.utils.asSimpleString
+import base.utils.tagToColor
 import com.russhwolf.settings.set
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory

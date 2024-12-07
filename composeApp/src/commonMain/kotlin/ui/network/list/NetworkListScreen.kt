@@ -24,7 +24,7 @@ import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.getOrNull
+import base.utils.getOrNull
 import base.navigation.NavigationArguments
 import collectResult
 import components.EmptyLayout

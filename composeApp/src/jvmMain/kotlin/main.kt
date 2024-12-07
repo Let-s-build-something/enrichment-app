@@ -137,7 +137,7 @@ fun main(args: Array<String>) = application {
                     )?.bottom ?: 0
                 ))?.toDp() ?: 600.dp
             },
-            position = WindowPosition.Aligned(Alignment.TopEnd)
+            position = WindowPosition.Aligned(Alignment.TopStart)
         ),
         title = stringResource(Res.string.app_name),
         visible = true,
