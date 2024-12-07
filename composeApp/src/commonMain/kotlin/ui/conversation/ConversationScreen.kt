@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -112,10 +114,7 @@ fun ConversationScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(
-                    space = LocalTheme.current.shapes.betweenItemsSpace,
-                    alignment = Alignment.Bottom
-                ),
+                verticalArrangement = Arrangement.Bottom,
                 reverseLayout = true
             ) {
                 item {
@@ -142,28 +141,38 @@ fun ConversationScreen(
                         val isCurrentUser = if(data != null) {
                             data.authorPublicId == viewModel.currentUser.value?.publicId
                         }else (0..1).random() == 0
+                        val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
+                        val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
 
                         Row(
                             modifier = Modifier
                                 .padding(start = if(isCurrentUser) 50.dp else 12.dp)
                                 .fillMaxWidth()
+                                .padding(
+                                    top = if(isPreviousMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2),
+                                    bottom = if(isNextMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2)
+                                )
                                 .animateItem(),
                             horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
                         ) {
-                            if(!isCurrentUser) {
+                            if(!isCurrentUser && !isNextMessageSameAuthor) {
                                 UserProfileImage(
-                                    modifier = Modifier.size(48.dp),
-                                    model = conversationDetail.value?.users?.find {
-                                        it.publicId == data?.authorPublicId
-                                    }?.photoUrl ?: conversationDetail.value?.pictureUrl,
-                                    tag = data?.tag
+                                    modifier = Modifier.size(32.dp),
+                                    model = data?.user?.photoUrl,
+                                    tag = data?.user?.tag
                                 )
                                 Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
+                            }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
+                                Spacer(Modifier.width(
+                                    LocalTheme.current.shapes.betweenItemsSpace + 32.dp
+                                ))
                             }
                             MessageBubble(
                                 data = data,
-                                isCurrentUser = isCurrentUser
+                                isCurrentUser = isCurrentUser,
+                                hasPrevious = isPreviousMessageSameAuthor,
+                                hasNext = isNextMessageSameAuthor
                             )
                         }
                     }
@@ -171,6 +180,13 @@ fun ConversationScreen(
             }
             SendMessagePanel(
                 modifier = Modifier
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = RoundedCornerShape(
+                            topStart = LocalTheme.current.shapes.componentCornerRadius,
+                            topEnd = LocalTheme.current.shapes.componentCornerRadius
+                        )
+                    )
                     .padding(WindowInsets.navigationBars.asPaddingValues())
                     .onSizeChanged {
                         if(it.height != 0) {

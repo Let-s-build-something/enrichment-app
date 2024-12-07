@@ -30,12 +30,12 @@ fun MinimalisticIcon(
 ) {
     Icon(
         modifier = Modifier
-            .size(34.dp)
+            .size(32.dp)
             .clip(CircleShape)
             .then(if(onTap != null) {
                 modifier.scalingClickable(onTap = onTap)
             }else modifier)
-            .padding(5.dp),
+            .padding(4.dp),
         imageVector = imageVector,
         contentDescription = contentDescription,
         tint = tint

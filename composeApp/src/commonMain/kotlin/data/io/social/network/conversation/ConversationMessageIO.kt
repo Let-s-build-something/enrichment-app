@@ -1,6 +1,8 @@
 package data.io.social.network.conversation
 
+import data.io.user.NetworkItemIO
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /** Conversation entity representing a singular message within a conversation */
 @Serializable
@@ -21,9 +23,6 @@ data class ConversationMessageIO(
     /** Public id of the author of this message */
     val authorPublicId: String? = null,
 
-    /** Tag of the author */
-    val tag: String? = null,
-
     /** List of reactions to this message */
     val reactions: List<MessageReactionIO>? = null,
 
@@ -35,4 +34,9 @@ data class ConversationMessageIO(
      * as it represents all of the messages above it
      */
     val state: MessageState? = null
-)
+) {
+
+    /** User attached to this message */
+    @Transient
+    var user: NetworkItemIO? = null
+}

@@ -5,14 +5,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.utils.tagToColor
 import base.theme.Colors
+import base.utils.tagToColor
 import data.io.social.network.conversation.ConversationMessageIO
 import future_shared_module.ext.brandShimmerEffect
 
@@ -21,6 +22,8 @@ import future_shared_module.ext.brandShimmerEffect
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
+    hasPrevious: Boolean = false,
+    hasNext: Boolean = false,
     isCurrentUser: Boolean
 ) {
     Crossfade(targetState = data == null) { isLoading ->
@@ -44,14 +47,28 @@ fun MessageBubble(
             Column(
                 modifier = modifier
                     .background(
-                        color = tagToColor(data?.tag) ?: if(isCurrentUser) {
+                        color = tagToColor(data?.user?.tag) ?: if(isCurrentUser) {
                             LocalTheme.current.colors.brandMainDark
                         } else LocalTheme.current.colors.disabledComponent,
-                        shape = LocalTheme.current.shapes.circularActionShape
+                        shape = if(isCurrentUser) {
+                            RoundedCornerShape(
+                                topStart = 24.dp,
+                                bottomStart = 24.dp,
+                                topEnd = if(hasPrevious) 1.dp else 24.dp,
+                                bottomEnd = if(hasNext) 1.dp else 24.dp
+                            )
+                        }else {
+                            RoundedCornerShape(
+                                topEnd = 24.dp,
+                                bottomEnd = 24.dp,
+                                topStart = if(hasPrevious) 1.dp else 24.dp,
+                                bottomStart = if(hasNext) 1.dp else 24.dp
+                            )
+                        }
                     )
                     .padding(
                         vertical = 10.dp,
-                        horizontal = 12.dp
+                        horizontal = 14.dp
                     )
             ) {
                 Text(

@@ -11,7 +11,6 @@ import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -38,13 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
+import base.isDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -56,8 +54,10 @@ fun <T> HorizontalScrollChoice(
     selectedItems: List<T>,
     choices: List<ScrollChoice<T>>,
     onSelectionChange: (item: T, isSelected: Boolean) -> Unit,
-    trackColor: Color = LocalTheme.current.colors.tetrial,
-    color: Color = LocalTheme.current.colors.brandMainDark
+    trackColor: Color = LocalTheme.current.colors.backgroundLight,
+    color: Color = LocalTheme.current.colors.brandMain,
+    deselectedColor: Color = LocalTheme.current.colors.secondary,
+    borderColor: Color = if(isDarkTheme) deselectedColor else LocalTheme.current.colors.backgroundLight
 ) {
     val coroutineScope = rememberCoroutineScope()
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
@@ -103,21 +103,23 @@ fun <T> HorizontalScrollChoice(
             .height(IntrinsicSize.Min)
             .fillMaxWidth()
             .clip(defaultShape)
-            .border(
-                width = .5.dp,
-                color = trackColor,
-                shape = defaultShape
+            .background(
+                color = borderColor,
+                shape = RoundedCornerShape(
+                    topEnd = LocalTheme.current.shapes.screenCornerRadius,
+                    topStart = if(isCompact) LocalTheme.current.shapes.screenCornerRadius else 0.dp,
+                    bottomEnd = 50.dp,
+                    bottomStart = 50.dp
+                )
             )
+            .padding(top = 1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxHeight()
                 .height(IntrinsicSize.Min)
                 .fillMaxWidth()
-                .background(
-                    color = trackColor,
-                    shape = defaultShape
-                )
+                .background(color = trackColor, shape = defaultShape)
                 .draggable(
                     orientation = Orientation.Horizontal,
                     state = rememberDraggableState { delta ->
@@ -137,7 +139,7 @@ fun <T> HorizontalScrollChoice(
                     label = "backgroundColor$index"
                 )
                 val textColor = animateColorAsState(
-                    targetValue = if(isSelected) trackColor else color,
+                    targetValue = if(isSelected) trackColor else deselectedColor,
                     label = "textColor$index"
                 )
 
