@@ -586,6 +586,7 @@ internal fun BoxScope.SendMessagePanel(
                             messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
                         )
                     )
+                    println("kostka_test, newText: ${messageContent.value.text}")
                 },
                 onDismissRequest = {
                     isEmojiPickerVisible.value = false
@@ -593,31 +594,52 @@ internal fun BoxScope.SendMessagePanel(
                 onBackSpace = {
                     showMoreOptions.value = false
 
-                    val newContent = buildString {
-                        // before selection
-                        append(
-                            removeUnicodeCharacter(
-                                text = messageContent.value.text.subSequence(
-                                    0, messageContent.value.selection.start
-                                ).toString(),
-                                index = messageContent.value.selection.start
-                            )
+                    val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
+
+                    if(isRangeRemoval) {
+                        messageContent.value = TextFieldValue(
+                            text = buildString {
+                                // before selection
+                                append(
+                                    messageContent.value.text.subSequence(
+                                        startIndex = 0,
+                                        endIndex = messageContent.value.selection.start
+                                    ).toString()
+                                )
+                                // after selection
+                                append(
+                                    messageContent.value.text.subSequence(
+                                        startIndex = messageContent.value.selection.end,
+                                        endIndex = messageContent.value.text.length
+                                    )
+                                )
+                            },
+                            selection = TextRange(messageContent.value.selection.start)
                         )
-                        // after selection
-                        append(
-                            messageContent.value.text.subSequence(
-                                messageContent.value.selection.end,
-                                messageContent.value.text.length
+                    }else {
+                        val modifiedPrefix = removeUnicodeCharacter(
+                            text = messageContent.value.text.subSequence(
+                                0, messageContent.value.selection.start
+                            ).toString(),
+                            index = messageContent.value.selection.start
+                        )
+
+                        val newContent = buildString {
+                            // before selection
+                            append(modifiedPrefix)
+                            // after selection
+                            append(
+                                messageContent.value.text.subSequence(
+                                    messageContent.value.selection.end,
+                                    messageContent.value.text.length
+                                )
                             )
+                        }
+                        messageContent.value = TextFieldValue(
+                            text = newContent,
+                            selection = TextRange(modifiedPrefix.length)
                         )
                     }
-
-                    messageContent.value = TextFieldValue(
-                        text = newContent,
-                        selection = TextRange(
-                            findLowerSurrogate(newContent, messageContent.value.selection.start)
-                        )
-                    )
                 }
             )
         }
@@ -646,25 +668,11 @@ internal fun BoxScope.SendMessagePanel(
 }
 
 private fun removeUnicodeCharacter(text: String, index: Int): String {
-    if (text.isEmpty()) return text
+    val prefix = text.substring(0, index)
+    val suffix = REGEX_GRAPHEME.toRegex().findAll(prefix).lastOrNull()?.value ?: ""
 
-    var i = index.coerceAtMost(text.lastIndex)
-    while (i > 0 && text[i].isLowSurrogate()) {
-        i--
-    }
 
-    return text.substring(0, i)
-}
-
-private fun findLowerSurrogate(text: String, index: Int): Int {
-    if (text.isEmpty() || index <= 0) return index
-
-    var i = index.minus(1).coerceAtMost(text.lastIndex)
-    while (i >= 0 && text[i].isLowSurrogate()) {
-        i--
-    }
-
-    return i
+    return prefix.removeSuffix(suffix) + text.substring(index)
 }
 
 
@@ -672,3 +680,5 @@ private fun findLowerSurrogate(text: String, index: Int): Int {
 private const val MAX_ITEMS_SELECTED = 20
 
 private const val MEDIA_MAX_HEIGHT_DP = 250
+
+private const val REGEX_GRAPHEME = """\X"""
