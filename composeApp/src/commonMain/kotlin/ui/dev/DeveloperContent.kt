@@ -244,7 +244,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                         isClearable = true,
                         paddingValues = PaddingValues(start = 16.dp),
                         onValueChange = { value ->
-                            viewModel.changeHost(value)
+                            viewModel.changeHost(value.text)
                         }
                     )
                 }
@@ -299,12 +299,12 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                                     isClearable = true,
                                     paddingValues = PaddingValues(start = 16.dp),
                                     onValueChange = { value ->
-                                        input.value = value
+                                        input.value = value.text
 
                                         coroutineScope.coroutineContext.cancelChildren()
                                         coroutineScope.launch {
                                             delay(300)
-                                            searchedText.value = value
+                                            searchedText.value = value.text
                                         }
                                     }
                                 )

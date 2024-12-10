@@ -51,6 +51,7 @@ import org.jetbrains.compose.resources.stringResource
 fun EditFieldInput(
     modifier: Modifier = Modifier,
     value: String,
+    textValue: TextFieldValue? = null,
     textStyle: TextStyle = TextStyle(
         color = LocalTheme.current.colors.primary,
         fontSize = 16.sp,
@@ -75,12 +76,14 @@ fun EditFieldInput(
     onClear: () -> Unit = {},
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    onValueChange: (String) -> Unit,
+    onValueChange: (TextFieldValue) -> Unit,
 ) {
     val isFocused = remember(value) { mutableStateOf(false) }
-    val text = remember(value) {
-        mutableStateOf(TextFieldValue(value, TextRange(value.length)))
-    }
+    val text = if(textValue == null) {
+        remember(value) {
+            mutableStateOf(TextFieldValue(value, TextRange(value.length)))
+        }
+    }else null
 
     val controlColor by animateColorAsState(
         when {
@@ -110,7 +113,7 @@ fun EditFieldInput(
                     isFocused.value = it.isFocused
                 },
             shape = shape,
-            value = text.value,
+            value = text?.value ?: textValue ?: TextFieldValue(),
             minHeight = minHeight,
             paddingValues = paddingValues,
             minLines = minLines,
@@ -142,9 +145,9 @@ fun EditFieldInput(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if(maxCharacters > 0) {
                             Text(
-                                text = "${text.value.text.length}/$maxCharacters",
+                                text = "${(text?.value ?: textValue)?.text?.length}/$maxCharacters",
                                 style = LocalTheme.current.styles.regular.copy(
-                                    color = if(text.value.text.length > maxCharacters) {
+                                    color = if(((text?.value ?: textValue)?.text?.length ?: 0) > maxCharacters) {
                                         SharedColors.RED_ERROR
                                     }else LocalTheme.current.colors.disabled
                                 )
@@ -157,8 +160,8 @@ fun EditFieldInput(
                                 tint = LocalTheme.current.colors.secondary
                             ) {
                                 onClear()
-                                onValueChange("")
-                                text.value = TextFieldValue()
+                                onValueChange(TextFieldValue())
+                                text?.value = TextFieldValue()
                             }
                         }
                     }
@@ -177,8 +180,8 @@ fun EditFieldInput(
                 }
             }else null,
             onValueChange = { output ->
-                onValueChange(output.text)
-                text.value = output
+                onValueChange(output)
+                text?.value = output
             }
         )
         AnimatedVisibility(suggestText.isNullOrBlank().not()) {
@@ -208,3 +211,5 @@ fun EditFieldInput(
         }
     }
 }
+
+const val DELAY_BETWEEN_TYPING_SHORT = 200L

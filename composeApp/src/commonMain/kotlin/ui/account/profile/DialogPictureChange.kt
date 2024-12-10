@@ -243,7 +243,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                                 imeAction = ImeAction.Done
                                             ),
                                             onValueChange = { value ->
-                                                customUrl.value = value
+                                                customUrl.value = value.text
                                             },
                                             trailingIcon = if(urlState.value is AsyncImagePainter.State.Loading) {
                                                 {

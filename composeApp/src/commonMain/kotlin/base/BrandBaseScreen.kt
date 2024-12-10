@@ -9,7 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import augmy.interactive.shared.ui.base.BackHandlerOverride
 import augmy.interactive.shared.ui.base.BaseScreen
+import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
@@ -61,6 +63,7 @@ fun BrandBaseScreen(
 ) {
     val sharedViewModel: SharedViewModel = koinViewModel()
     val navController = LocalNavController.current
+    val dispatcher = LocalBackPressDispatcher.current
 
     val firebaseUser = sharedViewModel.firebaseUser.collectAsState(null)
     val currentUser = sharedViewModel.currentUser.collectAsState(null)
@@ -76,6 +79,10 @@ fun BrandBaseScreen(
         }
         onNavigationIconClick != null -> onNavigationIconClick
         else -> null
+    }
+
+    BackHandlerOverride {
+        dispatcher?.executeBackPress()
     }
 
     val actions: @Composable (expanded: Boolean) -> Unit = { expanded ->

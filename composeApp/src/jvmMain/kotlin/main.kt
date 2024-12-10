@@ -2,6 +2,7 @@
 import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
@@ -105,23 +106,30 @@ fun main(args: Array<String>) = application {
         e.printStackTrace()
     }
 
-    val backPressDispatcher = object: BackPressDispatcher {
-        var listener: (() -> Unit)? = null
+    val backPressDispatcher = remember {
+        object: BackPressDispatcher {
+            val listeners = mutableListOf<() -> Unit>()
 
-        override fun addOnBackPressedListener(listener: () -> Unit) {
-            this.listener = listener
-        }
-
-        override fun executeBackPress() {
-            unloadKoinModules(commonModule)
-            stopKoin()
-            exitApplication()
+            override fun addOnBackPressedListener(listener: () -> Unit) {
+                this.listeners.add(0, listener)
+            }
+            override fun removeOnBackPressedListener(listener: () -> Unit) {
+                this.listeners.remove(listener)
+            }
+            override fun executeBackPress() {
+                listeners.firstOrNull()?.invoke()
+            }
+            override fun executeSystemBackPress() {
+                unloadKoinModules(commonModule)
+                stopKoin()
+                exitApplication()
+            }
         }
     }
 
     Window(
         onCloseRequest = {
-            backPressDispatcher.listener?.invoke()
+            backPressDispatcher.executeBackPress()
         },
         state = rememberWindowState(
             placement = WindowPlacement.Floating,

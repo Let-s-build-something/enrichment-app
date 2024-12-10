@@ -124,6 +124,18 @@
   <string name="conversation_action_send">Send</string>
   <string name="conversation_action_delete">Delete</string>
 
+  <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
+  <string name="emojis_people_body">People and body</string>
+  <string name="emojis_component">Body components</string>
+  <string name="emojis_animals_and_nature">Animals \u0026 nature</string>
+  <string name="emojis_activities">Activities</string>
+  <string name="emojis_objects">Objects</string>
+  <string name="emojis_food_and_drink">Food \u0026 drink</string>
+  <string name="emojis_symbols">Symbols</string>
+  <string name="emojis_travel_and_places">Travel \u0026 places</string>
+  <string name="emojis_flags">Flags</string>
+  <string name="action_filter_emojis">Filter emojis</string>
+
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
 
@@ -176,6 +188,10 @@
   <string name="accessibility_audio_action_lock">Lock the recording, so you don't have to hold it</string>
   <string name="accessibility_pause">Pause</string>
   <string name="accessibility_resume">Resume</string>
+  <string name="accessibility_action_emojis">Open dashboard with emojis and stickers with ability to search</string>
+  <string name="accessibility_action_keyboard">Open system keyboard input</string>
+  <string name="accessibility_backspace">Backspace</string>
+  <string name="accessibility_emojis_history">Previously selected</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

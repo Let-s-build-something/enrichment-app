@@ -126,7 +126,7 @@ fun ContactsScreen() {
                 isClearable = true,
                 leadingIcon = Icons.Outlined.Search,
                 onValueChange = { value ->
-                    searchContent.value = value
+                    searchContent.value = value.text
                 },
                 paddingValues = PaddingValues(start = 16.dp),
                 shape = RoundedCornerShape(

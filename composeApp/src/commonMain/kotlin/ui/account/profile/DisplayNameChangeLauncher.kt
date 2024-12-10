@@ -196,7 +196,7 @@ fun DisplayNameChangeLauncher(
             ),
             maxCharacters = USERNAME_MAX_LENGTH,
             onValueChange = { value ->
-                username.value = value
+                username.value = value.text
                 errorMessage.value = null
             },
             isClearable = true,
