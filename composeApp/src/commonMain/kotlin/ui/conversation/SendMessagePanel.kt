@@ -586,7 +586,6 @@ internal fun BoxScope.SendMessagePanel(
                             messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
                         )
                     )
-                    println("kostka_test, newText: ${messageContent.value.text}")
                 },
                 onDismissRequest = {
                     isEmojiPickerVisible.value = false

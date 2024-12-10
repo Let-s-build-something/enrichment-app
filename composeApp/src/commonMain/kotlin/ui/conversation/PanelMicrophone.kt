@@ -221,7 +221,10 @@ private fun MicrophoneIcon(
     val permissionsRequester = rememberPermissionRequesterState(
         type = PermissionType.AUDIO_RECORD,
         onResponse = {
-            if(it) startRecording()
+            if(it) {
+                isLockedMode.value = true
+                startRecording()
+            }
         }
     )
     val animatedOffsetX = remember { Animatable(0f) }
