@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -105,9 +104,7 @@ fun ConversationScreen(
         title = name
     ) {
         Box(
-            modifier = Modifier
-                .imePadding()
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
             LazyColumn(
@@ -196,16 +193,6 @@ fun ConversationScreen(
                         }
                     },
                 viewModel = viewModel
-            )
-
-            // Has to be outside of message panel in order to lay over everything else
-            PanelMicrophone(
-                modifier = Modifier
-                    .padding(WindowInsets.navigationBars.asPaddingValues())
-                    .align(Alignment.BottomEnd),
-                onSaveRequest = { byteArray ->
-                    viewModel.sendAudioMessage(byteArray)
-                }
             )
         }
     }

@@ -40,6 +40,9 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalHeyIamScreen
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -118,11 +121,13 @@ private fun AppContent(
         mutableStateOf(true)
     }
 
-    LaunchedEffect(Unit) {
-        backPressDispatcher?.addOnBackPressedListener {
+    OnBackHandler {
+        if(currentPlatform == PlatformType.Jvm || !navController.popBackStack()) {
             if(viewModel.showLeaveDialog) {
                 showDialogLeave.value = !showDialogLeave.value
-            }else backPressDispatcher.executeBackPress()
+            }else {
+                backPressDispatcher?.executeSystemBackPress()
+            }
         }
     }
 
@@ -150,13 +155,13 @@ private fun AppContent(
             message = stringResource(Res.string.leave_app_dialog_message),
             icon = Icons.Outlined.DoorBack,
             confirmButtonState = ButtonState(
-                text = stringResource(Res.string.button_confirm)
+                text = stringResource(Res.string.button_confirm),
             ) {
                 viewModel.saveDialogSetting(showDialogAgain.value)
-                backPressDispatcher?.executeBackPress()
+                backPressDispatcher?.executeSystemBackPress()
             },
             dismissButtonState = ButtonState(
-                text = stringResource(Res.string.button_dismiss)
+                text = stringResource(Res.string.button_dismiss),
             ),
             additionalContent = {
                 if(deviceType == WindowWidthSizeClass.Expanded) {
@@ -165,7 +170,7 @@ private fun AppContent(
                             .padding(8.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
+                        horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
                     ) {
                         Checkbox(
                             checked = !showDialogAgain.value,
@@ -194,12 +199,12 @@ private fun AppContent(
     )
 
     CompositionLocalProvider(
-        LocalHeyIamScreen provides (isInternalUser && isPhone)
+        LocalHeyIamScreen provides (isInternalUser && isPhone),
     ) {
         if(isPhone) {
             Column {
                 if(isInternalUser) DeveloperContent(
-                    modifier = Modifier.statusBarsPadding()
+                    modifier = Modifier.statusBarsPadding(),
                 )
                 Box {
                     NavigationHost(navController = navController)

@@ -20,13 +20,18 @@ fun MainViewController() = ComposeUIViewController {
     val density = LocalDensity.current
 
     val backPressDispatcher = object: BackPressDispatcher {
-        var listener: (() -> Unit)? = null
+        val listeners = mutableListOf<() -> Unit>()
 
         override fun addOnBackPressedListener(listener: () -> Unit) {
-            this.listener = listener
+            this.listeners.add(0, listener)
         }
-
+        override fun removeOnBackPressedListener(listener: () -> Unit) {
+            this.listeners.remove(listener)
+        }
         override fun executeBackPress() {
+            listeners.firstOrNull()?.invoke()
+        }
+        override fun executeSystemBackPress() {
             UIApplication.sharedApplication.keyWindow
                 ?.rootViewController
                 ?.navigationController
@@ -43,7 +48,7 @@ fun MainViewController() = ComposeUIViewController {
             willShowViewController: UIViewController,
             animated: Boolean
         ) {
-            backPressDispatcher.listener?.invoke()
+            backPressDispatcher.executeBackPress()
         }
     }
 
@@ -59,7 +64,7 @@ fun MainViewController() = ComposeUIViewController {
 }
 
 // Extension function to find the top view controller
-fun UIViewController.getTopViewController(): UIViewController? {
+private fun UIViewController.getTopViewController(): UIViewController? {
     var currentController: UIViewController? = this
     while (currentController?.presentedViewController != null) {
         currentController = currentController.presentedViewController

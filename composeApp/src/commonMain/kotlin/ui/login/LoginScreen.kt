@@ -278,7 +278,7 @@ private fun ColumnScope.LoginScreenContent(
         ),
         onValueChange = { value ->
             errorMessage.value = null
-            email.value = value
+            email.value = value.text
         },
         errorText = if(isEmailValid || email.value.isEmpty() || isEmailFocused.value) {
             null
@@ -331,7 +331,7 @@ private fun ColumnScope.LoginScreenContent(
             }
         },
         onValueChange = { value ->
-            password.value = value.take(PASSWORD_MAX_LENGTH)
+            password.value = value.text.take(PASSWORD_MAX_LENGTH)
             errorMessage.value = null
         },
         paddingValues = PaddingValues(start = 16.dp)

@@ -1,12 +1,16 @@
 package ui.conversation
 
+import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import augmy.composeapp.generated.resources.Res
 import components.pull_refresh.RefreshableViewModel
+import data.io.app.SettingsKeys
 import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.NetworkConversationIO
 import data.shared.SharedViewModel
 import data.shared.fromByteArrayToData
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
@@ -28,14 +33,20 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
-    factory { ConversationRepository(get()) }
-    factory { ConversationViewModel(get<ConversationRepository>(), get()) }
+    factory { ConversationDataManager() }
+    single { ConversationDataManager() }
+    factory { ConversationRepository(get(), get()) }
+    factory {
+        ConversationViewModel(get<ConversationRepository>(), get<ConversationDataManager>(), get())
+    }
     viewModelOf(::ConversationViewModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
+@OptIn(ExperimentalResourceApi::class)
 class ConversationViewModel(
     private val repository: ConversationRepository,
+    private val dataManager: ConversationDataManager,
     private val conversationId: String
 ): SharedViewModel(), RefreshableViewModel {
 
@@ -45,9 +56,39 @@ class ConversationViewModel(
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
+    private val _emojiHistory = MutableStateFlow(mutableListOf<EmojiData>())
+    private val emojiSearch = MutableStateFlow("")
+
+    /** Whether there is emoji filter */
+    val areEmojisFiltered = MutableStateFlow(false)
+
+    val additionalBottomPadding = Animatable(0f)
 
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
+
+    /** List of all available emojis */
+    val emojis = dataManager.emojis.combine(
+        _emojiHistory
+    ) { emojis, history ->
+        withContext(Dispatchers.Default) {
+            mutableListOf(EMOJIS_HISTORY_GROUP to history.toList()).apply {
+                addAll(emojis)
+            }
+        }
+    }.combine(emojiSearch) { emojis, query ->
+        if (query.isBlank()) {
+            areEmojisFiltered.value = false
+            emojis
+        } else {
+            areEmojisFiltered.value = true
+            emojis.map { category ->
+                category.first to category.second.filter { emoji ->
+                    emoji.name.contains(query, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
@@ -70,10 +111,17 @@ class ConversationViewModel(
         }
 
     /** Last saved message relevant to this conversation */
-    var savedMessage: String = settings.getStringOrNull("KEY_LAST_MESSAGE_$conversationId") ?: ""
+    var savedMessage: String = settings.getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId") ?: ""
         set(value) {
             field = value
-            settings.putString("KEY_LAST_MESSAGE_$conversationId", value)
+            settings.putString("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId", value)
+        }
+
+    /** Last height of soft keyboard */
+    var keyboardHeight: Int = settings.getIntOrNull(SettingsKeys.KEY_KEYBOARD_HEIGHT) ?: 0
+        set(value) {
+            field = value
+            settings.putInt(SettingsKeys.KEY_KEYBOARD_HEIGHT, value)
         }
 
     init {
@@ -84,10 +132,23 @@ class ConversationViewModel(
                 }
             }
         }
+        viewModelScope.launch(Dispatchers.Default) {
+            val jsonString = Res.readBytes("files/emoji_data_set.json").decodeToString()
+            repository.json.decodeFromString<Map<String, Map<String, List<EmojiData>>>>(jsonString).let { raw ->
+                dataManager.emojis.value = raw.map { category ->
+                    category.key to category.value.flatMap { it.value }
+                }
+            }
+        }
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
     }
 
+
+    /** Filters emojis */
+    fun filterEmojis(query: String) {
+        emojiSearch.value = query
+    }
 
     /**
      * Makes a request to send a conversation message
@@ -160,3 +221,6 @@ class ConversationViewModel(
         }
     }
 }
+
+/** Key for the group of emojis representing past history of this user */
+internal const val EMOJIS_HISTORY_GROUP = "history"

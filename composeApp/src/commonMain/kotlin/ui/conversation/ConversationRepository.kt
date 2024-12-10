@@ -18,12 +18,16 @@ import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import ui.login.safeRequest
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Class for calling APIs and remote work in general */
-class ConversationRepository(private val httpClient: HttpClient) {
+class ConversationRepository(
+    private val httpClient: HttpClient,
+    val json: Json,
+) {
 
     /** returns a list of network list */
     private suspend fun getMessages(
@@ -147,7 +151,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
                 state = MessageState.READ
             ),
             ConversationMessageIO(
-                content = "Maybe a success of sorts?:)",
+                content = "Maybe a success of sorts? ☺",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
                 reactions = listOf(

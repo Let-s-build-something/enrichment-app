@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
@@ -66,23 +65,24 @@ class MainActivity: ComponentActivity() {
         askForPermissions()
 
         val backPressDispatcher = object: BackPressDispatcher {
-            var listener: (() -> Unit)? = null
+            val listeners = mutableListOf<() -> Unit>()
 
             override fun addOnBackPressedListener(listener: () -> Unit) {
-                this.listener = listener
+                this.listeners.add(0, listener)
             }
-
+            override fun removeOnBackPressedListener(listener: () -> Unit) {
+                this.listeners.remove(listener)
+            }
             override fun executeBackPress() {
+                listeners.firstOrNull()?.invoke()
+            }
+            override fun executeSystemBackPress() {
                 this@MainActivity.finish()
             }
         }
 
         setContent {
             val configuration = LocalConfiguration.current
-
-            BackHandler {
-                backPressDispatcher.listener?.invoke()
-            }
 
             CompositionLocalProvider(
                 LocalBackPressDispatcher provides backPressDispatcher,

@@ -218,7 +218,7 @@ fun NetworkAddNewLauncher(
                 ),
                 onValueChange = { value ->
                     errorMessage.value = null
-                    inputDisplayName.value = value
+                    inputDisplayName.value = value.text
                 }
             )
             EditFieldInput(
@@ -249,7 +249,7 @@ fun NetworkAddNewLauncher(
                 ),
                 leadingIcon = Icons.Outlined.Tag,
                 onValueChange = { value ->
-                    inputTag.value = value
+                    inputTag.value = value.text
                 }
             )
         }

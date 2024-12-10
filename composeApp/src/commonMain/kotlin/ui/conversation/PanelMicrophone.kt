@@ -302,77 +302,84 @@ private fun MicrophoneIcon(
                     }
                 }
             }
-            Icon(
-                modifier = Modifier
-                    .size(38.dp)
-                    .zIndex(1f)
-                    .background(
-                        color = LocalTheme.current.colors.brandMainDark,
-                        shape = LocalTheme.current.shapes.circularActionShape
-                    )
-                    .padding(6.dp)
-                    .onGloballyPositioned {
-                        coordinates.value = it.positionInRoot()
-                    }
-                    .scalingDraggable(
-                        onDrag = { dragged ->
-                            if(dragged) {
-                                if(permissionsRequester.isGranted) {
-                                    startRecording()
-                                }else {
-                                    permissionsRequester.requestPermission()
-                                }
-                            }else {
-                                when(selectedIndex.value) {
-                                    0 -> {
-                                        isLockedMode.value = false
-                                        stopRecording()
+            Box(
+                modifier = Modifier.heightIn(min = 44.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .scalingDraggable(
+                            onDrag = { dragged ->
+                                if (dragged) {
+                                    if (permissionsRequester.isGranted) {
+                                        startRecording()
+                                    }else {
+                                        permissionsRequester.requestPermission()
                                     }
-                                    1 -> {
-                                        isLockedMode.value = false
-                                        coroutineScope.launch {
-                                            recorder.saveRecording()?.let {
-                                                onSaveRequest(it)
-                                            }
+                                }else if (permissionsRequester.isGranted) {
+                                    when(selectedIndex.value) {
+                                        0 -> {
+                                            isLockedMode.value = false
                                             stopRecording()
                                         }
+                                        1 -> {
+                                            isLockedMode.value = false
+                                            coroutineScope.launch {
+                                                recorder.saveRecording()?.let {
+                                                    onSaveRequest(it)
+                                                }
+                                                stopRecording()
+                                            }
+                                        }
+                                        -1, 2 -> isLockedMode.value = true
                                     }
-                                    -1, 2 -> isLockedMode.value = true
+                                    offset.value = Offset.Zero
+                                    animCoroutineScope.coroutineContext.cancelChildren()
+                                    animCoroutineScope.launch {
+                                        animatedOffsetX.animateTo(offset.value.y)
+                                    }
+                                    animCoroutineScope.launch {
+                                        animatedOffsetY.animateTo(offset.value.x)
+                                    }
                                 }
-                                offset.value = Offset.Zero
-                                animCoroutineScope.coroutineContext.cancelChildren()
-                                animCoroutineScope.launch {
-                                    animatedOffsetX.animateTo(offset.value.y)
-                                }
-                                animCoroutineScope.launch {
-                                    animatedOffsetY.animateTo(offset.value.x)
-                                }
-                            }
-                        },
-                        onDragChange = { _, dragAmount ->
-                            offset.value += dragAmount
-                            animCoroutineScope.launch {
-                                animatedOffsetX.animateTo(
-                                    offset.value.x.plus(
-                                        animatedOffsetX.value.absoluteValue / screenSize.width * microphoneSize.value.width / 2
-                                    )
-                                )
-                            }
-                            animCoroutineScope.launch {
-                                animatedOffsetY.animateTo(
-                                    offset.value.y
-                                        .plus(
-                                            animatedOffsetY.value.absoluteValue / screenSize.height * microphoneSize.value.height / 2
+                            },
+                            onDragChange = { _, dragAmount ->
+                                if(permissionsRequester.isGranted) {
+                                    offset.value += dragAmount
+                                    animCoroutineScope.launch {
+                                        animatedOffsetX.animateTo(
+                                            offset.value.x.plus(
+                                                animatedOffsetX.value.absoluteValue / screenSize.width * microphoneSize.value.width / 2
+                                            )
                                         )
-                                        .minus(microphoneSize.value.height.div(2))
-                                )
+                                    }
+                                    animCoroutineScope.launch {
+                                        animatedOffsetY.animateTo(
+                                            offset.value.y
+                                                .plus(
+                                                    animatedOffsetY.value.absoluteValue / screenSize.height * microphoneSize.value.height / 2
+                                                )
+                                                .minus(microphoneSize.value.height.div(2))
+                                        )
+                                    }
+                                }
                             }
+                        )
+                        .onGloballyPositioned {
+                            coordinates.value = it.positionInRoot()
                         }
-                    ),
-                imageVector = Icons.Outlined.Mic,
-                contentDescription = stringResource(Res.string.accessibility_message_action_audio),
-                tint = Color.White
-            )
+                        .size(38.dp)
+                        .zIndex(1f)
+                        .background(
+                            color = LocalTheme.current.colors.brandMainDark,
+                            shape = LocalTheme.current.shapes.componentShape
+                        )
+                        .padding(6.dp),
+                    imageVector = Icons.Outlined.Mic,
+                    contentDescription = stringResource(Res.string.accessibility_message_action_audio),
+                    tint = Color.White
+                )
+            }
         }
     }
 }
@@ -395,8 +402,7 @@ private fun ActionsForDrag(
                 color = LocalTheme.current.colors.backgroundDark.copy(.7f),
                 shape = RoundedCornerShape(topStartPercent = 100)
             )
-        }else modifier)
-            .size(draggableArea),
+        }else modifier).size(draggableArea),
         content = {
             for (index in actionOffsets.indices) {
                 AnimatedVisibility(
