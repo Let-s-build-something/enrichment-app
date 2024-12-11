@@ -97,6 +97,7 @@ const val DEFAULT_ANIMATION_LENGTH_LONG = 600
 @Composable
 fun MultiChoiceSwitch(
     modifier: Modifier = Modifier,
+    indicatorAlignment: Alignment = Alignment.TopCenter,
     unselectedTextColor: Color = LocalTheme.current.colors.brandMainDark,
     selectedTextColor: Color = LocalTheme.current.colors.tetrial,
     selectedBlockColor: Color = LocalTheme.current.colors.brandMain,
@@ -139,7 +140,7 @@ fun MultiChoiceSwitch(
             )
     ) {
         Layout(
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier.align(indicatorAlignment),
             content = {
                 Box(
                     modifier = Modifier
@@ -246,6 +247,7 @@ fun MultiChoiceSwitchMinimalistic(
 ) {
     MultiChoiceSwitch(
         modifier = modifier,
+        indicatorAlignment = Alignment.BottomCenter,
         selectedTextColor = Color.Transparent,
         unselectedTextColor = indicatorColor,
         selectedBlockColor = indicatorColor,

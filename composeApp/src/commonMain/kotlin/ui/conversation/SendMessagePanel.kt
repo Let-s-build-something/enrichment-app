@@ -3,6 +3,7 @@ package ui.conversation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -99,7 +99,6 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.theme.Colors
 import base.utils.MediaType
 import base.utils.getBitmapFromFile
 import base.utils.getMediaType
@@ -148,6 +147,13 @@ internal fun BoxScope.SendMessagePanel(
         mutableStateOf(false)
     }
 
+    val bottomPadding = animateFloatAsState(
+        targetValue = if (imeHeightPadding >= viewModel.keyboardHeight.div(2) || isEmojiPickerVisible.value) {
+            LocalTheme.current.shapes.betweenItemsSpace.value
+        } else with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value },
+        label = "bottomPadding",
+        animationSpec = tween(durationMillis = 20, easing = LinearEasing)
+    )
     val showMoreIconRotation = animateFloatAsState(
         targetValue = if(showMoreOptions.value) 0f else 135f,
         label = "showMoreIconRotation",
@@ -227,7 +233,6 @@ internal fun BoxScope.SendMessagePanel(
             keyboardController?.hide()
         }else {
             viewModel.additionalBottomPadding.animateTo(0f)
-            keyboardController?.show()
         }
     }
 
@@ -252,7 +257,7 @@ internal fun BoxScope.SendMessagePanel(
                 initialFirstVisibleItemIndex = mediaAttached.lastIndex
             )
 
-            Column {
+            Column(modifier = Modifier.padding(bottom = bottomPadding.value.dp)) {
                 Text(
                     modifier = Modifier.padding(
                         bottom = 8.dp,
@@ -415,6 +420,7 @@ internal fun BoxScope.SendMessagePanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 12.dp, end = 16.dp)
+                .padding(bottom = bottomPadding.value.dp)
                 .then(if(!isEmojiPickerVisible.value) Modifier.imePadding() else Modifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -489,7 +495,7 @@ internal fun BoxScope.SendMessagePanel(
                     if(showMoreOptions.value) Res.string.accessibility_cancel
                     else Res.string.accessibility_message_more_options
                 ),
-                tint = Colors.GrayLight
+                tint = LocalTheme.current.colors.secondary
             )
             AnimatedVisibility(showMoreOptions.value) {
                 Row(
@@ -655,7 +661,7 @@ internal fun BoxScope.SendMessagePanel(
                         )
                     }else Modifier.imePadding()
                 )
-                .padding(WindowInsets.navigationBars.asPaddingValues())
+                .padding(bottom = bottomPadding.value.dp)
                 .align(Alignment.BottomEnd),
             onSaveRequest = { byteArray ->
                 viewModel.sendAudioMessage(byteArray)

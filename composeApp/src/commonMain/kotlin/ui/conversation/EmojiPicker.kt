@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -138,6 +139,7 @@ fun EmojiPicker(
         if(emojis.value != null) {
             Image(
                 modifier = Modifier
+                    .padding(WindowInsets.navigationBars.asPaddingValues())
                     .padding(bottom = 8.dp, end = 12.dp)
                     .zIndex(1f)
                     .scalingClickable {

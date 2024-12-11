@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -29,8 +30,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
@@ -43,8 +46,8 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.getOrNull
-import components.conversation.MessageBubble
 import components.UserProfileImage
+import components.conversation.MessageBubble
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -65,6 +68,7 @@ fun ConversationScreen(
     )
 
     val density = LocalDensity.current
+    val focusManager = LocalFocusManager.current
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
@@ -103,6 +107,7 @@ fun ConversationScreen(
                 }
             )
         },
+        clearFocus = false,
         title = name
     ) {
         Box(
@@ -111,6 +116,11 @@ fun ConversationScreen(
         ) {
             LazyColumn(
                 modifier = Modifier
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            focusManager.clearFocus()
+                        })
+                    }
                     .align(Alignment.BottomCenter)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.Bottom,
@@ -188,7 +198,6 @@ fun ConversationScreen(
                             topEnd = LocalTheme.current.shapes.componentCornerRadius
                         )
                     )
-                    .padding(WindowInsets.navigationBars.asPaddingValues())
                     .onSizeChanged {
                         if(it.height != 0) {
                             with(density) {

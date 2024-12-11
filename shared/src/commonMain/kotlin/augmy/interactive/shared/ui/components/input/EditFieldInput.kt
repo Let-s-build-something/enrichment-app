@@ -84,6 +84,7 @@ fun EditFieldInput(
             mutableStateOf(TextFieldValue(value, TextRange(value.length)))
         }
     }else null
+    val textContent = text?.value?.text ?: textValue?.text ?: ""
 
     val controlColor by animateColorAsState(
         when {
@@ -140,20 +141,20 @@ fun EditFieldInput(
             keyboardActions = keyboardActions,
             isError = errorText != null,
             enabled = enabled,
-            trailingIcon = trailingIcon ?: if(isClearable || maxCharacters > 0) {
+            trailingIcon = trailingIcon ?: if((isClearable && textContent.isNotEmpty()) || maxCharacters > 0) {
                 {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if(maxCharacters > 0) {
                             Text(
-                                text = "${(text?.value ?: textValue)?.text?.length}/$maxCharacters",
+                                text = "${textContent.length}/$maxCharacters",
                                 style = LocalTheme.current.styles.regular.copy(
-                                    color = if(((text?.value ?: textValue)?.text?.length ?: 0) > maxCharacters) {
+                                    color = if(textContent.length > maxCharacters) {
                                         SharedColors.RED_ERROR
                                     }else LocalTheme.current.colors.disabled
                                 )
                             )
                         }
-                        AnimatedVisibility(enabled && isClearable) {
+                        AnimatedVisibility(enabled && isClearable && textContent.isNotEmpty()) {
                             MinimalisticIcon(
                                 contentDescription = stringResource(Res.string.accessibility_clear),
                                 imageVector = Icons.Outlined.Clear,

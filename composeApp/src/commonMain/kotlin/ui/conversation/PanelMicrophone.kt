@@ -56,6 +56,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,7 @@ fun PanelMicrophone(
     onSaveRequest: (ByteArray) -> Unit
 ) {
     val screenSize = LocalScreenSize.current
+    val focusManager = LocalFocusManager.current
     val draggableArea = screenSize.width.coerceAtMost(screenSize.height).times(.5f).coerceAtMost(400f)
     val cancellableCoroutineScope = rememberCoroutineScope()
     val expectedBarsCount = remember(screenSize.width) { ((screenSize.width - 32) / 8) }
@@ -146,6 +148,12 @@ fun PanelMicrophone(
                     delay(100L)
                 }
             }
+        }
+    }
+
+    LaunchedEffect(isLockedMode.value) {
+        if(isLockedMode.value) {
+            focusManager.clearFocus()
         }
     }
 
