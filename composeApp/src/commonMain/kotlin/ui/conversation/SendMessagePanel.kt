@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -118,6 +119,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
+    isEmojiPickerVisible: MutableState<Boolean>,
     viewModel: ConversationViewModel
 ) {
     val screenSize = LocalScreenSize.current
@@ -142,9 +144,6 @@ internal fun BoxScope.SendMessagePanel(
     }
     val showMoreOptions = rememberSaveable {
         mutableStateOf(messageContent.value.text.isBlank())
-    }
-    val isEmojiPickerVisible = rememberSaveable {
-        mutableStateOf(false)
     }
 
     val bottomPadding = animateFloatAsState(
@@ -210,7 +209,7 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        focusRequester.captureFocus()
         if(missingKeyboardHeight) {
             keyboardController?.show()
         }

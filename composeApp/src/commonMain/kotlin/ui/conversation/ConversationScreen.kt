@@ -78,6 +78,9 @@ fun ConversationScreen(
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
     }
+    val isEmojiPickerVisible = rememberSaveable {
+        mutableStateOf(false)
+    }
 
     BrandBaseScreen(
         navIconType = NavIconType.BACK,
@@ -119,6 +122,7 @@ fun ConversationScreen(
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = {
                             focusManager.clearFocus()
+                            isEmojiPickerVisible.value = false
                         })
                     }
                     .align(Alignment.BottomCenter)
@@ -205,6 +209,7 @@ fun ConversationScreen(
                             }
                         }
                     },
+                isEmojiPickerVisible = isEmojiPickerVisible,
                 viewModel = viewModel
             )
         }
