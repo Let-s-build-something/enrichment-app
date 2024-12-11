@@ -66,7 +66,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.input.EditFieldInput
-import augmy.interactive.shared.ui.components.rememberTabSwitchState
+import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import data.shared.DeveloperConsoleViewModel
@@ -173,7 +173,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
         pageCount = { 3 },
         initialPage = selectedTabIndex.value
     )
-    val switchThemeState = rememberTabSwitchState(
+    val switchThemeState = rememberMultiChoiceState(
         tabs = mutableListOf(
             "Information",
             "HTTP"

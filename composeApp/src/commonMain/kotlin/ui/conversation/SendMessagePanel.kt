@@ -204,8 +204,9 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
         if(missingKeyboardHeight) {
-            focusRequester.requestFocus()
+            keyboardController?.show()
         }
     }
 
@@ -251,10 +252,7 @@ internal fun BoxScope.SendMessagePanel(
                 initialFirstVisibleItemIndex = mediaAttached.lastIndex
             )
 
-            Column(
-                modifier = Modifier
-                    .then(if(!isEmojiPickerVisible.value) Modifier.imePadding() else Modifier)
-            ) {
+            Column {
                 Text(
                     modifier = Modifier.padding(
                         bottom = 8.dp,

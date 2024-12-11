@@ -10,9 +10,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -66,7 +70,7 @@ data class TabSwitchState(
  * @param tabs list of all tabs that will be displayed
  */
 @Composable
-fun rememberTabSwitchState(
+fun rememberMultiChoiceState(
     selectedTabIndex: MutableState<Int> = mutableIntStateOf(0),
     onSelectionChange: (index: Int) -> Unit = { index ->
         selectedTabIndex.value = index
@@ -96,8 +100,8 @@ fun MultiChoiceSwitch(
     unselectedTextColor: Color = LocalTheme.current.colors.brandMainDark,
     selectedTextColor: Color = LocalTheme.current.colors.tetrial,
     selectedBlockColor: Color = LocalTheme.current.colors.brandMain,
-    state: TabSwitchState = rememberTabSwitchState(scrollState = rememberScrollState()),
-    onItemCreation: (@Composable (Modifier, index: Int, animatedColor: Color) -> Unit)? = null,
+    state: TabSwitchState = rememberMultiChoiceState(scrollState = rememberScrollState()),
+    onItemCreation: (@Composable RowScope.(Modifier, index: Int, animatedColor: Color) -> Unit)? = null,
     shape: Shape = RoundedCornerShape(
         topStart = if(LocalDeviceType.current == WindowWidthSizeClass.Compact) {
             LocalTheme.current.shapes.screenCornerRadius
@@ -135,6 +139,7 @@ fun MultiChoiceSwitch(
             )
     ) {
         Layout(
+            modifier = Modifier.align(Alignment.BottomCenter),
             content = {
                 Box(
                     modifier = Modifier
@@ -197,13 +202,13 @@ fun MultiChoiceSwitch(
                 (onItemCreation ?: { modifier, _, color ->
                     Text(
                         modifier = modifier
-                            .padding(vertical = 2.dp)
-                            .padding(LocalTheme.current.shapes.betweenItemsSpace)
                             .scalingClickable(
                                 onTap = {
                                     state.selectedTabIndex.value = index
                                 }
-                            ),
+                            )
+                            .padding(vertical = 2.dp)
+                            .padding(LocalTheme.current.shapes.betweenItemsSpace),
                         text = tab,
                         style = TextStyle(
                             fontSize = 16.sp,
@@ -213,6 +218,7 @@ fun MultiChoiceSwitch(
                         )
                     )
                 }).invoke(
+                    this,
                     Modifier
                         .onSizeChanged { coordinates ->
                             if (state.selectedTabIndex.value == index) {
@@ -228,4 +234,40 @@ fun MultiChoiceSwitch(
             }
         }
     }
+}
+
+@Composable
+fun MultiChoiceSwitchMinimalistic(
+    modifier: Modifier = Modifier,
+    state: TabSwitchState,
+    indicatorColor: Color = LocalTheme.current.colors.brandMain,
+    onItemCreation: @Composable ColumnScope.(Modifier, index: Int, animatedColor: Color) -> Unit,
+    onClick: (Int) -> Unit
+) {
+    MultiChoiceSwitch(
+        modifier = modifier,
+        selectedTextColor = Color.Transparent,
+        unselectedTextColor = indicatorColor,
+        selectedBlockColor = indicatorColor,
+        shape = RoundedCornerShape(6.dp),
+        state = state,
+        onItemCreation = { mod, index, color ->
+            Column(
+                modifier = Modifier
+                    .scalingClickable {
+                        onClick(index)
+                    }
+                    .weight(1f)
+            ) {
+                onItemCreation(mod, index, color)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .height(4.dp)
+                        .then(mod)
+                )
+            }
+        }
+    )
 }

@@ -192,6 +192,7 @@
   <string name="accessibility_action_keyboard">Open system keyboard input</string>
   <string name="accessibility_backspace">Backspace</string>
   <string name="accessibility_emojis_history">Previously selected</string>
+  <string name="accessibility_reactions_all">List of all types of reaction from other users</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

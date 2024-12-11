@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -42,7 +43,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.getOrNull
-import components.MessageBubble
+import components.conversation.MessageBubble
 import components.UserProfileImage
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -67,6 +68,7 @@ fun ConversationScreen(
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
+    val currentUser = viewModel.currentUser.collectAsState()
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
 
     val messagePanelHeight = rememberSaveable {
@@ -136,7 +138,7 @@ fun ConversationScreen(
                 ) { index ->
                     messages.getOrNull(index).let { data ->
                         val isCurrentUser = if(data != null) {
-                            data.authorPublicId == viewModel.currentUser.value?.publicId
+                            data.authorPublicId == currentUser.value?.publicId
                         }else (0..1).random() == 0
                         val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
                         val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
@@ -153,23 +155,25 @@ fun ConversationScreen(
                             horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
                             verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
                         ) {
+                            val profileImageSize = with(density) { 38.sp.toDp() }
                             if(!isCurrentUser && !isNextMessageSameAuthor) {
                                 UserProfileImage(
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(profileImageSize),
                                     model = data?.user?.photoUrl,
                                     tag = data?.user?.tag
                                 )
                                 Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                             }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
                                 Spacer(Modifier.width(
-                                    LocalTheme.current.shapes.betweenItemsSpace + 32.dp
+                                    LocalTheme.current.shapes.betweenItemsSpace + profileImageSize
                                 ))
                             }
                             MessageBubble(
                                 data = data,
-                                isCurrentUser = isCurrentUser,
+                                currentUserPublicId = currentUser.value?.publicId ?: "",
                                 hasPrevious = isPreviousMessageSameAuthor,
-                                hasNext = isNextMessageSameAuthor
+                                hasNext = isNextMessageSameAuthor,
+                                users = conversationDetail.value?.users.orEmpty()
                             )
                         }
                     }

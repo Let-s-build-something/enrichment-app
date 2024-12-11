@@ -9,6 +9,7 @@ import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.MessageReactionIO
 import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
+import data.io.user.NetworkItemIO
 import data.shared.setPaging
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -139,12 +140,12 @@ class ConversationRepository(
                 createdAt = 10003
             ),
             ConversationMessageIO(
-                content = "You are visibly excited!",
+                content = "You are visibly excited! You are visibly excited!",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(
-                        content = "\uD83D\uDE2E"
+                        content = "\uD83D\uDE2E", authorPublicId = "1"
                     )
                 ),
                 createdAt = 10004,
@@ -156,8 +157,18 @@ class ConversationRepository(
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(
-                        content = "\uD83D\uDC40"
-                    )
+                        content = "\uD83D\uDC40",
+                        authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0"
+                    ),
+                    MessageReactionIO(content = "\uD83C\uDFC6", authorPublicId = "1"),
+                    MessageReactionIO(content = "\uD83D\uDC40", authorPublicId = "1"),
+                    MessageReactionIO(content = "\uD83E\uDD73", authorPublicId = "1"),
+                    MessageReactionIO(content = "⚽", authorPublicId = "1"),
+                    MessageReactionIO(content = "\uD83E\uDD73", authorPublicId = "1"),
+                    MessageReactionIO(content = "\uD83E\uDD73", authorPublicId = "1"),
+                    MessageReactionIO(content = "⚽", authorPublicId = "1"),
+                    MessageReactionIO(content = "\uD83C\uDFC5", authorPublicId = "1"),
+                    MessageReactionIO(content = "\uD83E\uDD73", authorPublicId = "1"),
                 ),
                 createdAt = 10004,
                 state = MessageState.READ
@@ -170,11 +181,17 @@ class ConversationRepository(
                 state = MessageState.READ
             ),
             ConversationMessageIO(
-                content = "You bet! We just won! ⚽⚽\uD83C\uDFC6\uD83C\uDFC5",
+                content = "You bet! We've just won! ⚽⚽\uD83C\uDFC6\uD83C\uDFC5",
                 id = Uuid.random().toString(),
                 authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
                 createdAt = 10005,
-                state = MessageState.RECEIVED
+                state = MessageState.RECEIVED,
+                reactions = listOf(
+                    MessageReactionIO(
+                        content = "\uD83E\uDD73",
+                        authorPublicId = "1"
+                    )
+                ),
             ),
             ConversationMessageIO(
                 content = "That's amazing, I'm so excited for you! \uD83E\uDD73",
@@ -196,7 +213,19 @@ class ConversationRepository(
             pictureUrl = "https://picsum.photos/102",
             publicId = "public_id",
             tag = "65f681",
-            lastMessage = "Last message"
+            lastMessage = "Last message",
+            users = listOf(
+                NetworkItemIO(
+                    publicId = "1",
+                    displayName = "John Doe",
+                    photoUrl = "https://picsum.photos/106"
+                ),
+                NetworkItemIO(
+                    publicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                    displayName = "Hey! That's me:o",
+                    photoUrl = "https://picsum.photos/101"
+                ),
+            )
         )
     }
 }
