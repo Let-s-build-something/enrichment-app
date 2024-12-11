@@ -1,9 +1,7 @@
 package ui.conversation
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BasicTooltipBox
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -19,23 +16,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberBasicTooltipState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,18 +39,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.accessibility_backspace
 import augmy.composeapp.generated.resources.accessibility_emojis_history
 import augmy.composeapp.generated.resources.action_filter_emojis
 import augmy.composeapp.generated.resources.emojis_activities
@@ -68,106 +59,36 @@ import augmy.composeapp.generated.resources.emojis_smileys_and_emotion
 import augmy.composeapp.generated.resources.emojis_symbols
 import augmy.composeapp.generated.resources.emojis_travel_and_places
 import augmy.composeapp.generated.resources.error_general
-import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.theme.Colors
 import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.ConversationViewModel.Companion.EMOJIS_HISTORY_GROUP
 
-/** Component displaying emojis with the ability to select any amount of them */
+/** Component displaying emojis with the ability to select one and filter them */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun EmojiPicker(
     modifier: Modifier = Modifier,
     viewModel: ConversationViewModel,
     onEmojiSelected: (String) -> Unit,
-    onBackSpace: () -> Unit,
-    onDismissRequest: () -> Unit
+    isFilterFocused: MutableState<Boolean> = remember { mutableStateOf(false) },
+    gridState: LazyGridState = rememberLazyGridState()
 ) {
     val density = LocalDensity.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val screenSize = LocalScreenSize.current
-    val imeHeight = viewModel.keyboardHeight
-    val imePadding = WindowInsets.ime.getBottom(density)
     val coroutineScope = rememberCoroutineScope()
     val searchCoroutineScope = rememberCoroutineScope()
 
-    val emojis = viewModel.emojis.collectAsState(initial = listOf())
     val areEmojisFiltered = viewModel.areEmojisFiltered.collectAsState()
+    val emojis = viewModel.emojis.collectAsState(initial = null)
 
-    val gridState = rememberLazyGridState(
-        initialFirstVisibleItemScrollOffset = if(viewModel.areEmojisFiltered.value) 0 else {
-            -with(density) { 52.dp.toPx() }.toInt()
-        }
-    )
-    val isFilterFocused = remember {
-        mutableStateOf(false)
-    }
-
-    DisposableEffect(null) {
-        onDispose {
-            viewModel.filterEmojis("")
-        }
-    }
-
-    LaunchedEffect(isFilterFocused.value, imePadding) {
-        if(isFilterFocused.value && imePadding > 0) {
-            viewModel.additionalBottomPadding.animateTo(with(density) { 100.dp.toPx() })
-        }else {
-            viewModel.additionalBottomPadding.animateTo(0f)
-        }
-    }
-
-    LaunchedEffect(imePadding, isFilterFocused.value) {
-        delay(100)
-        if(imeHeight - imePadding <= 0 && isFilterFocused.value.not()) {
-            onDismissRequest()
-        }
-    }
-
-    LaunchedEffect(gridState.firstVisibleItemScrollOffset) {
-        keyboardController?.hide()
-    }
-
-
-    Box(
-        modifier = Modifier.padding(bottom = with(density) {
-            viewModel.additionalBottomPadding.value.toDp()
-        })
-    ) {
-        Image(
-            modifier = Modifier
-                .padding(bottom = 8.dp, end = 12.dp)
-                .zIndex(1f)
-                .scalingClickable {
-                    onBackSpace()
-                }
-                .size(height = 42.dp, width = 64.dp)
-                .background(
-                    color = LocalTheme.current.colors.brandMainDark,
-                    shape = LocalTheme.current.shapes.rectangularActionShape
-                )
-                .padding(vertical = 8.dp, horizontal = 12.dp)
-                .shadow(elevation = LocalTheme.current.styles.actionElevation)
-                .align(Alignment.BottomEnd),
-            imageVector = Icons.AutoMirrored.Outlined.Backspace,
-            contentDescription = stringResource(Res.string.accessibility_backspace),
-            colorFilter = ColorFilter.tint(color = Colors.GrayLight)
-        )
-
+    if(emojis.value != null) {
         LazyVerticalGrid(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(with(density) { imeHeight.toDp() })
-                .padding(horizontal = 12.dp)
-                .then(
-                    if (imePadding > 0) Modifier else Modifier.animateContentSize()
-                ),
+            modifier = modifier,
             columns = GridCells.Adaptive(minSize = 38.dp),
             state = gridState
         ) {
@@ -214,7 +135,10 @@ fun EmojiPicker(
                     )
                 }
             }
-            emojis.value.forEach { category ->
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Spacer(Modifier.height(16.dp))
+            }
+            emojis.value?.forEach { category ->
                 if(category.second.isNotEmpty()) {
                     if(!areEmojisFiltered.value) {
                         item(span = { GridItemSpan(maxLineSpan) }) {

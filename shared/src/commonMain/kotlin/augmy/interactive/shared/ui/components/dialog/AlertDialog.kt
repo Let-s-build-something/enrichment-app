@@ -26,50 +26,58 @@ val dismissibleDialogProperties = DialogProperties(dismissOnBackPress = true, di
 @Composable
 fun AlertDialog(
     title: String? = null,
-    message: String,
+    message: String? = null,
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
     additionalContent: @Composable (() -> Unit)? = null,
     properties: DialogProperties = dismissibleDialogProperties,
     onDismissRequest: () -> Unit,
-    icon: ImageVector,
+    icon: ImageVector? = null,
 ) {
     AlertDialog(
         icon = null,
-        title = if(title == null) null else {
+        title = if(title == null && icon == null) null else {
             {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = "",
-                        tint = LocalTheme.current.colors.secondary
-                    )
-                    Text(
-                        text = title,
-                        style = TextStyle(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = LocalTheme.current.colors.primary
+                    if(icon != null) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "",
+                            tint = LocalTheme.current.colors.secondary
                         )
-                    )
+                    }
+                    if(title != null) {
+                        Text(
+                            text = title,
+                            style = TextStyle(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = LocalTheme.current.colors.primary
+                            )
+                        )
+                    }
                 }
             }
         },
-        text = {
-            Column {
-                Text(
-                    text = message,
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        color = LocalTheme.current.colors.primary
-                    )
-                )
-                additionalContent?.invoke()
+        text = if(message != null || additionalContent != null) {
+            {
+                Column {
+                    if(message != null) {
+                        Text(
+                            text = message,
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = LocalTheme.current.colors.primary
+                            )
+                        )
+                    }
+                    additionalContent?.invoke()
+                }
             }
-        },
+        }else null,
         onDismissRequest = {
             onDismissRequest()
         },

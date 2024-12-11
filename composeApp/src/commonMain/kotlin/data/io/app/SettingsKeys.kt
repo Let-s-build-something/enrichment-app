@@ -29,4 +29,7 @@ object SettingsKeys {
 
     /** Height of soft keyboard */
     const val KEY_KEYBOARD_HEIGHT = "keyboard_height"
+
+    /** Whether hint about emoji preferences should be displayed */
+    const val KEY_SHOW_EMOJI_PREFERENCE_HINT = "show_emoji_preference_hint"
 }

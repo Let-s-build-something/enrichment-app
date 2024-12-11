@@ -76,7 +76,7 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.input.EditFieldInput
-import augmy.interactive.shared.ui.components.rememberTabSwitchState
+import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
@@ -116,7 +116,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     }
 
     val coroutineScope = rememberCoroutineScope()
-    val switchScreenState = rememberTabSwitchState(
+    val switchScreenState = rememberMultiChoiceState(
         tabs = mutableListOf(
             stringResource(Res.string.login_screen_type_sign_up),
             stringResource(Res.string.login_screen_type_sign_in)

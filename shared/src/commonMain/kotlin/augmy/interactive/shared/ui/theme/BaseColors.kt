@@ -42,4 +42,7 @@ interface BaseColors {
 
     /** darker background */
     val backgroundDark: Color
+
+    /** Additional component color */
+    val component: Color
 }

@@ -89,4 +89,4 @@ val HttpHeaders.IdToken: String
 /** http response code indicating expired token */
 internal val EXPIRED_TOKEN_CODE = HttpStatusCode.Unauthorized
 
-internal val HttpDomain = "https://augmy.org"
+internal const val HttpDomain = "https://augmy.org"

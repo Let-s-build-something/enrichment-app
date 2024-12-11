@@ -36,6 +36,7 @@ import org.koin.compose.viewmodel.koinViewModel
  * @param onNavigationIconClick event to be triggered when navigation icon is clicked
  * @param contentModifier modifier for the content
  * @param appBarVisible whether the app bar should be visible
+ * @param clearFocus whether click within the content should clear current focus
  * @param containerColor color of the container
  * @param contentColor color of the content
  * @param floatingActionButtonPosition position of the floating action button
@@ -55,6 +56,7 @@ fun BrandBaseScreen(
     onNavigationIconClick: (() -> Unit)? = null,
     contentModifier: Modifier = Modifier,
     appBarVisible: Boolean = true,
+    clearFocus: Boolean = true,
     containerColor: Color? = LocalTheme.current.colors.backgroundLight,
     contentColor: Color = Color.Transparent,
     floatingActionButtonPosition: FabPosition = FabPosition.End,
@@ -108,6 +110,7 @@ fun BrandBaseScreen(
         appBarVisible = appBarVisible,
         containerColor = containerColor,
         contentColor = contentColor,
+        clearFocus = clearFocus,
         onNavigationIconClick = {
             navIconClick?.invoke() ?: if(onBackPressed()) {
                 navController?.popBackStack()

@@ -75,7 +75,7 @@ import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
-import augmy.interactive.shared.ui.components.rememberTabSwitchState
+import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
@@ -186,7 +186,7 @@ private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
     val privacy = currentUser.value?.configuration?.privacy ?: UserPrivacy.Public
     val visibility = currentUser.value?.configuration?.visibility ?: UserVisibility.Online
 
-    val switchThemeState = rememberTabSwitchState(
+    val switchThemeState = rememberMultiChoiceState(
         tabs = mutableListOf(
             stringResource(Res.string.account_dashboard_theme_light),
             stringResource(Res.string.account_dashboard_theme_dark),

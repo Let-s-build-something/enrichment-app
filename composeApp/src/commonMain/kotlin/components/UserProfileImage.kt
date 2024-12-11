@@ -1,5 +1,6 @@
 package components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -28,9 +29,42 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.tagToColor
+import future_shared_module.ext.brandShimmerEffect
 
 @Composable
 fun UserProfileImage(
+    modifier: Modifier = Modifier,
+    model: Any?,
+    tag: String?,
+    animate: Boolean = false,
+    contentDescription: String? = null
+) {
+    Crossfade(targetState = model != null) { hasImage ->
+        if(hasImage) {
+            ContentLayout(
+                modifier = modifier,
+                model = model,
+                tag = tag,
+                animate = animate,
+                contentDescription = contentDescription
+            )
+        }else {
+            ShimmerLayout(modifier = modifier)
+        }
+    }
+}
+
+@Composable
+private fun ShimmerLayout(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .brandShimmerEffect(shape = CircleShape)
+    )
+}
+
+@Composable
+private fun ContentLayout(
     modifier: Modifier = Modifier,
     model: Any?,
     tag: String?,

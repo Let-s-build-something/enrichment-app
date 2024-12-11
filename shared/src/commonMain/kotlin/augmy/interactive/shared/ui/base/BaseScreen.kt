@@ -65,6 +65,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
  * @param navigationIcon what type of navigation icon screen should have
  * @param title capital title of the screen
  * @param subtitle lower case subtitle of the screen
+ * @param clearFocus whether click within the content should clear current focus
  * @param actionIcons right side actions to be displayed
  * @param content screen content under the action bar
  */
@@ -86,6 +87,7 @@ fun BaseScreen(
         bottomEnd = LocalTheme.current.shapes.screenCornerRadius,
         //bottomStart = 24.dp
     ),
+    clearFocus: Boolean = true,
     actionIcons: @Composable (Boolean) -> Unit = {},
     headerPrefix: @Composable RowScope.() -> Unit = {},
     appBarVisible: Boolean = true,
@@ -106,11 +108,13 @@ fun BaseScreen(
 
     Scaffold(
         modifier = modifier
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = {
-                    focusManager.clearFocus()
-                })
-            },
+            .then(if(clearFocus) {
+                Modifier.pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                }
+            }else Modifier),
         snackbarHost = {
             if(previousSnackbarHostState == null) {
                 BaseSnackbarHost(hostState = snackbarHostState)

@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,21 +31,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.getOrNull
-import components.MessageBubble
 import components.UserProfileImage
+import components.conversation.MessageBubble
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -52,7 +58,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Screen displaying a conversation */
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationScreen(
     conversationId: String? = null,
@@ -64,13 +70,43 @@ fun ConversationScreen(
     )
 
     val density = LocalDensity.current
+    val focusManager = LocalFocusManager.current
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
+    val preferredEmojis = viewModel.preferredEmojis.collectAsState()
+    val currentUser = viewModel.currentUser.collectAsState()
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
 
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
+    }
+    val isEmojiPickerVisible = rememberSaveable {
+        mutableStateOf(false)
+    }
+    val reactingToMessageId = rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+    val showEmojiPreferencesId = rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
+    OnBackHandler(enabled = reactingToMessageId.value != null) {
+        reactingToMessageId.value = null
+    }
+
+    showEmojiPreferencesId.value?.let { messageId ->
+        EmojiPreferencePicker(
+            viewModel = viewModel,
+            onEmojiSelected = { emoji ->
+                viewModel.reactToMessage(content = emoji, messageId = messageId)
+                reactingToMessageId.value = null
+                showEmojiPreferencesId.value = null
+            },
+            onDismissRequest = {
+                showEmojiPreferencesId.value = null
+            }
+        )
     }
 
     BrandBaseScreen(
@@ -101,6 +137,7 @@ fun ConversationScreen(
                 }
             )
         },
+        clearFocus = false,
         title = name
     ) {
         Box(
@@ -109,6 +146,13 @@ fun ConversationScreen(
         ) {
             LazyColumn(
                 modifier = Modifier
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {
+                            focusManager.clearFocus()
+                            reactingToMessageId.value = null
+                            isEmojiPickerVisible.value = false
+                        })
+                    }
                     .align(Alignment.BottomCenter)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.Bottom,
@@ -136,7 +180,7 @@ fun ConversationScreen(
                 ) { index ->
                     messages.getOrNull(index).let { data ->
                         val isCurrentUser = if(data != null) {
-                            data.authorPublicId == viewModel.currentUser.value?.publicId
+                            data.authorPublicId == currentUser.value?.publicId
                         }else (0..1).random() == 0
                         val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
                         val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
@@ -151,25 +195,41 @@ fun ConversationScreen(
                                 )
                                 .animateItem(),
                             horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
+                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.Bottom
                         ) {
+                            val profileImageSize = with(density) { 38.sp.toDp() }
                             if(!isCurrentUser && !isNextMessageSameAuthor) {
                                 UserProfileImage(
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(profileImageSize),
                                     model = data?.user?.photoUrl,
                                     tag = data?.user?.tag
                                 )
                                 Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                             }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
                                 Spacer(Modifier.width(
-                                    LocalTheme.current.shapes.betweenItemsSpace + 32.dp
+                                    LocalTheme.current.shapes.betweenItemsSpace + profileImageSize
                                 ))
                             }
                             MessageBubble(
                                 data = data,
-                                isCurrentUser = isCurrentUser,
+                                isReacting = reactingToMessageId.value == data?.id,
+                                currentUserPublicId = currentUser.value?.publicId ?: "",
                                 hasPrevious = isPreviousMessageSameAuthor,
-                                hasNext = isNextMessageSameAuthor
+                                hasNext = isNextMessageSameAuthor,
+                                users = conversationDetail.value?.users.orEmpty(),
+                                preferredEmojis = preferredEmojis.value,
+                                onReactionRequest = { show ->
+                                    reactingToMessageId.value = if(show) data?.id else null
+                                },
+                                onReactionChange = { emoji ->
+                                    if(data?.id != null) {
+                                        viewModel.reactToMessage(content = emoji, messageId = data.id)
+                                        reactingToMessageId.value = null
+                                    }
+                                },
+                                onAdditionalReactionRequest = {
+                                    showEmojiPreferencesId.value = data?.id
+                                }
                             )
                         }
                     }
@@ -184,7 +244,6 @@ fun ConversationScreen(
                             topEnd = LocalTheme.current.shapes.componentCornerRadius
                         )
                     )
-                    .padding(WindowInsets.navigationBars.asPaddingValues())
                     .onSizeChanged {
                         if(it.height != 0) {
                             with(density) {
@@ -192,6 +251,7 @@ fun ConversationScreen(
                             }
                         }
                     },
+                isEmojiPickerVisible = isEmojiPickerVisible,
                 viewModel = viewModel
             )
         }

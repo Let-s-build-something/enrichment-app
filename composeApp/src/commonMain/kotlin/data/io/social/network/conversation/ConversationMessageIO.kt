@@ -1,6 +1,8 @@
 package data.io.social.network.conversation
 
 import data.io.user.NetworkItemIO
+import koin.DateTimeAsStringSerializer
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -26,8 +28,12 @@ data class ConversationMessageIO(
     /** List of reactions to this message */
     val reactions: List<MessageReactionIO>? = null,
 
+    /** Identification of a message to which this message is anchored to, such as a reply */
+    val anchorMessageId: String? = null,
+
     /** Time of creation */
-    val createdAt: Long? = null,
+    @Serializable(with = DateTimeAsStringSerializer::class)
+    val createdAt: LocalDateTime? = null,
 
     /**
      * State of this message. Generally, this information is sent only for the last item,

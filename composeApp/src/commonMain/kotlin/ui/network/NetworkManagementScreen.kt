@@ -22,7 +22,7 @@ import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_network_new
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
-import augmy.interactive.shared.ui.components.rememberTabSwitchState
+import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import base.BrandBaseScreen
 import data.io.social.UserPrivacy
 import kotlinx.coroutines.flow.collectLatest
@@ -59,7 +59,7 @@ fun NetworkManagementScreen(
         },
         initialPage = selectedTabIndex.value
     )
-    val switchThemeState = rememberTabSwitchState(
+    val switchThemeState = rememberMultiChoiceState(
         tabs = mutableListOf(
             stringResource(Res.string.network_list),
             stringResource(Res.string.network_received)

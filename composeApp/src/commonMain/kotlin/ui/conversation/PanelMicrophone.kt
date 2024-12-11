@@ -56,6 +56,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -74,6 +75,7 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import base.isDarkTheme
 import base.theme.Colors
 import base.utils.AudioRecorder
 import base.utils.PermissionType
@@ -100,6 +102,7 @@ fun PanelMicrophone(
     onSaveRequest: (ByteArray) -> Unit
 ) {
     val screenSize = LocalScreenSize.current
+    val focusManager = LocalFocusManager.current
     val draggableArea = screenSize.width.coerceAtMost(screenSize.height).times(.5f).coerceAtMost(400f)
     val cancellableCoroutineScope = rememberCoroutineScope()
     val expectedBarsCount = remember(screenSize.width) { ((screenSize.width - 32) / 8) }
@@ -146,6 +149,12 @@ fun PanelMicrophone(
                     delay(100L)
                 }
             }
+        }
+    }
+
+    LaunchedEffect(isLockedMode.value) {
+        if(isLockedMode.value) {
+            focusManager.clearFocus()
         }
     }
 
@@ -429,16 +438,16 @@ private fun ActionsForDrag(
                             when (index) {
                                 0 -> SharedColors.RED_ERROR
                                 1 -> LocalTheme.current.colors.brandMainDark
-                                else -> Colors.Coffee
+                                else -> LocalTheme.current.colors.secondary
                             }
                         } else Colors.GrayLight
                     )
                     val backgroundColor = animateColorAsState(
                         targetValue = if (isInArea) Colors.GrayLight
                         else when (index) {
-                            0 -> SharedColors.RED_ERROR_50
-                            1 -> LocalTheme.current.colors.brandMainDark.copy(.5f)
-                            else -> LocalTheme.current.colors.disabledComponent
+                            0 -> SharedColors.RED_ERROR.copy(if(isDarkTheme) .5f else .8f)
+                            1 -> LocalTheme.current.colors.brandMainDark.copy(if(isDarkTheme) .5f else .8f)
+                            else -> LocalTheme.current.colors.backgroundLight
                         }
                     )
                     val imageVector = when (index) {

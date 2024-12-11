@@ -8,6 +8,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.GestureCancellationException
+import androidx.compose.foundation.gestures.PressGestureScope
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -32,17 +34,29 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.isOutOfBounds
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastAll
+import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastSumBy
 import augmy.interactive.shared.ui.theme.LocalTheme
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 
 /** Pseudo shimmer effect, animating a brush around an element */
 @Composable
@@ -177,6 +191,185 @@ private suspend fun PointerInputScope.detectDragGestures(
             }
         )
         onDragCancel()
+    }
+}
+
+/**
+ * Custom touch event listener which support onTap, dragging, and long press
+ * Long press is the initial checked event, which is cancelled either by timeout, or dragging
+ * On tap event is secondary, as it has no timeout, yet, it can be cancelled by dragging
+ * Dragging is the default fallback callback
+ */
+suspend fun PointerInputScope.detectMessageInteraction(
+    onLongPress: ((Offset) -> Unit)? = null,
+    onTap: ((Offset) -> Unit)? = null,
+    onDragChange: (change: PointerInputChange, dragAmount: Offset) -> Unit,
+    onDrag: (dragged: Boolean) -> Unit,
+) = coroutineScope {
+    // special signal to indicate to the sending side that it shouldn't intercept and consume
+    // cancel/up events as we're only require down events
+    val pressScope = PressGestureScopeImpl(this@detectMessageInteraction)
+
+    awaitEachGesture {
+        val initialDown = awaitFirstDown()
+        initialDown.consume()
+        launch {
+            pressScope.reset()
+        }
+        val longPressTimeout = onLongPress?.let {
+            viewConfiguration.longPressTimeoutMillis
+        } ?: (Long.MAX_VALUE / 2)
+        val upOrCancel: PointerInputChange?
+        try {
+            // wait for first tap up or long press
+            var isInvalid = false
+            upOrCancel = withTimeout(longPressTimeout) {
+                waitForUpSwipeOrCancellation(
+                    onInvalidInput = {
+                        isInvalid = true
+                    },
+                    onDragChange = onDragChange
+                )
+            }
+            if(isInvalid) {
+                consumeUntilUp()
+                return@awaitEachGesture
+            }
+            if (upOrCancel == null) {
+                launch {
+                    pressScope.cancel()
+                }
+            } else {
+                upOrCancel.consume()
+                launch {
+                    pressScope.release()
+                }
+            }
+        } catch (_: PointerEventTimeoutCancellationException) {
+            onLongPress?.invoke(initialDown.position)
+            consumeUntilUp()
+            launch {
+                pressScope.release()
+            }
+            return@awaitEachGesture
+        }
+
+        if (upOrCancel != null) {
+            // tap was successful.
+            onTap?.invoke(upOrCancel.position)
+            return@awaitEachGesture
+        }
+
+        // if both tap and long press failed, the user is dragging
+        onDrag(true)
+        drag(
+            pointerId = initialDown.id,
+            onDrag = {
+                onDragChange(it, it.positionChange())
+                it.consume()
+            }
+        )
+        onDrag(false)
+    }
+}
+
+suspend fun AwaitPointerEventScope.waitForUpSwipeOrCancellation(
+    pass: PointerEventPass = PointerEventPass.Main,
+    onInvalidInput: () -> Unit,
+    onDragChange: (change: PointerInputChange, dragAmount: Offset) -> Unit,
+): PointerInputChange? {
+    val boundsPx = 2f
+
+    while (true) {
+        val event = awaitPointerEvent(pass)
+        if (event.changes.fastAll { it.changedToUp() }) {
+            // All pointers are up
+            return event.changes[0]
+        }
+
+        val sumX = event.changes.fastSumBy { it.positionChange().x.toInt() }
+        onDragChange(
+            event.changes[0],
+            Offset(x = sumX.toFloat(), y = 0f)
+        )
+
+        if (sumX > boundsPx || event.changes.fastAny {
+                it.isConsumed || it.isOutOfBounds(size, extendedTouchPadding)
+            }
+        ) {
+            return null // Cancelled
+        }
+
+        val sumY = event.changes.fastSumBy { it.positionChange().y.toInt() }
+        if (sumY > boundsPx) {
+            onInvalidInput()
+            return null // Cancelled
+        }
+
+        // Check for cancel by position consumption. We can look on the Final pass of the
+        // existing pointer event because it comes after the pass we checked above.
+        val consumeCheck = awaitPointerEvent(PointerEventPass.Final)
+        if (consumeCheck.changes.fastAny { it.isConsumed }) {
+            return null
+        }
+    }
+}
+
+/**
+ * Consumes all pointer events until nothing is pressed and then returns. This method assumes
+ * that something is currently pressed.
+ */
+private suspend fun AwaitPointerEventScope.consumeUntilUp() {
+    do {
+        val event = awaitPointerEvent()
+        event.changes.fastForEach { it.consume() }
+    } while (event.changes.fastAny { it.pressed })
+}
+
+internal class PressGestureScopeImpl(
+    density: Density
+) : PressGestureScope, Density by density {
+    private var isReleased = false
+    private var isCanceled = false
+    private val mutex = Mutex(locked = false)
+
+    /**
+     * Called when a gesture has been canceled.
+     */
+    fun cancel() {
+        isCanceled = true
+        mutex.unlock()
+    }
+
+    /**
+     * Called when all pointers are up.
+     */
+    fun release() {
+        isReleased = true
+        mutex.unlock()
+    }
+
+    /**
+     * Called when a new gesture has started.
+     */
+    suspend fun reset() {
+        mutex.lock()
+        isReleased = false
+        isCanceled = false
+    }
+
+    override suspend fun awaitRelease() {
+        if (!tryAwaitRelease()) {
+            throw GestureCancellationException("The press gesture was canceled.")
+        }
+    }
+
+    override suspend fun tryAwaitRelease(): Boolean {
+        if (!isReleased && !isCanceled) {
+            mutex.lock()
+            mutex.unlock()
+        }
+        return isReleased
     }
 }
 
