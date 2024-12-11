@@ -75,6 +75,7 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import base.isDarkTheme
 import base.theme.Colors
 import base.utils.AudioRecorder
 import base.utils.PermissionType
@@ -437,16 +438,16 @@ private fun ActionsForDrag(
                             when (index) {
                                 0 -> SharedColors.RED_ERROR
                                 1 -> LocalTheme.current.colors.brandMainDark
-                                else -> Colors.Coffee
+                                else -> LocalTheme.current.colors.secondary
                             }
                         } else Colors.GrayLight
                     )
                     val backgroundColor = animateColorAsState(
                         targetValue = if (isInArea) Colors.GrayLight
                         else when (index) {
-                            0 -> SharedColors.RED_ERROR_50
-                            1 -> LocalTheme.current.colors.brandMainDark.copy(.5f)
-                            else -> LocalTheme.current.colors.disabledComponent
+                            0 -> SharedColors.RED_ERROR.copy(if(isDarkTheme) .5f else .8f)
+                            1 -> LocalTheme.current.colors.brandMainDark.copy(if(isDarkTheme) .5f else .8f)
+                            else -> LocalTheme.current.colors.backgroundLight
                         }
                     )
                     val imageVector = when (index) {

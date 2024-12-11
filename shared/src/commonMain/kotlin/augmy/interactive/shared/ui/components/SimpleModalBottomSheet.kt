@@ -44,6 +44,7 @@ fun SimpleModalBottomSheet(
     dragHandle: @Composable (() -> Unit)? = {
         BottomSheetDefaults.DragHandle(color = LocalTheme.current.colors.secondary)
     },
+    scrollEnabled: Boolean = true,
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit = {}
@@ -73,7 +74,11 @@ fun SimpleModalBottomSheet(
                 modifier = Modifier
                     .padding(contentPadding)
                     .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState()),
+                    .then(
+                        if(scrollEnabled) {
+                            Modifier.verticalScroll(rememberScrollState())
+                        }else Modifier
+                    ),
                 verticalArrangement = verticalArrangement,
                 horizontalAlignment = horizontalAlignment
             ) {

@@ -6,4 +6,9 @@ import kotlinx.serialization.Serializable
 data class EmojiData(
     val emoji: MutableList<String>,
     val name: String
-)
+) {
+    constructor(content: String): this(
+        emoji = mutableListOf(content),
+        name = ""
+    )
+}

@@ -18,6 +18,7 @@ object LightAppColors: BaseColors {
 
     override val backgroundLight: Color = Color.White
     override val backgroundDark: Color = Colors.AzureWeb
+    override val component: Color = Colors.GrayLight
 
     override val shimmer: Color = Colors.HunterGreen16
     override val overShimmer: Color = Colors.HunterGreen42

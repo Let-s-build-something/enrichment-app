@@ -134,6 +134,8 @@
   <string name="emojis_symbols">Symbols</string>
   <string name="emojis_travel_and_places">Travel \u0026 places</string>
   <string name="emojis_flags">Flags</string>
+  <string name="emojis_preference_set_heading">Your reaction emojis</string>
+  <string name="emojis_preference_set_hint">Click on an emoji you want to change and, then, select its replacement.</string>
   <string name="action_filter_emojis">Filter emojis</string>
 
   <string name="image_field_url_hint">URL of an image.</string>
@@ -193,6 +195,7 @@
   <string name="accessibility_backspace">Backspace</string>
   <string name="accessibility_emojis_history">Previously selected</string>
   <string name="accessibility_reactions_all">List of all types of reaction from other users</string>
+  <string name="accessibility_reaction_other">Choose emoji other than the set offers</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

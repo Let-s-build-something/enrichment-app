@@ -11,6 +11,7 @@ import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
+import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.shared.SharedViewModel
 import data.shared.fromByteArrayToData
@@ -56,6 +57,7 @@ class ConversationViewModel(
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
+    private val _preferredEmojis = MutableStateFlow(listOf<EmojiData>())
     private val _emojiHistory = MutableStateFlow(mutableListOf<EmojiData>())
     private val emojiSearch = MutableStateFlow("")
 
@@ -67,10 +69,14 @@ class ConversationViewModel(
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
 
+    /** Preferred emojis of an individual conversation */
+    val preferredEmojis = _preferredEmojis.asStateFlow()
+
     /** List of all available emojis */
     val emojis = dataManager.emojis.combine(
         _emojiHistory
     ) { emojis, history ->
+        if(emojis.isEmpty()) return@combine null
         withContext(Dispatchers.Default) {
             mutableListOf(EMOJIS_HISTORY_GROUP to history.toList()).apply {
                 addAll(emojis)
@@ -82,7 +88,7 @@ class ConversationViewModel(
             emojis
         } else {
             areEmojisFiltered.value = true
-            emojis.map { category ->
+            emojis?.map { category ->
                 category.first to category.second.filter { emoji ->
                     emoji.name.contains(query, ignoreCase = true)
                 }
@@ -124,6 +130,13 @@ class ConversationViewModel(
             settings.putInt(SettingsKeys.KEY_KEYBOARD_HEIGHT, value)
         }
 
+    /** Whether hint about emoji preference should be displayed */
+    var showEmojiPreferenceHint: Boolean = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT) ?: true
+        set(value) {
+            field = value
+            settings.putBoolean(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT, value)
+        }
+
     init {
         if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
             viewModelScope.launch {
@@ -132,11 +145,17 @@ class ConversationViewModel(
                 }
             }
         }
-        viewModelScope.launch(Dispatchers.Default) {
+
+        if(_preferredEmojis.value.isEmpty()) {
+            requestPreferredEmojis()
+        }
+        viewModelScope.launch(Dispatchers.IO) {
             val jsonString = Res.readBytes("files/emoji_data_set.json").decodeToString()
-            repository.json.decodeFromString<Map<String, Map<String, List<EmojiData>>>>(jsonString).let { raw ->
-                dataManager.emojis.value = raw.map { category ->
-                    category.key to category.value.flatMap { it.value }
+            withContext(Dispatchers.Default) {
+                repository.json.decodeFromString<Map<String, Map<String, List<EmojiData>>>>(jsonString).let { raw ->
+                    dataManager.emojis.value = raw.map { category ->
+                        category.key to category.value.flatMap { it.value }
+                    }
                 }
             }
         }
@@ -148,6 +167,21 @@ class ConversationViewModel(
     /** Filters emojis */
     fun filterEmojis(query: String) {
         emojiSearch.value = query
+    }
+
+    /** Filters emojis */
+    fun updatePreferredEmojiSet(list: List<EmojiData>) {
+        viewModelScope.launch {
+            _preferredEmojis.value = list
+            //TODO update preferred emojis local DB
+        }
+    }
+
+    /** Makes a request for preferred emojis */
+    private fun requestPreferredEmojis() {
+        viewModelScope.launch {
+            _preferredEmojis.value = DefaultEmojis
+        }
     }
 
     /**
@@ -171,6 +205,20 @@ class ConversationViewModel(
                     mediaUrls = mediaUrls
                 )
             )
+        }
+    }
+
+    /** Makes a request to add or change reaction to a message */
+    fun reactToMessage(messageId: String, content: String) {
+        viewModelScope.launch {
+            repository.reactToMessage(
+                conversationId = conversationId,
+                reaction = MessageReactionRequest(
+                    content = content,
+                    messageId = messageId
+                )
+            )
+            // TODO change local data and refresh
         }
     }
 
@@ -220,7 +268,21 @@ class ConversationViewModel(
             reference.getDownloadUrl()
         }
     }
-}
 
-/** Key for the group of emojis representing past history of this user */
-internal const val EMOJIS_HISTORY_GROUP = "history"
+    companion object {
+
+        /** List of default emojis representing different categories */
+        private val DefaultEmojis
+            get() = listOf(
+                EmojiData(mutableListOf("❤\uFE0F"), name = "Red heart"),
+                EmojiData(mutableListOf("\uD83D\uDC4D"), name = "Thumbs up"),
+                EmojiData(mutableListOf("\uD83D\uDC4E"), name = "Thumbs down"),
+                EmojiData(mutableListOf("\uD83D\uDE06"), name = "Grinning Squinting Face"),
+                EmojiData(mutableListOf("\uD83D\uDE2F"), name = "Hushed Face"),
+                EmojiData(mutableListOf("\uD83D\uDE25"), name = "Sad but Relieved Face"),
+            )
+
+        /** Key for the group of emojis representing past history of this user */
+        internal const val EMOJIS_HISTORY_GROUP = "history"
+    }
+}

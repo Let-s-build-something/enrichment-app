@@ -1,4 +1,7 @@
 <resources>
     <string name="accessibility_clear">Clear</string>
     <string name="button_dismiss">Dismiss</string>
+    <string name="date_yesterday">yesterday</string>
+    <string name="date_minutes_ago">minute(s) ago</string>
+    <string name="date_seconds_ago">seconds ago</string>
 </resources>

@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,6 +42,7 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
@@ -56,7 +58,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Screen displaying a conversation */
-@OptIn(ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationScreen(
     conversationId: String? = null,
@@ -72,6 +74,7 @@ fun ConversationScreen(
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
+    val preferredEmojis = viewModel.preferredEmojis.collectAsState()
     val currentUser = viewModel.currentUser.collectAsState()
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
 
@@ -80,6 +83,30 @@ fun ConversationScreen(
     }
     val isEmojiPickerVisible = rememberSaveable {
         mutableStateOf(false)
+    }
+    val reactingToMessageId = rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+    val showEmojiPreferencesId = rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
+    OnBackHandler(enabled = reactingToMessageId.value != null) {
+        reactingToMessageId.value = null
+    }
+
+    showEmojiPreferencesId.value?.let { messageId ->
+        EmojiPreferencePicker(
+            viewModel = viewModel,
+            onEmojiSelected = { emoji ->
+                viewModel.reactToMessage(content = emoji, messageId = messageId)
+                reactingToMessageId.value = null
+                showEmojiPreferencesId.value = null
+            },
+            onDismissRequest = {
+                showEmojiPreferencesId.value = null
+            }
+        )
     }
 
     BrandBaseScreen(
@@ -122,6 +149,7 @@ fun ConversationScreen(
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = {
                             focusManager.clearFocus()
+                            reactingToMessageId.value = null
                             isEmojiPickerVisible.value = false
                         })
                     }
@@ -167,7 +195,7 @@ fun ConversationScreen(
                                 )
                                 .animateItem(),
                             horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
+                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.Bottom
                         ) {
                             val profileImageSize = with(density) { 38.sp.toDp() }
                             if(!isCurrentUser && !isNextMessageSameAuthor) {
@@ -184,10 +212,24 @@ fun ConversationScreen(
                             }
                             MessageBubble(
                                 data = data,
+                                isReacting = reactingToMessageId.value == data?.id,
                                 currentUserPublicId = currentUser.value?.publicId ?: "",
                                 hasPrevious = isPreviousMessageSameAuthor,
                                 hasNext = isNextMessageSameAuthor,
-                                users = conversationDetail.value?.users.orEmpty()
+                                users = conversationDetail.value?.users.orEmpty(),
+                                preferredEmojis = preferredEmojis.value,
+                                onReactionRequest = { show ->
+                                    reactingToMessageId.value = if(show) data?.id else null
+                                },
+                                onReactionChange = { emoji ->
+                                    if(data?.id != null) {
+                                        viewModel.reactToMessage(content = emoji, messageId = data.id)
+                                        reactingToMessageId.value = null
+                                    }
+                                },
+                                onAdditionalReactionRequest = {
+                                    showEmojiPreferencesId.value = data?.id
+                                }
                             )
                         }
                     }

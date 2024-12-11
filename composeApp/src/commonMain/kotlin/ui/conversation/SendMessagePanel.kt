@@ -561,7 +561,7 @@ internal fun BoxScope.SendMessagePanel(
         }
 
         if(isEmojiPickerVisible.value && viewModel.keyboardHeight > 0f) {
-            EmojiPicker(
+            MessageEmojiPanel(
                 viewModel = viewModel,
                 onEmojiSelected = { emoji ->
                     showMoreOptions.value = false

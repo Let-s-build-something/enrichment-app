@@ -57,6 +57,7 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(compose.ui)
+            implementation(libs.kotlinx.datetime)
             implementation(compose.material)
             implementation(compose.material3)
             implementation(compose.components.resources)
