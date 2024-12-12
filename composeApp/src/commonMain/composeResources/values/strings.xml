@@ -193,6 +193,7 @@
   <string name="accessibility_pause">Pause</string>
   <string name="accessibility_resume">Resume</string>
   <string name="accessibility_action_emojis">Open dashboard with emojis and stickers with ability to search</string>
+  <string name="accessibility_action_message_react">React to a message with an emoji</string>
   <string name="accessibility_action_keyboard">Open system keyboard input</string>
   <string name="accessibility_backspace">Backspace</string>
   <string name="accessibility_emojis_history">Previously selected</string>

@@ -1,13 +1,11 @@
 package ui.conversation.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
@@ -45,6 +43,7 @@ import ui.conversation.ConversationViewModel
 fun MessageEmojiPanel(
     modifier: Modifier = Modifier,
     viewModel: ConversationViewModel,
+    visible: Boolean,
     onEmojiSelected: (String) -> Unit,
     onBackSpace: () -> Unit,
     onDismissRequest: () -> Unit
@@ -88,19 +87,20 @@ fun MessageEmojiPanel(
 
     Box(
         modifier = modifier
-            .padding(bottom = with(density) {
-                viewModel.additionalBottomPadding.value.toDp()
-            })
-            .height(with(density) { imeHeight.toDp() })
+            .padding(
+                bottom = if(visible) {
+                    with(density) {
+                        viewModel.additionalBottomPadding.value.toDp()
+                    }
+                }else 0.dp
+            )
+            .animateContentSize()
     ) {
-        AnimatedVisibility(
-            modifier = Modifier
-                .zIndex(1f)
-                .align(Alignment.BottomEnd),
-            visible = emojis.value != null
-        ) {
+        if(emojis.value != null && visible) {
             Image(
                 modifier = Modifier
+                    .zIndex(1f)
+                    .align(Alignment.BottomEnd)
                     .padding(WindowInsets.navigationBars.asPaddingValues())
                     .padding(bottom = 8.dp, end = 12.dp)
                     .scalingClickable {
@@ -117,19 +117,20 @@ fun MessageEmojiPanel(
                 contentDescription = stringResource(Res.string.accessibility_backspace),
                 colorFilter = ColorFilter.tint(color = Colors.GrayLight)
             )
+
+            EmojiPicker(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(with(density) { imeHeight.toDp() })
+                    .padding(horizontal = 12.dp)
+                    .then(
+                        if (imePadding > 0) Modifier else Modifier.animateContentSize()
+                    ),
+                onEmojiSelected = onEmojiSelected,
+                viewModel = viewModel,
+                isFilterFocused = isFilterFocused,
+                gridState = gridState
+            )
         }
-        EmojiPicker(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .padding(horizontal = 12.dp)
-                .then(
-                    if (imePadding > 0) Modifier else Modifier.animateContentSize()
-                ),
-            onEmojiSelected = onEmojiSelected,
-            viewModel = viewModel,
-            isFilterFocused = isFilterFocused,
-            gridState = gridState
-        )
     }
 }

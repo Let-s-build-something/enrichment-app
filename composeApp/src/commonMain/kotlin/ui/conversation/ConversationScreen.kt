@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,10 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,7 +34,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -48,29 +44,25 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.action_settings
-import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.OnBackHandler
-import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.getOrNull
 import components.UserProfileImage
-import ui.conversation.components.MessageBubble
-import ui.conversation.components.rememberMessageBubbleState
 import data.io.social.network.conversation.ConversationMessageIO
-import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.components.EmojiPreferencePicker
+import ui.conversation.components.MessageBubble
 import ui.conversation.components.SendMessagePanel
+import ui.conversation.components.rememberMessageBubbleState
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -282,16 +274,12 @@ fun ConversationScreen(
                             topStart = LocalTheme.current.shapes.componentCornerRadius,
                             topEnd = LocalTheme.current.shapes.componentCornerRadius
                         )
-                    )
-                    .onSizeChanged {
-                        if(it.height != 0) {
-                            with(density) {
-                                messagePanelHeight.value = it.height.toDp().value
-                            }
-                        }
-                    },
+                    ),
                 isEmojiPickerVisible = isEmojiPickerVisible,
                 viewModel = viewModel,
+                onSizeChanged = {
+                    messagePanelHeight.value = it
+                },
                 replyToMessage = replyToMessage,
                 scrollToMessage = {
                     val currentSnapshotList = messages.itemSnapshotList.toList() // Make a copy of the current state
