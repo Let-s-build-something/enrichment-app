@@ -11,14 +11,16 @@ object LightAppColors: BaseColors {
     override val brandMain: Color = Colors.Asparagus
     override val brandMainDark: Color = Colors.HunterGreen
 
+    override val backgroundLight: Color = Color.White
+    override val backgroundDark: Color = Colors.AzureWeb
+    override val backgroundContrast: Color = Colors.AzureWebDark
+    override val component: Color = Colors.GrayLight
+
     override val appbarBackground: Color = Colors.HunterGreen
     override val appbarContent: Color = tetrial
     override val disabled: Color = secondary.copy(alpha = .6f)
     override val disabledComponent: Color = Colors.Coffee18
 
-    override val backgroundLight: Color = Color.White
-    override val backgroundDark: Color = Colors.AzureWeb
-    override val component: Color = Colors.GrayLight
 
     override val shimmer: Color = Colors.HunterGreen16
     override val overShimmer: Color = Colors.HunterGreen42

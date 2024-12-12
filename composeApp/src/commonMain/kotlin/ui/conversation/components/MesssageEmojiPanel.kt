@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -38,6 +38,7 @@ import base.theme.Colors
 import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.ConversationViewModel
 
 /** Panel for picking and removing emojis in a message */
 @Composable

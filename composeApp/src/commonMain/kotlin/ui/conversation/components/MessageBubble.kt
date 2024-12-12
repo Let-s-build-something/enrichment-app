@@ -1,4 +1,4 @@
-package components.conversation
+package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -15,11 +16,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,14 +34,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
 import augmy.interactive.shared.DateUtils.formatAsRelative
+import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
 import base.utils.tagToColor
@@ -47,9 +57,36 @@ import future_shared_module.ext.brandShimmerEffect
 import future_shared_module.ext.detectMessageInteraction
 import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.absoluteValue
+
+@Composable
+fun rememberMessageBubbleState(
+    onReactionRequest: (Boolean) -> Unit,
+    onReactionChange: (String) -> Unit,
+    onAdditionalReactionRequest: () -> Unit,
+    onReplyRequest: () -> Unit
+): MessageBubbleState {
+    return remember {
+        MessageBubbleState(
+            onReactionRequest = onReactionRequest,
+            onReactionChange = onReactionChange,
+            onAdditionalReactionRequest = onAdditionalReactionRequest,
+            onReplyRequest = onReplyRequest
+        )
+    }
+}
+
+data class MessageBubbleState(
+    val onReactionRequest: (Boolean) -> Unit,
+    val onReactionChange: (String) -> Unit,
+    val onAdditionalReactionRequest: () -> Unit,
+    val onReplyRequest: () -> Unit
+)
 
 /** Horizontal bubble displaying textual content of a message and its reactions */
 @Composable
@@ -62,10 +99,9 @@ fun MessageBubble(
     enabled: Boolean = true,
     hasPrevious: Boolean = false,
     hasNext: Boolean = false,
+    isReplying: Boolean = false,
     currentUserPublicId: String,
-    onReactionRequest: (Boolean) -> Unit,
-    onReactionChange: (String) -> Unit,
-    onAdditionalReactionRequest: () -> Unit
+    state: MessageBubbleState,
 ) {
     Crossfade(targetState = data == null) { isLoading ->
         if(isLoading) {
@@ -80,31 +116,11 @@ fun MessageBubble(
                 preferredEmojis = preferredEmojis,
                 currentUserPublicId = currentUserPublicId,
                 enabled = enabled,
-                onReactionChange = onReactionChange,
                 isReacting = isReacting,
-                onReactionRequest = onReactionRequest,
-                onAdditionalReactionRequest = onAdditionalReactionRequest
+                isReplying = isReplying,
+                state = state
             )
         }
-    }
-}
-
-@Composable
-private fun ShimmerLayout(modifier: Modifier = Modifier) {
-    val randomFraction = remember { (3..7).random() / 10f }
-    Box(
-        modifier = modifier
-            .brandShimmerEffect(shape = LocalTheme.current.shapes.circularActionShape)
-            .padding(
-                vertical = 10.dp,
-                horizontal = 12.dp
-            )
-            .fillMaxWidth(randomFraction)
-    ) {
-        Text(
-            text = "",
-            style = LocalTheme.current.styles.category
-        )
     }
 }
 
@@ -117,21 +133,28 @@ private fun ContentLayout(
     hasPrevious: Boolean,
     hasNext: Boolean,
     enabled: Boolean,
+    isReplying: Boolean = false,
     currentUserPublicId: String,
     isReacting: Boolean,
-    onReactionRequest: (Boolean) -> Unit,
-    onReactionChange: (String) -> Unit,
-    onAdditionalReactionRequest: () -> Unit
+    state: MessageBubbleState
 ) {
     val density = LocalDensity.current
-    val animCoroutineScope = rememberCoroutineScope()
+    val screenSize = LocalScreenSize.current
+    val coroutineScope = rememberCoroutineScope()
+    val dragCoroutineScope = rememberCoroutineScope()
     val isCurrentUser = data.authorPublicId == currentUserPublicId
+    val replyBounds = remember {
+        with(density) {
+            (-screenSize.width.dp.toPx() / 8f)..(screenSize.width.dp.toPx() / 8f)
+        }
+    }
+    val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
 
     val reactions = remember(data.id) {
         mutableStateOf(listOf<Pair<String?, Pair<List<NetworkItemIO>, Boolean>>>())
     }
     val showDetailDialogOf = remember(data.id) {
-        mutableStateOf<String?>(null)
+        mutableStateOf<Pair<String?, String?>?>(null)
     }
     val isDragged = remember(data.id) {
         mutableStateOf(false)
@@ -139,11 +162,21 @@ private fun ContentLayout(
     val showHistory = remember(data.id) {
         mutableStateOf(false)
     }
-    val animatedOffsetX = remember { Animatable(0f) }
-    val offsetX = remember { mutableStateOf(0f) }
+    val animatedOffsetX = remember(data.id) {
+        Animatable(0f)
+    }
+    val offsetX = remember(data.id) {
+        mutableStateOf(0f)
+    }
     val verticalPadding = animateFloatAsState(
         targetValue = if(isReacting) 32f else 0f,
         label = "verticalPaddingAnimation"
+    )
+    val additionalOffsetDp = animateFloatAsState(
+        targetValue = if (isReplying) {
+            if(isCurrentUser) - replyIndicationSize.value - 4f else replyIndicationSize.value + 4f
+        } else 0f,
+        label = "startPaddingAnimation"
     )
 
     LaunchedEffect(Unit, data.reactions) {
@@ -165,6 +198,8 @@ private fun ContentLayout(
         MessageReactionsDialog(
             reactions = reactions,
             users = users,
+            messageContent = it.first,
+            initialEmojiSelection = it.second,
             reactionsRaw = data.reactions.orEmpty(),
             onDismissRequest = {
                 showDetailDialogOf.value = null
@@ -172,26 +207,49 @@ private fun ContentLayout(
         )
     }
 
+    // everything + message footer information
     Column(
         modifier = modifier
             .padding(vertical = verticalPadding.value.dp)
-            .offset(x = animatedOffsetX.value.dp)
+            .offset(
+                x = with(density) { animatedOffsetX.value.toDp() } + additionalOffsetDp.value.dp
+            )
             .pointerInput(enabled) {
                 detectMessageInteraction(
                     onTap = {
                         showHistory.value = !showHistory.value
-                        onReactionRequest(false)
+                        state.onReactionRequest(false)
                     },
                     onLongPress = {
-                        onReactionRequest(true)
+                        state.onReactionRequest(true)
                     },
                     onDrag = { dragged ->
                         isDragged.value = dragged
+
+                        // cancel dragging and animate back to original position
+                        dragCoroutineScope.coroutineContext.cancelChildren()
+                        if(!dragged) {
+                            if(animatedOffsetX.value !in replyBounds) {
+                                coroutineScope.launch {
+                                    state.onReplyRequest()
+                                    offsetX.value = 0f
+                                    animatedOffsetX.animateTo(0f)
+                                }
+                            }else {
+                                dragCoroutineScope.launch {
+                                    delay(DragCancelDelayMillis)
+                                    offsetX.value = 0f
+                                    animatedOffsetX.animateTo(0f)
+                                }
+                            }
+                        }
                     },
                     onDragChange = { _, dragAmount ->
-                        // TODO reply functionality
-                        offsetX.value += dragAmount.x
-                        animCoroutineScope.launch {
+                        offsetX.value = (offsetX.value + dragAmount.x / 3).coerceIn(
+                            minimumValue = if(isCurrentUser) replyBounds.start.times(1.4f) else 0f,
+                            maximumValue = if(isCurrentUser) 0f else replyBounds.endInclusive.times(1.4f)
+                        )
+                        coroutineScope.launch {
                             animatedOffsetX.animateTo(offsetX.value)
                         }
                     }
@@ -206,8 +264,10 @@ private fun ContentLayout(
                         )
                 }else Modifier
             ),
-        horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
+        horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.Center
     ) {
+        // new or a change of a reaction - indication
         AnimatedVisibility(isReacting) {
             Row(
                 modifier = Modifier
@@ -222,7 +282,7 @@ private fun ContentLayout(
                     Text(
                         modifier = Modifier
                             .scalingClickable(scaleInto = .7f) {
-                                onReactionChange(emojiData.emoji.firstOrNull() ?: "")
+                                state.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
                             }
                             .padding(8.dp),
                         text = emojiData.emoji.firstOrNull() ?: "",
@@ -233,7 +293,7 @@ private fun ContentLayout(
                     modifier = Modifier
                         .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
                         .scalingClickable {
-                            onAdditionalReactionRequest()
+                            state.onAdditionalReactionRequest()
                         },
                     imageVector = Icons.Outlined.Add,
                     contentDescription = stringResource(Res.string.accessibility_reaction_other),
@@ -242,48 +302,93 @@ private fun ContentLayout(
             }
         }
 
+        // message content + reply function + reactions
         Box {
-            Box(
-                modifier = Modifier
-                    .then(
-                        if (!data.reactions.isNullOrEmpty()) {
-                            Modifier.padding(bottom = with(density) {
-                                LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                            })
-                        } else Modifier
-                    )
-                    .background(
-                        color = tagToColor(data.user?.tag) ?: if(isCurrentUser) {
-                            LocalTheme.current.colors.brandMainDark
-                        } else LocalTheme.current.colors.disabledComponent,
-                        shape = if(isCurrentUser) {
-                            RoundedCornerShape(
-                                topStart = 24.dp,
-                                bottomStart = 24.dp,
-                                topEnd = if(hasPrevious) 1.dp else 24.dp,
-                                bottomEnd = if(hasNext) 1.dp else 24.dp
+            // message content + reply function
+            Box {
+                if(animatedOffsetX.value.absoluteValue > 0f || isReplying) {
+                    val percentageAchieved = (if(isCurrentUser) {
+                        animatedOffsetX.value / replyBounds.start
+                    }else animatedOffsetX.value / replyBounds.endInclusive).times(2)
+
+                    Box(
+                        modifier = Modifier
+                            .offset(
+                                x = (if(isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
+                                    if(isReplying) 1f else {
+                                        percentageAchieved.coerceAtMost(1f)
+                                    }
+                                )
                             )
-                        }else {
-                            RoundedCornerShape(
-                                topEnd = 24.dp,
-                                bottomEnd = 24.dp,
-                                topStart = if(hasPrevious) 1.dp else 24.dp,
-                                bottomStart = if(hasNext) 1.dp else 24.dp
-                            )
-                        }
+                            .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.requiredSize(replyIndicationSize),
+                            progress = { percentageAchieved / 2 },
+                            strokeWidth = 4.dp,
+                            color = LocalTheme.current.colors.component,
+                            trackColor = Color.Transparent
+                        )
+                        Icon(
+                            modifier = Modifier
+                                .size(replyIndicationSize)
+                                .then(if(animatedOffsetX.value !in replyBounds) {
+                                    Modifier.background(
+                                        color = LocalTheme.current.colors.component,
+                                        shape = CircleShape
+                                    )
+                                }else Modifier)
+                                .padding(5.dp),
+                            imageVector = Icons.AutoMirrored.Outlined.Reply,
+                            contentDescription = stringResource(Res.string.accessibility_message_reply),
+                            tint = LocalTheme.current.colors.secondary
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .then(
+                            if (!data.reactions.isNullOrEmpty()) {
+                                Modifier.padding(bottom = with(density) {
+                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                })
+                            } else Modifier
+                        )
+                        .background(
+                            color = tagToColor(data.user?.tag) ?: if(isCurrentUser) {
+                                LocalTheme.current.colors.brandMainDark
+                            } else LocalTheme.current.colors.backgroundContrast,
+                            shape = if(isCurrentUser) {
+                                RoundedCornerShape(
+                                    topStart = 24.dp,
+                                    bottomStart = 24.dp,
+                                    topEnd = if(hasPrevious) 1.dp else 24.dp,
+                                    bottomEnd = if(hasNext) 1.dp else 24.dp
+                                )
+                            }else {
+                                RoundedCornerShape(
+                                    topEnd = 24.dp,
+                                    bottomEnd = 24.dp,
+                                    topStart = if(hasPrevious) 1.dp else 24.dp,
+                                    bottomStart = if(hasNext) 1.dp else 24.dp
+                                )
+                            }
+                        )
+                        .padding(
+                            vertical = 10.dp,
+                            horizontal = 14.dp
+                        )
+                        .animateContentSize()
+                ) {
+                    Text(
+                        modifier = Modifier,
+                        text = data.content ?: "",
+                        style = LocalTheme.current.styles.category.copy(
+                            color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
+                        )
                     )
-                    .padding(
-                        vertical = 10.dp,
-                        horizontal = 14.dp
-                    )
-                    .animateContentSize()
-            ) {
-                Text(
-                    text = data.content ?: "",
-                    style = LocalTheme.current.styles.category.copy(
-                        color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
-                    )
-                )
+                }
             }
 
             androidx.compose.animation.AnimatedVisibility(
@@ -313,7 +418,7 @@ private fun ContentLayout(
                             Modifier
                                 .scalingClickable {
                                     if((data.reactions?.size ?: 0) > 1) {
-                                        showDetailDialogOf.value = reaction.first
+                                        showDetailDialogOf.value = data.content to reaction.first
                                     }
                                 }
                                 .width(IntrinsicSize.Min)
@@ -372,4 +477,25 @@ private fun ContentLayout(
     }
 }
 
+@Composable
+private fun ShimmerLayout(modifier: Modifier = Modifier) {
+    val randomFraction = remember { (3..7).random() / 10f }
+    Box(
+        modifier = modifier
+            .brandShimmerEffect(shape = LocalTheme.current.shapes.circularActionShape)
+            .padding(
+                vertical = 10.dp,
+                horizontal = 12.dp
+            )
+            .fillMaxWidth(randomFraction)
+    ) {
+        Text(
+            text = "",
+            style = LocalTheme.current.styles.category
+        )
+    }
+}
+
+// maximum visible reactions within message bubble
 private const val MaximumReactions = 4
+private const val DragCancelDelayMillis = 100L

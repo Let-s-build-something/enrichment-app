@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components
 
 import androidx.compose.foundation.BasicTooltipBox
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -67,6 +67,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.ConversationViewModel
 import ui.conversation.ConversationViewModel.Companion.EMOJIS_HISTORY_GROUP
 
 /** Component displaying emojis with the ability to select one and filter them */
@@ -168,67 +169,71 @@ fun EmojiPicker(
                     ) { emojiData ->
                         val tooltipState = rememberBasicTooltipState(isPersistent = true)
 
-                        BasicTooltipBox(
-                            positionProvider = TooltipDefaults.rememberRichTooltipPositionProvider(),
-                            tooltip = {
-                                LazyRow(
-                                    modifier = Modifier
-                                        .background(
-                                            color = LocalTheme.current.colors.backgroundLight,
-                                            shape = LocalTheme.current.shapes.componentShape
-                                        )
-                                        .padding(4.dp)
-                                ) {
-                                    items(emojiData.emoji) { emoji ->
-                                        Text(
-                                            modifier = Modifier
-                                                .scalingClickable {
-                                                    tooltipState.dismiss()
-                                                    onEmojiSelected(emoji)
-                                                }
-                                                .size(46.dp)
-                                                .padding(4.dp)
-                                                .animateItem(),
-                                            text = emoji,
-                                            style = LocalTheme.current.styles.heading.copy(
-                                                textAlign = TextAlign.Center
-                                            )
-                                        )
-                                    }
-                                }
-                            },
-                            state = tooltipState
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .animateItem()
-                                    .scalingClickable {
-                                        if(emojiData.emoji.size > 1) {
-                                            coroutineScope.launch {
-                                                tooltipState.show()
-                                            }
-                                        }else onEmojiSelected(emojiData.emoji.firstOrNull() ?: "")
-                                    }
-                            ) {
-                                Text(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .padding(4.dp),
-                                    text = emojiData.emoji.firstOrNull() ?: "",
-                                    style = LocalTheme.current.styles.heading.copy(
-                                        textAlign = TextAlign.Center
-                                    )
-                                )
-                                if(emojiData.emoji.size > 1) {
-                                    Icon(
+                        Box(modifier = Modifier.animateItem()) {
+                            BasicTooltipBox(
+                                positionProvider = TooltipDefaults.rememberRichTooltipPositionProvider(),
+                                tooltip = {
+                                    LazyRow(
                                         modifier = Modifier
-                                            .rotate(-45f)
-                                            .size(16.dp)
-                                            .align(Alignment.BottomEnd),
-                                        imageVector = Icons.Outlined.ArrowDropDown,
-                                        contentDescription = null,
-                                        tint = LocalTheme.current.colors.secondary
+                                            .background(
+                                                color = LocalTheme.current.colors.component,
+                                                shape = LocalTheme.current.shapes.componentShape
+                                            )
+                                            .padding(4.dp)
+                                    ) {
+                                        items(
+                                            emojiData.emoji,
+                                            key = { it }
+                                        ) { emoji ->
+                                            Text(
+                                                modifier = Modifier
+                                                    .scalingClickable {
+                                                        tooltipState.dismiss()
+                                                        onEmojiSelected(emoji)
+                                                    }
+                                                    .size(46.dp)
+                                                    .padding(4.dp)
+                                                    .animateItem(),
+                                                text = emoji,
+                                                style = LocalTheme.current.styles.heading.copy(
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            )
+                                        }
+                                    }
+                                },
+                                state = tooltipState
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .scalingClickable {
+                                            if(emojiData.emoji.size > 1) {
+                                                coroutineScope.launch {
+                                                    tooltipState.show()
+                                                }
+                                            }else onEmojiSelected(emojiData.emoji.firstOrNull() ?: "")
+                                        }
+                                ) {
+                                    Text(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .padding(4.dp),
+                                        text = emojiData.emoji.firstOrNull() ?: "",
+                                        style = LocalTheme.current.styles.heading.copy(
+                                            textAlign = TextAlign.Center
+                                        )
                                     )
+                                    if(emojiData.emoji.size > 1) {
+                                        Icon(
+                                            modifier = Modifier
+                                                .rotate(-45f)
+                                                .size(16.dp)
+                                                .align(Alignment.BottomEnd),
+                                            imageVector = Icons.Outlined.ArrowDropDown,
+                                            contentDescription = null,
+                                            tint = LocalTheme.current.colors.secondary
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -189,7 +189,11 @@ class ConversationViewModel(
      * @param content textual content of the message
      * @param mediaFiles list of urls in the format of: [Pair.first]: file name, [Pair.second]: [ByteArray] content of the image
      */
-    fun sendMessage(content: String, mediaFiles: MutableList<PlatformFile>) {
+    fun sendMessage(
+        content: String,
+        anchorMessageId: String?,
+        mediaFiles: MutableList<PlatformFile>
+    ) {
         viewModelScope.launch {
             val mediaUrls = mediaFiles.mapNotNull { media ->
                 requestMediaUpload(
@@ -202,7 +206,8 @@ class ConversationViewModel(
                 conversationId = conversationId,
                 message = ConversationMessageIO(
                     content = content,
-                    mediaUrls = mediaUrls
+                    mediaUrls = mediaUrls,
+                    anchorMessageId = anchorMessageId
                 )
             )
         }

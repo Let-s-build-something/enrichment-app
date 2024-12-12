@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -286,7 +286,11 @@ private fun MicrophoneIcon(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 4.dp),
-                        text = "${formatTime(millisecondsElapsed.longValue)}/${formatTime(MAX_RECORDING_LENGTH_MILLIS)}",
+                        text = "${formatTime(millisecondsElapsed.longValue)}/${
+                            formatTime(
+                                MAX_RECORDING_LENGTH_MILLIS
+                            )
+                        }",
                         style = LocalTheme.current.styles.regular.copy(
                             color = if(millisecondsElapsed.longValue < MAX_RECORDING_LENGTH_MILLIS) {
                                 LocalTheme.current.colors.primary
@@ -537,7 +541,11 @@ private fun AudioWaveForm(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(bottom = 4.dp),
-            text = "${formatTime(millisecondsElapsed.longValue)}/${formatTime(MAX_RECORDING_LENGTH_MILLIS)}",
+            text = "${formatTime(millisecondsElapsed.longValue)}/${
+                formatTime(
+                    MAX_RECORDING_LENGTH_MILLIS
+                )
+            }",
             style = LocalTheme.current.styles.regular.copy(
                 color = if(millisecondsElapsed.longValue < MAX_RECORDING_LENGTH_MILLIS) {
                     LocalTheme.current.colors.primary

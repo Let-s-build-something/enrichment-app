@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,40 +21,56 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.action_settings
+import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.getOrNull
 import components.UserProfileImage
-import components.conversation.MessageBubble
+import ui.conversation.components.MessageBubble
+import ui.conversation.components.rememberMessageBubbleState
+import data.io.social.network.conversation.ConversationMessageIO
+import future_shared_module.ext.scalingClickable
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
+import ui.conversation.components.EmojiPreferencePicker
+import ui.conversation.components.SendMessagePanel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -71,6 +88,8 @@ fun ConversationScreen(
 
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
+    val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
@@ -89,6 +108,9 @@ fun ConversationScreen(
     }
     val showEmojiPreferencesId = rememberSaveable {
         mutableStateOf<String?>(null)
+    }
+    val replyToMessage = remember {
+        mutableStateOf<ConversationMessageIO?>(null)
     }
 
     OnBackHandler(enabled = reactingToMessageId.value != null) {
@@ -149,6 +171,7 @@ fun ConversationScreen(
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = {
                             focusManager.clearFocus()
+                            showEmojiPreferencesId.value = null
                             reactingToMessageId.value = null
                             isEmojiPickerVisible.value = false
                         })
@@ -156,9 +179,10 @@ fun ConversationScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.Bottom,
-                reverseLayout = true
+                reverseLayout = true,
+                state = listState
             ) {
-                item {
+                item(key = "navigationPadding") {
                     Spacer(
                         Modifier
                             .padding(WindowInsets.navigationBars.asPaddingValues())
@@ -166,7 +190,7 @@ fun ConversationScreen(
                             .animateContentSize()
                     )
                 }
-                item {
+                item(key = "emptyLayout") {
                     AnimatedVisibility(
                         enter = expandVertically() + fadeIn(),
                         visible = messages.itemCount == 0 && !isLoadingInitialPage
@@ -195,12 +219,14 @@ fun ConversationScreen(
                                 )
                                 .animateItem(),
                             horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.Bottom
+                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
                         ) {
                             val profileImageSize = with(density) { 38.sp.toDp() }
                             if(!isCurrentUser && !isNextMessageSameAuthor) {
                                 UserProfileImage(
-                                    modifier = Modifier.size(profileImageSize),
+                                    modifier = Modifier
+                                        .zIndex(4f)
+                                        .size(profileImageSize),
                                     model = data?.user?.photoUrl,
                                     tag = data?.user?.tag
                                 )
@@ -216,29 +242,42 @@ fun ConversationScreen(
                                 currentUserPublicId = currentUser.value?.publicId ?: "",
                                 hasPrevious = isPreviousMessageSameAuthor,
                                 hasNext = isNextMessageSameAuthor,
+                                isReplying = replyToMessage.value?.id == data?.id,
                                 users = conversationDetail.value?.users.orEmpty(),
                                 preferredEmojis = preferredEmojis.value,
-                                onReactionRequest = { show ->
-                                    reactingToMessageId.value = if(show) data?.id else null
-                                },
-                                onReactionChange = { emoji ->
-                                    if(data?.id != null) {
-                                        viewModel.reactToMessage(content = emoji, messageId = data.id)
-                                        reactingToMessageId.value = null
+                                state = rememberMessageBubbleState(
+                                    onReactionRequest = { show ->
+                                        reactingToMessageId.value = if(show) data?.id else null
+                                    },
+                                    onReactionChange = { emoji ->
+                                        if(data?.id != null) {
+                                            viewModel.reactToMessage(content = emoji, messageId = data.id)
+                                            reactingToMessageId.value = null
+                                        }
+                                    },
+                                    onAdditionalReactionRequest = {
+                                        showEmojiPreferencesId.value = data?.id
+                                    },
+                                    onReplyRequest = {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(index = 0)
+                                        }
+                                        replyToMessage.value = data
                                     }
-                                },
-                                onAdditionalReactionRequest = {
-                                    showEmojiPreferencesId.value = data?.id
-                                }
+                                )
                             )
                         }
                     }
                 }
+                item(key = "topPadding") {
+                    Spacer(Modifier.height(42.dp))
+                }
             }
+
             SendMessagePanel(
                 modifier = Modifier
                     .background(
-                        color = LocalTheme.current.colors.backgroundDark,
+                        color = LocalTheme.current.colors.backgroundContrast,
                         shape = RoundedCornerShape(
                             topStart = LocalTheme.current.shapes.componentCornerRadius,
                             topEnd = LocalTheme.current.shapes.componentCornerRadius
@@ -252,7 +291,18 @@ fun ConversationScreen(
                         }
                     },
                 isEmojiPickerVisible = isEmojiPickerVisible,
-                viewModel = viewModel
+                viewModel = viewModel,
+                replyToMessage = replyToMessage,
+                scrollToMessage = {
+                    val currentSnapshotList = messages.itemSnapshotList.toList() // Make a copy of the current state
+                    val index = currentSnapshotList.indexOfFirst { it?.id == replyToMessage.value?.id }
+
+                    index.takeIf { it != -1 }?.let { messageIndex ->
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(messageIndex)
+                        }
+                    }
+                }
             )
         }
     }

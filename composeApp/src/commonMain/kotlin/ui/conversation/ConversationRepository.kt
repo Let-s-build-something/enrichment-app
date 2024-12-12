@@ -30,6 +30,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import ui.login.safeRequest
+import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -64,12 +65,15 @@ class ConversationRepository(
                 BaseResponse.Success(ConversationListResponse(
                     content = demoMessages.subList(
                         page * size,
-                        kotlin.math.min((page + 1) * size - 1, demoMessages.size - page * size)
+                        kotlin.math.min(
+                            (page + 1) * size - 1,
+                            page * size + (demoMessages.size - page * size)
+                        )
                     ),
                     pagination = PaginationInfo(
                         page = page,
                         size = size,
-                        totalPages = demoMessages.size/size
+                        totalPages = (demoMessages.size/size.toFloat()).roundToInt()
                     )
                 ))
             }else BaseResponse.Error()
@@ -152,10 +156,206 @@ class ConversationRepository(
                 content = "Yo",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse("2010-06-01T22:19:44")
+                createdAt = LocalDateTime.parse("2023-12-10T22:19:44")
+            ),
+            ConversationMessageIO(
+                content = "Did you catch the latest episode? 🤔",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.RECEIVED
+            ),
+            ConversationMessageIO(
+                content = "Yes! It was so intense! 😱",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                reactions = listOf(
+                    MessageReactionIO(content = "❤️", authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0")
+                ),
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "I couldn't believe the twist at the end! 🤯",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Me neither! Any theories for next week?",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "I think the protagonist might switch sides... 😮",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                reactions = listOf(
+                    MessageReactionIO(content = "👍", authorPublicId = "1"),
+                    MessageReactionIO(content = "🔥", authorPublicId = "1")
+                ),
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.RECEIVED
+            ),
+            ConversationMessageIO(
+                content = "That would be wild! I can't wait! 🚀",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "By the way, are we still on for dinner tomorrow? 🍲",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Absolutely! Looking forward to it! 😊",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                reactions = listOf(
+                    MessageReactionIO(content = "❤️", authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0")
+                ),
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "Do you think we should invite more friends? 🤔",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Sure! The more, the merrier! 😄",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "I'll check with Sarah and Jake. 🌟",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Sounds great. Let me know what they say! 📞",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "Sarah is in, but Jake is busy. 🤷‍♂️",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Got it! I'll plan accordingly. 😊",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "Any food preferences for tomorrow? 🍝",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "I'm good with anything! Just no peanuts, please. 🥜",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(26, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
             ),
             ConversationMessageIO(
                 content = "Yoddaaa \uD83D\uDFE2\uD83D\uDFE2",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(25, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+            ),
+            ConversationMessageIO(
+                content = "Did you catch the latest episode? 🤔",
                 id = Uuid.random().toString(),
                 authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
                 createdAt = LocalDateTime.parse(
@@ -163,6 +363,94 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
+                state = MessageState.RECEIVED
+            ),
+            ConversationMessageIO(
+                content = "Yes! It was so intense! 😱",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                reactions = listOf(
+                    MessageReactionIO(content = "❤️", authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0")
+                ),
+                createdAt = LocalDateTime.parse(
+                    now.minus(23, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "I couldn't believe the twist at the end! 🤯",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(22, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Me neither! Any theories for next week?",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(20, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "I think the protagonist might switch sides... 😮",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                reactions = listOf(
+                    MessageReactionIO(content = "👍", authorPublicId = "1"),
+                    MessageReactionIO(content = "🔥", authorPublicId = "1")
+                ),
+                createdAt = LocalDateTime.parse(
+                    now.minus(18, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.RECEIVED
+            ),
+            ConversationMessageIO(
+                content = "That would be wild! I can't wait! 🚀",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                createdAt = LocalDateTime.parse(
+                    now.minus(17, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
+            ),
+            ConversationMessageIO(
+                content = "By the way, are we still on for dinner tomorrow? 🍲",
+                id = Uuid.random().toString(),
+                authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0",
+                createdAt = LocalDateTime.parse(
+                    now.minus(16, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.SENT
+            ),
+            ConversationMessageIO(
+                content = "Absolutely! Looking forward to it! 😊",
+                id = Uuid.random().toString(),
+                authorPublicId = "1",
+                reactions = listOf(
+                    MessageReactionIO(content = "❤️", authorPublicId = "2de6d3d4-606b-4100-8e2a-8611ceb30db0")
+                ),
+                createdAt = LocalDateTime.parse(
+                    now.minus(15, DateTimeUnit.HOUR)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(LocalDateTime.Formats.ISO)
+                ),
+                state = MessageState.READ
             ),
             ConversationMessageIO(
                 content = "How are you? \uD83D\uDC40",
@@ -175,7 +463,7 @@ class ConversationRepository(
                 ),
             ),
             ConversationMessageIO(
-                content = "You are visibly excited! You are visibly excited!",
+                content = "You are visibly excited!",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
                 reactions = listOf(

@@ -123,6 +123,8 @@
   <string name="conversation_attached">Attached media</string>
   <string name="conversation_action_send">Send</string>
   <string name="conversation_action_delete">Delete</string>
+  <string name="conversation_reply_heading">Replying to...</string>
+  <string name="conversation_reply_prefix_self">You:</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>
@@ -196,6 +198,7 @@
   <string name="accessibility_emojis_history">Previously selected</string>
   <string name="accessibility_reactions_all">List of all types of reaction from other users</string>
   <string name="accessibility_reaction_other">Choose emoji other than the set offers</string>
+  <string name="accessibility_message_reply">Drag the same direction to reply to this message</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

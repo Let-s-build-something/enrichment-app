@@ -260,6 +260,7 @@ fun MultiChoiceSwitchMinimalistic(
                         onClick(index)
                     }
                     .weight(1f)
+                    .align(Alignment.CenterVertically)
             ) {
                 onItemCreation(mod, index, color)
                 Box(

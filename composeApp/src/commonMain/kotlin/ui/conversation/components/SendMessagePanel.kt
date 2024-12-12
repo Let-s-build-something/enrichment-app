@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -76,6 +77,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
@@ -92,9 +94,12 @@ import augmy.composeapp.generated.resources.accessibility_message_presentation
 import augmy.composeapp.generated.resources.accessibility_message_text
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
+import augmy.composeapp.generated.resources.conversation_reply_heading
+import augmy.composeapp.generated.resources.conversation_reply_prefix_self
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
@@ -103,6 +108,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.MediaType
 import base.utils.getBitmapFromFile
 import base.utils.getMediaType
+import data.io.social.network.conversation.ConversationMessageIO
 import future_shared_module.ext.scalingClickable
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
@@ -114,12 +120,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.ConversationViewModel
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
     isEmojiPickerVisible: MutableState<Boolean>,
+    replyToMessage: MutableState<ConversationMessageIO?>,
+    scrollToMessage: (ConversationMessageIO) -> Unit,
     viewModel: ConversationViewModel
 ) {
     val screenSize = LocalScreenSize.current
@@ -194,11 +203,13 @@ internal fun BoxScope.SendMessagePanel(
     val sendMessage = {
         viewModel.sendMessage(
             content = messageContent.value.text,
-            mediaFiles = mediaAttached
+            mediaFiles = mediaAttached,
+            anchorMessageId = replyToMessage.value?.id
         )
         mediaAttached.clear()
         messageContent.value = TextFieldValue()
         viewModel.savedMessage = ""
+        replyToMessage.value = null
     }
 
 
@@ -249,6 +260,64 @@ internal fun BoxScope.SendMessagePanel(
             .animateContentSize(),
         verticalArrangement = Arrangement.Bottom
     ) {
+        replyToMessage.value?.let { originalMessage ->
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
+            }
+
+            Row(
+                modifier = Modifier
+                    .scalingClickable {
+                        scrollToMessage(originalMessage)
+                    }
+                    .widthIn(max = MaxModalWidthDp.dp)
+                    .fillMaxWidth()
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = RoundedCornerShape(
+                            topStart = LocalTheme.current.shapes.componentCornerRadius,
+                            topEnd = LocalTheme.current.shapes.componentCornerRadius
+                        )
+                    )
+                    .padding(top = 2.dp, bottom = 10.dp, start = 16.dp, end = 8.dp)
+            ) {
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = stringResource(Res.string.conversation_reply_heading),
+                    style = LocalTheme.current.styles.regular
+                )
+                Column(
+                    modifier = Modifier
+                        .padding(top = 8.dp, start = 6.dp)
+                        .weight(1f)
+                ) {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = if(originalMessage.authorPublicId == viewModel.currentUser.value?.publicId) {
+                            stringResource(Res.string.conversation_reply_prefix_self)
+                        }else originalMessage.user?.displayName?.plus(":") ?: "",
+                        style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        modifier = Modifier.padding(top = 2.dp, start = 4.dp),
+                        text = originalMessage.content ?: "",
+                        style = LocalTheme.current.styles.regular.copy(fontSize = 14.sp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                MinimalisticIcon(
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        replyToMessage.value = null
+                    }
+                )
+            }
+        }
+
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
         if(mediaAttached.isNotEmpty()) {
