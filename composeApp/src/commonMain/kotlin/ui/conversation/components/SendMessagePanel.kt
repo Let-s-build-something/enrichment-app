@@ -108,6 +108,8 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
@@ -765,4 +767,9 @@ private const val MAX_ITEMS_SELECTED = 20
 
 private const val MEDIA_MAX_HEIGHT_DP = 250
 
-private const val REGEX_GRAPHEME = """\X"""
+// IOS does not support unicode special classes, must be done manually
+private val REGEX_GRAPHEME_IOS = """
+    (?:[\uD800-\uDBFF][\uDC00-\uDFFF][\uFE0F\u200D\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*|[\u0020-\u007E]|[\u00A0-\uFFFF]|\s|.)[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*
+""".trimIndent()
+
+private val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""
