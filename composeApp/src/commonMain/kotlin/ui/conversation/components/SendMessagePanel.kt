@@ -4,10 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,7 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -51,6 +48,7 @@ import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -73,7 +71,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -82,8 +81,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -91,6 +88,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
 import augmy.composeapp.generated.resources.accessibility_action_keyboard
 import augmy.composeapp.generated.resources.accessibility_cancel
+import augmy.composeapp.generated.resources.accessibility_message_action_audio
 import augmy.composeapp.generated.resources.accessibility_message_action_file
 import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_audio
@@ -111,7 +109,6 @@ import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
-import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -139,7 +136,6 @@ internal fun BoxScope.SendMessagePanel(
     isEmojiPickerVisible: MutableState<Boolean>,
     replyToMessage: MutableState<ConversationMessageIO?>,
     scrollToMessage: (ConversationMessageIO) -> Unit,
-    onSizeChanged: (Float) -> Unit,
     viewModel: ConversationViewModel
 ) {
     val screenSize = LocalScreenSize.current
@@ -150,7 +146,7 @@ internal fun BoxScope.SendMessagePanel(
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
-    val missingKeyboardHeight = remember { viewModel.keyboardHeight == 0 }
+    val missingKeyboardHeight = remember { viewModel.keyboardHeight < 2 }
 
     val messageContent = remember {
         mutableStateOf(
@@ -166,14 +162,18 @@ internal fun BoxScope.SendMessagePanel(
     val showMoreOptions = rememberSaveable {
         mutableStateOf(messageContent.value.text.isBlank())
     }
-    val messagePanelHeight = rememberSaveable {
-        mutableStateOf(100f)
+    val actionYCoordinate = rememberSaveable {
+        mutableStateOf(-1f)
     }
 
     val bottomPadding = animateFloatAsState(
         targetValue = if (imeHeightPadding >= viewModel.keyboardHeight.div(2) || isEmojiPickerVisible.value) {
             LocalTheme.current.shapes.betweenItemsSpace.value
-        } else with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value },
+        } else {
+            with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value }.coerceAtLeast(
+                LocalTheme.current.shapes.betweenItemsSpace.value
+            )
+        },
         label = "bottomPadding",
         animationSpec = tween(durationMillis = 20, easing = LinearEasing)
     )
@@ -235,10 +235,11 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     LaunchedEffect(Unit) {
-        focusRequester.captureFocus()
+        println("kostka_test, missingKeyboardHeight: $missingKeyboardHeight, keyboardHeight: ${viewModel.keyboardHeight}")
         if(missingKeyboardHeight) {
+            focusRequester.requestFocus()
             keyboardController?.show()
-        }
+        }else focusRequester.captureFocus()
     }
 
     if(missingKeyboardHeight) {
@@ -271,16 +272,8 @@ internal fun BoxScope.SendMessagePanel(
 
     Column(
         modifier = (if(isDesktop) modifier else modifier.height(IntrinsicSize.Min))
-            .animateContentSize()
-            .onSizeChanged {
-                if(it.height != 0) {
-                    with(density) {
-                        messagePanelHeight.value = it.height.toDp().value
-                        onSizeChanged(messagePanelHeight.value)
-                    }
-                }
-            },
-        verticalArrangement = Arrangement.Bottom
+            .animateContentSize(),
+        verticalArrangement = Arrangement.Top
     ) {
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
@@ -524,6 +517,9 @@ internal fun BoxScope.SendMessagePanel(
                     .requiredHeight(44.dp)
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
+                    .onGloballyPositioned {
+                        actionYCoordinate.value = it.positionInRoot().y
+                    }
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
@@ -549,7 +545,7 @@ internal fun BoxScope.SendMessagePanel(
                                             delay(200)
                                             viewModel.keyboardHeight -= 1
                                         }
-                                    }else viewModel.keyboardHeight = screenSize.height / 4
+                                    }else viewModel.keyboardHeight = screenSize.height / 3
 
                                     keyboardController?.hide()
                                     isEmojiPickerVisible.value = true
@@ -636,26 +632,25 @@ internal fun BoxScope.SendMessagePanel(
 
             // space for the microphone action
             Crossfade(targetState = messageContent.value.text.isBlank()) { isBlank ->
-                if(isBlank) {
-                    Spacer(Modifier.width(38.dp + spacing))
-                }else {
-                    Icon(
-                        modifier = Modifier
-                            .scalingClickable {
-                                sendMessage()
-                            }
-                            .padding(start = spacing)
-                            .size(38.dp)
-                            .background(
-                                color = LocalTheme.current.colors.brandMainDark,
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                            .padding(6.dp),
-                        imageVector = Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = stringResource(Res.string.accessibility_message_action_image),
-                        tint = Color.White
-                    )
-                }
+                Icon(
+                    modifier = Modifier
+                        .scalingClickable {
+                            if(!isBlank) sendMessage()
+                        }
+                        .padding(start = spacing)
+                        .size(38.dp)
+                        .background(
+                            color = LocalTheme.current.colors.brandMainDark,
+                            shape = LocalTheme.current.shapes.componentShape
+                        )
+                        .padding(6.dp),
+                    imageVector = if(isBlank) Icons.Outlined.Mic else Icons.AutoMirrored.Outlined.Send,
+                    contentDescription = stringResource(
+                        if(isBlank) Res.string.accessibility_message_action_audio
+                        else Res.string.accessibility_message_action_image
+                    ),
+                    tint = Color.White
+                )
             }
         }
 
@@ -749,10 +744,7 @@ internal fun BoxScope.SendMessagePanel(
     if(messageContent.value.text.isBlank()) {
         PanelMicrophone(
             modifier = Modifier
-                .padding(
-                    bottom = messagePanelHeight.value.dp
-                        .minus(44.dp + 9.dp).coerceAtLeast(0.dp)
-                )
+                .offset(y = - (screenSize.height.dp - with(density) { actionYCoordinate.value.toDp() } - 44.dp))
                 .align(Alignment.BottomEnd),
             onSaveRequest = { byteArray ->
                 viewModel.sendAudioMessage(byteArray)
@@ -768,7 +760,6 @@ private fun removeUnicodeCharacter(text: String, index: Int): String {
 
     return prefix.removeSuffix(suffix) + text.substring(index)
 }
-
 
 /** Maximum amount of files, images, and videos to be selected and sent within a singular message */
 private const val MAX_ITEMS_SELECTED = 20

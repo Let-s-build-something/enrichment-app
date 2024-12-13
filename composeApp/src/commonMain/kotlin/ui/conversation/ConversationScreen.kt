@@ -5,7 +5,11 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -169,7 +173,15 @@ fun ConversationScreen(
                         })
                     }
                     .align(Alignment.BottomCenter)
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            coroutineScope.launch {
+                                listState.scrollBy(-delta)
+                            }
+                        },
+                    ),
                 verticalArrangement = Arrangement.Bottom,
                 reverseLayout = true,
                 state = listState
@@ -274,12 +286,16 @@ fun ConversationScreen(
                             topStart = LocalTheme.current.shapes.componentCornerRadius,
                             topEnd = LocalTheme.current.shapes.componentCornerRadius
                         )
-                    ),
+                    )
+                    .onSizeChanged {
+                        if(it.height != 0) {
+                            with(density) {
+                                messagePanelHeight.value = it.height.toDp().value
+                            }
+                        }
+                    },
                 isEmojiPickerVisible = isEmojiPickerVisible,
                 viewModel = viewModel,
-                onSizeChanged = {
-                    messagePanelHeight.value = it
-                },
                 replyToMessage = replyToMessage,
                 scrollToMessage = {
                     val currentSnapshotList = messages.itemSnapshotList.toList() // Make a copy of the current state

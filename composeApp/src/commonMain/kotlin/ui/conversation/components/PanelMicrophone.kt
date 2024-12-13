@@ -1,6 +1,7 @@
 package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -71,6 +72,8 @@ import augmy.composeapp.generated.resources.accessibility_resume
 import augmy.composeapp.generated.resources.conversation_action_delete
 import augmy.composeapp.generated.resources.conversation_action_send
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -135,6 +138,7 @@ fun PanelMicrophone(
     }
     val selectedIndex = remember { mutableStateOf(-1) }
     val coordinates = remember { mutableStateOf(Offset.Zero) }
+    val microphoneSize = remember { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(isRecording.value) {
         if (isRecording.value) {
@@ -187,6 +191,7 @@ fun PanelMicrophone(
         draggableArea = draggableArea.dp,
         isRecording = isRecording,
         isLockedMode = isLockedMode,
+        microphoneSize = microphoneSize,
         selectedIndex = selectedIndex,
         coordinates = coordinates,
     )
@@ -199,6 +204,7 @@ fun PanelMicrophone(
         isLockedMode = isLockedMode,
         selectedIndex = selectedIndex,
         coordinates = coordinates,
+        microphoneSize = microphoneSize,
         startRecording = startRecording,
         stopRecording = stopRecording,
         onSaveRequest = onSaveRequest,
@@ -216,6 +222,7 @@ private fun MicrophoneIcon(
     isLockedMode: MutableState<Boolean>,
     selectedIndex: MutableState<Int>,
     coordinates: MutableState<Offset>,
+    microphoneSize: MutableState<IntSize>,
     startRecording: () -> Unit,
     stopRecording: () -> Unit,
     onSaveRequest: (ByteArray) -> Unit,
@@ -239,9 +246,6 @@ private fun MicrophoneIcon(
     val animatedOffsetX = remember { Animatable(0f) }
     val animatedOffsetY = remember { Animatable(0f) }
     val offset = remember { mutableStateOf(Offset.Zero) }
-    val microphoneSize = remember {
-        mutableStateOf(IntSize.Zero)
-    }
 
     Box(
         modifier = modifier
@@ -319,82 +323,102 @@ private fun MicrophoneIcon(
                 }
             }
             Box(
-                modifier = Modifier.heightIn(min = 44.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    modifier = Modifier
-                        .scalingDraggable(
-                            onDrag = { dragged ->
-                                if (dragged) {
-                                    if (permissionsRequester.isGranted) {
-                                        startRecording()
-                                    }else {
-                                        permissionsRequester.requestPermission()
+                modifier = Modifier
+                    .heightIn(min = 44.dp)
+                    .zIndex(1f)
+                    .scalingDraggable(
+                        onDrag = { dragged ->
+                            if (dragged) {
+                                if (permissionsRequester.isGranted) {
+                                    startRecording()
+                                }else {
+                                    permissionsRequester.requestPermission()
+                                }
+                            }else if (permissionsRequester.isGranted) {
+                                when(selectedIndex.value) {
+                                    0 -> {
+                                        isLockedMode.value = false
+                                        stopRecording()
                                     }
-                                }else if (permissionsRequester.isGranted) {
-                                    when(selectedIndex.value) {
-                                        0 -> {
-                                            isLockedMode.value = false
+                                    1 -> {
+                                        isLockedMode.value = false
+                                        coroutineScope.launch {
+                                            recorder.saveRecording()?.let {
+                                                onSaveRequest(it)
+                                            }
                                             stopRecording()
                                         }
-                                        1 -> {
-                                            isLockedMode.value = false
-                                            coroutineScope.launch {
-                                                recorder.saveRecording()?.let {
-                                                    onSaveRequest(it)
-                                                }
-                                                stopRecording()
-                                            }
-                                        }
-                                        -1, 2 -> isLockedMode.value = true
                                     }
-                                    offset.value = Offset.Zero
-                                    animCoroutineScope.coroutineContext.cancelChildren()
-                                    animCoroutineScope.launch {
-                                        animatedOffsetX.animateTo(offset.value.y)
-                                    }
-                                    animCoroutineScope.launch {
-                                        animatedOffsetY.animateTo(offset.value.x)
-                                    }
+                                    -1, 2 -> isLockedMode.value = true
                                 }
-                            },
-                            onDragChange = { _, dragAmount ->
-                                if(permissionsRequester.isGranted) {
-                                    offset.value += dragAmount
-                                    animCoroutineScope.launch {
-                                        animatedOffsetX.animateTo(
-                                            offset.value.x.plus(
-                                                animatedOffsetX.value.absoluteValue / screenSize.width * microphoneSize.value.width / 2
-                                            )
-                                        )
-                                    }
-                                    animCoroutineScope.launch {
-                                        animatedOffsetY.animateTo(
-                                            offset.value.y
-                                                .plus(
-                                                    animatedOffsetY.value.absoluteValue / screenSize.height * microphoneSize.value.height / 2
-                                                )
-                                                .minus(microphoneSize.value.height.div(2))
-                                        )
-                                    }
+                                offset.value = Offset.Zero
+                                animCoroutineScope.coroutineContext.cancelChildren()
+                                animCoroutineScope.launch {
+                                    animatedOffsetX.animateTo(offset.value.y)
+                                }
+                                animCoroutineScope.launch {
+                                    animatedOffsetY.animateTo(offset.value.x)
                                 }
                             }
-                        )
-                        .onGloballyPositioned {
-                            coordinates.value = it.positionInRoot()
+                        },
+                        onDragChange = { _, dragAmount ->
+                            if(permissionsRequester.isGranted) {
+                                offset.value += dragAmount
+                                animCoroutineScope.launch {
+                                    animatedOffsetX.animateTo(
+                                        offset.value.x
+                                            .plus(
+                                                if(currentPlatform == PlatformType.Android) {
+                                                    animatedOffsetX.value.absoluteValue / screenSize.width * microphoneSize.value.width / 2f
+                                                }else {
+                                                    animatedOffsetX.value.absoluteValue.div(screenSize.width).times(microphoneSize.value.width * 2f)
+                                                }
+                                            )
+                                    )
+                                }
+                                animCoroutineScope.launch {
+                                    animatedOffsetY.animateTo(
+                                        offset.value.y
+                                            .plus(
+                                                if(currentPlatform == PlatformType.Android) {
+                                                    animatedOffsetY.value.absoluteValue / screenSize.height * microphoneSize.value.height / 2f
+                                                }else {
+                                                    animatedOffsetY.value.absoluteValue.div(screenSize.height).times(microphoneSize.value.height * 2f)
+                                                } - microphoneSize.value.height / 3f
+                                            )
+                                    )
+                                }
+                            }
                         }
-                        .size(38.dp)
-                        .zIndex(1f)
-                        .background(
-                            color = LocalTheme.current.colors.brandMainDark,
-                            shape = LocalTheme.current.shapes.componentShape
+                    )
+                    .onGloballyPositioned {
+                        coordinates.value = it.positionInRoot()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Crossfade(offset.value != Offset.Zero) { isDragging ->
+                    if(isDragging) {
+                        Icon(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .zIndex(1f)
+                                .background(
+                                    color = LocalTheme.current.colors.brandMainDark,
+                                    shape = LocalTheme.current.shapes.componentShape
+                                )
+                                .padding(6.dp),
+                            imageVector = Icons.Outlined.Mic,
+                            contentDescription = stringResource(Res.string.accessibility_message_action_audio),
+                            tint = Color.White
                         )
-                        .padding(6.dp),
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = stringResource(Res.string.accessibility_message_action_audio),
-                    tint = Color.White
-                )
+                    }else {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .padding(6.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -405,6 +429,7 @@ private fun ActionsForDrag(
     modifier: Modifier = Modifier,
     draggableArea: Dp,
     isRecording: MutableState<Boolean>,
+    microphoneSize: MutableState<IntSize>,
     isLockedMode: MutableState<Boolean>,
     selectedIndex: MutableState<Int>,
     coordinates: MutableState<Offset>
@@ -429,20 +454,20 @@ private fun ActionsForDrag(
                         mutableStateOf(Offset.Zero)
                     }
                     val isInArea = with(density) {
-                        val startX = positionInRoot.value.x - 60.dp.toPx()
-                        val endX = positionInRoot.value.x + 44.dp.toPx()
-                        val startY = positionInRoot.value.y - 60.dp.toPx()
-                        val endY = positionInRoot.value.y + 34.dp.toPx()
+                        val startX = positionInRoot.value.x - microphoneSize.value.width / 2 - 19.dp.toPx()
+                        val endX = positionInRoot.value.x + microphoneSize.value.width - 19.dp.toPx()
+                        val startY = positionInRoot.value.y - microphoneSize.value.height / 2 + 19.dp.toPx()
+                        val endY = positionInRoot.value.y + microphoneSize.value.height
 
-                        (coordinates.value.x - 19.dp.toPx()) in startX..endX &&
-                                (coordinates.value.y - 19.dp.toPx()) in startY..endY
+                        (coordinates.value.x) in startX..endX &&
+                                (coordinates.value.y) in startY..endY
                     }
                     val tintColor = animateColorAsState(
                         targetValue = if (isInArea) {
                             when (index) {
                                 0 -> SharedColors.RED_ERROR
                                 1 -> LocalTheme.current.colors.brandMainDark
-                                else -> LocalTheme.current.colors.secondary
+                                else -> Colors.EerieBlack
                             }
                         } else Colors.GrayLight
                     )
