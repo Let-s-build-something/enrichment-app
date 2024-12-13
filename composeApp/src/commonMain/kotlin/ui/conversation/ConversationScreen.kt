@@ -178,7 +178,7 @@ fun ConversationScreen(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
                             coroutineScope.launch {
-                                listState.scrollBy(-delta)
+                                listState.scrollBy(delta)
                             }
                         },
                     ),

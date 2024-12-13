@@ -33,6 +33,7 @@ actual fun rememberAudioRecorder(
             private val lineInfo = DataLine.Info(TargetDataLine::class.java, format)
             private var line: TargetDataLine? = null
             private var buffer: ByteArrayOutputStream? = null
+            private var recordingThread: Thread? = null
 
             // bar creation
             private var barBuffer: ByteArrayOutputStream? = null
@@ -46,30 +47,39 @@ actual fun rememberAudioRecorder(
             override fun startRecording() {
                 if(line == null) {
                     stopRecording()
+
                     buffer = ByteArrayOutputStream()
                     barBuffer = ByteArrayOutputStream()
                     line = AudioSystem.getLine(lineInfo) as? TargetDataLine
 
-                    line?.open(format)
-                    line?.addLineListener {
+                    line?.open(format, bufferSize)
+                }
+
+                if(line?.isOpen == true) {
+                    recordingThread = Thread {
                         val audioStream = AudioInputStream(line)
                         val data = ByteArray(bufferSize)
-                        val bytesRead = audioStream.read(data, 0, data.size)
 
-                        if (bytesRead > 0) {
-                            buffer?.write(data, 0, bytesRead)
-                            barBuffer?.write(data, 0, bytesRead)
-                            if((barBuffer?.size() ?: 0) >= bytesPerBar) {
-                                val byteArray = barBuffer?.toByteArray()
-                                coroutineScope.launch {
-                                    processChunk(byteArray = byteArray)
+                        while (recordingThread != null) {
+                            val bytesRead = audioStream.read(data, 0, data.size)
+
+                            if (bytesRead > 0) {
+                                buffer?.write(data, 0, bytesRead)
+                                barBuffer?.write(data, 0, bytesRead)
+
+                                if((barBuffer?.size() ?: 0) >= bytesPerBar) {
+                                    val byteArray = barBuffer?.toByteArray()
+                                    coroutineScope.launch {
+                                        processChunk(byteArray = byteArray)
+                                    }
+                                    barBuffer?.reset()
                                 }
-                                barBuffer?.reset()
                             }
                         }
                     }
+                    recordingThread?.start()
+                    line?.start()
                 }
-                line?.start()
             }
 
             override suspend fun saveRecording(): ByteArray? {
@@ -78,6 +88,8 @@ actual fun rememberAudioRecorder(
 
             override fun pauseRecording() {
                 line?.stop()
+                recordingThread?.interrupt()
+                recordingThread = null
             }
 
             override fun stopRecording() {
@@ -88,6 +100,8 @@ actual fun rememberAudioRecorder(
                 line = null
                 buffer?.flush()
                 buffer = null
+                recordingThread?.interrupt()
+                recordingThread = null
                 barBuffer?.flush()
                 barBuffer = null
             }

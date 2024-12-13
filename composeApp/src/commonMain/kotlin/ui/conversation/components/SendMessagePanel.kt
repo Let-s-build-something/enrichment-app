@@ -235,7 +235,6 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     LaunchedEffect(Unit) {
-        println("kostka_test, missingKeyboardHeight: $missingKeyboardHeight, keyboardHeight: ${viewModel.keyboardHeight}")
         if(missingKeyboardHeight) {
             focusRequester.requestFocus()
             keyboardController?.show()

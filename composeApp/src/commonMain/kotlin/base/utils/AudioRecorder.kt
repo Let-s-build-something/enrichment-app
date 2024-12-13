@@ -40,7 +40,7 @@ abstract class AudioRecorder(
                 val amplitudes = peaks.mapIndexed { index, d -> d to "${index}_${d}_$samplePeakSum" }
                 samplePeakSum += peaks.sum()
                 samplePeakCount += peaks.size
-                peakMedian.doubleValue = samplePeakSum / samplePeakCount * 3.5
+                peakMedian.doubleValue = samplePeakSum / samplePeakCount * 3.5f
                 barPeakAmplitudes.value = barPeakAmplitudes.value.plus(amplitudes).takeLast(barsCount)
             }
         }
