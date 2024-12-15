@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.emoji
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image

@@ -308,6 +308,7 @@ buildkonfig {
         buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
         buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
         buildConfigField(STRING, "BearerToken", keystoreProperties["bearerToken"] as String)
+        buildConfigField(STRING, "GiphyApiKey", keystoreProperties["giphyApiKey"] as String)
 
         buildConfigField(STRING, "HttpsHostName", releaseHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidReleaseAppId"] as String)

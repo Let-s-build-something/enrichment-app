@@ -63,7 +63,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
-import ui.conversation.components.EmojiPreferencePicker
+import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.rememberMessageBubbleState

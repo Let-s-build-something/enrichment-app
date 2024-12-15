@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.emoji
 
 import androidx.compose.foundation.BasicTooltipBox
 import androidx.compose.foundation.BasicTooltipDefaults.GlobalMutatorMutex
@@ -79,7 +79,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
-import ui.conversation.ConversationViewModel.Companion.EMOJIS_HISTORY_GROUP
+import ui.conversation.components.emoji.EmojiUseCase.Companion.EMOJIS_HISTORY_GROUP
 
 /** Component displaying emojis with the ability to select one and filter them */
 @OptIn(ExperimentalFoundationApi::class)

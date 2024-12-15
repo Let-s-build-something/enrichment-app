@@ -130,6 +130,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
+import ui.conversation.components.emoji.MessageEmojiPanel
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable

@@ -30,25 +30,29 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
+import ui.conversation.components.emoji.EmojiUseCase
+import ui.conversation.components.giphy.GiphyUseCase
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
-    factory { ConversationDataManager() }
-    single { ConversationDataManager() }
-    factory { ConversationRepository(get(), get()) }
+    factory { EmojiDataManager() }
+    single { EmojiDataManager() }
+    factory { ConversationRepository(get()) }
+    factory { EmojiUseCase(get(), get()) }
+    factory { GiphyUseCase() }
     factory {
-        ConversationViewModel(get<ConversationRepository>(), get<ConversationDataManager>(), get())
+        ConversationViewModel(get<ConversationRepository>(), get(), get(), get())
     }
     viewModelOf(::ConversationViewModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-@OptIn(ExperimentalResourceApi::class)
 class ConversationViewModel(
     private val repository: ConversationRepository,
-    private val dataManager: ConversationDataManager,
-    private val conversationId: String
+    private val conversationId: String,
+    private val emojiUseCase: EmojiUseCase,
+    private val giphyUseCase: GiphyUseCase
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
@@ -57,12 +61,6 @@ class ConversationViewModel(
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
-    private val _preferredEmojis = MutableStateFlow(listOf<EmojiData>())
-    private val _emojiHistory = MutableStateFlow(mutableListOf<EmojiData>())
-    private val emojiSearch = MutableStateFlow("")
-
-    /** Whether there is emoji filter */
-    val areEmojisFiltered = MutableStateFlow(false)
 
     val additionalBottomPadding = Animatable(0f)
 
@@ -70,31 +68,14 @@ class ConversationViewModel(
     val conversationDetail = _conversationDetail.asStateFlow()
 
     /** Preferred emojis of an individual conversation */
-    val preferredEmojis = _preferredEmojis.asStateFlow()
+    val preferredEmojis = emojiUseCase.preferredEmojis.asStateFlow()
 
     /** List of all available emojis */
-    val emojis = dataManager.emojis.combine(
-        _emojiHistory
-    ) { emojis, history ->
-        if(emojis.isEmpty()) return@combine null
-        withContext(Dispatchers.Default) {
-            mutableListOf(EMOJIS_HISTORY_GROUP to history.toList()).apply {
-                addAll(emojis)
-            }
-        }
-    }.combine(emojiSearch) { emojis, query ->
-        if (query.isBlank()) {
-            areEmojisFiltered.value = false
-            emojis
-        } else {
-            areEmojisFiltered.value = true
-            emojis?.map { category ->
-                category.first to category.second.filter { emoji ->
-                    emoji.name.contains(query, ignoreCase = true)
-                }
-            }
-        }
-    }
+    val emojis = emojiUseCase.emojis
+
+    /** Whether there is emoji filter */
+    val areEmojisFiltered = emojiUseCase.areEmojisFiltered.asStateFlow()
+
 
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
@@ -145,42 +126,28 @@ class ConversationViewModel(
                 }
             }
         }
-
-        if(_preferredEmojis.value.isEmpty()) {
-            requestPreferredEmojis()
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            val jsonString = Res.readBytes("files/emoji_data_set.json").decodeToString()
-            withContext(Dispatchers.Default) {
-                repository.json.decodeFromString<Map<String, Map<String, List<EmojiData>>>>(jsonString).let { raw ->
-                    dataManager.emojis.value = raw.map { category ->
-                        category.key to category.value.flatMap { it.value }
-                    }
-                }
-            }
+        viewModelScope.launch {
+            emojiUseCase.initialize()
         }
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
     }
 
 
-    /** Filters emojis */
-    fun filterEmojis(query: String) {
-        emojiSearch.value = query
-    }
+
+    // ==================== functions ===========================
 
     /** Filters emojis */
-    fun updatePreferredEmojiSet(list: List<EmojiData>) {
+    fun filterEmojis(query: String) {
         viewModelScope.launch {
-            _preferredEmojis.value = list
-            //TODO update preferred emojis local DB
+            emojiUseCase.filterEmojis(query)
         }
     }
 
-    /** Makes a request for preferred emojis */
-    private fun requestPreferredEmojis() {
+    /** Updates preferred emojis */
+    suspend fun updatePreferredEmojiSet(list: List<EmojiData>) {
         viewModelScope.launch {
-            _preferredEmojis.value = DefaultEmojis
+            emojiUseCase.updatePreferredEmojiSet(list)
         }
     }
 
@@ -272,22 +239,5 @@ class ConversationViewModel(
             reference.putData(fromByteArrayToData(byteArray))
             reference.getDownloadUrl()
         }
-    }
-
-    companion object {
-
-        /** List of default emojis representing different categories */
-        private val DefaultEmojis
-            get() = listOf(
-                EmojiData(mutableListOf("❤\uFE0F"), name = "Red heart"),
-                EmojiData(mutableListOf("\uD83D\uDC4D"), name = "Thumbs up"),
-                EmojiData(mutableListOf("\uD83D\uDC4E"), name = "Thumbs down"),
-                EmojiData(mutableListOf("\uD83D\uDE06"), name = "Grinning Squinting Face"),
-                EmojiData(mutableListOf("\uD83D\uDE2F"), name = "Hushed Face"),
-                EmojiData(mutableListOf("\uD83D\uDE25"), name = "Sad but Relieved Face"),
-            )
-
-        /** Key for the group of emojis representing past history of this user */
-        internal const val EMOJIS_HISTORY_GROUP = "history"
     }
 }
