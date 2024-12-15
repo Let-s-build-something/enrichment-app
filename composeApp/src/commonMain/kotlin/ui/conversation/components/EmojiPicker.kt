@@ -1,13 +1,12 @@
 package ui.conversation.components
 
 import androidx.compose.foundation.BasicTooltipBox
+import androidx.compose.foundation.BasicTooltipDefaults.GlobalMutatorMutex
+import androidx.compose.foundation.BasicTooltipState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.background
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -21,12 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberBasicTooltipState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -36,12 +35,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -68,16 +68,20 @@ import augmy.composeapp.generated.resources.error_general
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
+import data.io.social.network.conversation.EmojiData
 import future_shared_module.ext.scalingClickable
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 import ui.conversation.ConversationViewModel.Companion.EMOJIS_HISTORY_GROUP
 
 /** Component displaying emojis with the ability to select one and filter them */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EmojiPicker(
     modifier: Modifier = Modifier,
@@ -100,7 +104,7 @@ fun EmojiPicker(
             state = gridState
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(
@@ -109,7 +113,6 @@ fun EmojiPicker(
                 ) {
                     EditFieldInput(
                         modifier = Modifier
-                            .padding(top = 8.dp)
                             .requiredHeight(44.dp)
                             .fillMaxWidth(.65f)
                             .onFocusChanged {
@@ -142,9 +145,6 @@ fun EmojiPicker(
                     )
                 }
             }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Spacer(Modifier.height(16.dp))
-            }
             emojis.value?.forEach { category ->
                 if(category.second.isNotEmpty()) {
                     if(!areEmojisFiltered.value) {
@@ -173,78 +173,11 @@ fun EmojiPicker(
                         items = category.second,
                         key = { it.name }
                     ) { emojiData ->
-                        val tooltipState = rememberBasicTooltipState(isPersistent = true)
-
-                        Box(modifier = Modifier.animateItem()) {
-                            BasicTooltipBox(
-                                focusable = true,
-                                enableUserInput = false,
-                                positionProvider = TooltipDefaults.rememberRichTooltipPositionProvider(),
-                                tooltip = {
-                                    LazyRow(
-                                        modifier = Modifier
-                                            .background(
-                                                color = LocalTheme.current.colors.component,
-                                                shape = LocalTheme.current.shapes.componentShape
-                                            )
-                                            .padding(4.dp)
-                                    ) {
-                                        items(
-                                            emojiData.emoji,
-                                            key = { it }
-                                        ) { emoji ->
-                                            Text(
-                                                modifier = Modifier
-                                                    .scalingClickable {
-                                                        tooltipState.dismiss()
-                                                        onEmojiSelected(emoji)
-                                                    }
-                                                    .size(46.dp)
-                                                    .padding(4.dp)
-                                                    .animateItem(),
-                                                text = emoji,
-                                                style = LocalTheme.current.styles.heading.copy(
-                                                    textAlign = TextAlign.Center
-                                                )
-                                            )
-                                        }
-                                    }
-                                },
-                                state = tooltipState
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .scalingClickable {
-                                            if(emojiData.emoji.size > 1) {
-                                                coroutineScope.launch {
-                                                    tooltipState.show()
-                                                }
-                                            }else onEmojiSelected(emojiData.emoji.firstOrNull() ?: "")
-                                        }
-                                ) {
-                                    Text(
-                                        modifier = Modifier
-                                            .size(46.dp)
-                                            .padding(4.dp),
-                                        text = emojiData.emoji.firstOrNull() ?: "",
-                                        style = LocalTheme.current.styles.heading.copy(
-                                            textAlign = TextAlign.Center
-                                        )
-                                    )
-                                    if(emojiData.emoji.size > 1) {
-                                        Icon(
-                                            modifier = Modifier
-                                                .rotate(-45f)
-                                                .size(16.dp)
-                                                .align(Alignment.BottomEnd),
-                                            imageVector = Icons.Outlined.ArrowDropDown,
-                                            contentDescription = null,
-                                            tint = LocalTheme.current.colors.secondary
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        EmojiImpl(
+                            emojiData = emojiData,
+                            onEmojiSelected = onEmojiSelected,
+                            coroutineScope = coroutineScope
+                        )
                     }
                 }
             }
@@ -253,6 +186,114 @@ fun EmojiPicker(
                     50.dp + with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
                 ))
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@ExperimentalFoundationApi
+@Composable
+private fun LazyGridItemScope.EmojiImpl(
+    emojiData: EmojiData,
+    onEmojiSelected: (String) -> Unit,
+    coroutineScope: CoroutineScope
+) {
+    val state = remember(emojiData.name) {
+        object: BasicTooltipState {
+            override var isVisible by mutableStateOf(false)
+            override val isPersistent: Boolean = true
+            private val mutatorMutex: MutatorMutex = GlobalMutatorMutex
+
+            private var job: (CancellableContinuation<Unit>)? = null
+
+            override suspend fun show(mutatePriority: MutatePriority) {
+                val cancellableShow: suspend () -> Unit = {
+                    suspendCancellableCoroutine { continuation ->
+                        isVisible = true
+                        job = continuation
+                    }
+                }
+                mutatorMutex.mutate(mutatePriority) {
+                    try { cancellableShow() } finally { isVisible = false }
+                }
+            }
+            override fun dismiss() {}
+            override fun onDispose() {
+                isVisible = false
+                job?.cancel()
+            }
+        }
+    }
+
+    BasicTooltipBox(
+        focusable = false,
+        enableUserInput = false,
+        state = state,
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = {
+            LazyRow(
+                modifier = Modifier
+                    .background(
+                        color = LocalTheme.current.colors.component,
+                        shape = LocalTheme.current.shapes.componentShape
+                    )
+                    .padding(4.dp)
+            ) {
+                items(
+                    emojiData.emoji,
+                    key = { it }
+                ) { emoji ->
+                    Text(
+                        modifier = Modifier
+                            .scalingClickable {
+                                coroutineScope.launch {
+                                    state.onDispose()
+                                }
+                                onEmojiSelected(emoji)
+                            }
+                            .size(46.dp)
+                            .padding(4.dp)
+                            .animateItem(),
+                        text = emoji,
+                        style = LocalTheme.current.styles.heading.copy(
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                }
+            }
+        },
+    ) { Box(Modifier) }
+
+    Box(
+        modifier = Modifier
+            .scalingClickable {
+                if(emojiData.emoji.size > 1) {
+                    coroutineScope.launch {
+                        state.show(MutatePriority.PreventUserInput)
+                    }
+                }else onEmojiSelected(emojiData.emoji.firstOrNull() ?: "")
+            }
+            .animateItem()
+    ) {
+        Text(
+            modifier = Modifier
+                .size(46.dp)
+                .padding(4.dp),
+            text = emojiData.emoji.firstOrNull() ?: "",
+            style = LocalTheme.current.styles.heading.copy(
+                textAlign = TextAlign.Center
+            )
+        )
+        if(emojiData.emoji.size > 1) {
+            Icon(
+                modifier = Modifier
+                    .rotate(-45f)
+                    .size(16.dp)
+                    .align(Alignment.BottomEnd),
+                imageVector = Icons.Outlined.ArrowDropDown,
+                contentDescription = null,
+                tint = LocalTheme.current.colors.secondary
+            )
         }
     }
 }

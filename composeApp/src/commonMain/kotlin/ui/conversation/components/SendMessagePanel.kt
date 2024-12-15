@@ -635,7 +635,7 @@ internal fun BoxScope.SendMessagePanel(
             Crossfade(targetState = messageContent.value.text.isBlank()) { isBlank ->
                 Icon(
                     modifier = Modifier
-                        .scalingClickable {
+                        .scalingClickable(enabled = !isBlank) {
                             if(!isBlank) sendMessage()
                         }
                         .padding(start = spacing)

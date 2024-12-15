@@ -3,8 +3,8 @@ package base.utils
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import platform.AVFAudio.AVAudioApplication
-import platform.AVFAudio.AVAudioApplicationRecordPermissionGranted
+import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionRecordPermissionGranted
 import platform.AVFoundation.AVAuthorizationStatusAuthorized
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVMediaTypeVideo
@@ -32,7 +32,7 @@ actual fun rememberPermissionRequesterState(
             ) == AVAuthorizationStatusAuthorized
         }
         PermissionType.AUDIO_RECORD -> {
-            isGranted.value = AVAudioApplication.sharedInstance.recordPermission == AVAudioApplicationRecordPermissionGranted
+            isGranted.value = AVAudioSession.sharedInstance().recordPermission == AVAudioSessionRecordPermissionGranted
         }
         PermissionType.NOTIFICATIONS -> {
             UNUserNotificationCenter.currentNotificationCenter().getNotificationSettingsWithCompletionHandler {
@@ -55,7 +55,7 @@ actual fun rememberPermissionRequesterState(
                         }
                     }
                     PermissionType.AUDIO_RECORD -> {
-                        AVAudioApplication.requestRecordPermissionWithCompletionHandler {
+                        AVAudioSession.sharedInstance().requestRecordPermission {
                             isGranted.value = it
                             onResponse(it)
                         }

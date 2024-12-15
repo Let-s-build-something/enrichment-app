@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 abstract class AudioRecorder(
     sampleRate: Int,
@@ -15,8 +17,7 @@ abstract class AudioRecorder(
     protected val bytesPerBar = (sampleRate * secondsPerBar * 2).toInt()
     private var samplePeakSum = 0.0
 
-    var samplePeakCount = 0
-        private set
+    private var samplePeakCount = 0
     val barPeakAmplitudes = mutableStateOf(listOf<Pair<Double, String>>())
     val peakMedian = mutableDoubleStateOf(0.0)
 
@@ -31,13 +32,14 @@ abstract class AudioRecorder(
         peakMedian.doubleValue = 0.0
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     protected suspend fun processChunk(byteArray: ByteArray?) {
         withContext(Dispatchers.Default) {
             generateChunkedPeaks(
                 byteArray = byteArray,
                 samplesPerBar = bytesPerBar / 2,
             )?.let { peaks ->
-                val amplitudes = peaks.mapIndexed { index, d -> d to "${index}_${d}_$samplePeakSum" }
+                val amplitudes = peaks.map { d -> d to Uuid.random().toString() }
                 samplePeakSum += peaks.sum()
                 samplePeakCount += peaks.size
                 peakMedian.doubleValue = samplePeakSum / samplePeakCount * 3.5f
@@ -73,11 +75,19 @@ private fun generateChunkedPeaks(
 
     val peaks = mutableListOf<Double>()
 
-    for (i in samples.indices step samplesPerBar) {
+    /*for (i in samples.indices step samplesPerBar) {
         val chunk = samples.subList(i, minOf(i + samplesPerBar, samples.size))
         peaks.add(chunk.maxOfOrNull { it.absoluteValue } ?: 0.0)
-    }
+    }*/
 
+    for (i in samples.indices step samplesPerBar) {
+        val chunk = samples.subList(i, minOf(i + samplesPerBar, samples.size))
+
+        // Calculate the RMS value for the chunk
+        val sumOfSquares = chunk.sumOf { it * it }
+        val rms = kotlin.math.sqrt(sumOfSquares / chunk.size)
+        peaks.add(rms)
+    }
     return peaks
 }
 
@@ -87,7 +97,7 @@ private fun extractAmplitudes(byteArray: ByteArray?): List<Double> {
     val amplitudes = mutableListOf<Double>()
     for (i in byteArray.indices step 2) {
         if (i + 1 < byteArray.size) {
-            val amplitude = (byteArray[i + 1].toInt() shl 8 or (byteArray[i].toInt() and 0xFF)).toDouble()
+            val amplitude = (byteArray[i + 1].toInt().absoluteValue shl 8 or (byteArray[i].toInt().absoluteValue and 0xFF)).toDouble()
             amplitudes.add(amplitude / Short.MAX_VALUE)
         }
     }

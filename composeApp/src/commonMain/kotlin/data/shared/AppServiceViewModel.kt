@@ -55,8 +55,6 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
 
                 val fcmToken = if(defaultFcm == null) {
                     val newFcm = try {
-                        // gotta wait for APNS to be ready before FCM request
-                        if(currentPlatform == PlatformType.Native) delay(500)
                         Firebase.messaging.getToken()
                     }catch (e: NotImplementedError) { null }?.apply {
                         settings.putString(SettingsKeys.KEY_FCM, this)
