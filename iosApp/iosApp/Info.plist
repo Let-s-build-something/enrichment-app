@@ -33,6 +33,8 @@
 	<string>35</string>
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+    <string>Need microphone access for sending voice messages to your friends.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

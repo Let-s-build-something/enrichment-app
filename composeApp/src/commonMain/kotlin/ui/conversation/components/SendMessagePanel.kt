@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -46,9 +48,11 @@ import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -67,6 +71,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -76,11 +82,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
 import augmy.composeapp.generated.resources.accessibility_action_keyboard
 import augmy.composeapp.generated.resources.accessibility_cancel
+import augmy.composeapp.generated.resources.accessibility_message_action_audio
 import augmy.composeapp.generated.resources.accessibility_message_action_file
 import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_audio
@@ -92,10 +100,16 @@ import augmy.composeapp.generated.resources.accessibility_message_presentation
 import augmy.composeapp.generated.resources.accessibility_message_text
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
+import augmy.composeapp.generated.resources.conversation_reply_heading
+import augmy.composeapp.generated.resources.conversation_reply_prefix_self
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
+import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
@@ -103,6 +117,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.MediaType
 import base.utils.getBitmapFromFile
 import base.utils.getMediaType
+import data.io.social.network.conversation.ConversationMessageIO
 import future_shared_module.ext.scalingClickable
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
@@ -114,22 +129,26 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.ConversationViewModel
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
     isEmojiPickerVisible: MutableState<Boolean>,
+    replyToMessage: MutableState<ConversationMessageIO?>,
+    scrollToMessage: (ConversationMessageIO) -> Unit,
     viewModel: ConversationViewModel
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
+    val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
-    val missingKeyboardHeight = remember { viewModel.keyboardHeight == 0 }
+    val missingKeyboardHeight = remember { viewModel.keyboardHeight < 2 }
 
     val messageContent = remember {
         mutableStateOf(
@@ -145,11 +164,18 @@ internal fun BoxScope.SendMessagePanel(
     val showMoreOptions = rememberSaveable {
         mutableStateOf(messageContent.value.text.isBlank())
     }
+    val actionYCoordinate = rememberSaveable {
+        mutableStateOf(-1f)
+    }
 
     val bottomPadding = animateFloatAsState(
         targetValue = if (imeHeightPadding >= viewModel.keyboardHeight.div(2) || isEmojiPickerVisible.value) {
             LocalTheme.current.shapes.betweenItemsSpace.value
-        } else with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value },
+        } else {
+            with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value }.coerceAtLeast(
+                LocalTheme.current.shapes.betweenItemsSpace.value
+            )
+        },
         label = "bottomPadding",
         animationSpec = tween(durationMillis = 20, easing = LinearEasing)
     )
@@ -194,11 +220,13 @@ internal fun BoxScope.SendMessagePanel(
     val sendMessage = {
         viewModel.sendMessage(
             content = messageContent.value.text,
-            mediaFiles = mediaAttached
+            mediaFiles = mediaAttached,
+            anchorMessageId = replyToMessage.value?.id
         )
         mediaAttached.clear()
         messageContent.value = TextFieldValue()
         viewModel.savedMessage = ""
+        replyToMessage.value = null
     }
 
 
@@ -209,10 +237,10 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     LaunchedEffect(Unit) {
-        focusRequester.captureFocus()
         if(missingKeyboardHeight) {
+            focusRequester.requestFocus()
             keyboardController?.show()
-        }
+        }else focusRequester.captureFocus()
     }
 
     if(missingKeyboardHeight) {
@@ -244,13 +272,73 @@ internal fun BoxScope.SendMessagePanel(
 
 
     Column(
-        modifier = modifier
-            .height(IntrinsicSize.Min)
+        modifier = (if(isDesktop) modifier else modifier.height(IntrinsicSize.Min))
             .animateContentSize(),
-        verticalArrangement = Arrangement.Bottom
+        verticalArrangement = Arrangement.Top
     ) {
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
+        replyToMessage.value?.let { originalMessage ->
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
+            }
+
+            // reply indication
+            Row(
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .scalingClickable {
+                        scrollToMessage(originalMessage)
+                    }
+                    .widthIn(max = MaxModalWidthDp.dp)
+                    .fillMaxWidth()
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = RoundedCornerShape(
+                            topStart = LocalTheme.current.shapes.componentCornerRadius,
+                            topEnd = LocalTheme.current.shapes.componentCornerRadius
+                        )
+                    )
+                    .padding(top = 2.dp, bottom = 10.dp, start = 16.dp, end = 8.dp)
+            ) {
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = stringResource(Res.string.conversation_reply_heading),
+                    style = LocalTheme.current.styles.regular
+                )
+                Column(
+                    modifier = Modifier
+                        .padding(top = 8.dp, start = 6.dp)
+                        .weight(1f)
+                ) {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = if(originalMessage.authorPublicId == viewModel.currentUser.value?.publicId) {
+                            stringResource(Res.string.conversation_reply_prefix_self)
+                        }else originalMessage.user?.displayName?.plus(":") ?: "",
+                        style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        modifier = Modifier.padding(top = 2.dp, start = 4.dp),
+                        text = originalMessage.content ?: "",
+                        style = LocalTheme.current.styles.regular.copy(fontSize = 14.sp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                MinimalisticIcon(
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        replyToMessage.value = null
+                    }
+                )
+            }
+        }
+
+        // media preview
         if(mediaAttached.isNotEmpty()) {
             val mediaListState = rememberLazyListState(
                 initialFirstVisibleItemIndex = mediaAttached.lastIndex
@@ -415,10 +503,12 @@ internal fun BoxScope.SendMessagePanel(
                 }
             }
         }
+
+        // message input and emojis if on desktop
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 12.dp, end = 16.dp)
+                .padding(end = 16.dp)
                 .padding(bottom = bottomPadding.value.dp)
                 .then(if(!isEmojiPickerVisible.value) Modifier.imePadding() else Modifier),
             verticalAlignment = Alignment.CenterVertically
@@ -427,7 +517,10 @@ internal fun BoxScope.SendMessagePanel(
                 modifier = Modifier
                     .requiredHeight(44.dp)
                     .weight(1f)
-                    .padding(end = spacing)
+                    .padding(start = 12.dp, end = spacing)
+                    .onGloballyPositioned {
+                        actionYCoordinate.value = it.positionInRoot().y
+                    }
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
@@ -444,16 +537,19 @@ internal fun BoxScope.SendMessagePanel(
                                     }
                                     focusRequester.requestFocus()
                                     keyboardController?.show()
+                                    if(isDesktop) isEmojiPickerVisible.value = false
                                 }else {
+                                    // hack to not close the emoji picker right away
+                                    if(viewModel.keyboardHeight > 99) {
+                                        viewModel.keyboardHeight += 1
+                                        coroutineScope.launch {
+                                            delay(200)
+                                            viewModel.keyboardHeight -= 1
+                                        }
+                                    }else viewModel.keyboardHeight = screenSize.height / 3
+
                                     keyboardController?.hide()
                                     isEmojiPickerVisible.value = true
-
-                                    // hack to not close the emoji picker right away
-                                    viewModel.keyboardHeight += 1
-                                    coroutineScope.launch {
-                                        delay(200)
-                                        viewModel.keyboardHeight -= 1
-                                    }
                                 }
                             },
                             imageVector = if(isEmoji) Icons.Outlined.Keyboard else Icons.Outlined.Mood,
@@ -537,44 +633,97 @@ internal fun BoxScope.SendMessagePanel(
 
             // space for the microphone action
             Crossfade(targetState = messageContent.value.text.isBlank()) { isBlank ->
-                if(isBlank) {
-                    Spacer(Modifier.width(38.dp + spacing))
-                }else {
-                    Icon(
-                        modifier = Modifier
-                            .scalingClickable {
-                                sendMessage()
-                            }
-                            .padding(start = spacing)
-                            .size(38.dp)
-                            .background(
-                                color = LocalTheme.current.colors.brandMainDark,
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                            .padding(6.dp),
-                        imageVector = Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = stringResource(Res.string.accessibility_message_action_image),
-                        tint = Color.White
-                    )
-                }
+                Icon(
+                    modifier = Modifier
+                        .scalingClickable(enabled = !isBlank) {
+                            if(!isBlank) sendMessage()
+                        }
+                        .padding(start = spacing)
+                        .size(38.dp)
+                        .background(
+                            color = LocalTheme.current.colors.brandMainDark,
+                            shape = LocalTheme.current.shapes.componentShape
+                        )
+                        .padding(6.dp),
+                    imageVector = if(isBlank) Icons.Outlined.Mic else Icons.AutoMirrored.Outlined.Send,
+                    contentDescription = stringResource(
+                        if(isBlank) Res.string.accessibility_message_action_audio
+                        else Res.string.accessibility_message_action_image
+                    ),
+                    tint = Color.White
+                )
             }
         }
 
-        if(isEmojiPickerVisible.value && viewModel.keyboardHeight > 0f) {
-            MessageEmojiPanel(
-                viewModel = viewModel,
-                onEmojiSelected = { emoji ->
-                    showMoreOptions.value = false
+        MessageEmojiPanel(
+            visible = isEmojiPickerVisible.value && viewModel.keyboardHeight > 0f,
+            viewModel = viewModel,
+            onEmojiSelected = { emoji ->
+                showMoreOptions.value = false
+
+                val newContent = buildString {
+                    // before selection
+                    append(
+                        messageContent.value.text.subSequence(
+                            0, messageContent.value.selection.start
+                        )
+                    )
+                    // selection
+                    append(emoji)
+                    // after selection
+                    append(
+                        messageContent.value.text.subSequence(
+                            messageContent.value.selection.end,
+                            messageContent.value.text.length
+                        )
+                    )
+                }
+                messageContent.value = TextFieldValue(
+                    text = newContent,
+                    selection = TextRange(
+                        messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
+                    )
+                )
+            },
+            onDismissRequest = {
+                isEmojiPickerVisible.value = false
+            },
+            onBackSpace = {
+                showMoreOptions.value = false
+
+                val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
+
+                if(isRangeRemoval) {
+                    messageContent.value = TextFieldValue(
+                        text = buildString {
+                            // before selection
+                            append(
+                                messageContent.value.text.subSequence(
+                                    startIndex = 0,
+                                    endIndex = messageContent.value.selection.start
+                                ).toString()
+                            )
+                            // after selection
+                            append(
+                                messageContent.value.text.subSequence(
+                                    startIndex = messageContent.value.selection.end,
+                                    endIndex = messageContent.value.text.length
+                                )
+                            )
+                        },
+                        selection = TextRange(messageContent.value.selection.start)
+                    )
+                }else {
+                    val modifiedPrefix = removeUnicodeCharacter(
+                        text = messageContent.value.text.subSequence(
+                            0, messageContent.value.selection.start
+                        ).toString(),
+                        index = messageContent.value.selection.start
+                    )
 
                     val newContent = buildString {
                         // before selection
-                        append(
-                            messageContent.value.text.subSequence(
-                                0, messageContent.value.selection.start
-                            )
-                        )
-                        // selection
-                        append(emoji)
+                        append(modifiedPrefix)
                         // after selection
                         append(
                             messageContent.value.text.subSequence(
@@ -585,82 +734,18 @@ internal fun BoxScope.SendMessagePanel(
                     }
                     messageContent.value = TextFieldValue(
                         text = newContent,
-                        selection = TextRange(
-                            messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
-                        )
+                        selection = TextRange(modifiedPrefix.length)
                     )
-                },
-                onDismissRequest = {
-                    isEmojiPickerVisible.value = false
-                },
-                onBackSpace = {
-                    showMoreOptions.value = false
-
-                    val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
-
-                    if(isRangeRemoval) {
-                        messageContent.value = TextFieldValue(
-                            text = buildString {
-                                // before selection
-                                append(
-                                    messageContent.value.text.subSequence(
-                                        startIndex = 0,
-                                        endIndex = messageContent.value.selection.start
-                                    ).toString()
-                                )
-                                // after selection
-                                append(
-                                    messageContent.value.text.subSequence(
-                                        startIndex = messageContent.value.selection.end,
-                                        endIndex = messageContent.value.text.length
-                                    )
-                                )
-                            },
-                            selection = TextRange(messageContent.value.selection.start)
-                        )
-                    }else {
-                        val modifiedPrefix = removeUnicodeCharacter(
-                            text = messageContent.value.text.subSequence(
-                                0, messageContent.value.selection.start
-                            ).toString(),
-                            index = messageContent.value.selection.start
-                        )
-
-                        val newContent = buildString {
-                            // before selection
-                            append(modifiedPrefix)
-                            // after selection
-                            append(
-                                messageContent.value.text.subSequence(
-                                    messageContent.value.selection.end,
-                                    messageContent.value.text.length
-                                )
-                            )
-                        }
-                        messageContent.value = TextFieldValue(
-                            text = newContent,
-                            selection = TextRange(modifiedPrefix.length)
-                        )
-                    }
                 }
-            )
-        }
+            }
+        )
     }
 
     // Has to be outside of message panel in order to lay over everything else
     if(messageContent.value.text.isBlank()) {
         PanelMicrophone(
             modifier = Modifier
-                .then(
-                    if(isEmojiPickerVisible.value) {
-                        Modifier.padding(
-                            bottom = with(density) { viewModel.keyboardHeight.plus(
-                                viewModel.additionalBottomPadding.value
-                            ) .toDp() }
-                        )
-                    }else Modifier.imePadding()
-                )
-                .padding(bottom = bottomPadding.value.dp)
+                .offset(y = - (screenSize.height.dp - with(density) { actionYCoordinate.value.toDp() } - 44.dp))
                 .align(Alignment.BottomEnd),
             onSaveRequest = { byteArray ->
                 viewModel.sendAudioMessage(byteArray)
@@ -677,10 +762,14 @@ private fun removeUnicodeCharacter(text: String, index: Int): String {
     return prefix.removeSuffix(suffix) + text.substring(index)
 }
 
-
 /** Maximum amount of files, images, and videos to be selected and sent within a singular message */
 private const val MAX_ITEMS_SELECTED = 20
 
 private const val MEDIA_MAX_HEIGHT_DP = 250
 
-private const val REGEX_GRAPHEME = """\X"""
+// IOS does not support unicode special classes, must be done manually
+private val REGEX_GRAPHEME_IOS = """
+    (?:[\uD800-\uDBFF][\uDC00-\uDFFF][\uFE0F\u200D\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*|[\u0020-\u007E]|[\u00A0-\uFFFF]|\s|.)[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*
+""".trimIndent()
+
+private val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""

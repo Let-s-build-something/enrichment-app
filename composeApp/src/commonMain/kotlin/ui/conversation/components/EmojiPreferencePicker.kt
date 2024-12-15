@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
@@ -31,6 +31,7 @@ import components.InfoHintBox
 import data.io.social.network.conversation.EmojiData
 import future_shared_module.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.ConversationViewModel
 
 /**
  * Bottom sheet for displaying a picker and preference modifier of preferred emoji set

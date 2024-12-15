@@ -29,6 +29,14 @@ class AppDelegate: ASPresentationAnchor,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         print("Registered for Apple Remote Notifications")
         Messaging.messaging().setAPNSToken(deviceToken, type: .unknown)
+        HelperKt.onAPNSTokenSet()
+    }
+    
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        print("Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async-> UNNotificationPresentationOptions {

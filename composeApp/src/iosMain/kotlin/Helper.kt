@@ -41,6 +41,14 @@ fun onAppTerminate() {
 }
 
 /**
+ * Informs the app that the APNS token has been set
+ */
+fun onAPNSTokenSet() {
+    val viewModel: AppServiceViewModel = KoinPlatform.getKoin().get()
+    viewModel.initApp()
+}
+
+/**
  * Callback when iOS application has finished launching
  * Space for additional "lazy" initialization
  */

@@ -1,5 +1,6 @@
-package components.conversation
+package ui.conversation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Functions
 import androidx.compose.material3.Icon
@@ -46,6 +48,8 @@ import org.jetbrains.compose.resources.stringResource
 fun MessageReactionsDialog(
     reactions: MutableState<List<Pair<String?, Pair<List<NetworkItemIO>, Boolean>>>>,
     reactionsRaw: List<MessageReactionIO>,
+    messageContent: String?,
+    initialEmojiSelection: String?,
     users: List<NetworkItemIO>,
     onDismissRequest: () -> Unit
 ) {
@@ -53,7 +57,7 @@ fun MessageReactionsDialog(
     val coroutineScope = rememberCoroutineScope()
 
     val selectedIndex = remember {
-        mutableStateOf(reactions.value.indexOfFirst { it.first == it.first })
+        mutableStateOf(reactions.value.indexOfFirst { it.first == initialEmojiSelection } + 1)
     }
     val tabs = remember {
         reactions.value.mapNotNull { it.first }.toMutableList().apply {
@@ -82,9 +86,23 @@ fun MessageReactionsDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth(.8f)
-                    .fillMaxHeight(.4f),
+                    .fillMaxHeight(.5f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(
+                    modifier = Modifier
+                        .padding(bottom = 24.dp)
+                        .background(
+                            color = LocalTheme.current.colors.component,
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .padding(
+                            vertical = 10.dp,
+                            horizontal = 14.dp
+                        ),
+                    text = messageContent ?: "",
+                    style = LocalTheme.current.styles.category
+                )
                 if(tabs.size > 2) {
                     MultiChoiceSwitchMinimalistic(
                         modifier = Modifier.fillMaxWidth(),

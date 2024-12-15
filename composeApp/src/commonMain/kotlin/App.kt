@@ -64,8 +64,11 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
     val windowSizeClass = calculateWindowSizeClass()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
-        viewModel.initApp()
+    // iOS wait for APNS, for the FCM token retrieval
+    if(currentPlatform != PlatformType.Native) {
+        LaunchedEffect(Unit) {
+            viewModel.initApp()
+        }
     }
 
     AugmyTheme(

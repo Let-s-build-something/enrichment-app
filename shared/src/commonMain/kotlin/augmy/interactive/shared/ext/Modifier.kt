@@ -52,11 +52,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.util.fastSumBy
 import augmy.interactive.shared.ui.theme.LocalTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.absoluteValue
 
 /** Pseudo shimmer effect, animating a brush around an element */
 @Composable
@@ -113,27 +114,29 @@ fun Modifier.scalingClickable(
     scaleInto: Float = 0.85f,
     onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
-    val isPressed = remember { mutableStateOf(false) }
-    val scale = animateFloatAsState(
-        if (isPressed.value && enabled) scaleInto else 1f,
-        label = "scalingClickableAnimation"
-    )
+    if(enabled) {
+        val isPressed = remember { mutableStateOf(false) }
+        val scale = animateFloatAsState(
+            if (isPressed.value && enabled) scaleInto else 1f,
+            label = "scalingClickableAnimation"
+        )
 
-    scale(scale.value)
-        .pointerInput(enabled) {
-            detectTapGestures(
-                onPress = {
-                    if(enabled) onPress?.invoke(it, true)
-                    isPressed.value = true
-                    tryAwaitRelease()
-                    if(enabled) onPress?.invoke(it, false)
-                    isPressed.value = false
-                },
-                onTap = onTap,
-                onDoubleTap = onDoubleTap,
-                onLongPress = onLongPress
-            )
-        }
+        scale(scale.value)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        if(enabled) onPress?.invoke(it, true)
+                        isPressed.value = true
+                        tryAwaitRelease()
+                        if(enabled) onPress?.invoke(it, false)
+                        isPressed.value = false
+                    },
+                    onTap = onTap,
+                    onDoubleTap = onDoubleTap,
+                    onLongPress = onLongPress
+                )
+            }
+    }else this
 }
 
 /**
@@ -222,18 +225,15 @@ suspend fun PointerInputScope.detectMessageInteraction(
         val upOrCancel: PointerInputChange?
         try {
             // wait for first tap up or long press
-            var isInvalid = false
             upOrCancel = withTimeout(longPressTimeout) {
                 waitForUpSwipeOrCancellation(
                     onInvalidInput = {
-                        isInvalid = true
+                        onDrag(false)
+                        // stop the drag immediately if the drag is vertical
+                        throw(CancellationException())
                     },
                     onDragChange = onDragChange
                 )
-            }
-            if(isInvalid) {
-                consumeUntilUp()
-                return@awaitEachGesture
             }
             if (upOrCancel == null) {
                 launch {
@@ -251,12 +251,14 @@ suspend fun PointerInputScope.detectMessageInteraction(
             launch {
                 pressScope.release()
             }
+            onDrag(false)
             return@awaitEachGesture
         }
 
         if (upOrCancel != null) {
             // tap was successful.
             onTap?.invoke(upOrCancel.position)
+            onDrag(false)
             return@awaitEachGesture
         }
 
@@ -278,7 +280,10 @@ suspend fun AwaitPointerEventScope.waitForUpSwipeOrCancellation(
     onInvalidInput: () -> Unit,
     onDragChange: (change: PointerInputChange, dragAmount: Offset) -> Unit,
 ): PointerInputChange? {
-    val boundsPx = 2f
+    val xBoundsPx = 20f
+    val yBoundsPx = 2f
+    var sumX = 0f
+    var sumY = 0f
 
     while (true) {
         val event = awaitPointerEvent(pass)
@@ -287,21 +292,21 @@ suspend fun AwaitPointerEventScope.waitForUpSwipeOrCancellation(
             return event.changes[0]
         }
 
-        val sumX = event.changes.fastSumBy { it.positionChange().x.toInt() }
+        sumX += event.changes[0].positionChange().x
         onDragChange(
             event.changes[0],
-            Offset(x = sumX.toFloat(), y = 0f)
+            Offset(x = event.changes[0].positionChange().x, y = 0f)
         )
 
-        if (sumX > boundsPx || event.changes.fastAny {
+        if (sumX.absoluteValue > xBoundsPx || event.changes.fastAny {
                 it.isConsumed || it.isOutOfBounds(size, extendedTouchPadding)
             }
         ) {
             return null // Cancelled
         }
 
-        val sumY = event.changes.fastSumBy { it.positionChange().y.toInt() }
-        if (sumY > boundsPx) {
+        sumY += event.changes[0].positionChange().y
+        if (sumY.absoluteValue > yBoundsPx) {
             onInvalidInput()
             return null // Cancelled
         }

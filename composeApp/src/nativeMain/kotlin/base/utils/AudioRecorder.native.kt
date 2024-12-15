@@ -16,7 +16,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import platform.AVFAudio.AVAudioEngine
-import platform.AVFAudio.AVAudioPCMBuffer
+import platform.AVFAudio.AVAudioFormat
+import platform.AVFAudio.AVAudioMixerNode
+import platform.AVFAudio.AVAudioNode
+import platform.AVFAudio.AVAudioPCMFormatFloat32
+import platform.AVFAudio.AVAudioPCMFormatInt16
+import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
+import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
+import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
+import platform.AVFAudio.AVAudioSessionModeDefault
+import platform.AVFAudio.AVAudioSessionModeMeasurement
+import platform.AVFAudio.AVAudioSessionModeVoiceChat
+import platform.AVFAudio.setActive
 import platform.Foundation.NSError
 import platform.Foundation.NSMutableData
 import platform.Foundation.appendBytes
@@ -38,24 +50,56 @@ actual fun rememberAudioRecorder(
             secondsPerBar = secondsPerBar,
             barsCount = barsCount
         ) {
-            private var audioEngine: AVAudioEngine? = null
+            private var engine: AVAudioEngine? = null
             private var byteOutputStream: NSMutableData? = null
             private var barByteOutputStream: NSMutableData? = null
+            private var mixerNode: AVAudioMixerNode? = null
 
             override fun startRecording() {
-                if(audioEngine == null) {
+                if(engine == null) {
                     stopRecording()
-                    audioEngine = AVAudioEngine()
                 }
-                audioEngine?.inputNode?.let { inputNode ->
-                    if(audioEngine == null) {
-                        val buffer = AVAudioPCMBuffer(inputNode.outputFormatForBus(0u), frameCapacity = (sampleRate * 2).toUInt())
+                val errorPointer = nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>()
+                engine?.inputNode?.let { inputNode ->
+                    val inputFormat = inputNode.outputFormatForBus(0u)
+                    val mainMixerNode = engine?.mainMixerNode as AVAudioNode
+                    val mixerFormat = AVAudioFormat(AVAudioPCMFormatInt16, inputFormat.sampleRate, 1u, false)
+
+                    // remove interrupting audio
+                    mixerNode?.apply {
+                        setVolume(0f)
+                        engine?.attachNode(this)
+                        engine?.connect(inputNode, this, inputFormat)
+                        engine?.connect(this, mainMixerNode, mixerFormat)
+                    }
+                }
+
+
+                if(engine == null) {
+                    engine = AVAudioEngine()
+                    mixerNode = AVAudioMixerNode()
+
+                    engine?.inputNode?.let { inputNode ->
+                        AVAudioSession.sharedInstance().apply {
+                            setCategory(
+                                AVAudioSessionCategoryPlayAndRecord,
+                                AVAudioSessionCategoryOptionMixWithOthers or AVAudioSessionCategoryOptionAllowBluetooth,
+                                errorPointer.value
+                            )
+                            setActive(true, errorPointer.value)
+                        }
+
                         byteOutputStream = NSMutableData()
                         barByteOutputStream = NSMutableData()
 
-                        inputNode.installTapOnBus(0u, bufferSize = bufferSize.toUInt(), format = buffer.format) { tapBuffer, _ ->
+                        inputNode.installTapOnBus(
+                            bus = 0u,
+                            bufferSize = bufferSize.toUInt(),
+                            format = mixerNode?.outputFormatForBus(0u)
+                        ) { tapBuffer, _ ->
                             val data = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)?.mData
                             val size = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)?.mDataByteSize?.toInt() ?: 0
+
                             byteOutputStream?.appendBytes(data, size.toULong())
                             barByteOutputStream?.appendBytes(data, size.toULong())
 
@@ -67,11 +111,11 @@ actual fun rememberAudioRecorder(
                                 barByteOutputStream?.setLength(0u)
                             }
                         }
-
-                        audioEngine?.prepare()
                     }
-                    audioEngine?.startAndReturnError(nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>().value)
                 }
+
+                engine?.prepare()
+                engine?.startAndReturnError(nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>().value)
             }
 
             override suspend fun saveRecording(): ByteArray? {
@@ -81,16 +125,25 @@ actual fun rememberAudioRecorder(
             }
 
             override fun pauseRecording() {
-                audioEngine?.pause()
+                engine?.pause()
             }
 
             override fun stopRecording() {
                 super.stopRecording()
-                audioEngine?.stop()
-                audioEngine?.inputNode?.removeTapOnBus(0u)
-                audioEngine = null
+                if (engine?.isRunning() == true && mixerNode?.engine != null) {
+                    mixerNode?.removeTapOnBus(0u)
+                }
+                engine?.inputNode?.removeTapOnBus(0u)
+                engine?.stop()
+                engine = null
                 byteOutputStream?.setLength(0u)
                 barByteOutputStream?.setLength(0u)
+                AVAudioSession.sharedInstance().apply {
+                    setActive(
+                        false,
+                        nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>().value
+                    )
+                }
                 byteOutputStream = null
                 barByteOutputStream = null
             }

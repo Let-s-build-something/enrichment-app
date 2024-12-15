@@ -1,7 +1,6 @@
 package ui.conversation
 
 import androidx.paging.PagingSource
-import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
@@ -39,7 +38,10 @@ class ConversationSource(
                 } else null,
                 itemsAfter = if(data.pagination.page < data.pagination.totalPages - 1) {
                     (data.pagination.totalPages - data.pagination.page - 1) * data.pagination.size - 1
-                }else COUNT_UNDEFINED
+                }else 0,
+                itemsBefore = if(data.pagination.page > 0) {
+                    data.pagination.page * data.pagination.size
+                }else 0
             )
         } catch (exception: IOException) {
             return LoadResult.Error(exception)
