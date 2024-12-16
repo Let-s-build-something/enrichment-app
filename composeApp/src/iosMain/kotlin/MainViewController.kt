@@ -1,5 +1,6 @@
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -8,6 +9,10 @@ import androidx.compose.ui.window.ComposeUIViewController
 import augmy.interactive.shared.ui.base.BackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import io.kamel.core.config.KamelConfig
+import io.kamel.core.config.takeFrom
+import io.kamel.image.config.Default
+import io.kamel.image.config.LocalKamelConfig
 import platform.UIKit.UIApplication
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UIViewController
@@ -52,7 +57,14 @@ fun MainViewController() = ComposeUIViewController {
         }
     }
 
+    val kamelConfig = remember {
+        KamelConfig {
+            takeFrom(KamelConfig.Default)
+        }
+    }
+
     CompositionLocalProvider(
+        LocalKamelConfig provides kamelConfig,
         LocalBackPressDispatcher provides backPressDispatcher,
         LocalScreenSize provides IntSize(
             height = with(density) { containerSize.height.toDp() }.value.toInt(),

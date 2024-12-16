@@ -1,12 +1,15 @@
-package ui.conversation.components.giphy
+package ui.conversation.components.gif
 
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import io.kamel.core.utils.cacheControl
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import io.ktor.http.CacheControl
 import io.ktor.http.Url
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 
 /** Image displaying a GIF from an [url] */
 @Composable
@@ -14,11 +17,14 @@ actual fun GifImage(
     modifier: Modifier,
     url: String,
     contentDescription: String?,
-    contentScale: ContentScale,
-    onLoading: ((Float) -> Unit)?
+    contentScale: ContentScale
 ) {
-    println("kostka_test, url: $url")
-    val resource = asyncPainterResource(data = Url(url))
+    val resource = asyncPainterResource(key = url, data = Url(url)) {
+        coroutineContext = Job() + Dispatchers.IO
+        requestBuilder {
+            cacheControl(CacheControl.MaxAge(maxAgeSeconds = 86400))
+        }
+    }
 
     KamelImage(
         modifier = modifier,
@@ -26,9 +32,10 @@ actual fun GifImage(
             resource
         },
         onLoading = { progress ->
-            onLoading?.invoke(progress)
+            //onLoading?.invoke(progress)
         },
-        animationSpec = tween(),
+        onFailure = { it.printStackTrace() },
+        //animationSpec = tween(),
         contentDescription = contentDescription,
         contentScale = contentScale
     )

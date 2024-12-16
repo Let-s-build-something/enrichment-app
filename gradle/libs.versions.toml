@@ -65,6 +65,7 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCo
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
 kamel-animated = { module = "media.kamel:kamel-decoder-animated-image", version.ref = "kamel" }
 kamel-core = { module = "media.kamel:kamel-image", version.ref = "kamel" }
+kamel-default = { module = "media.kamel:kamel-image-default", version.ref = "kamel" }
 
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -116,7 +117,8 @@ ktor-common = [
 ]
 kamel = [
     "kamel-animated",
-    "kamel-core"
+    "kamel-core",
+    "kamel-default"
 ]
 
 [plugins]

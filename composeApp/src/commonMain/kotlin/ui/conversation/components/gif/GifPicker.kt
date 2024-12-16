@@ -1,4 +1,4 @@
-package ui.conversation.components.giphy
+package ui.conversation.components.gif
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +21,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -91,10 +93,10 @@ fun GifPicker(
                         .fillMaxWidth()
                         .animateContentSize()
                 ) {
-                    val isLoaded = remember(index) { mutableStateOf(false) }
+                    val isLoaded = remember(data?.uid) { mutableStateOf(false) }
                     if(!isLoaded.value) {
-                        val aspectRatio = remember(index) {
-                            (5..15).random() / 10f
+                        val aspectRatio = remember(data?.uid) {
+                            (6..14).random() / 10f
                         }
 
                         Box(
@@ -119,16 +121,15 @@ fun GifPicker(
                             }
                             .clip(RoundedCornerShape(6.dp))
                             .fillMaxWidth()
-                            .wrapContentHeight(),
-                        url = data?.images?.fixedWidthDownsampled?.url?.replace(".gif&ct=g", ".gif") ?: "",
+                            .wrapContentHeight()
+                            .onSizeChanged {
+                                if(it.height > 50) {
+                                    isLoaded.value = true
+                                }
+                            },
+                        url = data?.images?.fixedWidthDownsampled?.url ?: "",
                         contentDescription = data?.altText ?: data?.title,
-                        contentScale = ContentScale.FillWidth,
-                        onLoading = { progress ->
-                            if(index == 0) println("kostka_test, loading progress: $progress")
-                            if(progress == 1f) {
-                                isLoaded.value = true
-                            }
-                        }
+                        contentScale = ContentScale.FillWidth
                     )
                 }
             }
@@ -149,6 +150,5 @@ expect fun GifImage(
     modifier: Modifier = Modifier,
     url: String,
     contentDescription: String?,
-    contentScale: ContentScale = ContentScale.Fit,
-    onLoading: ((Float) -> Unit)?
+    contentScale: ContentScale = ContentScale.Fit
 )

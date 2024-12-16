@@ -1,4 +1,4 @@
-package ui.conversation.components.giphy
+package ui.conversation.components.gif
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,8 +15,7 @@ actual fun GifImage(
     modifier: Modifier,
     url: String,
     contentDescription: String?,
-    contentScale: ContentScale,
-    onLoading: ((Float) -> Unit)?
+    contentScale: ContentScale
 ) {
     AsyncImage(
         modifier = modifier,

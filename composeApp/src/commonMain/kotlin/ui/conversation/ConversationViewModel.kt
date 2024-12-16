@@ -28,7 +28,7 @@ import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
 import ui.conversation.components.KeyboardViewModel
 import ui.conversation.components.emoji.EmojiUseCase
-import ui.conversation.components.giphy.GifUseCase
+import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

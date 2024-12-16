@@ -1,4 +1,4 @@
-package ui.conversation.components.giphy
+package ui.conversation.components.gif
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Box
@@ -57,7 +57,7 @@ fun MessageGifPanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(with(density) { imeHeight.toDp() })
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 4.dp)
                 .then(
                     if (imePadding > 0) Modifier else Modifier.animateContentSize()
                 ),

@@ -28,6 +28,10 @@ import com.google.firebase.initialize
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 import data.shared.AppServiceViewModel
+import io.kamel.core.config.KamelConfig
+import io.kamel.core.config.takeFrom
+import io.kamel.image.config.Default
+import io.kamel.image.config.LocalKamelConfig
 import koin.commonModule
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
@@ -127,6 +131,12 @@ fun main(args: Array<String>) = application {
         }
     }
 
+    val kamelConfig = remember {
+        KamelConfig {
+            takeFrom(KamelConfig.Default)
+        }
+    }
+
     Window(
         onCloseRequest = {
             backPressDispatcher.executeBackPress()
@@ -156,6 +166,7 @@ fun main(args: Array<String>) = application {
         val containerSize = LocalWindowInfo.current.containerSize
 
         CompositionLocalProvider(
+            LocalKamelConfig provides kamelConfig,
             LocalBackPressDispatcher provides backPressDispatcher,
             LocalScreenSize provides IntSize(
                 height = with(density) { containerSize.height.toDp() }.value.toInt(),

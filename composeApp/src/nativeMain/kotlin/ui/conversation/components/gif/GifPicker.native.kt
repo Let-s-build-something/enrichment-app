@@ -1,4 +1,4 @@
-package ui.conversation.components.giphy
+package ui.conversation.components.gif
 
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -14,8 +14,7 @@ actual fun GifImage(
     modifier: Modifier,
     url: String,
     contentDescription: String?,
-    contentScale: ContentScale,
-    onLoading: ((Float) -> Unit)?
+    contentScale: ContentScale
 ) {
     val resource = asyncPainterResource(data = Url(url))
 

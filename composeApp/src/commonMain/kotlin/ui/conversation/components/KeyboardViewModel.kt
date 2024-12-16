@@ -10,10 +10,10 @@ import kotlinx.coroutines.launch
 import org.koin.dsl.module
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.emoji.emojiModule
-import ui.conversation.components.giphy.GifRepository.Companion.SEARCH_SECTION
-import ui.conversation.components.giphy.GifRepository.Companion.TRENDING_SECTION
-import ui.conversation.components.giphy.GifUseCase
-import ui.conversation.components.giphy.gifModule
+import ui.conversation.components.gif.GifRepository.Companion.SEARCH_SECTION
+import ui.conversation.components.gif.GifRepository.Companion.TRENDING_SECTION
+import ui.conversation.components.gif.GifUseCase
+import ui.conversation.components.gif.gifModule
 
 internal val keyboardModule = module {
     includes(emojiModule)

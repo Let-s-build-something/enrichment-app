@@ -1,4 +1,4 @@
-package ui.conversation.components.giphy
+package ui.conversation.components.gif
 
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
