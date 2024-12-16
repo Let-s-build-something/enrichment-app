@@ -8,10 +8,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import ui.conversation.EmojiDataManager
+import org.koin.dsl.module
 
+internal val emojiModule = module {
+    factory { EmojiDataManager() }
+    single { EmojiDataManager() }
+    factory { EmojiUseCase(get(), get()) }
+}
+
+    /** Bundle for handling, retrieving, and modifying emojis within the app */
 /** Bundle for handling, retrieving, and modifying emojis within the app */
-@OptIn(ExperimentalResourceApi::class)
+    @OptIn(ExperimentalResourceApi::class)
 class EmojiUseCase(
     private val dataManager: EmojiDataManager,
     private val json: Json
@@ -21,8 +28,10 @@ class EmojiUseCase(
     val emojiSearch = MutableStateFlow("")
 
     /** Whether there is emoji filter */
+    /** Whether there is emoji filter */
     val areEmojisFiltered = MutableStateFlow(false)
 
+    /** List of all available emojis */
     /** List of all available emojis */
     val emojis = dataManager.emojis.combine(emojiHistory) { emojis, history ->
         if(emojis.isEmpty()) return@combine null
@@ -63,10 +72,12 @@ class EmojiUseCase(
     }
 
     /** Filters emojis */
+    /** Filters emojis */
     fun filterEmojis(query: String) {
         emojiSearch.value = query
     }
 
+    /** Updates preferred emojis */
     /** Updates preferred emojis */
     suspend fun updatePreferredEmojiSet(list: List<EmojiData>) {
         preferredEmojis.value = list
@@ -74,12 +85,14 @@ class EmojiUseCase(
     }
 
     /** Makes a request for preferred emojis */
+    /** Makes a request for preferred emojis */
     suspend fun requestPreferredEmojis() {
         preferredEmojis.value = DefaultEmojis
     }
 
     companion object {
 
+        /** List of default emojis representing different categories */
         /** List of default emojis representing different categories */
         private val DefaultEmojis
             get() = listOf(
@@ -91,6 +104,7 @@ class EmojiUseCase(
                 EmojiData(mutableListOf("\uD83D\uDE25"), name = "Sad but Relieved Face"),
             )
 
+        /** Key for the group of emojis representing past history of this user */
         /** Key for the group of emojis representing past history of this user */
         internal const val EMOJIS_HISTORY_GROUP = "history"
     }

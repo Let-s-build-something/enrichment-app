@@ -21,7 +21,9 @@ lifecycle = "2.8.4"
 googleId = "1.1.1"
 firebaseGitlive = "2.1.0"
 windowSizeClass = "0.5.0"
-coilCompose = "3.0.0-rc02"
+coilCompose = "3.0.4"
+coilGif = "3.0.4"
+kamel = "1.0.1"
 coroutines = "1.9.0"
 kotlinxSerialization = "1.7.3"
 kotlinx-datetime = "0.6.1"
@@ -61,6 +63,8 @@ coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coilCompose" }
 coil-compose-core = { module = "io.coil-kt.coil3:coil-compose-core", version.ref = "coilCompose" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
+kamel-animated = { module = "media.kamel:kamel-decoder-animated-image", version.ref = "kamel" }
+kamel-core = { module = "media.kamel:kamel-image", version.ref = "kamel" }
 
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
@@ -98,6 +102,7 @@ android-firebase-messaging = { module = "com.google.firebase:firebase-messaging"
 android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
+coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
 
 
 [bundles]
@@ -108,6 +113,10 @@ ktor-common = [
     "ktor-client-serialization",
     "ktor-client-content-negotiation",
     "ktor-serialization-kotlinx-json"
+]
+kamel = [
+    "kamel-animated",
+    "kamel-core"
 ]
 
 [plugins]

@@ -101,6 +101,8 @@ kotlin {
             implementation(libs.androidx.splashscreen)
             implementation(libs.android.accompanist.permissions)
 
+            implementation(libs.coil.gif)
+
             //Credentials
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.auth)
@@ -113,10 +115,12 @@ kotlin {
         }
         nativeMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.bundles.kamel)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
+            implementation(libs.bundles.kamel)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)

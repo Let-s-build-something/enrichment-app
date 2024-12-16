@@ -63,9 +63,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
-import ui.conversation.components.emoji.EmojiPreferencePicker
+import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.SendMessagePanel
+import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.rememberMessageBubbleState
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -96,8 +97,8 @@ fun ConversationScreen(
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
     }
-    val isEmojiPickerVisible = rememberSaveable {
-        mutableStateOf(false)
+    val keyboardMode = rememberSaveable {
+        mutableStateOf(ConversationKeyboardMode.Default.ordinal)
     }
     val reactingToMessageId = rememberSaveable {
         mutableStateOf<String?>(null)
@@ -169,7 +170,7 @@ fun ConversationScreen(
                             focusManager.clearFocus()
                             showEmojiPreferencesId.value = null
                             reactingToMessageId.value = null
-                            isEmojiPickerVisible.value = false
+                            keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                         })
                     }
                     .align(Alignment.BottomCenter)
@@ -294,7 +295,7 @@ fun ConversationScreen(
                             }
                         }
                     },
-                isEmojiPickerVisible = isEmojiPickerVisible,
+                keyboardMode = keyboardMode,
                 viewModel = viewModel,
                 replyToMessage = replyToMessage,
                 scrollToMessage = {

@@ -1,19 +1,16 @@
 package ui.conversation
 
-import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
-import augmy.composeapp.generated.resources.Res
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.ConversationMessageIO
-import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
-import data.shared.SharedViewModel
+import data.io.social.network.conversation.giphy.GifAsset
 import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
@@ -26,23 +23,27 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
+import ui.conversation.components.KeyboardViewModel
 import ui.conversation.components.emoji.EmojiUseCase
-import ui.conversation.components.giphy.GiphyUseCase
+import ui.conversation.components.giphy.GifUseCase
+import ui.conversation.components.keyboardModule
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
-    factory { EmojiDataManager() }
-    single { EmojiDataManager() }
+    includes(keyboardModule)
+
     factory { ConversationRepository(get()) }
-    factory { EmojiUseCase(get(), get()) }
-    factory { GiphyUseCase() }
     factory {
-        ConversationViewModel(get<ConversationRepository>(), get(), get(), get())
+        ConversationViewModel(
+            get<ConversationRepository>(),
+            get<String>(),
+            get<EmojiUseCase>(),
+            get<GifUseCase>()
+        )
     }
     viewModelOf(::ConversationViewModel)
 }
@@ -51,9 +52,9 @@ internal val conversationModule = module {
 class ConversationViewModel(
     private val repository: ConversationRepository,
     private val conversationId: String,
-    private val emojiUseCase: EmojiUseCase,
-    private val giphyUseCase: GiphyUseCase
-): SharedViewModel(), RefreshableViewModel {
+    emojiUseCase: EmojiUseCase,
+    gifUseCase: GifUseCase
+): KeyboardViewModel(emojiUseCase, gifUseCase), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
@@ -62,20 +63,8 @@ class ConversationViewModel(
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
 
-    val additionalBottomPadding = Animatable(0f)
-
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
-
-    /** Preferred emojis of an individual conversation */
-    val preferredEmojis = emojiUseCase.preferredEmojis.asStateFlow()
-
-    /** List of all available emojis */
-    val emojis = emojiUseCase.emojis
-
-    /** Whether there is emoji filter */
-    val areEmojisFiltered = emojiUseCase.areEmojisFiltered.asStateFlow()
-
 
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
@@ -104,20 +93,6 @@ class ConversationViewModel(
             settings.putString("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId", value)
         }
 
-    /** Last height of soft keyboard */
-    var keyboardHeight: Int = settings.getIntOrNull(SettingsKeys.KEY_KEYBOARD_HEIGHT) ?: 0
-        set(value) {
-            field = value
-            settings.putInt(SettingsKeys.KEY_KEYBOARD_HEIGHT, value)
-        }
-
-    /** Whether hint about emoji preference should be displayed */
-    var showEmojiPreferenceHint: Boolean = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT) ?: true
-        set(value) {
-            field = value
-            settings.putBoolean(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT, value)
-        }
-
     init {
         if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
             viewModelScope.launch {
@@ -125,9 +100,6 @@ class ConversationViewModel(
                     _conversationDetail.value = data
                 }
             }
-        }
-        viewModelScope.launch {
-            emojiUseCase.initialize()
         }
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
@@ -137,20 +109,6 @@ class ConversationViewModel(
 
     // ==================== functions ===========================
 
-    /** Filters emojis */
-    fun filterEmojis(query: String) {
-        viewModelScope.launch {
-            emojiUseCase.filterEmojis(query)
-        }
-    }
-
-    /** Updates preferred emojis */
-    suspend fun updatePreferredEmojiSet(list: List<EmojiData>) {
-        viewModelScope.launch {
-            emojiUseCase.updatePreferredEmojiSet(list)
-        }
-    }
-
     /**
      * Makes a request to send a conversation message
      * @param content textual content of the message
@@ -159,7 +117,8 @@ class ConversationViewModel(
     fun sendMessage(
         content: String,
         anchorMessageId: String?,
-        mediaFiles: MutableList<PlatformFile>
+        mediaFiles: MutableList<PlatformFile>,
+        gifAsset: GifAsset?
     ) {
         viewModelScope.launch {
             val mediaUrls = mediaFiles.mapNotNull { media ->
@@ -174,7 +133,8 @@ class ConversationViewModel(
                 message = ConversationMessageIO(
                     content = content,
                     mediaUrls = mediaUrls,
-                    anchorMessageId = anchorMessageId
+                    anchorMessageId = anchorMessageId,
+                    gifAsset = gifAsset
                 )
             )
         }

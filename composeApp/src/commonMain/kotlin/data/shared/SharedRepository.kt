@@ -38,6 +38,11 @@ open class SharedRepository(private val httpClient: HttpClient) {
     }
 }
 
+object ApiConstants {
+    /** Url of the GIPHY API */
+    const val GIPHY_API_URL = "https://api.giphy.com"
+}
+
 /** sets URL parameters for paging */
 fun HttpRequestBuilder.setPaging(
     page: Int,

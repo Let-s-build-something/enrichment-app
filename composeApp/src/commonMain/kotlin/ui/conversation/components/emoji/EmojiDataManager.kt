@@ -1,4 +1,4 @@
-package ui.conversation
+package ui.conversation.components.emoji
 
 import data.io.social.network.conversation.EmojiData
 import kotlinx.coroutines.flow.MutableStateFlow
