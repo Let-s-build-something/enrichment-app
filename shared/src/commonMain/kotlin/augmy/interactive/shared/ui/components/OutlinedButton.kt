@@ -20,7 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 
 /**
  * Outlined text with transparent background

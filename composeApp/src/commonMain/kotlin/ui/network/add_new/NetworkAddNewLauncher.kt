@@ -67,7 +67,7 @@ import base.navigation.NavigationNode
 import components.AsyncSvgImage
 import data.NetworkProximityCategory
 import data.io.ApiErrorCode
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

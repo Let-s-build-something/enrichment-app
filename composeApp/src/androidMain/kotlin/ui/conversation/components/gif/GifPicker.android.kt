@@ -24,9 +24,6 @@ actual fun GifImage(
             .crossfade(true)
             .decoderFactory(GifDecoder.Factory())
             .build(),
-        onSuccess = {
-            onLoading?.invoke(1f)
-        },
         contentDescription = contentDescription,
         contentScale = contentScale
     )

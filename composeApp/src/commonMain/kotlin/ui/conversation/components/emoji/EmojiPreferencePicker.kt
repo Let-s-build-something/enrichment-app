@@ -29,7 +29,7 @@ import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.InfoHintBox
 import data.io.social.network.conversation.EmojiData
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 

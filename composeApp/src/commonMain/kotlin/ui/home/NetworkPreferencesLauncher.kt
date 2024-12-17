@@ -47,7 +47,7 @@ import base.theme.Colors
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 /**

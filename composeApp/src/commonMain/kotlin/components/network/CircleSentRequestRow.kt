@@ -37,8 +37,8 @@ import components.LoadingIndicator
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.social.network.request.CirclingRequest
-import future_shared_module.ext.brandShimmerEffect
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 @Composable

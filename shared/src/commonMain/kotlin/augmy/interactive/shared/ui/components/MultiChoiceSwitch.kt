@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.theme.LocalTheme
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 
 /** State for communication with [MultiChoiceSwitch] */
 data class TabSwitchState(

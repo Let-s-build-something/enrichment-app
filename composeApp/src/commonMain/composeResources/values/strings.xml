@@ -139,6 +139,7 @@
   <string name="emojis_preference_set_heading">Your reaction emojis</string>
   <string name="emojis_preference_set_hint">Click on an emoji you want to change and, then, select its replacement.</string>
   <string name="action_filter_emojis">Filter emojis</string>
+  <string name="action_search_gifs">Search GIPHY</string>
 
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
@@ -200,6 +201,7 @@
   <string name="accessibility_reactions_all">List of all types of reaction from other users</string>
   <string name="accessibility_reaction_other">Choose emoji other than the set offers</string>
   <string name="accessibility_message_reply">Drag the same direction to reply to this message</string>
+  <string name="accessibility_giphy_logo">Powered by GIPHY</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

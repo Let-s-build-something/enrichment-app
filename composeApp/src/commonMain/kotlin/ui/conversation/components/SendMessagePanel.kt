@@ -104,6 +104,7 @@ import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.composeapp.generated.resources.conversation_reply_prefix_self
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
@@ -119,7 +120,6 @@ import base.utils.getBitmapFromFile
 import base.utils.getMediaType
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.giphy.GifAsset
-import future_shared_module.ext.scalingClickable
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -131,8 +131,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
-import ui.conversation.components.emoji.MessageEmojiPanel
-import ui.conversation.components.gif.MessageGifPanel
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -556,7 +554,7 @@ internal fun BoxScope.SendMessagePanel(
                                     }else viewModel.keyboardHeight = screenSize.height / 3
 
                                     keyboardController?.hide()
-                                    keyboardMode.value = ConversationKeyboardMode.Gif.ordinal
+                                    keyboardMode.value = ConversationKeyboardMode.Emoji.ordinal
                                 }
                             },
                             imageVector = if(isMedia) Icons.Outlined.Keyboard else Icons.Outlined.Mood,
@@ -659,110 +657,99 @@ internal fun BoxScope.SendMessagePanel(
                     ),
                     tint = Color.White
                 )
+
             }
         }
 
-        Crossfade(targetState = keyboardMode.value) { mode ->
-            when(mode) {
-                ConversationKeyboardMode.Default.ordinal -> {}
-                ConversationKeyboardMode.Emoji.ordinal -> {
-                    MessageEmojiPanel(
-                        visible = viewModel.keyboardHeight > 0f,
-                        viewModel = viewModel,
-                        onEmojiSelected = { emoji ->
-                            showMoreOptions.value = false
+        // Emojis + GIFs + Stickers
+        if(keyboardMode.value != ConversationKeyboardMode.Default.ordinal) {
+            MessageMediaPanel(
+                mode = keyboardMode,
+                viewModel = viewModel,
+                onGifSelected = { gif ->
+                    gifAttached.value = gif
+                },
+                onEmojiSelected = { emoji ->
+                    showMoreOptions.value = false
 
-                            val newContent = buildString {
+                    val newContent = buildString {
+                        // before selection
+                        append(
+                            messageContent.value.text.subSequence(
+                                0, messageContent.value.selection.start
+                            )
+                        )
+                        // selection
+                        append(emoji)
+                        // after selection
+                        append(
+                            messageContent.value.text.subSequence(
+                                messageContent.value.selection.end,
+                                messageContent.value.text.length
+                            )
+                        )
+                    }
+                    messageContent.value = TextFieldValue(
+                        text = newContent,
+                        selection = TextRange(
+                            messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
+                        )
+                    )
+                },
+                onBackSpace = {
+                    showMoreOptions.value = false
+
+                    val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
+
+                    if(isRangeRemoval) {
+                        messageContent.value = TextFieldValue(
+                            text = buildString {
                                 // before selection
                                 append(
                                     messageContent.value.text.subSequence(
-                                        0, messageContent.value.selection.start
-                                    )
+                                        startIndex = 0,
+                                        endIndex = messageContent.value.selection.start
+                                    ).toString()
                                 )
-                                // selection
-                                append(emoji)
                                 // after selection
                                 append(
                                     messageContent.value.text.subSequence(
-                                        messageContent.value.selection.end,
-                                        messageContent.value.text.length
+                                        startIndex = messageContent.value.selection.end,
+                                        endIndex = messageContent.value.text.length
                                     )
                                 )
-                            }
-                            messageContent.value = TextFieldValue(
-                                text = newContent,
-                                selection = TextRange(
-                                    messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
+                            },
+                            selection = TextRange(messageContent.value.selection.start)
+                        )
+                    }else {
+                        val modifiedPrefix = removeUnicodeCharacter(
+                            text = messageContent.value.text.subSequence(
+                                0, messageContent.value.selection.start
+                            ).toString(),
+                            index = messageContent.value.selection.start
+                        )
+
+                        val newContent = buildString {
+                            // before selection
+                            append(modifiedPrefix)
+                            // after selection
+                            append(
+                                messageContent.value.text.subSequence(
+                                    messageContent.value.selection.end,
+                                    messageContent.value.text.length
                                 )
                             )
-                        },
-                        onDismissRequest = {
-                            keyboardMode.value = ConversationKeyboardMode.Default.ordinal
-                        },
-                        onBackSpace = {
-                            showMoreOptions.value = false
-
-                            val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
-
-                            if(isRangeRemoval) {
-                                messageContent.value = TextFieldValue(
-                                    text = buildString {
-                                        // before selection
-                                        append(
-                                            messageContent.value.text.subSequence(
-                                                startIndex = 0,
-                                                endIndex = messageContent.value.selection.start
-                                            ).toString()
-                                        )
-                                        // after selection
-                                        append(
-                                            messageContent.value.text.subSequence(
-                                                startIndex = messageContent.value.selection.end,
-                                                endIndex = messageContent.value.text.length
-                                            )
-                                        )
-                                    },
-                                    selection = TextRange(messageContent.value.selection.start)
-                                )
-                            }else {
-                                val modifiedPrefix = removeUnicodeCharacter(
-                                    text = messageContent.value.text.subSequence(
-                                        0, messageContent.value.selection.start
-                                    ).toString(),
-                                    index = messageContent.value.selection.start
-                                )
-
-                                val newContent = buildString {
-                                    // before selection
-                                    append(modifiedPrefix)
-                                    // after selection
-                                    append(
-                                        messageContent.value.text.subSequence(
-                                            messageContent.value.selection.end,
-                                            messageContent.value.text.length
-                                        )
-                                    )
-                                }
-                                messageContent.value = TextFieldValue(
-                                    text = newContent,
-                                    selection = TextRange(modifiedPrefix.length)
-                                )
-                            }
                         }
-                    )
+                        messageContent.value = TextFieldValue(
+                            text = newContent,
+                            selection = TextRange(modifiedPrefix.length)
+                        )
+                    }
+                },
+                onDismissRequest = {
+                    keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                 }
-                ConversationKeyboardMode.Gif.ordinal -> {
-                    MessageGifPanel(
-                        viewModel = viewModel,
-                        onGifSelected = { gif ->
-                            gifAttached.value = gif
-                        },
-                        onDismissRequest = {
-                            keyboardMode.value = ConversationKeyboardMode.Default.ordinal
-                        }
-                    )
-                }
-            }
+            )
         }
     }
 

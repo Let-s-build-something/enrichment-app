@@ -67,7 +67,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import components.AsyncSvgImage
 import data.Asset
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType

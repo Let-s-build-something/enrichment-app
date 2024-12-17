@@ -71,7 +71,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import data.shared.DeveloperConsoleViewModel
 import data.shared.developerConsoleModule
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
 import koin.DeveloperUtils

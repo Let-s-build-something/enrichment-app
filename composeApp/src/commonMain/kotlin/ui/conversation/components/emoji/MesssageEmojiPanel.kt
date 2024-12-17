@@ -6,8 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -18,9 +17,8 @@ import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -33,8 +31,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_backspace
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
-import future_shared_module.ext.scalingClickable
-import kotlinx.coroutines.delay
+import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 
@@ -46,17 +43,14 @@ fun MessageEmojiPanel(
     visible: Boolean,
     onEmojiSelected: (String) -> Unit,
     onBackSpace: () -> Unit,
-    onDismissRequest: () -> Unit
+    isFilterFocused: MutableState<Boolean>
 ) {
     val density = LocalDensity.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    val imeHeight = viewModel.keyboardHeight
     val imePadding = WindowInsets.ime.getBottom(density)
 
     val emojis = viewModel.emojis.collectAsState(initial = null)
 
-
-    val isFilterFocused = remember { mutableStateOf(false) }
     val gridState = rememberLazyGridState(initialFirstVisibleItemIndex = 2)
 
     DisposableEffect(null) {
@@ -65,37 +59,11 @@ fun MessageEmojiPanel(
         }
     }
 
-    LaunchedEffect(isFilterFocused.value, imePadding) {
-        if(isFilterFocused.value && imePadding > 0) {
-            viewModel.additionalBottomPadding.animateTo(with(density) { 100.dp.toPx() })
-        }else {
-            viewModel.additionalBottomPadding.animateTo(0f)
-        }
-    }
-
-    LaunchedEffect(imePadding, isFilterFocused.value) {
-        delay(100)
-        if(imeHeight - imePadding <= 0 && isFilterFocused.value.not()) {
-            onDismissRequest()
-        }
-    }
-
     LaunchedEffect(gridState.firstVisibleItemScrollOffset) {
         keyboardController?.hide()
     }
 
-
-    Box(
-        modifier = modifier
-            .padding(
-                bottom = if(visible) {
-                    with(density) {
-                        viewModel.additionalBottomPadding.value.toDp()
-                    }
-                }else 0.dp
-            )
-            .animateContentSize()
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
         if(emojis.value != null && visible) {
             Image(
                 modifier = Modifier
@@ -120,8 +88,7 @@ fun MessageEmojiPanel(
 
             EmojiPicker(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(with(density) { imeHeight.toDp() })
+                    .fillMaxSize()
                     .padding(horizontal = 12.dp)
                     .then(
                         if (imePadding > 0) Modifier else Modifier.animateContentSize()

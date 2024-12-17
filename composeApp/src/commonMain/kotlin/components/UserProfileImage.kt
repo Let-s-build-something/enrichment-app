@@ -29,7 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.tagToColor
-import future_shared_module.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.brandShimmerEffect
 
 @Composable
 fun UserProfileImage(
