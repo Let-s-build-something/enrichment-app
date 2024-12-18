@@ -104,6 +104,7 @@ import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.composeapp.generated.resources.conversation_reply_prefix_self
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
@@ -118,7 +119,7 @@ import base.utils.MediaType
 import base.utils.getBitmapFromFile
 import base.utils.getMediaType
 import data.io.social.network.conversation.ConversationMessageIO
-import future_shared_module.ext.scalingClickable
+import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
@@ -135,20 +136,21 @@ import ui.conversation.ConversationViewModel
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
-    isEmojiPickerVisible: MutableState<Boolean>,
+    keyboardMode: MutableState<Int>,
     replyToMessage: MutableState<ConversationMessageIO?>,
     scrollToMessage: (ConversationMessageIO) -> Unit,
     viewModel: ConversationViewModel
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
-    val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded
+    val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val missingKeyboardHeight = remember { viewModel.keyboardHeight < 2 }
+    val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
     val messageContent = remember {
         mutableStateOf(
@@ -161,6 +163,9 @@ internal fun BoxScope.SendMessagePanel(
     val mediaAttached = remember {
         mutableStateListOf<PlatformFile>()
     }
+    val gifAttached = remember {
+        mutableStateOf<GifAsset?>(null)
+    }
     val showMoreOptions = rememberSaveable {
         mutableStateOf(messageContent.value.text.isBlank())
     }
@@ -169,7 +174,7 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     val bottomPadding = animateFloatAsState(
-        targetValue = if (imeHeightPadding >= viewModel.keyboardHeight.div(2) || isEmojiPickerVisible.value) {
+        targetValue = if (imeHeightPadding >= viewModel.keyboardHeight.div(2) || !isDefaultMode) {
             LocalTheme.current.shapes.betweenItemsSpace.value
         } else {
             with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value }.coerceAtLeast(
@@ -221,7 +226,8 @@ internal fun BoxScope.SendMessagePanel(
         viewModel.sendMessage(
             content = messageContent.value.text,
             mediaFiles = mediaAttached,
-            anchorMessageId = replyToMessage.value?.id
+            anchorMessageId = replyToMessage.value?.id,
+            gifAsset = gifAttached.value
         )
         mediaAttached.clear()
         messageContent.value = TextFieldValue()
@@ -255,25 +261,23 @@ internal fun BoxScope.SendMessagePanel(
         }
     }
 
-    LaunchedEffect(isEmojiPickerVisible.value) {
-        if(isEmojiPickerVisible.value) {
-            keyboardController?.hide()
-        }else {
-            viewModel.additionalBottomPadding.animateTo(0f)
+    LaunchedEffect(keyboardMode.value) {
+        when(keyboardMode.value) {
+            ConversationKeyboardMode.Default.ordinal -> viewModel.additionalBottomPadding.animateTo(0f)
+            else -> keyboardController?.hide()
         }
     }
 
-    OnBackHandler(enabled = imeHeightPadding > 0 || isEmojiPickerVisible.value) {
+    OnBackHandler(enabled = imeHeightPadding > 0 || !isDefaultMode) {
         when {
             imeHeightPadding > 0 -> keyboardController?.hide()
-            isEmojiPickerVisible.value -> isEmojiPickerVisible.value = false
+            !isDefaultMode -> keyboardMode.value = ConversationKeyboardMode.Default.ordinal
         }
     }
 
 
     Column(
-        modifier = (if(isDesktop) modifier else modifier.height(IntrinsicSize.Min))
-            .animateContentSize(),
+        modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.Top
     ) {
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
@@ -510,7 +514,7 @@ internal fun BoxScope.SendMessagePanel(
                 .fillMaxWidth()
                 .padding(end = 16.dp)
                 .padding(bottom = bottomPadding.value.dp)
-                .then(if(!isEmojiPickerVisible.value) Modifier.imePadding() else Modifier),
+                .then(if(isDefaultMode) Modifier.imePadding() else Modifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
             EditFieldInput(
@@ -528,16 +532,16 @@ internal fun BoxScope.SendMessagePanel(
                 ),
                 textValue = messageContent.value,
                 trailingIcon = {
-                    Crossfade(targetState = isEmojiPickerVisible.value) { isEmoji ->
+                    Crossfade(targetState = !isDefaultMode) { isMedia ->
                         Image(
                             modifier = Modifier.scalingClickable {
-                                if(isEmoji) {
+                                if(isMedia) {
                                     coroutineScope.launch {
                                         viewModel.additionalBottomPadding.animateTo(0f)
                                     }
                                     focusRequester.requestFocus()
                                     keyboardController?.show()
-                                    if(isDesktop) isEmojiPickerVisible.value = false
+                                    if(isDesktop) keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                                 }else {
                                     // hack to not close the emoji picker right away
                                     if(viewModel.keyboardHeight > 99) {
@@ -549,12 +553,12 @@ internal fun BoxScope.SendMessagePanel(
                                     }else viewModel.keyboardHeight = screenSize.height / 3
 
                                     keyboardController?.hide()
-                                    isEmojiPickerVisible.value = true
+                                    keyboardMode.value = ConversationKeyboardMode.Emoji.ordinal
                                 }
                             },
-                            imageVector = if(isEmoji) Icons.Outlined.Keyboard else Icons.Outlined.Mood,
+                            imageVector = if(isMedia) Icons.Outlined.Keyboard else Icons.Outlined.Mood,
                             contentDescription = stringResource(
-                                if(isEmoji) {
+                                if(isMedia) {
                                     Res.string.accessibility_action_keyboard
                                 }else Res.string.accessibility_action_emojis
                             ),
@@ -652,78 +656,31 @@ internal fun BoxScope.SendMessagePanel(
                     ),
                     tint = Color.White
                 )
+
             }
         }
 
-        MessageEmojiPanel(
-            visible = isEmojiPickerVisible.value && viewModel.keyboardHeight > 0f,
-            viewModel = viewModel,
-            onEmojiSelected = { emoji ->
-                showMoreOptions.value = false
-
-                val newContent = buildString {
-                    // before selection
-                    append(
-                        messageContent.value.text.subSequence(
-                            0, messageContent.value.selection.start
-                        )
-                    )
-                    // selection
-                    append(emoji)
-                    // after selection
-                    append(
-                        messageContent.value.text.subSequence(
-                            messageContent.value.selection.end,
-                            messageContent.value.text.length
-                        )
-                    )
-                }
-                messageContent.value = TextFieldValue(
-                    text = newContent,
-                    selection = TextRange(
-                        messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
-                    )
-                )
-            },
-            onDismissRequest = {
-                isEmojiPickerVisible.value = false
-            },
-            onBackSpace = {
-                showMoreOptions.value = false
-
-                val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
-
-                if(isRangeRemoval) {
-                    messageContent.value = TextFieldValue(
-                        text = buildString {
-                            // before selection
-                            append(
-                                messageContent.value.text.subSequence(
-                                    startIndex = 0,
-                                    endIndex = messageContent.value.selection.start
-                                ).toString()
-                            )
-                            // after selection
-                            append(
-                                messageContent.value.text.subSequence(
-                                    startIndex = messageContent.value.selection.end,
-                                    endIndex = messageContent.value.text.length
-                                )
-                            )
-                        },
-                        selection = TextRange(messageContent.value.selection.start)
-                    )
-                }else {
-                    val modifiedPrefix = removeUnicodeCharacter(
-                        text = messageContent.value.text.subSequence(
-                            0, messageContent.value.selection.start
-                        ).toString(),
-                        index = messageContent.value.selection.start
-                    )
+        // Emojis + GIFs + Stickers
+        if(keyboardMode.value != ConversationKeyboardMode.Default.ordinal) {
+            MessageMediaPanel(
+                mode = keyboardMode,
+                viewModel = viewModel,
+                showBackSpace = messageContent.value.text.isNotBlank(),
+                onGifSelected = { gif ->
+                    gifAttached.value = gif
+                },
+                onEmojiSelected = { emoji ->
+                    showMoreOptions.value = false
 
                     val newContent = buildString {
                         // before selection
-                        append(modifiedPrefix)
+                        append(
+                            messageContent.value.text.subSequence(
+                                0, messageContent.value.selection.start
+                            )
+                        )
+                        // selection
+                        append(emoji)
                         // after selection
                         append(
                             messageContent.value.text.subSequence(
@@ -734,11 +691,66 @@ internal fun BoxScope.SendMessagePanel(
                     }
                     messageContent.value = TextFieldValue(
                         text = newContent,
-                        selection = TextRange(modifiedPrefix.length)
+                        selection = TextRange(
+                            messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
+                        )
                     )
+                },
+                onBackSpace = {
+                    showMoreOptions.value = false
+
+                    val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
+
+                    if(isRangeRemoval) {
+                        messageContent.value = TextFieldValue(
+                            text = buildString {
+                                // before selection
+                                append(
+                                    messageContent.value.text.subSequence(
+                                        startIndex = 0,
+                                        endIndex = messageContent.value.selection.start
+                                    ).toString()
+                                )
+                                // after selection
+                                append(
+                                    messageContent.value.text.subSequence(
+                                        startIndex = messageContent.value.selection.end,
+                                        endIndex = messageContent.value.text.length
+                                    )
+                                )
+                            },
+                            selection = TextRange(messageContent.value.selection.start)
+                        )
+                    }else {
+                        val modifiedPrefix = removeUnicodeCharacter(
+                            text = messageContent.value.text.subSequence(
+                                0, messageContent.value.selection.start
+                            ).toString(),
+                            index = messageContent.value.selection.start
+                        )
+
+                        val newContent = buildString {
+                            // before selection
+                            append(modifiedPrefix)
+                            // after selection
+                            append(
+                                messageContent.value.text.subSequence(
+                                    messageContent.value.selection.end,
+                                    messageContent.value.text.length
+                                )
+                            )
+                        }
+                        messageContent.value = TextFieldValue(
+                            text = newContent,
+                            selection = TextRange(modifiedPrefix.length)
+                        )
+                    }
+                },
+                onDismissRequest = {
+                    keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                 }
-            }
-        )
+            )
+        }
     }
 
     // Has to be outside of message panel in order to lay over everything else

@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.emoji
 
 import androidx.compose.foundation.BasicTooltipBox
 import androidx.compose.foundation.BasicTooltipDefaults.GlobalMutatorMutex
@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -66,11 +67,11 @@ import augmy.composeapp.generated.resources.emojis_smileys_and_emotion
 import augmy.composeapp.generated.resources.emojis_symbols
 import augmy.composeapp.generated.resources.emojis_travel_and_places
 import augmy.composeapp.generated.resources.error_general
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.social.network.conversation.EmojiData
-import future_shared_module.ext.scalingClickable
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
@@ -79,7 +80,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
-import ui.conversation.ConversationViewModel.Companion.EMOJIS_HISTORY_GROUP
+import ui.conversation.components.emoji.EmojiUseCase.Companion.EMOJIS_HISTORY_GROUP
 
 /** Component displaying emojis with the ability to select one and filter them */
 @OptIn(ExperimentalFoundationApi::class)
@@ -97,6 +98,13 @@ fun EmojiPicker(
 
     val areEmojisFiltered = viewModel.areEmojisFiltered.collectAsState()
     val emojis = viewModel.emojis.collectAsState(initial = null)
+
+    DisposableEffect(null) {
+        onDispose {
+            isFilterFocused.value = false
+        }
+    }
+
 
     if(emojis.value != null) {
         LazyVerticalGrid(

@@ -1,4 +1,4 @@
-package future_shared_module.ext
+package augmy.interactive.shared.ext
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -9,15 +9,20 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.GestureCancellationException
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.PressGestureScope
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.TabPosition
 import androidx.compose.material3.TabRow
@@ -25,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +59,7 @@ import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import augmy.interactive.shared.ui.theme.LocalTheme
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -137,6 +144,38 @@ fun Modifier.scalingClickable(
                 )
             }
     }else this
+}
+
+/** Adds horizontal draggable modifier to a [HorizontalPager] to support mouse interactions */
+@Composable
+fun Modifier.mouseDraggable(
+    state: PagerState,
+    onChange: (Int) -> Unit
+): Modifier {
+    val coroutineScope = rememberCoroutineScope()
+
+    return this.draggable(
+        orientation = Orientation.Horizontal,
+        state = rememberDraggableState { delta ->
+            coroutineScope.coroutineContext.cancelChildren()
+            coroutineScope.launch {
+                state.scrollBy(-delta)
+            }
+        },
+        onDragStopped = {
+            coroutineScope.launch {
+                val currentPage = state.currentPage
+                state.getOffsetDistanceInPages(currentPage).let { pageOffset ->
+                    val newPage = if(pageOffset > 1.5f) currentPage + 1
+                    else if(pageOffset < -1.5f) currentPage - 1
+                    else currentPage
+
+                    state.animateScrollToPage(newPage)
+                    onChange(newPage)
+                }
+            }
+        }
+    )
 }
 
 /**

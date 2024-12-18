@@ -83,7 +83,7 @@ import components.RowSetting
 import components.UserProfileImage
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

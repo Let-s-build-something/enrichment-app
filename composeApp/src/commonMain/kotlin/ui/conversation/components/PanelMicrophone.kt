@@ -84,7 +84,7 @@ import base.utils.AudioRecorder
 import base.utils.PermissionType
 import base.utils.rememberAudioRecorder
 import base.utils.rememberPermissionRequesterState
-import future_shared_module.ext.scalingDraggable
+import augmy.interactive.shared.ext.scalingDraggable
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

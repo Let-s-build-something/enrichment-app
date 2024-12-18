@@ -24,7 +24,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**

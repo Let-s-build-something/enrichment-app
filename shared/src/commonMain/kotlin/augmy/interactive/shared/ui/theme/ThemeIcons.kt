@@ -11,4 +11,7 @@ interface ThemeIcons {
 
     /** icon for Apple sign up button */
     val appleSignUp: DrawableResource
+
+    /** icon for GIPHY */
+    val giphy: DrawableResource
 }

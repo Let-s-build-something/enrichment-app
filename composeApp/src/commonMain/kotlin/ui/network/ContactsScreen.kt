@@ -60,7 +60,7 @@ import base.navigation.NavIconType
 import components.UserProfileImage
 import data.io.user.NetworkItemIO
 import data.io.user.PublicUserProfileIO
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ui.network.profile.UserProfileLauncher

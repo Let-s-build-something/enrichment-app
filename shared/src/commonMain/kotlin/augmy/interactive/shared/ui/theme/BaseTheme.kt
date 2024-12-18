@@ -116,6 +116,7 @@ private object DefaultValues {
     val defaultThemeIcons = object: ThemeIcons {
         override val googleSignUp: DrawableResource = Res.drawable.logo_google_dark
         override val appleSignUp: DrawableResource = Res.drawable.logo_apple_light
+        override val giphy: DrawableResource = Res.drawable.logo_apple_light
     }
 
     val defaultBaseColors = object: BaseColors {

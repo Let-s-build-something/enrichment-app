@@ -1,5 +1,6 @@
 package data.io.social.network.conversation
 
+import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
 import koin.DateTimeAsStringSerializer
 import kotlinx.datetime.LocalDateTime
@@ -21,6 +22,9 @@ data class ConversationMessageIO(
 
     /** Audio url as a content of this message */
     val audioUrl: String? = null,
+
+    /** Url asset of a gif */
+    val gifAsset: GifAsset? = null,
 
     /** Public id of the author of this message */
     val authorPublicId: String? = null,

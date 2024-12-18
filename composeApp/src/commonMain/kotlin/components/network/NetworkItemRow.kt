@@ -36,8 +36,8 @@ import components.OptionsLayoutAction
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
-import future_shared_module.ext.brandShimmerEffect
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.scalingClickable
 
 /**
  * Horizontal layout visualizing a user with ability for actions and checked state

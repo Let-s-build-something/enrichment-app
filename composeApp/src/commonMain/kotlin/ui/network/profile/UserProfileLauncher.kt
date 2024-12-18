@@ -45,7 +45,7 @@ import base.navigation.NavigationNode
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.user.PublicUserProfileIO
-import future_shared_module.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.brandShimmerEffect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest

@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.base.BaseResponse
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import io.github.alexzhirkevich.compottie.rememberLottieComposition

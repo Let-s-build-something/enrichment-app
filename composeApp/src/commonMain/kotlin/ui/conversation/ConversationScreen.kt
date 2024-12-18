@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -63,9 +64,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
-import ui.conversation.components.EmojiPreferencePicker
+import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.SendMessagePanel
+import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.rememberMessageBubbleState
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -86,6 +88,7 @@ fun ConversationScreen(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val imePadding = WindowInsets.ime.getBottom(density)
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
@@ -96,8 +99,8 @@ fun ConversationScreen(
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
     }
-    val isEmojiPickerVisible = rememberSaveable {
-        mutableStateOf(false)
+    val keyboardMode = rememberSaveable {
+        mutableStateOf(ConversationKeyboardMode.Default.ordinal)
     }
     val reactingToMessageId = rememberSaveable {
         mutableStateOf<String?>(null)
@@ -166,10 +169,16 @@ fun ConversationScreen(
                 modifier = Modifier
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = {
-                            focusManager.clearFocus()
-                            showEmojiPreferencesId.value = null
-                            reactingToMessageId.value = null
-                            isEmojiPickerVisible.value = false
+                            when {
+                                showEmojiPreferencesId.value != null -> showEmojiPreferencesId.value = null
+                                imePadding > 10f ->  focusManager.clearFocus()
+                                keyboardMode.value != ConversationKeyboardMode.Default.ordinal -> {
+                                    keyboardMode.value = ConversationKeyboardMode.Default.ordinal
+                                }
+                                else -> {
+                                    reactingToMessageId.value = null
+                                }
+                            }
                         })
                     }
                     .align(Alignment.BottomCenter)
@@ -294,7 +303,7 @@ fun ConversationScreen(
                             }
                         }
                     },
-                isEmojiPickerVisible = isEmojiPickerVisible,
+                keyboardMode = keyboardMode,
                 viewModel = viewModel,
                 replyToMessage = replyToMessage,
                 scrollToMessage = {

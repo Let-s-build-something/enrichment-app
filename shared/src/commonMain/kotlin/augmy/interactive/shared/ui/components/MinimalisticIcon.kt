@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ui.theme.LocalTheme
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.scalingClickable
 
 /**
  * Clickable basic Icon with vector image with minimalistic size

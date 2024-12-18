@@ -55,8 +55,8 @@ import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import components.UserProfileImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
-import future_shared_module.ext.brandShimmerEffect
-import future_shared_module.ext.scalingClickable
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT

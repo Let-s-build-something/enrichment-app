@@ -35,10 +35,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Class for calling APIs and remote work in general */
-class ConversationRepository(
-    private val httpClient: HttpClient,
-    val json: Json,
-) {
+class ConversationRepository(private val httpClient: HttpClient) {
 
     /** returns a list of network list */
     private suspend fun getMessages(

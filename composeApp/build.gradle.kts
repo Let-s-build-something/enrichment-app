@@ -101,6 +101,8 @@ kotlin {
             implementation(libs.androidx.splashscreen)
             implementation(libs.android.accompanist.permissions)
 
+            implementation(libs.coil.gif)
+
             //Credentials
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.auth)
@@ -113,10 +115,12 @@ kotlin {
         }
         nativeMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.bundles.kamel)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
+            implementation(libs.bundles.kamel)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
@@ -308,6 +312,7 @@ buildkonfig {
         buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
         buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
         buildConfigField(STRING, "BearerToken", keystoreProperties["bearerToken"] as String)
+        buildConfigField(STRING, "GiphyApiKey", keystoreProperties["giphyApiKey"] as String)
 
         buildConfigField(STRING, "HttpsHostName", releaseHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidReleaseAppId"] as String)

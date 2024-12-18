@@ -36,13 +36,6 @@ internal fun httpClientFactory(
     return httpClient().config {
         defaultRequest {
             contentType(ContentType.Application.Json)
-            headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-            headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
-
-            // assign current idToken
-            sharedViewModel.currentUser.value?.idToken?.let { idToken ->
-                headers.append(HttpHeaders.IdToken, idToken)
-            }
 
             host = developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName
             url {
@@ -74,6 +67,17 @@ internal fun httpClientFactory(
         }
     }.apply {
         plugin(HttpSend).intercept { request ->
+            // add sensitive information only for our domains
+            if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
+                request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
+
+                // assign current idToken
+                sharedViewModel.currentUser.value?.idToken?.let { idToken ->
+                    request.headers.append(HttpHeaders.IdToken, idToken)
+                }
+            }
+
             developerViewModel?.appendHttpLog(
                 DeveloperUtils.processRequest(request)
             )
