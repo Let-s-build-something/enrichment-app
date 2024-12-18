@@ -22,6 +22,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.Module
@@ -122,9 +123,9 @@ class LoginViewModel(
     /** Authenticates user with a token */
     private suspend fun authenticateUser(email: String?) {
         withContext(Dispatchers.IO) {
-            firebaseUser.value?.getIdToken(false)?.let { idToken ->
-                sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                sharedDataManager.currentUser.value = repository.authenticateUser(
+            firebaseUser.firstOrNull()?.getIdToken(false)?.let { idToken ->
+                sharedDataManager.mutableUser.value = UserIO(idToken = idToken)
+                sharedDataManager.mutableUser.value = repository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
                 )?.copy(idToken = idToken)
             }
@@ -134,9 +135,9 @@ class LoginViewModel(
 
     /** finalizes full flow with a result */
     private suspend fun finalizeSignIn(email: String?) {
-        if(sharedDataManager.currentUser.value?.publicId == null) {
+        if(sharedDataManager.mutableUser.value?.publicId == null) {
             Firebase.auth.currentUser?.uid?.let { clientId ->
-                sharedDataManager.currentUser.value = UserIO(
+                sharedDataManager.mutableUser.value = UserIO(
                     publicId = repository.createUser(
                         RequestCreateUser(
                             email = email ?: try {
@@ -154,7 +155,7 @@ class LoginViewModel(
                 _loginResult.emit(LoginResultType.FAILURE)
             }
         }else {
-            (if(sharedDataManager.currentUser.value != null) {
+            (if(sharedDataManager.mutableUser.value != null) {
                 viewModelScope.launch(Dispatchers.IO) {
                     settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
                 }

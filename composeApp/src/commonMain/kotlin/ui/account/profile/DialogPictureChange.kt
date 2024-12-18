@@ -89,7 +89,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 
-    val firebaseUser = viewModel.firebaseUser.collectAsState()
+    val firebaseUser = viewModel.firebaseUser.collectAsState(initial = null)
     val isLoading = viewModel.isLoading.collectAsState()
 
     val customUrl = rememberSaveable { mutableStateOf<String?>(null) }

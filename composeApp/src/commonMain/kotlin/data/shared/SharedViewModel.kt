@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.coroutines.FlowSettings
 import data.io.app.SettingsKeys
+import data.io.user.UserIO
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.storage.Data
@@ -13,6 +14,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,10 +52,23 @@ open class SharedViewModel: ViewModel() {
         viewModelScope,
         SharingStarted.Eagerly,
         Firebase.auth.currentUser
-    )
+    ).onEach { firebaseUser ->
+        if(firebaseUser != null) {
+            if(sharedDataManager.mutableUser.value == null) {
+                firebaseUser.getIdToken(false)?.let { idToken ->
+                    sharedDataManager.mutableUser.value = UserIO(idToken = idToken)
+                    sharedDataManager.mutableUser.value = sharedRepository.authenticateUser(
+                        localSettings = sharedDataManager.localSettings.value
+                    )?.copy(
+                        idToken = idToken
+                    )
+                }
+            }
+        }
+    }
 
     /** currently signed in user */
-    val currentUser = sharedDataManager.currentUser.asStateFlow()
+    val currentUser = sharedDataManager.mutableUser.asStateFlow()
 
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
@@ -74,7 +89,7 @@ open class SharedViewModel: ViewModel() {
     open fun logoutCurrentUser() {
         runBlocking {
             Firebase.auth.signOut()
-            sharedDataManager.currentUser.value = null
+            sharedDataManager.mutableUser.value = null
         }
     }
 

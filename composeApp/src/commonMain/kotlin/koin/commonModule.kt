@@ -13,6 +13,7 @@ import data.shared.SharedRepository
 import data.shared.SharedViewModel
 import data.shared.appServiceModule
 import data.shared.developerConsoleModule
+import database.databaseModule
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
@@ -59,6 +60,7 @@ internal val commonModule = module {
         }
     }
 
+    includes(databaseModule)
     viewModelOf(::SharedViewModel)
     includes(ui.home.homeModule)
     includes(appServiceModule)

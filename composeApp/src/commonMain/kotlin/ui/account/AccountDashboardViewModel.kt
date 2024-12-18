@@ -72,7 +72,7 @@ class AccountDashboardViewModel(
                 configuration = newConfiguration
             )
             if(_privacyResponse.value is BaseResponse.Success) {
-                sharedDataManager.currentUser.update { previous ->
+                sharedDataManager.mutableUser.update { previous ->
                     previous?.copy(configuration = newConfiguration)
                 }
             }
@@ -97,7 +97,7 @@ class AccountDashboardViewModel(
                 configuration = newConfiguration
             )
             if(_visibilityResponse.value is BaseResponse.Success) {
-                sharedDataManager.currentUser.update { previous ->
+                sharedDataManager.mutableUser.update { previous ->
                     previous?.copy(configuration = newConfiguration)
                 }
             }

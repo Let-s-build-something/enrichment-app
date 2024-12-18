@@ -76,24 +76,6 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
             }
-
-            if (firebaseUser.value != null) {
-                if(sharedDataManager.currentUser.value == null) {
-                    firebaseUser.value?.getIdToken(false)?.let { idToken ->
-                        sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                        sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value
-                        )?.copy(
-                            idToken = idToken
-                        )
-                    }
-                }
-                Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
-                    sharedDataManager.currentUser.update {
-                        it?.copy(idToken = firebaseUser?.getIdToken(false))
-                    }
-                }
-            }
         }
     }
 
