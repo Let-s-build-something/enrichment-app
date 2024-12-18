@@ -36,10 +36,10 @@ class GifSource(
                     data.pagination?.offset?.minus(1)?.minus(size)?.plus(1)
                 } else null,
                 nextKey = if(offsetTop < (data.pagination?.totalCount ?: 0)) {
-                    null//offsetTop
+                    offsetTop
                 } else null,
                 itemsAfter = if(offsetTop < (data.pagination?.totalCount ?: 0)) {
-                    0//size.coerceAtMost((data.pagination?.totalCount ?: 0) - offsetTop)
+                    size.coerceAtMost((data.pagination?.totalCount ?: 0) - offsetTop)
                 }else 0,
                 itemsBefore = if((data.pagination?.offset ?: 0) > 0) {
                     (data.pagination?.offset?.minus(1)?.minus(size) ?: 0).plus(1).coerceAtLeast(0)

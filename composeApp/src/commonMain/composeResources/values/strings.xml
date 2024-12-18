@@ -193,7 +193,9 @@
   <string name="accessibility_audio_action_lock">Lock the recording, so you don't have to hold it</string>
   <string name="accessibility_pause">Pause</string>
   <string name="accessibility_resume">Resume</string>
-  <string name="accessibility_action_emojis">Open dashboard with emojis and stickers with ability to search</string>
+  <string name="accessibility_action_emojis">List of all emojis with the ability to be filtered</string>
+  <string name="accessibility_action_gifs">List of gifs from GIPHY</string>
+  <string name="accessibility_action_stickers">Various stickers</string>
   <string name="accessibility_action_message_react">React to a message with an emoji</string>
   <string name="accessibility_action_keyboard">Open system keyboard input</string>
   <string name="accessibility_backspace">Backspace</string>

@@ -37,7 +37,7 @@ fun MessageGifPanel(
     GifPicker(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 4.dp)
+            .padding(start = 4.dp)
             .then(
                 if (imePadding > 0) Modifier else Modifier.animateContentSize()
             ),

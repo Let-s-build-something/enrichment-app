@@ -10,6 +10,7 @@ import data.io.social.network.conversation.giphy.GiphyPageResponse
 import data.shared.ApiConstants
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -28,7 +29,7 @@ class GifRepository(private val httpClient: HttpClient) {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<GiphyPageResponse> {
                 get(
-                    urlString = buildString {
+                    url = Url(buildString {
                         append(ApiConstants.GIPHY_API_URL + "/v1/gifs/$section")
                         append("?api_key=${BuildKonfig.GiphyApiKey}")
                         append("&limit=$size")
@@ -38,7 +39,7 @@ class GifRepository(private val httpClient: HttpClient) {
                             append("&q=$query")
                             append("&lang=${Locale.current.language}")
                         }
-                    }
+                    })
                 )
             }
         }

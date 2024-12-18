@@ -277,8 +277,7 @@ internal fun BoxScope.SendMessagePanel(
 
 
     Column(
-        modifier = (if(isDesktop) modifier else modifier.height(IntrinsicSize.Min))
-            .animateContentSize(),
+        modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.Top
     ) {
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
@@ -666,6 +665,7 @@ internal fun BoxScope.SendMessagePanel(
             MessageMediaPanel(
                 mode = keyboardMode,
                 viewModel = viewModel,
+                showBackSpace = messageContent.value.text.isNotBlank(),
                 onGifSelected = { gif ->
                     gifAttached.value = gif
                 },

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -99,6 +101,13 @@ fun GifPicker(
         }
     }
 
+    DisposableEffect(null) {
+        onDispose {
+            isFilterFocused.value = false
+        }
+    }
+
+
     Column(
         modifier = modifier.pointerInput(Unit) {
             detectTapGestures(onTap = {
@@ -106,6 +115,20 @@ fun GifPicker(
             })
         }
     ) {
+        AnimatedVisibility(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = LocalTheme.current.colors.backgroundLight),
+            visible = (isFilterFocused.value || filterQuery.value.text.isNotBlank())
+                    && gridState.firstVisibleItemIndex > 0
+        ) {
+            Image(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                painter = painterResource(LocalTheme.current.icons.giphy),
+                contentDescription = stringResource(Res.string.accessibility_giphy_logo),
+                contentScale = ContentScale.FillHeight
+            )
+        }
         LazyVerticalStaggeredGrid(
             modifier = Modifier.weight(1f),
             columns = StaggeredGridCells.Fixed(
@@ -231,10 +254,13 @@ fun GifPicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = LocalTheme.current.colors.backgroundLight),
-            visible = isFilterFocused.value || filterQuery.value.text.isNotBlank()
+            visible = (isFilterFocused.value || filterQuery.value.text.isNotBlank())
+                    && gridState.firstVisibleItemIndex == 0
         ) {
             Image(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .align(Alignment.CenterHorizontally),
                 painter = painterResource(LocalTheme.current.icons.giphy),
                 contentDescription = stringResource(Res.string.accessibility_giphy_logo),
                 contentScale = ContentScale.FillHeight

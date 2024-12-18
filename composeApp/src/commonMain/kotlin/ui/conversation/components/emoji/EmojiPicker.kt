@@ -7,10 +7,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -70,11 +67,11 @@ import augmy.composeapp.generated.resources.emojis_smileys_and_emotion
 import augmy.composeapp.generated.resources.emojis_symbols
 import augmy.composeapp.generated.resources.emojis_travel_and_places
 import augmy.composeapp.generated.resources.error_general
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.social.network.conversation.EmojiData
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
@@ -101,6 +98,13 @@ fun EmojiPicker(
 
     val areEmojisFiltered = viewModel.areEmojisFiltered.collectAsState()
     val emojis = viewModel.emojis.collectAsState(initial = null)
+
+    DisposableEffect(null) {
+        onDispose {
+            isFilterFocused.value = false
+        }
+    }
+
 
     if(emojis.value != null) {
         LazyVerticalGrid(

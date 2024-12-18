@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_backspace
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
-import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 
@@ -40,7 +40,7 @@ import ui.conversation.ConversationViewModel
 fun MessageEmojiPanel(
     modifier: Modifier = Modifier,
     viewModel: ConversationViewModel,
-    visible: Boolean,
+    showBackSpace: Boolean,
     onEmojiSelected: (String) -> Unit,
     onBackSpace: () -> Unit,
     isFilterFocused: MutableState<Boolean>
@@ -64,13 +64,13 @@ fun MessageEmojiPanel(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        if(emojis.value != null && visible) {
+        if(emojis.value != null && showBackSpace) {
             Image(
                 modifier = Modifier
                     .zIndex(1f)
                     .align(Alignment.BottomEnd)
                     .padding(WindowInsets.navigationBars.asPaddingValues())
-                    .padding(bottom = 8.dp, end = 12.dp)
+                    .padding(bottom = 8.dp)
                     .scalingClickable {
                         onBackSpace()
                     }
@@ -85,19 +85,19 @@ fun MessageEmojiPanel(
                 contentDescription = stringResource(Res.string.accessibility_backspace),
                 colorFilter = ColorFilter.tint(color = Colors.GrayLight)
             )
-
-            EmojiPicker(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp)
-                    .then(
-                        if (imePadding > 0) Modifier else Modifier.animateContentSize()
-                    ),
-                onEmojiSelected = onEmojiSelected,
-                viewModel = viewModel,
-                isFilterFocused = isFilterFocused,
-                gridState = gridState
-            )
         }
+
+        EmojiPicker(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 12.dp)
+                .then(
+                    if (imePadding > 0) Modifier else Modifier.animateContentSize()
+                ),
+            onEmojiSelected = onEmojiSelected,
+            viewModel = viewModel,
+            isFilterFocused = isFilterFocused,
+            gridState = gridState
+        )
     }
 }
