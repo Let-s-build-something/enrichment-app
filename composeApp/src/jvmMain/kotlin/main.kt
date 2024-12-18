@@ -36,6 +36,7 @@ import io.kamel.core.config.takeFrom
 import io.kamel.image.config.Default
 import io.kamel.image.config.LocalKamelConfig
 import koin.commonModule
+import koin.settingsModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -69,12 +70,13 @@ fun main(args: Array<String>) = application {
 
     if(isAppInitialized.not()) {
         startKoin {
+            modules(settingsModule)
+            initializeFirebase(
+                settings = KoinPlatform.getKoin().get<FlowSettings>(),
+                scope = coroutineScope
+            )
             modules(commonModule)
         }
-        initializeFirebase(
-            settings = KoinPlatform.getKoin().get<FlowSettings>(),
-            scope = coroutineScope
-        )
         isAppInitialized = true
     }
 

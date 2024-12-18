@@ -30,14 +30,14 @@ internal expect fun httpClient(): HttpClient
 @OptIn(ExperimentalUuidApi::class)
 internal fun httpClientFactory(
     sharedViewModel: SharedViewModel,
-    developerViewModel: () -> DeveloperConsoleViewModel?,
+    developerViewModel: DeveloperConsoleViewModel?,
     json: Json
 ): HttpClient {
     return httpClient().config {
         defaultRequest {
             contentType(ContentType.Application.Json)
 
-            host = developerViewModel()?.hostOverride ?: BuildKonfig.HttpsHostName
+            host = developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName
             url {
                 protocol = URLProtocol.HTTPS
             }
@@ -52,7 +52,7 @@ internal fun httpClientFactory(
             sanitizeHeader { header -> header == HttpHeaders.Authorization }
         }
         ResponseObserver { response ->
-            developerViewModel()?.appendHttpLog(
+            developerViewModel?.appendHttpLog(
                 DeveloperUtils.processResponse(response)
             )
         }
@@ -68,7 +68,7 @@ internal fun httpClientFactory(
     }.apply {
         plugin(HttpSend).intercept { request ->
             // add sensitive information only for our domains
-            if(request.url.host == (developerViewModel()?.hostOverride ?: BuildKonfig.HttpsHostName)) {
+            if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
                 request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
                 request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
 
@@ -78,7 +78,7 @@ internal fun httpClientFactory(
                 }
             }
 
-            developerViewModel()?.appendHttpLog(
+            developerViewModel?.appendHttpLog(
                 DeveloperUtils.processRequest(request)
             )
             execute(request)

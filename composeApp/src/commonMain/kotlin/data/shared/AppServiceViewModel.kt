@@ -10,7 +10,6 @@ import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
-import data.io.user.UserIO
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
@@ -75,6 +74,11 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
                     networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
+            }
+            Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
+                sharedDataManager.currentUser.update {
+                    it?.copy(idToken = firebaseUser?.getIdToken(false))
+                }
             }
         }
     }

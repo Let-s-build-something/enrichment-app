@@ -1,0 +1,76 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "2209d29a8f5e1655f7f82e9b738b405b",
+    "entities": [
+      {
+        "tableName": "room_network_item_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`displayName` TEXT, `tag` TEXT, `publicId` TEXT NOT NULL, `userPublicId` TEXT, `photoUrl` TEXT, `isMutual` INTEGER, `proximity` REAL, `color` TEXT, `lastMessage` TEXT, `ownerPublicId` TEXT, PRIMARY KEY(`publicId`))",
+        "fields": [
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "publicId",
+            "columnName": "publicId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userPublicId",
+            "columnName": "userPublicId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photoUrl",
+            "columnName": "photoUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isMutual",
+            "columnName": "isMutual",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "proximity",
+            "columnName": "proximity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastMessage",
+            "columnName": "lastMessage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ownerPublicId",
+            "columnName": "ownerPublicId",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "publicId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2209d29a8f5e1655f7f82e9b738b405b')"
+    ]
+  }
+}

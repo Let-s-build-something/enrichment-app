@@ -41,7 +41,7 @@ class ProfileChangeViewModel (
 
     /** Validates currently entered display name */
     fun validateDisplayName(value: String) {
-        if(value == sharedDataManager.mutableUser.value?.displayName) return
+        if(value == sharedDataManager.currentUser.value?.displayName) return
 
         viewModelScope.launch {
             _isLoading.value = true
@@ -57,7 +57,7 @@ class ProfileChangeViewModel (
             _displayNameChangeResponse.emit(
                 repository.changeDisplayName(value).apply {
                     success?.data?.let { data ->
-                        sharedDataManager.mutableUser.update { old ->
+                        sharedDataManager.currentUser.update { old ->
                             old?.copy(
                                 displayName = data.displayName ?: old.displayName,
                                 tag = data.tag ?: old.tag

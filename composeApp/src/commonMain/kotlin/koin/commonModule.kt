@@ -2,6 +2,8 @@
 
 package koin
 
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
@@ -45,8 +47,8 @@ object DateTimeAsStringSerializer : KSerializer<LocalDateTime> {
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class)
 internal val commonModule = module {
+    if(currentPlatform != PlatformType.Jvm) includes(settingsModule)
     single { SharedDataManager() }
-    single<FlowSettings> { settings }
     single {
         Json {
             ignoreUnknownKeys = true
@@ -71,20 +73,18 @@ internal val commonModule = module {
         )
     }
 
+    val isDev = try {
+        Firebase.auth.currentUser?.email?.endsWith("@augmy.org") == true
+    }catch (e: NotImplementedError) {
+        true // enabled on all JVM devices for now as there is no email getter
+    }.also {
+        if(it) this@module.includes(developerConsoleModule)
+    }
+
     single {
         httpClientFactory(
             sharedViewModel = get<SharedViewModel>(),
-            developerViewModel = {
-                val isDev = try {
-                    Firebase.auth.currentUser?.email?.endsWith("@augmy.org") == true
-                }catch (e: NotImplementedError) {
-                    true // enabled on all JVM devices for now as there is no email getter
-                }.also {
-                    if(it) this@module.includes(developerConsoleModule)
-                }
-
-                if(isDev) get<DeveloperConsoleViewModel>() else null
-            },
+            developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
             json = get()
         )
     }

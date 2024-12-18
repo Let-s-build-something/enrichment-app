@@ -54,10 +54,10 @@ open class SharedViewModel: ViewModel() {
         Firebase.auth.currentUser
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
-            if(sharedDataManager.mutableUser.value == null) {
+            if(sharedDataManager.currentUser.value == null) {
                 firebaseUser.getIdToken(false)?.let { idToken ->
-                    sharedDataManager.mutableUser.value = UserIO(idToken = idToken)
-                    sharedDataManager.mutableUser.value = sharedRepository.authenticateUser(
+                    sharedDataManager.currentUser.value = UserIO(idToken = idToken)
+                    sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
                         localSettings = sharedDataManager.localSettings.value
                     )?.copy(
                         idToken = idToken
@@ -68,7 +68,7 @@ open class SharedViewModel: ViewModel() {
     }
 
     /** currently signed in user */
-    val currentUser = sharedDataManager.mutableUser.asStateFlow()
+    val currentUser = sharedDataManager.currentUser.asStateFlow()
 
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
@@ -89,7 +89,7 @@ open class SharedViewModel: ViewModel() {
     open fun logoutCurrentUser() {
         runBlocking {
             Firebase.auth.signOut()
-            sharedDataManager.mutableUser.value = null
+            sharedDataManager.currentUser.value = null
         }
     }
 

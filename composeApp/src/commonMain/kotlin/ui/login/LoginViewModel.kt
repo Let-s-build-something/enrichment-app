@@ -124,8 +124,8 @@ class LoginViewModel(
     private suspend fun authenticateUser(email: String?) {
         withContext(Dispatchers.IO) {
             firebaseUser.firstOrNull()?.getIdToken(false)?.let { idToken ->
-                sharedDataManager.mutableUser.value = UserIO(idToken = idToken)
-                sharedDataManager.mutableUser.value = repository.authenticateUser(
+                sharedDataManager.currentUser.value = UserIO(idToken = idToken)
+                sharedDataManager.currentUser.value = repository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
                 )?.copy(idToken = idToken)
             }
@@ -135,9 +135,9 @@ class LoginViewModel(
 
     /** finalizes full flow with a result */
     private suspend fun finalizeSignIn(email: String?) {
-        if(sharedDataManager.mutableUser.value?.publicId == null) {
+        if(sharedDataManager.currentUser.value?.publicId == null) {
             Firebase.auth.currentUser?.uid?.let { clientId ->
-                sharedDataManager.mutableUser.value = UserIO(
+                sharedDataManager.currentUser.value = UserIO(
                     publicId = repository.createUser(
                         RequestCreateUser(
                             email = email ?: try {
@@ -155,7 +155,7 @@ class LoginViewModel(
                 _loginResult.emit(LoginResultType.FAILURE)
             }
         }else {
-            (if(sharedDataManager.mutableUser.value != null) {
+            (if(sharedDataManager.currentUser.value != null) {
                 viewModelScope.launch(Dispatchers.IO) {
                     settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
                 }
