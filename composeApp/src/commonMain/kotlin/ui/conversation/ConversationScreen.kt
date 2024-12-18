@@ -88,6 +88,7 @@ fun ConversationScreen(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val imePadding = WindowInsets.ime.getBottom(density)
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
@@ -170,7 +171,7 @@ fun ConversationScreen(
                         detectTapGestures(onTap = {
                             when {
                                 showEmojiPreferencesId.value != null -> showEmojiPreferencesId.value = null
-                                WindowInsets.ime.getBottom(density) > 10f ->  focusManager.clearFocus()
+                                imePadding > 10f ->  focusManager.clearFocus()
                                 keyboardMode.value != ConversationKeyboardMode.Default.ordinal -> {
                                     keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                                 }
