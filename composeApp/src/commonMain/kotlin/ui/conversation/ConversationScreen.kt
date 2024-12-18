@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -167,10 +168,16 @@ fun ConversationScreen(
                 modifier = Modifier
                     .pointerInput(Unit) {
                         detectTapGestures(onTap = {
-                            focusManager.clearFocus()
-                            showEmojiPreferencesId.value = null
-                            reactingToMessageId.value = null
-                            keyboardMode.value = ConversationKeyboardMode.Default.ordinal
+                            when {
+                                showEmojiPreferencesId.value != null -> showEmojiPreferencesId.value = null
+                                WindowInsets.ime.getBottom(density) > 10f ->  focusManager.clearFocus()
+                                keyboardMode.value != ConversationKeyboardMode.Default.ordinal -> {
+                                    keyboardMode.value = ConversationKeyboardMode.Default.ordinal
+                                }
+                                else -> {
+                                    reactingToMessageId.value = null
+                                }
+                            }
                         })
                     }
                     .align(Alignment.BottomCenter)
