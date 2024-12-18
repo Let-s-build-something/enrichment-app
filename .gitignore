@@ -53,3 +53,4 @@ build/wix311/
 iosApp/build/XCBuildData
 GoogleService-Info.plist
 commonizedNativeDistributionLocation.txt
+composeApp/datastore/app_preferences.preferences_pb

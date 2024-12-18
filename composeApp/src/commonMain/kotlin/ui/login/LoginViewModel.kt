@@ -154,12 +154,12 @@ class LoginViewModel(
                 _loginResult.emit(LoginResultType.FAILURE)
             }
         }else {
-            if(sharedDataManager.currentUser.value != null) {
+            (if(sharedDataManager.currentUser.value != null) {
                 viewModelScope.launch(Dispatchers.IO) {
                     settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
                 }
                 LoginResultType.SUCCESS
-            } else LoginResultType.FAILURE.also {
+            } else LoginResultType.FAILURE).also {
                 _loginResult.emit(it)
             }
         }
