@@ -1,9 +1,12 @@
+@file:OptIn(ExperimentalSettingsApi::class)
+
 package koin
 
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
-import com.russhwolf.settings.Settings
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.coroutines.FlowSettings
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
@@ -41,13 +44,8 @@ object DateTimeAsStringSerializer : KSerializer<LocalDateTime> {
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class)
 internal val commonModule = module {
-    includes(ui.home.homeModule)
-    includes(appServiceModule)
-
     single { SharedDataManager() }
-    single { Settings() }
-    viewModelOf(::SharedViewModel)
-
+    single<FlowSettings> { settings }
     single {
         Json {
             ignoreUnknownKeys = true
@@ -60,26 +58,36 @@ internal val commonModule = module {
             prettyPrint = true
         }
     }
+
+    viewModelOf(::SharedViewModel)
+    includes(ui.home.homeModule)
+    includes(appServiceModule)
+
     single {
         NetworkFetcher.Factory(
             networkClient = { get<HttpClient>().asNetworkClient() }
         )
     }
 
-    val isDev = try {
-        Firebase.auth.currentUser?.email?.endsWith("@augmy.org") == true
-    }catch (e: NotImplementedError) {
-        true // enabled on all JVM devices for now as there is no email getter
-    }.also {
-        if(it) includes(developerConsoleModule)
-    }
     single {
         httpClientFactory(
             sharedViewModel = get<SharedViewModel>(),
-            developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
+            developerViewModel = {
+                val isDev = try {
+                    Firebase.auth.currentUser?.email?.endsWith("@augmy.org") == true
+                }catch (e: NotImplementedError) {
+                    true // enabled on all JVM devices for now as there is no email getter
+                }.also {
+                    if(it) this@module.includes(developerConsoleModule)
+                }
+
+                if(isDev) get<DeveloperConsoleViewModel>() else null
+            },
             json = get()
         )
     }
 
     factory { SharedRepository(get<HttpClient>()) }
 }
+
+expect val settings: FlowSettings

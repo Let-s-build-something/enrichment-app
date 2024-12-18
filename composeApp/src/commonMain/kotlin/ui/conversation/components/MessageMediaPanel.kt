@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -63,7 +64,7 @@ fun MessageMediaPanel(
     onDismissRequest: () -> Unit
 ) {
     val density = LocalDensity.current
-    val imeHeight = viewModel.keyboardHeight
+    val keyboardHeight = viewModel.keyboardHeight.collectAsState()
     val imePadding = WindowInsets.ime.getBottom(density)
     val coroutineScope = rememberCoroutineScope()
 
@@ -83,7 +84,7 @@ fun MessageMediaPanel(
 
     LaunchedEffect(imePadding, isFilterFocused.value) {
         delay(100)
-        if(imeHeight - imePadding <= 0 && isFilterFocused.value.not()) {
+        if(keyboardHeight.value - imePadding <= 0 && isFilterFocused.value.not()) {
             onDismissRequest()
         }
     }
@@ -109,7 +110,7 @@ fun MessageMediaPanel(
                 if(mode.value == ConversationKeyboardMode.Default.ordinal) Modifier.height(0.dp)
                 else if (isFilterFocused.value && mode.value == ConversationKeyboardMode.Gif.ordinal) {
                     Modifier.fillMaxHeight(.75f)
-                } else Modifier.height(with(density) { imeHeight.toDp() })
+                } else Modifier.height(with(density) { keyboardHeight.value.toDp() })
             )
             .animateContentSize()
     ) {
@@ -141,7 +142,7 @@ fun MessageMediaPanel(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Stickers",
+                        text = "Awaiting emoji.gg API v2 completion",
                         modifier = Modifier.padding(16.dp),
                         style = LocalTheme.current.styles.heading
                     )

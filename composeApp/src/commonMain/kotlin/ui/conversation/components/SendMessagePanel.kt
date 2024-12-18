@@ -57,6 +57,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -149,17 +150,19 @@ internal fun BoxScope.SendMessagePanel(
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
-    val missingKeyboardHeight = remember { viewModel.keyboardHeight < 2 }
     val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
-    val messageContent = remember {
+    val keyboardHeight = viewModel.keyboardHeight.collectAsState()
+    val savedMessage = viewModel.savedMessage.collectAsState()
+    val messageContent = remember(savedMessage.value) {
         mutableStateOf(
             TextFieldValue(
-                viewModel.savedMessage,
-                TextRange(viewModel.savedMessage.length)
+                savedMessage.value,
+                TextRange(savedMessage.value.length)
             )
         )
     }
+    val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
     val mediaAttached = remember {
         mutableStateListOf<PlatformFile>()
     }
@@ -174,7 +177,7 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     val bottomPadding = animateFloatAsState(
-        targetValue = if (imeHeightPadding >= viewModel.keyboardHeight.div(2) || !isDefaultMode) {
+        targetValue = if (imeHeightPadding >= keyboardHeight.value.div(2) || !isDefaultMode) {
             LocalTheme.current.shapes.betweenItemsSpace.value
         } else {
             with(density) { WindowInsets.navigationBars.getBottom(density).toDp().value }.coerceAtLeast(
@@ -231,19 +234,19 @@ internal fun BoxScope.SendMessagePanel(
         )
         mediaAttached.clear()
         messageContent.value = TextFieldValue()
-        viewModel.savedMessage = ""
+        viewModel.saveMessage(null)
         replyToMessage.value = null
     }
 
 
     DisposableEffect(null) {
         onDispose {
-            viewModel.savedMessage = messageContent.value.text
+            viewModel.saveMessage(messageContent.value.text)
         }
     }
 
-    LaunchedEffect(Unit) {
-        if(missingKeyboardHeight) {
+    LaunchedEffect(savedMessage.value) {
+        if(missingKeyboardHeight || savedMessage.value.isNotBlank()) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }else focusRequester.captureFocus()
@@ -253,8 +256,8 @@ internal fun BoxScope.SendMessagePanel(
         LaunchedEffect(imeHeightPadding) {
             if(missingKeyboardHeight) {
                 imeHeightPadding.let { imeHeight ->
-                    if(imeHeight > viewModel.keyboardHeight) {
-                        viewModel.keyboardHeight = imeHeight
+                    if(imeHeight > keyboardHeight.value) {
+                        viewModel.setKeyboardHeight(imeHeight)
                     }
                 }
             }
@@ -544,13 +547,13 @@ internal fun BoxScope.SendMessagePanel(
                                     if(isDesktop) keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                                 }else {
                                     // hack to not close the emoji picker right away
-                                    if(viewModel.keyboardHeight > 99) {
-                                        viewModel.keyboardHeight += 1
+                                    if(keyboardHeight.value > 99) {
+                                        viewModel.setKeyboardHeight(keyboardHeight.value + 1)
                                         coroutineScope.launch {
                                             delay(200)
-                                            viewModel.keyboardHeight -= 1
+                                            viewModel.setKeyboardHeight(keyboardHeight.value - 1)
                                         }
-                                    }else viewModel.keyboardHeight = screenSize.height / 3
+                                    }else viewModel.setKeyboardHeight(screenSize.height / 3)
 
                                     keyboardController?.hide()
                                     keyboardMode.value = ConversationKeyboardMode.Emoji.ordinal
@@ -574,7 +577,6 @@ internal fun BoxScope.SendMessagePanel(
                         sendMessage()
                     }
                 ),
-                value = viewModel.savedMessage,
                 onValueChange = {
                     showMoreOptions.value = false
                     messageContent.value = it

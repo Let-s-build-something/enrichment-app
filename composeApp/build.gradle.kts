@@ -146,7 +146,9 @@ kotlin {
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.view.model)
-            implementation(libs.settings.no.arg)
+            implementation(libs.bundles.settings)
+            implementation(libs.datastore.preferences)
+            implementation(libs.datastore.preferences.core)
 
             implementation(libs.kotlin.crypto.sha2)
             implementation(libs.kotlinx.datetime)
