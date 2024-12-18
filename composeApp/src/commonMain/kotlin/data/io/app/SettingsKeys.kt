@@ -32,4 +32,7 @@ object SettingsKeys {
 
     /** Whether hint about emoji preferences should be displayed */
     const val KEY_SHOW_EMOJI_PREFERENCE_HINT = "show_emoji_preference_hint"
+
+    /** List of preferred emojis */
+    const val KEY_PREFERRED_EMOJIS = "preferred_emojis"
 }

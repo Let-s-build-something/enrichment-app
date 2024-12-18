@@ -59,7 +59,11 @@ class ConversationViewModel(
     private val conversationId: String,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase
-): KeyboardViewModel(emojiUseCase, gifUseCase), RefreshableViewModel {
+): KeyboardViewModel(
+    emojiUseCase = emojiUseCase,
+    gifUseCase = gifUseCase,
+    conversationId = conversationId
+), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L

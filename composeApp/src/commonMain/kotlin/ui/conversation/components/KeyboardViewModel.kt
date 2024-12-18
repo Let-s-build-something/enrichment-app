@@ -29,7 +29,8 @@ internal val keyboardModule = module {
 /** Controller and provider of data specific to the conversation keyboard */
 open class KeyboardViewModel(
     private val emojiUseCase: EmojiUseCase,
-    private val gifUseCase: GifUseCase
+    private val gifUseCase: GifUseCase,
+    private val conversationId: String?,
 ): SharedViewModel() {
 
     val additionalBottomPadding = Animatable(0f)
@@ -64,7 +65,7 @@ open class KeyboardViewModel(
 
     init {
         viewModelScope.launch {
-            emojiUseCase.initialize()
+            emojiUseCase.initialize(conversationId)
         }
         viewModelScope.launch(Dispatchers.IO) {
             showEmojiPreferenceHint = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT) ?: true
@@ -72,6 +73,15 @@ open class KeyboardViewModel(
         }
     }
 
+    /** Takes a note about an emoji selection */
+    fun noteEmojiSelection(emoji: EmojiData) {
+        viewModelScope.launch {
+            emojiUseCase.noteEmojiSelection(
+                emoji = emoji,
+                conversationId = conversationId
+            )
+        }
+    }
 
     /** Saves current keyboard height */
     fun setKeyboardHeight(value: Int) {

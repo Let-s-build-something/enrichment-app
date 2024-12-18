@@ -13,5 +13,15 @@ internal val databaseModule = module {
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()
     }
-    single { get<AppRoomDatabase>().networkItemDbDao() }
+    factory<AppRoomDatabase> {
+        getDatabaseBuilder()
+            .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+            .setDriver(BundledSQLiteDriver())
+            .setQueryCoroutineContext(Dispatchers.IO)
+            .build()
+    }
+
+    // DAO providers
+    factory { get<AppRoomDatabase>().networkItemDbDao() }
+    factory { get<AppRoomDatabase>().emojiSelectionDao() }
 }

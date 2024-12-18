@@ -146,6 +146,7 @@ kotlin {
 
             implementation(libs.compose.paging.common)
             implementation(libs.room.runtime)
+            //implementation(libs.room.compiler)
             implementation(libs.sqlite.bundled)
 
             api(libs.koin.core)
