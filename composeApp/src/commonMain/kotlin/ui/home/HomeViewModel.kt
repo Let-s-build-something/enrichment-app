@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSettingsApi::class)
+
 package ui.home
 
 import androidx.compose.ui.graphics.Color
@@ -8,7 +10,7 @@ import androidx.paging.cachedIn
 import androidx.paging.filter
 import base.utils.asSimpleString
 import base.utils.tagToColor
-import com.russhwolf.settings.set
+import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
@@ -46,22 +48,12 @@ class HomeViewModel(
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
-    private val _categories = MutableStateFlow(
-        settings.getStringOrNull(KEY_NETWORK_CATEGORIES)
-            ?.split(",")
-            ?.mapNotNull {
-                NetworkProximityCategory.entries.firstOrNull { category -> category.name == it }
-            }
-            ?: listOf(
-                NetworkProximityCategory.Family,
-                NetworkProximityCategory.Peers
-            )
-    )
+    private val _categories = MutableStateFlow(listOf<NetworkProximityCategory>())
 
     /** Last selected network categories */
-    val categories = _categories.transform {
+    val categories = _categories.transform { categories ->
         emit(
-            it.sortedBy {
+            categories.sortedBy {
                 NetworkProximityCategory.entries.indexOf(it) + 1
             }
         )
@@ -95,11 +87,29 @@ class HomeViewModel(
             }
         }
 
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            _categories.value = settings.getStringOrNull(KEY_NETWORK_CATEGORIES)
+                ?.split(",")
+                ?.mapNotNull {
+                    NetworkProximityCategory.entries.firstOrNull { category -> category.name == it }
+                }
+                ?: listOf(
+                    NetworkProximityCategory.Family,
+                    NetworkProximityCategory.Peers
+                )
+        }
+    }
+
     /** Filters currently downloaded network items */
     fun filterNetworkItems(filter: List<NetworkProximityCategory>) {
         viewModelScope.launch(Dispatchers.Default) {
             _categories.value = filter
-            settings[KEY_NETWORK_CATEGORIES] = filter.joinToString(",")
+            settings.putString(
+                KEY_NETWORK_CATEGORIES,
+                filter.joinToString(",")
+            )
         }
     }
 
@@ -126,7 +136,7 @@ class HomeViewModel(
         category: NetworkProximityCategory,
         color: Color
     ) {
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(Dispatchers.IO) {
             sharedDataManager.localSettings.update {
                 it?.copy(
                     networkColors = it.networkColors.toMutableList().apply {
@@ -134,7 +144,10 @@ class HomeViewModel(
                     }
                 )
             }
-            settings[KEY_NETWORK_COLORS] = sharedDataManager.localSettings.value?.networkColors?.joinToString(",")
+            settings.putString(
+                KEY_NETWORK_COLORS,
+                sharedDataManager.localSettings.value?.networkColors?.joinToString(",") ?: ""
+            )
         }
     }
 }

@@ -1,7 +1,7 @@
 package ui.account
 
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.set
+import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
@@ -12,6 +12,8 @@ import data.io.social.UserVisibility
 import data.shared.SharedViewModel
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,13 +47,14 @@ class AccountDashboardViewModel(
     val visibilityResponse = _visibilityResponse.asStateFlow()
 
     /** Sets the theme of the app */
+    @OptIn(ExperimentalSettingsApi::class)
     fun updateTheme(choiceOrdinal: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val choice = ThemeChoice.entries[choiceOrdinal]
             sharedDataManager.localSettings.update {
                 it?.copy(theme = choice)
             }
-            settings[SettingsKeys.KEY_THEME] = choice.name
+            settings.putString(SettingsKeys.KEY_THEME, choice.name)
         }
     }
 

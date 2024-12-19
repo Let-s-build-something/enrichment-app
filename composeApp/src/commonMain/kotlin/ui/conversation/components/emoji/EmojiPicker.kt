@@ -25,7 +25,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
@@ -184,7 +184,10 @@ fun EmojiPicker(
                     ) { emojiData ->
                         EmojiImpl(
                             emojiData = emojiData,
-                            onEmojiSelected = onEmojiSelected,
+                            onEmojiSelected = { content, name ->
+                                viewModel.noteEmojiSelection(EmojiData(mutableListOf(content), name))
+                                onEmojiSelected(content)
+                            },
                             coroutineScope = coroutineScope
                         )
                     }
@@ -204,7 +207,7 @@ fun EmojiPicker(
 @Composable
 private fun LazyGridItemScope.EmojiImpl(
     emojiData: EmojiData,
-    onEmojiSelected: (String) -> Unit,
+    onEmojiSelected: (content: String, name: String) -> Unit,
     coroutineScope: CoroutineScope,
     gridState: LazyGridState = rememberLazyGridState()
 ) {
@@ -253,17 +256,17 @@ private fun LazyGridItemScope.EmojiImpl(
                     )
                     .padding(4.dp)
             ) {
-                items(
+                itemsIndexed(
                     emojiData.emoji,
-                    key = { it }
-                ) { emoji ->
+                    key = { _, emoji -> emoji  }
+                ) { index, emoji ->
                     Text(
                         modifier = Modifier
                             .scalingClickable {
                                 coroutineScope.launch {
                                     state.onDispose()
                                 }
-                                onEmojiSelected(emoji)
+                                onEmojiSelected(emoji, "${emojiData.name}_$index")
                             }
                             .size(46.dp)
                             .padding(4.dp)
@@ -285,7 +288,7 @@ private fun LazyGridItemScope.EmojiImpl(
                     coroutineScope.launch {
                         state.show(MutatePriority.PreventUserInput)
                     }
-                }else onEmojiSelected(emojiData.emoji.firstOrNull() ?: "")
+                }else onEmojiSelected(emojiData.emoji.firstOrNull() ?: "", emojiData.name)
             }
             .animateItem()
     ) {

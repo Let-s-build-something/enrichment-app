@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalSettingsApi::class)
+
 package ui.login
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.currentPlatform
+import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.identity_platform.IdentityMessageType
@@ -17,7 +20,9 @@ import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.Module
@@ -31,20 +36,24 @@ class LoginViewModel(
     private val _loginResult = MutableSharedFlow<LoginResultType?>()
 
     /** current client status */
-    var clientStatus: ClientStatus = ClientStatus.NEW
-        get() = ClientStatus.entries.find {
-            it.name == settings.getStringOrNull(KEY_CLIENT_STATUS)
-        } ?: field
-        private set(value) {
-            settings.putString(KEY_CLIENT_STATUS, value.name)
-            field = value
-        }
+    val clientStatus = MutableStateFlow(ClientStatus.NEW)
 
     /** Sends signal to UI about a response that happened */
     val loginResult = _loginResult.asSharedFlow()
 
     /** List of all available service via which user can sign in */
     val availableOptions = serviceProvider.availableOptions
+
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            ClientStatus.entries.find {
+                it.name == settings.getStringOrNull(KEY_CLIENT_STATUS)
+            }?.let { status ->
+                clientStatus.value = status
+            }
+        }
+    }
 
     /** Requests signup with an email and a password */
     fun signUpWithPassword(
@@ -114,7 +123,7 @@ class LoginViewModel(
     /** Authenticates user with a token */
     private suspend fun authenticateUser(email: String?) {
         withContext(Dispatchers.IO) {
-            firebaseUser.value?.getIdToken(false)?.let { idToken ->
+            firebaseUser.firstOrNull()?.getIdToken(false)?.let { idToken ->
                 sharedDataManager.currentUser.value = UserIO(idToken = idToken)
                 sharedDataManager.currentUser.value = repository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
@@ -146,12 +155,14 @@ class LoginViewModel(
                 _loginResult.emit(LoginResultType.FAILURE)
             }
         }else {
-            _loginResult.emit(
-                if(sharedDataManager.currentUser.value != null) {
-                    clientStatus = ClientStatus.REGISTERED
-                    LoginResultType.SUCCESS
-                } else LoginResultType.FAILURE
-            )
+            (if(sharedDataManager.currentUser.value != null) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
+                }
+                LoginResultType.SUCCESS
+            } else LoginResultType.FAILURE).also {
+                _loginResult.emit(it)
+            }
         }
     }
 }

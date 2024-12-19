@@ -50,7 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun EditFieldInput(
     modifier: Modifier = Modifier,
-    value: String,
+    value: String = "",
     textValue: TextFieldValue? = null,
     textStyle: TextStyle = TextStyle(
         color = LocalTheme.current.colors.primary,

@@ -2,14 +2,19 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.Settings
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.coroutines.FlowSettings
 import data.io.app.SettingsKeys
+import data.io.user.UserIO
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.storage.Data
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -17,6 +22,7 @@ import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
+@OptIn(ExperimentalSettingsApi::class)
 open class SharedViewModel: ViewModel() {
 
     /** Singleton data manager to keep session-only data alive */
@@ -26,7 +32,15 @@ open class SharedViewModel: ViewModel() {
     protected val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
 
     /** persistent settings saved locally to a device */
-    protected val settings = KoinPlatform.getKoin().get<Settings>()
+    protected val settings = KoinPlatform.getKoin().get<FlowSettings>()
+
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            delay(50)
+            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
+        }
+    }
 
     //======================================== public variables ==========================================
 
@@ -38,17 +52,26 @@ open class SharedViewModel: ViewModel() {
         viewModelScope,
         SharingStarted.Eagerly,
         Firebase.auth.currentUser
-    )
+    ).onEach { firebaseUser ->
+        if(firebaseUser != null) {
+            if(sharedDataManager.currentUser.value == null) {
+                firebaseUser.getIdToken(false)?.let { idToken ->
+                    sharedDataManager.currentUser.value = UserIO(idToken = idToken)
+                    sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
+                        localSettings = sharedDataManager.localSettings.value
+                    )?.copy(
+                        idToken = idToken
+                    )
+                }
+            }
+        }
+    }
 
     /** currently signed in user */
     val currentUser = sharedDataManager.currentUser.asStateFlow()
 
-    private val _isToolbarExpanded = MutableStateFlow(
-        settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
-    )
-
     /** whether toolbar is currently expanded */
-    val isToolbarExpanded = _isToolbarExpanded.asStateFlow()
+    val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
 
 
     //======================================== functions ==========================================
@@ -56,8 +79,10 @@ open class SharedViewModel: ViewModel() {
 
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {
-        _isToolbarExpanded.value = expand
-        settings.putBoolean(SettingsKeys.KEY_TOOLBAR_EXPANDED, expand)
+        sharedDataManager.isToolbarExpanded.value = expand
+        viewModelScope.launch {
+            settings.putBoolean(SettingsKeys.KEY_TOOLBAR_EXPANDED, expand)
+        }
     }
 
     /** Logs out the currently signed in user */

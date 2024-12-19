@@ -3,6 +3,7 @@ import android.app.Application
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
@@ -25,15 +26,20 @@ import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
 import com.google.firebase.initialize
-import com.russhwolf.settings.Settings
-import com.russhwolf.settings.set
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.coroutines.FlowSettings
+import com.russhwolf.settings.coroutines.SuspendSettings
+import com.russhwolf.settings.coroutines.toBlockingSettings
 import data.shared.AppServiceViewModel
 import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
 import io.kamel.image.config.Default
 import io.kamel.image.config.LocalKamelConfig
 import koin.commonModule
+import koin.settingsModule
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
@@ -57,21 +63,22 @@ import javax.swing.JTextArea
 private var isAppInitialized = false
 
 /** Initialization of the Jvm application. */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class)
 fun main(args: Array<String>) = application {
     var arguments: Array<String>? = args
+    val coroutineScope = rememberCoroutineScope()
+
     if(isAppInitialized.not()) {
-        initializeFirebase(
-            settings = {
-                KoinPlatform.getKoin().get<Settings>()
-            }
-        )
         startKoin {
+            modules(settingsModule)
+            initializeFirebase(
+                settings = KoinPlatform.getKoin().get<FlowSettings>(),
+                scope = coroutineScope
+            )
             modules(commonModule)
         }
         isAppInitialized = true
     }
-    associateWithDomain()
 
     val density = LocalDensity.current
     val toolkit = Toolkit.getDefaultToolkit()
@@ -135,6 +142,10 @@ fun main(args: Array<String>) = application {
         KamelConfig {
             takeFrom(KamelConfig.Default)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        associateWithDomain()
     }
 
     Window(
@@ -273,15 +284,23 @@ private fun registerUriSchemeLinux() {
  * initializes Firebase, which is specific to JVM,
  * see https://github.com/GitLiveApp/firebase-java-sdk?tab=readme-ov-file#initializing-the-sdk
  */
-private fun initializeFirebase(settings: () -> Settings) {
+@OptIn(ExperimentalSettingsApi::class)
+private fun initializeFirebase(
+    settings: SuspendSettings,
+    scope: CoroutineScope
+) {
     FirebasePlatform.initializeFirebasePlatform(
         object : FirebasePlatform() {
             override fun store(key: String, value: String) {
-                settings()[key] = value
+                scope.launch {
+                    settings.putString(key, value)
+                }
             }
-            override fun retrieve(key: String) = settings().getString(key, "").ifEmpty { null }
+            override fun retrieve(key: String) = settings.toBlockingSettings().getString(key, "").ifEmpty { null }
             override fun clear(key: String) {
-                settings().remove(key)
+                scope.launch {
+                    settings.remove(key)
+                }
             }
             override fun log(msg: String) = println(msg)
         }

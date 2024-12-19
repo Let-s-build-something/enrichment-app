@@ -34,12 +34,12 @@ sealed class NavigationNode {
     @Serializable
     data class Conversation(
         /** unique identifier of the conversation */
-        val conversationUid: String? = null,
+        val conversationId: String? = null,
 
         /** Name of the conversation */
         val name: String? = null
     ): NavigationNode() {
-        override val deepLink: String = "messages?conversation=$conversationUid&name=$name"
+        override val deepLink: String = "messages?conversation=$conversationId&name=$name"
     }
 
     /** dashboard screen for user information and general user-related actions */

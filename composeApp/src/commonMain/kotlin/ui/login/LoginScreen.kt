@@ -28,6 +28,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,6 +66,7 @@ import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
 import augmy.composeapp.generated.resources.login_success_snackbar_action
 import augmy.composeapp.generated.resources.screen_login
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -83,7 +85,6 @@ import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import components.AsyncImageThumbnail
 import data.Asset
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -102,13 +103,14 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
+    val clientStatus = viewModel.clientStatus.collectAsState()
     val isWaitingForResult = remember { mutableStateOf(false) }
     val errorMessage = remember {
         mutableStateOf<String?>(null)
     }
     val password = remember { mutableStateOf("") }
-    val screenStateIndex = rememberSaveable {
-        mutableStateOf(viewModel.clientStatus.ordinal)
+    val screenStateIndex = rememberSaveable(clientStatus.value) {
+        mutableStateOf(clientStatus.value.ordinal)
     }
     val screenType = LoginScreenType.entries[screenStateIndex.value]
     val validations = remember {

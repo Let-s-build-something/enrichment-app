@@ -99,7 +99,7 @@ fun UserProfileLauncher(
                         onDismissRequest()
                         navController?.navigate(
                             NavigationNode.Conversation(
-                                conversationUid = it.data.targetPublicId,
+                                conversationId = it.data.targetPublicId,
                                 name = responseProfile.value.success?.data?.displayName
                             )
                         )
@@ -233,7 +233,7 @@ private fun DataContent(
                         onDismissRequest()
                         navController?.navigate(
                             NavigationNode.Conversation(
-                                conversationUid = userProfile.publicId,
+                                conversationId = userProfile.publicId,
                                 name = userProfile.displayName
                             )
                         )
