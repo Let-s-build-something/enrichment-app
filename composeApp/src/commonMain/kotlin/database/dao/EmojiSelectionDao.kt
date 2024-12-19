@@ -24,7 +24,7 @@ interface EmojiSelectionDao {
     /** Returns emoji selections specific to a conversation, or all if no conversation is specified */
     @Query(
         "SELECT * FROM ${AppRoomDatabase.ROOM_EMOJI_SELECTION_TABLE} " +
-                "WHERE conversation_id == NULL " +
+                "WHERE conversation_id IS NULL " +
                 "ORDER BY count DESC "
     )
     suspend fun getGeneralSelections(): List<EmojiSelection>

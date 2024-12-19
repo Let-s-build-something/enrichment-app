@@ -8,14 +8,7 @@ import org.koin.dsl.module
 internal val databaseModule = module {
     single<AppRoomDatabase> {
         getDatabaseBuilder()
-            .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
-            .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .build()
-    }
-    factory<AppRoomDatabase> {
-        getDatabaseBuilder()
-            .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()

@@ -15,7 +15,7 @@ import database.dao.NetworkItemDao
         NetworkItemIO::class,
         EmojiSelection::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

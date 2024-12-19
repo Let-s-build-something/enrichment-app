@@ -164,7 +164,7 @@ fun NetworkAddNewLauncher(
                         onDismissRequest()
                         navController?.navigate(
                             NavigationNode.Conversation(
-                                conversationUid = data.targetPublicId,
+                                conversationId = data.targetPublicId,
                                 name = name
                             )
                         )

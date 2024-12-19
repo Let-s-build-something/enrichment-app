@@ -8,10 +8,6 @@ import database.AppRoomDatabase.Companion.ROOM_EMOJI_SELECTION_TABLE
 /** Object for storing information about emoji selection specific to a conversation and its author */
 @Entity(tableName = ROOM_EMOJI_SELECTION_TABLE)
 data class EmojiSelection(
-    @PrimaryKey(autoGenerate = true)
-    /** Unique database identifier */
-    val uid: Long = 0L,
-
     /** Description of the emoji, has to be unique */
     val name: String,
 
@@ -23,5 +19,9 @@ data class EmojiSelection(
     val content: String? = null,
 
     /** Number of times this emojis has been selected */
-    var count: Int = 0
+    var count: Int = 0,
+
+    @PrimaryKey
+    /** Unique database identifier */
+    val id: String = "${conversationId}_$name",
 )

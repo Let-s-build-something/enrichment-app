@@ -247,7 +247,7 @@ fun SocialCircleContent(
                                         data?.userPublicId?.let { userPublicId ->
                                             navController?.navigate(
                                                 NavigationNode.Conversation(
-                                                    conversationUid = userPublicId,
+                                                    conversationId = userPublicId,
                                                     name = data.displayName
                                                 )
                                             )

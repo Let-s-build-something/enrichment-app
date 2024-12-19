@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSettingsApi::class)
+@file:OptIn(ExperimentalSettingsApi::class, ExperimentalUuidApi::class)
 
 package ui.conversation.components.emoji
 
@@ -15,11 +15,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.dsl.module
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 internal val emojiModule = module {
     factory { EmojiDataManager() }
@@ -36,7 +39,7 @@ class EmojiUseCase(
     private val settings: FlowSettings,
     private val selectionDao: EmojiSelectionDao
 ) {
-    private val emojiHistory = MutableStateFlow(mutableListOf<EmojiSelection>())
+    private val conversationEmojiHistory = MutableStateFlow<EmojiHistory?>(null)
     private val emojiSearch = MutableStateFlow("")
 
     /** user preferred emojis, manually selected without underlying algorithm */
@@ -45,18 +48,30 @@ class EmojiUseCase(
     /** Whether there is emoji filter */
     val areEmojisFiltered = MutableStateFlow(false)
 
-    /** List of all available emojis */
-    val emojis = dataManager.emojis.combine(emojiHistory) { emojis, history ->
-        if(emojis.isEmpty()) return@combine null
+    private val emojiHistory = conversationEmojiHistory.combine(dataManager.emojiGeneralHistory) { history, generalHistory ->
         withContext(Dispatchers.Default) {
-            mutableListOf(
-                EMOJIS_HISTORY_GROUP to history.distinctBy { it.name }.map {
+            EMOJIS_HISTORY_GROUP to mutableListOf(
+                *history?.selections.orEmpty().sortedByDescending { it.count }.toTypedArray()
+            )
+                .apply {
+                    var index = 0
+                    while(size < EMOJIS_HISTORY_LENGTH && ++index < generalHistory.size) {
+                        if(this.none { it.content == generalHistory[index].content }) {
+                            add(generalHistory[index])
+                        }
+                    }
+                }
+                .map {
                     EmojiData(emoji = mutableListOf(it.content ?: ""), name = "'" + it.name)
                 }
-            ).apply {
-                addAll(emojis)
-            }
         }
+    }
+
+    /** List of all available emojis */
+    val emojis = dataManager.emojis.combine(emojiHistory) { emojis, history ->
+        if(emojis.isEmpty()) {
+            return@combine null
+        }else listOf(history).plus(emojis)
     }.combine(emojiSearch) { emojis, query ->
         if (query.isBlank()) {
             areEmojisFiltered.value = false
@@ -100,34 +115,43 @@ class EmojiUseCase(
         conversationId: String?
     ) {
         withContext(Dispatchers.IO) {
-            // update conversation specific selection
-            if(conversationId != null) {
-                selectionDao.insertSelection(
-                    (emojiHistory.value.find {
-                        it.conversationId == conversationId && it.name == emoji.name
-                    } ?: EmojiSelection(
-                        name = emoji.name,
-                        conversationId = conversationId,
-                        content = emoji.emoji.first(),
-                        count = 0
-                    )).apply {
-                        count += 1
-                    }
-                )
+            // update general emoji selection
+            dataManager.emojiGeneralHistory.update { prev ->
+                prev.apply {
+                    selectionDao.insertSelection(
+                        (find { it.name == emoji.name } ?: EmojiSelection(
+                            name = emoji.name,
+                            content = emoji.emoji.first(),
+                            count = 0
+                        )).also {
+                            it.count += 1
+                            if(it.count == 1) this@apply.add(it)
+                            selectionDao.insertSelection(it)
+                        }
+                    )
+                }
             }
 
-            // update general emoji selection
-            selectionDao.insertSelection(
-                (dataManager.emojiGeneralHistory.value.find { it.name == emoji.name } ?: EmojiSelection(
-                    name = emoji.name,
-                    content = emoji.emoji.first(),
-                    count = 0
-                ).also {
-                    dataManager.emojiGeneralHistory.value.add(it)
-                }).apply {
-                    count += 1
+            // update conversation specific selection
+            if(conversationId != null) {
+                conversationEmojiHistory.value?.apply {
+                    selectionDao.insertSelection(
+                        (selections.find { it.name == emoji.name } ?: EmojiSelection(
+                            name = emoji.name,
+                            conversationId = conversationId,
+                            content = emoji.emoji.first(),
+                            count = 0
+                        )).also {
+                            it.count += 1
+                            if(it.count == 1) this@apply.selections.add(it)
+                            selectionDao.insertSelection(it)
+                        }
+                    )
                 }
-            )
+                conversationEmojiHistory.value = EmojiHistory(
+                    selections = conversationEmojiHistory.value?.selections.orEmpty().toMutableList()
+                )
+            }
         }
     }
 
@@ -137,15 +161,13 @@ class EmojiUseCase(
             if(dataManager.emojiGeneralHistory.value.isEmpty()) {
                 dataManager.emojiGeneralHistory.value = selectionDao.getGeneralSelections().toMutableList()
             }
-            emojiHistory.value = selectionDao.getSelections(
-                conversationId = conversationId ?: ""
-            ).toMutableList()
-
-            // fill in missing emojis from general history,
-            // general history never overrides conversation specific history in order!
-            emojiHistory.value.addAll(dataManager.emojiGeneralHistory.value.take(
-                EMOJIS_HISTORY_LENGTH - emojiHistory.value.size
-            ))
+            if(conversationEmojiHistory.value == null) {
+                conversationEmojiHistory.value = EmojiHistory(
+                    selections = selectionDao.getSelections(
+                        conversationId = conversationId ?: ""
+                    ).distinctBy { it.name }.sortedByDescending { it.count }.toMutableList()
+                )
+            }
         }
     }
 
@@ -170,6 +192,18 @@ class EmojiUseCase(
             }.ifNull {
                 DefaultEmojis
             }
+        }
+    }
+
+    private data class EmojiHistory(
+        val selections: MutableList<EmojiSelection>,
+        private val uid: String = Uuid.random().toString()
+    ) {
+        override fun toString(): String {
+            return "{" +
+                    "selections=$selections, " +
+                    "uid=$uid" +
+                    "}"
         }
     }
 
