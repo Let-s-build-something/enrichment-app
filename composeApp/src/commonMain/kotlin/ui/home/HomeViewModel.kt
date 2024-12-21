@@ -73,9 +73,9 @@ class HomeViewModel(
     /** flow of current requests */
     val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
         PagingConfig(
-            pageSize = 20,
+            pageSize = 40,
             enablePlaceholders = true,
-            initialLoadSize = 20
+            initialLoadSize = 40
         )
     ).flow
         .cachedIn(viewModelScope)

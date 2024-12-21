@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
@@ -196,6 +197,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         },
         onRefresh = {
             networkItems.refresh()
+            coroutineScope.launch {
+                listState.animateScrollToItem(0)
+            }
         },
         showDefaultActions = true,
         viewModel = viewModel,

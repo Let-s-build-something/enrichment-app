@@ -18,7 +18,7 @@ import database.dao.PagingMetaDao
         EmojiSelection::class,
         PagingMetaIO::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

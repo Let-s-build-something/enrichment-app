@@ -48,8 +48,5 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Identifier of the owner of this item */
     @ColumnInfo("owner_public_id")
-    var ownerPublicId: String? = Firebase.auth.currentUser?.uid,
-
-    /** Page of this item */
-    var page: Int = 0
+    var ownerPublicId: String? = Firebase.auth.currentUser?.uid
 )

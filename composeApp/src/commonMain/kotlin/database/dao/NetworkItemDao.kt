@@ -14,11 +14,13 @@ interface NetworkItemDao {
     /** Returns all network items */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId " +
-            "AND page = :page " +
-            "ORDER BY proximity DESC")
+            "ORDER BY proximity DESC " +
+            "LIMIT :limit " +
+            "OFFSET :offset")
     suspend fun getPaginated(
         ownerPublicId: String?,
-        page: Int
+        limit: Int,
+        offset: Int
     ): List<NetworkItemIO>
 
     /** Counts the number of items */

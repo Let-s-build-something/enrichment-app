@@ -10,7 +10,7 @@ import data.io.user.NetworkItemIO
 import kotlinx.io.IOException
 
 /** factory for making paging requests */
-class NetworkListSource(
+class NetworkRoomSource(
     private val size: Int,
     private val getItems: suspend (page: Int) -> BaseResponse<NetworkListResponse>
 ): PagingSource<Int, NetworkItemIO>() {

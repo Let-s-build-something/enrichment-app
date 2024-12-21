@@ -17,8 +17,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ui.login.safeRequest
 import ui.network.connection.SocialConnectionUpdate
@@ -72,17 +76,19 @@ class NetworkListRepository(
     /** Returns a flow of network list */
     @OptIn(ExperimentalPagingApi::class)
     fun getNetworkListFlow(config: PagingConfig): Pager<Int, NetworkItemIO> {
-        var currentPagingSource: NetworkListSource? = null
+        val scope = CoroutineScope(Dispatchers.Default)
+        var currentPagingSource: NetworkRoomSource? = null
 
         return Pager(
             config = config,
             pagingSourceFactory = {
-                NetworkListSource(
+                NetworkRoomSource(
                     getItems = { page ->
                         val ownerId = Firebase.auth.currentUser?.uid
                         val res = roomDatabase.networkItemDbDao().getPaginated(
                             ownerPublicId = ownerId,
-                            page = page
+                            limit = config.pageSize,
+                            offset = page * config.pageSize
                         )
 
                         BaseResponse.Success(
@@ -105,7 +111,13 @@ class NetworkListRepository(
                 roomDatabase = roomDatabase,
                 size = config.pageSize,
                 getItems = ::getNetworkList,
-                getPagingSource = { currentPagingSource }
+                invalidatePagingSource = {
+                    scope.coroutineContext.cancelChildren()
+                    scope.launch {
+                        delay(200)
+                        currentPagingSource?.invalidate()
+                    }
+                }
             )
         )
     }
@@ -255,6 +267,6 @@ class NetworkListRepository(
 
         private val strangers = demoData
 
-        val proximityDemoData = (family + friends + acquaintances/* + community + strangers*/).sortedByDescending { it.proximity }
+        val proximityDemoData = (family + friends + acquaintances + community + strangers).sortedByDescending { it.proximity }
     }
 }

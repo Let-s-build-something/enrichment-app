@@ -78,9 +78,9 @@ class ConversationViewModel(
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
         config = PagingConfig(
-            pageSize = 20,
+            pageSize = 50,
             enablePlaceholders = true,
-            initialLoadSize = 20
+            initialLoadSize = 50
         ),
         conversationId = conversationId
     ).flow

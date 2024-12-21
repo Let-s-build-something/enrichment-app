@@ -23,7 +23,7 @@ class NetworkRemoteMediator (
     private val roomDatabase: AppRoomDatabase,
     private val size: Int,
     private val initialPage: Int = 0,
-    private val getPagingSource: () -> NetworkListSource?,
+    private val invalidatePagingSource: () -> Unit,
     private val getItems: suspend (page: Int, size: Int) -> BaseResponse<NetworkListResponse>,
     private val cacheTimeoutMillis: Int = 24 * 60 * 60 * 1000
 ): RemoteMediator<Int, NetworkItemIO>() {
@@ -85,10 +85,9 @@ class NetworkRemoteMediator (
                 }?.let {
                     roomDatabase.pagingMetaDao().insertAll(it)
                     roomDatabase.networkItemDbDao().insertAll(items.onEach { item ->
-                        item.page = page
                         item.ownerPublicId = currentUserUid
                     })
-                    getPagingSource()?.invalidate()
+                    invalidatePagingSource()
                 }
                 MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
             }
