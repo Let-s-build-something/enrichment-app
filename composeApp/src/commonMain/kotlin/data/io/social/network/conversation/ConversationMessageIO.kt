@@ -45,6 +45,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     val anchorMessageId: String? = null,
 
     /** Time of creation */
+    @ColumnInfo(name = "created_at")
     @Serializable(with = DateTimeAsStringSerializer::class)
     val createdAt: LocalDateTime? = null,
 

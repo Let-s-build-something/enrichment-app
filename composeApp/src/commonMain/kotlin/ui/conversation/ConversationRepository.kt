@@ -14,6 +14,7 @@ import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.user.NetworkItemIO
+import data.shared.SharedDataManager
 import data.shared.setPaging
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
@@ -35,6 +36,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
+import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
@@ -46,6 +48,12 @@ class ConversationRepository(
     private val conversationMessageDao: ConversationMessageDao,
     private val pagingMetaDao: PagingMetaDao
 ) {
+    private var currentPagingSource: ConversationRoomSource? = null
+
+    /** Attempts to invalidate local PagingSource with conversation messages */
+    private fun invalidateLocalSource() {
+        currentPagingSource?.invalidate()
+    }
 
     /** returns a list of network list */
     private suspend fun getMessages(
@@ -96,7 +104,6 @@ class ConversationRepository(
         conversationId: String? = null
     ): Pager<Int, ConversationMessageIO> {
         val scope = CoroutineScope(Dispatchers.Default)
-        var currentPagingSource: ConversationRoomSource? = null
 
         return Pager(
             config = config,
@@ -164,6 +171,14 @@ class ConversationRepository(
         message: ConversationMessageIO
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
+            val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
+            conversationMessageDao.insert(message.copy(
+                conversationId = conversationId,
+                createdAt = localNow,
+                authorPublicId = dataManager.currentUser.value?.publicId
+            ))
+            invalidateLocalSource()
+
             httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/send",
@@ -182,6 +197,20 @@ class ConversationRepository(
         reaction: MessageReactionRequest
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
+            conversationMessageDao.get(reaction.messageId)?.let { message ->
+                val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
+
+                conversationMessageDao.insert(message.copy(
+                    reactions = message.reactions.orEmpty().toMutableList().apply {
+                        add(MessageReactionIO(
+                            content = reaction.content,
+                            authorPublicId = dataManager.currentUser.value?.publicId
+                        ))
+                    }
+                ))
+            }
+            invalidateLocalSource()
+
             httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/react",
