@@ -345,7 +345,7 @@ private fun ContentLayout(
 
 
             // message content + reply function + reactions + desktop options
-            Box {
+            Box(contentAlignment = Alignment.CenterEnd) {
                 // message content + reply function
                 Box {
                     if(animatedOffsetX.value.absoluteValue > 0f || isReplying) {

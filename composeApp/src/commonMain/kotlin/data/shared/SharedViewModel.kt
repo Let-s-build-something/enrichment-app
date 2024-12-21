@@ -26,10 +26,10 @@ import org.koin.mp.KoinPlatform
 open class SharedViewModel: ViewModel() {
 
     /** Singleton data manager to keep session-only data alive */
-    protected val sharedDataManager: SharedDataManager = KoinPlatform.getKoin().get()
+    protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
     /** lazily loaded repository for calling API */
-    protected val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
+    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
 
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<FlowSettings>()
