@@ -13,6 +13,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.devtools.ksp)
+    alias(libs.plugins.room)
 
     id("com.google.gms.google-services")
 
@@ -141,12 +143,18 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
+
+            implementation(libs.room.runtime)
+            //implementation(libs.room.paging)
             implementation(libs.compose.paging.common)
+            implementation(libs.sqlite.bundled)
 
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.view.model)
-            implementation(libs.settings.no.arg)
+            implementation(libs.bundles.settings)
+            implementation(libs.datastore.preferences)
+            implementation(libs.datastore.preferences.core)
 
             implementation(libs.kotlin.crypto.sha2)
             implementation(libs.kotlinx.datetime)
@@ -169,6 +177,21 @@ kotlin {
             implementation(libs.lifecycle.viewmodel)
         }
     }
+}
+
+dependencies {
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.activity.ktx)
+
+    add("kspAndroid", libs.room.compiler)
+    add("kspJvm", libs.room.compiler)
+    add("kspIosSimulatorArm64", libs.room.compiler)
+    add("kspIosX64", libs.room.compiler)
+    add("kspIosArm64", libs.room.compiler)
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin::class.java) {
@@ -244,10 +267,6 @@ android {
     dependencies {
         debugImplementation(compose.uiTooling)
     }
-}
-dependencies {
-    implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.activity.ktx)
 }
 
 //java.toolchain.languageVersion = JavaLanguageVersion.of(libs.versions.java.get())

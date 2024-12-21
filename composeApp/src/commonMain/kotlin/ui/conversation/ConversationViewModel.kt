@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSettingsApi::class)
+
 package ui.conversation
 
 import androidx.lifecycle.viewModelScope
@@ -5,6 +7,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.ConversationMessageIO
@@ -15,8 +18,10 @@ import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
 import io.github.vinceglb.filekit.core.PlatformFile
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +41,7 @@ import kotlin.uuid.Uuid
 internal val conversationModule = module {
     includes(keyboardModule)
 
-    factory { ConversationRepository(get()) }
+    factory { ConversationRepository(get(), get(), get()) }
     factory {
         ConversationViewModel(
             get<ConversationRepository>(),
@@ -54,7 +59,11 @@ class ConversationViewModel(
     private val conversationId: String,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase
-): KeyboardViewModel(emojiUseCase, gifUseCase), RefreshableViewModel {
+): KeyboardViewModel(
+    emojiUseCase = emojiUseCase,
+    gifUseCase = gifUseCase,
+    conversationId = conversationId
+), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
@@ -69,9 +78,9 @@ class ConversationViewModel(
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
         config = PagingConfig(
-            pageSize = 20,
+            pageSize = 50,
             enablePlaceholders = true,
-            initialLoadSize = 20
+            initialLoadSize = 50
         ),
         conversationId = conversationId
     ).flow
@@ -87,11 +96,7 @@ class ConversationViewModel(
         }
 
     /** Last saved message relevant to this conversation */
-    var savedMessage: String = settings.getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId") ?: ""
-        set(value) {
-            field = value
-            settings.putString("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId", value)
-        }
+    val savedMessage = MutableStateFlow("")
 
     init {
         if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
@@ -101,6 +106,9 @@ class ConversationViewModel(
                 }
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            savedMessage.value = settings.getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId") ?: ""
+        }
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
     }
@@ -108,6 +116,16 @@ class ConversationViewModel(
 
 
     // ==================== functions ===========================
+
+    /** Saves content of a message */
+    fun saveMessage(content: String?) {
+        CoroutineScope(Job() + Dispatchers.IO).launch {
+            val key = "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
+            if(content != null) {
+                settings.putString(key, content)
+            }else settings.remove(key)
+        }
+    }
 
     /**
      * Makes a request to send a conversation message

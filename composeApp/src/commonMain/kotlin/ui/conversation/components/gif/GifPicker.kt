@@ -85,7 +85,7 @@ fun GifPicker(
     val focusManager = LocalFocusManager.current
     val searchCoroutineScope = rememberCoroutineScope()
 
-    val filterQuery = remember {
+    val filterQuery = remember(density) {
         mutableStateOf(TextFieldValue())
     }
 
@@ -101,8 +101,9 @@ fun GifPicker(
         }
     }
 
-    DisposableEffect(null) {
+    DisposableEffect(searchCoroutineScope) {
         onDispose {
+            focusManager.clearFocus()
             isFilterFocused.value = false
         }
     }

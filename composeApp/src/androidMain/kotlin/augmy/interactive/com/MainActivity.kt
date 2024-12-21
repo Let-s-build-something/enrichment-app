@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import augmy.interactive.shared.ui.base.BackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -52,6 +53,7 @@ class MainActivity: ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         startKoin {
             androidContext(this@MainActivity)
             androidLogger()

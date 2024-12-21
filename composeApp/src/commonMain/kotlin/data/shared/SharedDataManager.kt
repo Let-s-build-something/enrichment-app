@@ -12,4 +12,7 @@ class SharedDataManager {
 
     /** Information about current user including the token and its expiration */
     val currentUser = MutableStateFlow<UserIO?>(null)
+
+    /** whether toolbar is currently expanded */
+    val isToolbarExpanded = MutableStateFlow(true)
 }

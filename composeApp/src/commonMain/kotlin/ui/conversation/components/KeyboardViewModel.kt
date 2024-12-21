@@ -1,10 +1,16 @@
+@file:OptIn(ExperimentalSettingsApi::class)
+
 package ui.conversation.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.viewModelScope
+import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.EmojiData
 import data.shared.SharedViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.dsl.module
@@ -23,29 +29,22 @@ internal val keyboardModule = module {
 /** Controller and provider of data specific to the conversation keyboard */
 open class KeyboardViewModel(
     private val emojiUseCase: EmojiUseCase,
-    private val gifUseCase: GifUseCase
+    private val gifUseCase: GifUseCase,
+    private val conversationId: String?,
 ): SharedViewModel() {
-
-    init {
-        viewModelScope.launch {
-            emojiUseCase.initialize()
-        }
-    }
 
     val additionalBottomPadding = Animatable(0f)
 
     /** Last height of soft keyboard */
-    var keyboardHeight: Int = settings.getIntOrNull(SettingsKeys.KEY_KEYBOARD_HEIGHT) ?: 0
-        set(value) {
-            field = value
-            settings.putInt(SettingsKeys.KEY_KEYBOARD_HEIGHT, value)
-        }
+    val keyboardHeight = MutableStateFlow(0)
 
     /** Whether hint about emoji preference should be displayed */
-    var showEmojiPreferenceHint: Boolean = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT) ?: true
+    var showEmojiPreferenceHint = true
         set(value) {
             field = value
-            settings.putBoolean(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT, value)
+            viewModelScope.launch(Dispatchers.IO) {
+                settings.putBoolean(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT, value)
+            }
         }
 
     /** Preferred emojis of an individual conversation */
@@ -64,6 +63,33 @@ open class KeyboardViewModel(
     val queriedGifs = gifUseCase.queriedGifs
 
 
+    init {
+        viewModelScope.launch {
+            emojiUseCase.initialize(conversationId)
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            showEmojiPreferenceHint = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_EMOJI_PREFERENCE_HINT) ?: true
+            keyboardHeight.value = settings.getIntOrNull(SettingsKeys.KEY_KEYBOARD_HEIGHT) ?: 0
+        }
+    }
+
+    /** Takes a note about an emoji selection */
+    fun noteEmojiSelection(emoji: EmojiData) {
+        viewModelScope.launch {
+            emojiUseCase.noteEmojiSelection(
+                emoji = emoji,
+                conversationId = conversationId
+            )
+        }
+    }
+
+    /** Saves current keyboard height */
+    fun setKeyboardHeight(value: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settings.putInt(SettingsKeys.KEY_KEYBOARD_HEIGHT, value)
+            keyboardHeight.value = value
+        }
+    }
 
     /** Makes a request to retrieve trending GIFs */
     fun requestTrendingGifs() {
@@ -78,6 +104,7 @@ open class KeyboardViewModel(
     /** Makes a request to retrieve trending GIFs */
     fun requestGifSearch(query: String) {
         viewModelScope.launch {
+            if(query.isBlank()) requestTrendingGifs()
             gifUseCase.requestGifs(
                 coroutineScope = viewModelScope,
                 section = SEARCH_SECTION,

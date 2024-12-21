@@ -1,18 +1,27 @@
 package data.io.social.network.conversation
 
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.Ignore
+import androidx.room.PrimaryKey
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
+import database.AppRoomDatabase
 import koin.DateTimeAsStringSerializer
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /** Conversation entity representing a singular message within a conversation */
+@Entity(tableName = AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE)
 @Serializable
-data class ConversationMessageIO(
+data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Message identifier */
-    val id: String? = null,
+    @PrimaryKey
+    val id: String = Uuid.random().toString(), // default value due to Room ksp requirement
 
     /** message content */
     val content: String? = null,
@@ -43,10 +52,15 @@ data class ConversationMessageIO(
      * State of this message. Generally, this information is sent only for the last item,
      * as it represents all of the messages above it
      */
-    val state: MessageState? = null
+    val state: MessageState? = null,
+
+    /** Local database use only, we don't need this information from API */
+    @ColumnInfo(name = "conversation_id")
+    var conversationId: String? = null
 ) {
 
     /** User attached to this message */
+    @Ignore
     @Transient
     var user: NetworkItemIO? = null
 }

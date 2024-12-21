@@ -1,22 +1,21 @@
+@file:OptIn(ExperimentalSettingsApi::class)
+
 package data.shared
 
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
 import base.utils.asSimpleString
+import com.russhwolf.settings.ExperimentalSettingsApi
 import data.NetworkProximityCategory
 import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
-import data.io.user.UserIO
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -44,12 +43,13 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
     val newDeeplink = dataManager.newDeeplink.asSharedFlow()
 
     /** Whether leave dialog should be shown */
-    val showLeaveDialog: Boolean
-        get() = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) ?: true
+    var showLeaveDialog: Boolean = true
 
     /** Initializes the application */
     fun initApp() {
         CoroutineScope(Dispatchers.IO).launch {
+            showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) ?: true
+
             if (sharedDataManager.localSettings.value == null) {
                 val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
 
@@ -74,22 +74,9 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
             }
-
-            if (firebaseUser.value != null) {
-                if(sharedDataManager.currentUser.value == null) {
-                    firebaseUser.value?.getIdToken(false)?.let { idToken ->
-                        sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                        sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value
-                        )?.copy(
-                            idToken = idToken
-                        )
-                    }
-                }
-                Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
-                    sharedDataManager.currentUser.update {
-                        it?.copy(idToken = firebaseUser?.getIdToken(false))
-                    }
+            Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
+                sharedDataManager.currentUser.update {
+                    it?.copy(idToken = firebaseUser?.getIdToken(false))
                 }
             }
         }
@@ -97,7 +84,9 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
 
     /** Save settings for leave dialog */
     fun saveDialogSetting(showAgain: Boolean) {
-        settings.putBoolean(SettingsKeys.KEY_SHOW_LEAVE_DIALOG, showAgain)
+        CoroutineScope(Dispatchers.IO).launch {
+            settings.putBoolean(SettingsKeys.KEY_SHOW_LEAVE_DIALOG, showAgain)
+        }
     }
 
     /** Emits a new deep link for handling */

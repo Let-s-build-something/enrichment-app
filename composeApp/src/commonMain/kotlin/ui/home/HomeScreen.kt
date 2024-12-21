@@ -100,6 +100,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
+            || (networkItems.itemCount == 0 && !networkItems.loadState.append.endOfPaginationReached)
+    val isEmpty = networkItems.itemCount == 0 && networkItems.loadState.append.endOfPaginationReached
+            && !isLoadingInitialPage
 
     val listState = rememberLazyGridState()
     val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
@@ -194,6 +197,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         },
         onRefresh = {
             networkItems.refresh()
+            coroutineScope.launch {
+                listState.animateScrollToItem(0)
+            }
         },
         showDefaultActions = true,
         viewModel = viewModel,
@@ -253,7 +259,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 )
                 androidx.compose.animation.AnimatedVisibility(
                     modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
-                    visible = checkedItems.size == 0 && !(networkItems.itemCount == 0 && !isLoadingInitialPage)
+                    visible = checkedItems.size == 0 && !isEmpty
                 ) {
                     Crossfade(
                         modifier = Modifier.zIndex(1f),
@@ -305,7 +311,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 androidx.compose.animation.AnimatedVisibility(
                                     enter = expandVertically() + fadeIn(),
-                                    visible = networkItems.itemCount == 0 && !isLoadingInitialPage
+                                    visible = isEmpty
                                 ) {
                                     EmptyLayout(
                                         title = stringResource(Res.string.network_list_empty_title),
@@ -340,7 +346,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                                     }
                                                     else -> navController?.navigate(
                                                         NavigationNode.Conversation(
-                                                            conversationUid = data?.userPublicId,
+                                                            conversationId = data?.userPublicId,
                                                             name = data?.displayName
                                                         )
                                                     )

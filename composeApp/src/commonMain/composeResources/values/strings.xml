@@ -79,7 +79,7 @@
   <string name="network_received">Requests</string>
   <string name="network_list">Manage network</string>
   <string name="network_list_empty_title">Your social circle doesn't seem to reflect your real social circle, let's change that together.</string>
-  <string name="network_list_empty_action">Find my people</string>
+  <string name="network_list_empty_action">Add a new person</string>
   <string name="network_received_empty_title">There are no requests yet.</string>
   <string name="network_received_empty-description">Seems like you are expecting someone, you can share your uniqueness with them.</string>
   <string name="network_received_empty_action">Honey, I'm home</string>
@@ -199,7 +199,7 @@
   <string name="accessibility_action_message_react">React to a message with an emoji</string>
   <string name="accessibility_action_keyboard">Open system keyboard input</string>
   <string name="accessibility_backspace">Backspace</string>
-  <string name="accessibility_emojis_history">Previously selected</string>
+  <string name="accessibility_emojis_history">History</string>
   <string name="accessibility_reactions_all">List of all types of reaction from other users</string>
   <string name="accessibility_reaction_other">Choose emoji other than the set offers</string>
   <string name="accessibility_message_reply">Drag the same direction to reply to this message</string>

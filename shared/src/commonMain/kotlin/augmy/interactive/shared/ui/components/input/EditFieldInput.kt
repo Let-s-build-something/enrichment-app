@@ -50,7 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun EditFieldInput(
     modifier: Modifier = Modifier,
-    value: String,
+    value: String = "",
     textValue: TextFieldValue? = null,
     textStyle: TextStyle = TextStyle(
         color = LocalTheme.current.colors.primary,
@@ -213,4 +213,4 @@ fun EditFieldInput(
     }
 }
 
-const val DELAY_BETWEEN_TYPING_SHORT = 200L
+const val DELAY_BETWEEN_TYPING_SHORT = 300L

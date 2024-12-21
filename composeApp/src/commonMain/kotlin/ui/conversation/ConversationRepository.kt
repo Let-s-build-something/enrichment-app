@@ -1,26 +1,33 @@
 package ui.conversation
 
+import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import augmy.interactive.shared.DateUtils.localNow
 import augmy.interactive.shared.DateUtils.now
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
-import data.io.social.network.conversation.ConversationListResponse
 import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.ConversationMessagesResponse
 import data.io.social.network.conversation.MessageReactionIO
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
+import database.dao.ConversationMessageDao
+import database.dao.PagingMetaDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
@@ -28,23 +35,26 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.json.Json
 import ui.login.safeRequest
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Class for calling APIs and remote work in general */
-class ConversationRepository(private val httpClient: HttpClient) {
+class ConversationRepository(
+    private val httpClient: HttpClient,
+    private val conversationMessageDao: ConversationMessageDao,
+    private val pagingMetaDao: PagingMetaDao
+) {
 
     /** returns a list of network list */
     private suspend fun getMessages(
         page: Int,
         size: Int,
         conversationId: String?
-    ): BaseResponse<ConversationListResponse> {
+    ): BaseResponse<ConversationMessagesResponse> {
         return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<ConversationListResponse> {
+            httpClient.safeRequest<ConversationMessagesResponse> {
                 get(
                     urlString = "/api/v1/social/conversation",
                     block =  {
@@ -59,41 +69,79 @@ class ConversationRepository(private val httpClient: HttpClient) {
             }
 
             if(page <= demoMessages.size/size) {
-                BaseResponse.Success(ConversationListResponse(
-                    content = demoMessages.subList(
-                        page * size,
-                        kotlin.math.min(
-                            (page + 1) * size - 1,
-                            page * size + (demoMessages.size - page * size)
+                BaseResponse.Success(
+                    ConversationMessagesResponse(
+                        content = demoMessages.subList(
+                            page * size,
+                            kotlin.math.min(
+                                (page + 1) * size,
+                                page * size + (demoMessages.size - page * size)
+                            ).coerceAtMost(demoMessages.size)
+                        ),
+                        pagination = PaginationInfo(
+                            page = page,
+                            size = size,
+                            totalPages = (demoMessages.size/size.toFloat()).roundToInt()
                         )
-                    ),
-                    pagination = PaginationInfo(
-                        page = page,
-                        size = size,
-                        totalPages = (demoMessages.size/size.toFloat()).roundToInt()
                     )
-                ))
+                )
             }else BaseResponse.Error()
         }
     }
 
     /** Returns a flow of conversation messages */
+    @OptIn(ExperimentalPagingApi::class)
     fun getMessagesListFlow(
         config: PagingConfig,
         conversationId: String? = null
     ): Pager<Int, ConversationMessageIO> {
-        return Pager(config) {
-            ConversationSource(
-                getMessages = { page, size ->
-                    getMessages(
-                        page = page,
-                        size = size,
-                        conversationId = conversationId
-                    )
+        val scope = CoroutineScope(Dispatchers.Default)
+        var currentPagingSource: ConversationRoomSource? = null
+
+        return Pager(
+            config = config,
+            pagingSourceFactory = {
+                ConversationRoomSource(
+                    getMessages = { page ->
+                        val res = conversationMessageDao.getPaginated(
+                            conversationId = conversationId,
+                            limit = config.pageSize,
+                            offset = page * config.pageSize
+                        )
+
+                        BaseResponse.Success(
+                            ConversationMessagesResponse(
+                                content = res,
+                                pagination = PaginationInfo(
+                                    page = page,
+                                    size = res.size,
+                                    totalItems = conversationMessageDao.getCount(conversationId)
+                                )
+                            )
+                        )
+                    },
+                    size = config.pageSize
+                ).also { pagingSource ->
+                    currentPagingSource = pagingSource
+                }
+            },
+            remoteMediator = ConversationRemoteMediator(
+                pagingMetaDao = pagingMetaDao,
+                conversationMessageDao = conversationMessageDao,
+                size = config.pageSize,
+                conversationId = conversationId ?: "",
+                getItems = { page ->
+                    getMessages(page = page, size = config.pageSize, conversationId = conversationId)
                 },
-                size = config.pageSize
+                invalidatePagingSource = {
+                    scope.coroutineContext.cancelChildren()
+                    scope.launch {
+                        delay(200)
+                        currentPagingSource?.invalidate()
+                    }
+                }
             )
-        }
+        )
     }
 
     /** Returns a detailed information about a conversation */
@@ -148,13 +196,7 @@ class ConversationRepository(private val httpClient: HttpClient) {
 
     internal companion object {
         @OptIn(ExperimentalUuidApi::class)
-        val demoMessages = listOf(
-            ConversationMessageIO(
-                content = "Yo",
-                id = Uuid.random().toString(),
-                authorPublicId = "1",
-                createdAt = LocalDateTime.parse("2023-12-10T22:19:44")
-            ),
+        val demoMessages = mutableListOf(
             ConversationMessageIO(
                 content = "Did you catch the latest episode? 🤔",
                 id = Uuid.random().toString(),
@@ -549,7 +591,18 @@ class ConversationRepository(private val httpClient: HttpClient) {
                 ),
                 state = MessageState.SENT
             )
-        ).sortedByDescending { it.createdAt }
+        ).apply {
+            repeat(100) { index ->
+                add(
+                    ConversationMessageIO(
+                        content = "Yo n.$index",
+                        id = Uuid.random().toString(),
+                        authorPublicId = "1",
+                        createdAt = LocalDateTime.parse("2023-12-10T22:19:44")
+                    )
+                )
+            }
+        }.sortedByDescending { it.createdAt }
 
         val demoConversationDetail = NetworkConversationIO(
             pictureUrl = "https://picsum.photos/102",

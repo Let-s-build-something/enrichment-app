@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,15 +78,15 @@ class ProfileChangeViewModel (
     }
 
     private suspend fun suspendRequestPictureChange(pictureUrl: String) {
-        if(firebaseUser.value?.photoURL == pictureUrl) return
+        if(firebaseUser.firstOrNull()?.photoURL == pictureUrl) return
 
         _isLoading.value = true
         withContext(Dispatchers.IO) {
             try {
-                firebaseUser.value?.updateProfile(
+                firebaseUser.firstOrNull()?.updateProfile(
                     photoUrl = pictureUrl
                 )
-                if(firebaseUser.value?.photoURL == pictureUrl) _isPictureChangeSuccess.emit(true)
+                if(firebaseUser.firstOrNull()?.photoURL == pictureUrl) _isPictureChangeSuccess.emit(true)
             }catch(e: Exception) {
                 _isPictureChangeSuccess.emit(false)
             }
@@ -103,7 +104,7 @@ class ProfileChangeViewModel (
         viewModelScope.launch {
             _isLoading.value = true
             withContext(Dispatchers.Default) {
-                val previousUrl = "${try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null }}"
+                val previousUrl = "${try { firebaseUser.firstOrNull()?.photoURL }catch (e: NotImplementedError) { null }}"
 
                 val previousFileSuffix = """.+profile-picture(\.\w*).+""".toRegex()
                     .matchEntire(previousUrl)
@@ -132,10 +133,10 @@ class ProfileChangeViewModel (
             val fileSuffix = ".${fileName.split(".").lastOrNull()}"
 
             val reference = Firebase.storage.reference.child(
-                "${firebaseUser.value?.uid}/profile-picture$fileSuffix"
+                "${firebaseUser.firstOrNull()?.uid}/profile-picture$fileSuffix"
             )
             val previousReference = Firebase.storage.reference.child(
-                "${firebaseUser.value?.uid}/profile-picture$previousFileSuffix"
+                "${firebaseUser.firstOrNull()?.uid}/profile-picture$previousFileSuffix"
             )
 
             reference.putData(fromByteArrayToData(byteArray))

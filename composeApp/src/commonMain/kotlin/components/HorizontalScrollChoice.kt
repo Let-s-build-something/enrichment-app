@@ -55,7 +55,8 @@ fun <T> HorizontalScrollChoice(
     choices: List<ScrollChoice<T>>,
     onSelectionChange: (item: T, isSelected: Boolean) -> Unit,
     trackColor: Color = LocalTheme.current.colors.backgroundLight,
-    color: Color = LocalTheme.current.colors.brandMain,
+    selectedColor: Color = if(isDarkTheme) LocalTheme.current.colors.primary else trackColor,
+    color: Color = if(isDarkTheme) LocalTheme.current.colors.brandMainDark else LocalTheme.current.colors.brandMain,
     deselectedColor: Color = LocalTheme.current.colors.secondary,
     borderColor: Color = if(isDarkTheme) deselectedColor else LocalTheme.current.colors.backgroundLight
 ) {
@@ -139,7 +140,7 @@ fun <T> HorizontalScrollChoice(
                     label = "backgroundColor$index"
                 )
                 val textColor = animateColorAsState(
-                    targetValue = if(isSelected) trackColor else deselectedColor,
+                    targetValue = if(isSelected) selectedColor else deselectedColor,
                     label = "textColor$index"
                 )
 
