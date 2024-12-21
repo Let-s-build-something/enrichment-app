@@ -24,6 +24,8 @@ interface PagingMetaDao {
     suspend fun removeAll()
 
     /** returns when was the last time we used RestApi data */
-    @Query("SELECT created_at FROM $ROOM_PAGING_META_TABLE ORDER BY created_at DESC LIMIT 1")
-    suspend fun getCreationTime(): Long?
+    @Query("SELECT created_at FROM $ROOM_PAGING_META_TABLE " +
+            "WHERE entity_type = :entityType " +
+            "ORDER BY created_at DESC LIMIT 1")
+    suspend fun getCreationTime(entityType: String): Long?
 }

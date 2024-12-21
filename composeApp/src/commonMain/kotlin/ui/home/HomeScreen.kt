@@ -100,6 +100,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
+            || (networkItems.itemCount == 0 && !networkItems.loadState.append.endOfPaginationReached)
     val isEmpty = networkItems.itemCount == 0 && networkItems.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -88,13 +87,15 @@ fun ConversationScreen(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val imePadding = WindowInsets.ime.getBottom(density)
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
     val preferredEmojis = viewModel.preferredEmojis.collectAsState()
     val currentUser = viewModel.currentUser.collectAsState()
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
+            || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
+    val isEmpty = messages.itemCount == 0 && messages.loadState.append.endOfPaginationReached
+            && !isLoadingInitialPage
 
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
@@ -171,11 +172,11 @@ fun ConversationScreen(
                         detectTapGestures(onTap = {
                             when {
                                 showEmojiPreferencesId.value != null -> showEmojiPreferencesId.value = null
-                                imePadding > 10f ->  focusManager.clearFocus()
                                 keyboardMode.value != ConversationKeyboardMode.Default.ordinal -> {
                                     keyboardMode.value = ConversationKeyboardMode.Default.ordinal
                                 }
                                 else -> {
+                                    focusManager.clearFocus()
                                     reactingToMessageId.value = null
                                 }
                             }
@@ -206,7 +207,7 @@ fun ConversationScreen(
                 item(key = "emptyLayout") {
                     AnimatedVisibility(
                         enter = expandVertically() + fadeIn(),
-                        visible = messages.itemCount == 0 && !isLoadingInitialPage
+                        visible = isEmpty
                     ) {
                         // TODO empty layout
                     }

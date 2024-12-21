@@ -92,6 +92,6 @@ internal val networkManagementModule = module {
     factory { NetworkReceivedRepository(get()) }
     viewModelOf(::NetworkReceivedViewModel)
 
-    factory { NetworkListRepository(get(), get()) }
+    factory { NetworkListRepository(get(), get(), get()) }
     viewModelOf(::NetworkListViewModel)
 }

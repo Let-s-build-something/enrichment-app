@@ -45,7 +45,6 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
     /** Whether leave dialog should be shown */
     var showLeaveDialog: Boolean = true
 
-
     /** Initializes the application */
     fun initApp() {
         CoroutineScope(Dispatchers.IO).launch {
@@ -85,7 +84,7 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
 
     /** Save settings for leave dialog */
     fun saveDialogSetting(showAgain: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        CoroutineScope(Dispatchers.IO).launch {
             settings.putBoolean(SettingsKeys.KEY_SHOW_LEAVE_DIALOG, showAgain)
         }
     }

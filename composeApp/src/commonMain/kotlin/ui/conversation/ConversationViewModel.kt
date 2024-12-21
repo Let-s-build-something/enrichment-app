@@ -41,7 +41,7 @@ import kotlin.uuid.Uuid
 internal val conversationModule = module {
     includes(keyboardModule)
 
-    factory { ConversationRepository(get()) }
+    factory { ConversationRepository(get(), get(), get()) }
     factory {
         ConversationViewModel(
             get<ConversationRepository>(),

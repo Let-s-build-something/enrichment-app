@@ -160,7 +160,7 @@ private fun AppContent(
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_confirm),
             ) {
-                viewModel.saveDialogSetting(!showDialogAgain.value)
+                viewModel.saveDialogSetting(showDialogAgain.value)
                 backPressDispatcher?.executeSystemBackPress()
             },
             dismissButtonState = ButtonState(

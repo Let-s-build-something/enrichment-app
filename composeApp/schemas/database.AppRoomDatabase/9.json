@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 7,
-    "identityHash": "724b49a0d8c45cec493c9ddf89891daa",
+    "version": 9,
+    "identityHash": "3365a50d0712b320fa305af112fe6e86",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -109,7 +109,7 @@
       },
       {
         "tableName": "room_paging_meta_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `totalPages` INTEGER, `currentPage` INTEGER, `nextPage` INTEGER, `perPage` INTEGER, `totalCount` INTEGER, `created_at` INTEGER NOT NULL, `previousPage` INTEGER, PRIMARY KEY(`entity_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `currentPage` INTEGER, `nextPage` INTEGER, `created_at` INTEGER NOT NULL, `previousPage` INTEGER, PRIMARY KEY(`entity_id`))",
         "fields": [
           {
             "fieldPath": "entityId",
@@ -118,9 +118,9 @@
             "notNull": true
           },
           {
-            "fieldPath": "totalPages",
-            "columnName": "totalPages",
-            "affinity": "INTEGER"
+            "fieldPath": "entityType",
+            "columnName": "entity_type",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "currentPage",
@@ -130,16 +130,6 @@
           {
             "fieldPath": "nextPage",
             "columnName": "nextPage",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "perPage",
-            "columnName": "perPage",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "totalCount",
-            "columnName": "totalCount",
             "affinity": "INTEGER"
           },
           {
@@ -232,7 +222,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '724b49a0d8c45cec493c9ddf89891daa')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3365a50d0712b320fa305af112fe6e86')"
     ]
   }
 }

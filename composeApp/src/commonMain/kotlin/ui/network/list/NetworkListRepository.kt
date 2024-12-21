@@ -10,7 +10,8 @@ import data.io.base.PaginationInfo
 import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
-import database.AppRoomDatabase
+import database.dao.NetworkItemDao
+import database.dao.PagingMetaDao
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
@@ -33,7 +34,8 @@ import kotlin.uuid.Uuid
 /** Class for calling APIs and remote work in general */
 class NetworkListRepository(
     private val httpClient: HttpClient,
-    private val roomDatabase: AppRoomDatabase
+    private val networkItemDao: NetworkItemDao,
+    private val pagingMetaDao: PagingMetaDao
 ) {
 
     /** returns a list of network list */
@@ -85,7 +87,7 @@ class NetworkListRepository(
                 NetworkRoomSource(
                     getItems = { page ->
                         val ownerId = Firebase.auth.currentUser?.uid
-                        val res = roomDatabase.networkItemDbDao().getPaginated(
+                        val res = networkItemDao.getPaginated(
                             ownerPublicId = ownerId,
                             limit = config.pageSize,
                             offset = page * config.pageSize
@@ -97,7 +99,7 @@ class NetworkListRepository(
                                 pagination = PaginationInfo(
                                     page = page,
                                     size = res.size,
-                                    totalItems = roomDatabase.networkItemDbDao().getCount(ownerId)
+                                    totalItems = networkItemDao.getCount(ownerId)
                                 )
                             )
                         )
@@ -108,7 +110,8 @@ class NetworkListRepository(
                 }
             },
             remoteMediator = NetworkRemoteMediator(
-                roomDatabase = roomDatabase,
+                networkItemDao = networkItemDao,
+                pagingMetaDao = pagingMetaDao,
                 size = config.pageSize,
                 getItems = ::getNetworkList,
                 invalidatePagingSource = {

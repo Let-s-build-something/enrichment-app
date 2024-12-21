@@ -11,10 +11,13 @@ internal val databaseModule = module {
             .fallbackToDestructiveMigration(dropAllTables = true)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
+            .addTypeConverter(AppDatabaseConverter())
             .build()
     }
 
     // DAO providers
-    factory { get<AppRoomDatabase>().networkItemDbDao() }
+    factory { get<AppRoomDatabase>().networkItemDao() }
     factory { get<AppRoomDatabase>().emojiSelectionDao() }
+    factory { get<AppRoomDatabase>().conversationMessageDao() }
+    factory { get<AppRoomDatabase>().pagingMetaDao() }
 }

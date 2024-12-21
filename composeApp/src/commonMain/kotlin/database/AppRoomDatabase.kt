@@ -6,8 +6,10 @@ import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import data.io.base.PagingMetaIO
+import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiSelection
 import data.io.user.NetworkItemIO
+import database.dao.ConversationMessageDao
 import database.dao.EmojiSelectionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
@@ -16,9 +18,10 @@ import database.dao.PagingMetaDao
     entities = [
         NetworkItemIO::class,
         EmojiSelection::class,
-        PagingMetaIO::class
+        PagingMetaIO::class,
+        ConversationMessageIO::class
     ],
-    version = 7,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -26,7 +29,8 @@ import database.dao.PagingMetaDao
 abstract class AppRoomDatabase: RoomDatabase() {
 
     /** An interface for interacting with local database for collections */
-    abstract fun networkItemDbDao(): NetworkItemDao
+    abstract fun networkItemDao(): NetworkItemDao
+    abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun emojiSelectionDao(): EmojiSelectionDao
     abstract fun pagingMetaDao(): PagingMetaDao
 
@@ -37,6 +41,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [NetworkItemIO] */
         const val ROOM_NETWORK_ITEM_TABLE = "room_network_item_table"
+
+        /** Identification of table for [ConversationMessageIO] */
+        const val ROOM_CONVERSATION_MESSAGE_TABLE = "room_conversation_message_table"
 
         /** Identification of table for [EmojiSelection] */
         const val ROOM_EMOJI_SELECTION_TABLE = "room_emoji_selection"

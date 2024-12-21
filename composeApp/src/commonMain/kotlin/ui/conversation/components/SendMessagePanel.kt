@@ -233,6 +233,7 @@ internal fun BoxScope.SendMessagePanel(
             gifAsset = gifAttached.value
         )
         mediaAttached.clear()
+        keyboardMode.value = ConversationKeyboardMode.Default.ordinal
         messageContent.value = TextFieldValue()
         viewModel.saveMessage(null)
         replyToMessage.value = null

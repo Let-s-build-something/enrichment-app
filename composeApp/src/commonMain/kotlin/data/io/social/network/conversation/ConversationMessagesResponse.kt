@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 /** Response to the request for circling requests */
 @Serializable
-data class ConversationListResponse(
+data class ConversationMessagesResponse(
     override val pagination: PaginationInfo,
     override val content: List<ConversationMessageIO>
 ): PaginationPageResponse<ConversationMessageIO>

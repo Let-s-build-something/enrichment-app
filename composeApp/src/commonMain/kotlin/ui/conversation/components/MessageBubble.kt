@@ -52,6 +52,9 @@ import augmy.composeapp.generated.resources.accessibility_action_message_react
 import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
 import augmy.interactive.shared.DateUtils.formatAsRelative
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.detectMessageInteraction
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -60,9 +63,6 @@ import base.utils.tagToColor
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
 import data.io.user.NetworkItemIO
-import augmy.interactive.shared.ext.brandShimmerEffect
-import augmy.interactive.shared.ext.detectMessageInteraction
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -362,7 +362,6 @@ private fun ContentLayout(
                                         }
                                     )
                                 )
-                                .padding(top = 5.dp)
                                 .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
                         ) {
                             CircularProgressIndicator(

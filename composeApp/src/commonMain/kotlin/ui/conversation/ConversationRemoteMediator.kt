@@ -1,4 +1,4 @@
-package ui.network.list
+package ui.conversation
 
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
@@ -8,12 +8,10 @@ import coil3.network.HttpException
 import data.io.base.BaseResponse
 import data.io.base.PagingEntityType
 import data.io.base.PagingMetaIO
-import data.io.social.network.request.NetworkListResponse
-import data.io.user.NetworkItemIO
-import database.dao.NetworkItemDao
+import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.ConversationMessagesResponse
+import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -24,22 +22,20 @@ import kotlinx.io.IOException
  * Mediator for reusing locally loaded data and fetching new data from the network if necessary
  */
 @OptIn(ExperimentalPagingApi::class)
-class NetworkRemoteMediator (
-    private val networkItemDao: NetworkItemDao,
+class ConversationRemoteMediator (
+    private val conversationMessageDao: ConversationMessageDao,
     private val pagingMetaDao: PagingMetaDao,
+    private val conversationId: String,
     private val size: Int,
     private val initialPage: Int = 0,
     private val invalidatePagingSource: () -> Unit,
-    private val getItems: suspend (page: Int, size: Int) -> BaseResponse<NetworkListResponse>,
+    private val getItems: suspend (page: Int) -> BaseResponse<ConversationMessagesResponse>,
     private val cacheTimeoutMillis: Int = 24 * 60 * 60 * 1000
-): RemoteMediator<Int, NetworkItemIO>() {
-
-    private val currentUserUid: String?
-        get() = Firebase.auth.currentUser?.uid
+): RemoteMediator<Int, ConversationMessageIO>() {
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
-            pagingMetaDao.getCreationTime(PagingEntityType.NETWORK_ITEM.name) ?: 0
+            pagingMetaDao.getCreationTime(PagingEntityType.CONVERSATION_MESSAGE.name) ?: 0
         )
 
         return if (timeElapsed < cacheTimeoutMillis) {
@@ -51,7 +47,7 @@ class NetworkRemoteMediator (
 
     override suspend fun load(
         loadType: LoadType,
-        state: PagingState<Int, NetworkItemIO>
+        state: PagingState<Int, ConversationMessageIO>
     ): MediatorResult {
         var page: Int = when (loadType) {
             LoadType.REFRESH -> {
@@ -69,10 +65,7 @@ class NetworkRemoteMediator (
         }
 
         try {
-            val apiResponse = getItems.invoke(
-                if(loadType == LoadType.REFRESH) initialPage else page,
-                size
-            )
+            val apiResponse = getItems.invoke(if(loadType == LoadType.REFRESH) initialPage else page)
 
             val items = apiResponse.success?.data?.content
             val endOfPaginationReached = items?.size != size
@@ -81,21 +74,22 @@ class NetworkRemoteMediator (
                 if (loadType == LoadType.REFRESH) {
                     page = initialPage
                     pagingMetaDao.removeAll()
-                    networkItemDao.removeAll()
+                    conversationMessageDao.removeAll()
                 }
                 val prevKey = if (page > 1) page - 1 else null
                 val nextKey = if (endOfPaginationReached) null else page + 1
                 items?.map {
                     PagingMetaIO(
-                        entityId = "${currentUserUid}_${it.userPublicId}",
+                        entityId = conversationId,
                         previousPage = prevKey,
+                        entityType = PagingEntityType.CONVERSATION_MESSAGE,
                         currentPage = page,
                         nextPage = nextKey
                     )
                 }?.let {
                     pagingMetaDao.insertAll(it)
-                    networkItemDao.insertAll(items.onEach { item ->
-                        item.ownerPublicId = currentUserUid
+                    conversationMessageDao.insertAll(items.onEach { item ->
+                        item.conversationId = conversationId
                     })
                     invalidatePagingSource()
                 }
@@ -109,29 +103,29 @@ class NetworkRemoteMediator (
     }
 
     /** Returns paging meta data from the current position item */
-    private suspend fun getPagingMetaClosestToCurrentPosition(state: PagingState<Int, NetworkItemIO>): PagingMetaIO? {
+    private suspend fun getPagingMetaClosestToCurrentPosition(state: PagingState<Int, ConversationMessageIO>): PagingMetaIO? {
         return state.anchorPosition?.let { position ->
-            state.closestItemToPosition(position)?.userPublicId?.let { id ->
-                pagingMetaDao.getPagingMetaByEntityId("${currentUserUid}_$id")
+            state.closestItemToPosition(position)?.conversationId?.let { id ->
+                pagingMetaDao.getPagingMetaByEntityId(id)
             }
         }
     }
 
     /** Returns paging meta data from the first item */
-    private suspend fun getPagingMetaForFirstItem(state: PagingState<Int, NetworkItemIO>): PagingMetaIO? {
+    private suspend fun getPagingMetaForFirstItem(state: PagingState<Int, ConversationMessageIO>): PagingMetaIO? {
         return state.pages.firstOrNull {
             it.data.isNotEmpty()
-        }?.data?.firstOrNull()?.userPublicId?.let { id ->
-            pagingMetaDao.getPagingMetaByEntityId("${currentUserUid}_$id")
+        }?.data?.firstOrNull()?.conversationId?.let { id ->
+            pagingMetaDao.getPagingMetaByEntityId(id)
         }
     }
 
     /** Returns paging meta data from the last item */
-    private suspend fun getPagingMetaForLastItem(state: PagingState<Int, NetworkItemIO>): PagingMetaIO? {
+    private suspend fun getPagingMetaForLastItem(state: PagingState<Int, ConversationMessageIO>): PagingMetaIO? {
         return state.pages.lastOrNull {
             it.data.isNotEmpty()
-        }?.data?.lastOrNull()?.userPublicId?.let { id ->
-            pagingMetaDao.getPagingMetaByEntityId("${currentUserUid}_$id")
+        }?.data?.lastOrNull()?.conversationId?.let { id ->
+            pagingMetaDao.getPagingMetaByEntityId(id)
         }
     }
 }

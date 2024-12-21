@@ -18,9 +18,9 @@ data class PagingMetaIO(
     @ColumnInfo("entity_id")
     val entityId: String,
 
-    /** How many pages are there in this database in total */
-    @SerialName("total_pages")
-    val totalPages: Int? = null,
+    /** Type of paginated entity */
+    @ColumnInfo("entity_type")
+    val entityType: PagingEntityType? = null,
 
     /** Index of this page */
     @SerialName("current_page")
@@ -30,14 +30,6 @@ data class PagingMetaIO(
     @SerialName("next_page")
     val nextPage: Int? = null,
 
-    /** How many items are there received per page */
-    @SerialName("per_page")
-    val perPage: Int? = null,
-
-    /** How many items are there in this database in total */
-    @SerialName("total_count")
-    val totalCount: Int? = null,
-
     /** At what time was this object created in milliseconds */
     @ColumnInfo(name = "created_at")
     val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
@@ -45,3 +37,8 @@ data class PagingMetaIO(
     /** Index of previous page, mainly for local Room database */
     val previousPage: Int? = null
 )
+
+enum class PagingEntityType {
+    NETWORK_ITEM,
+    CONVERSATION_MESSAGE
+}
