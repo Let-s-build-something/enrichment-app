@@ -6,7 +6,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
@@ -259,7 +258,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 )
                 androidx.compose.animation.AnimatedVisibility(
                     modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
-                    visible = isEmpty
+                    visible = checkedItems.size == 0 && !isEmpty
                 ) {
                     Crossfade(
                         modifier = Modifier.zIndex(1f),
@@ -311,7 +310,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 androidx.compose.animation.AnimatedVisibility(
                                     enter = expandVertically() + fadeIn(),
-                                    visible = networkItems.itemCount == 0 && !isLoadingInitialPage
+                                    visible = isEmpty
                                 ) {
                                     EmptyLayout(
                                         title = stringResource(Res.string.network_list_empty_title),
