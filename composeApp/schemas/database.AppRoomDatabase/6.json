@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 2,
-    "identityHash": "f6e4b8aa3213ba86b0ed28f51296b5df",
+    "version": 6,
+    "identityHash": "0f34341dd19236a27053b1fa22672051",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`displayName` TEXT, `tag` TEXT, `publicId` TEXT NOT NULL, `userPublicId` TEXT, `photoUrl` TEXT, `isMutual` INTEGER, `proximity` REAL, `color` TEXT, `lastMessage` TEXT, `ownerPublicId` TEXT, PRIMARY KEY(`publicId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`displayName` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `userPublicId` TEXT, `photoUrl` TEXT, `isMutual` INTEGER, `proximity` REAL, `color` TEXT, `lastMessage` TEXT, `owner_public_id` TEXT, `page` INTEGER NOT NULL, PRIMARY KEY(`public_id`))",
         "fields": [
           {
             "fieldPath": "displayName",
@@ -20,7 +20,7 @@
           },
           {
             "fieldPath": "publicId",
-            "columnName": "publicId",
+            "columnName": "public_id",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -56,14 +56,20 @@
           },
           {
             "fieldPath": "ownerPublicId",
-            "columnName": "ownerPublicId",
+            "columnName": "owner_public_id",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "page",
+            "columnName": "page",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "publicId"
+            "public_id"
           ]
         }
       },
@@ -106,11 +112,65 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "room_paging_meta_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `totalPages` INTEGER, `currentPage` INTEGER, `nextPage` INTEGER, `perPage` INTEGER, `totalCount` INTEGER, `created_at` INTEGER NOT NULL, `previousPage` INTEGER, PRIMARY KEY(`entity_id`))",
+        "fields": [
+          {
+            "fieldPath": "entityId",
+            "columnName": "entity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPages",
+            "columnName": "totalPages",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currentPage",
+            "columnName": "currentPage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nextPage",
+            "columnName": "nextPage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "perPage",
+            "columnName": "perPage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "totalCount",
+            "columnName": "totalCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousPage",
+            "columnName": "previousPage",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "entity_id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f6e4b8aa3213ba86b0ed28f51296b5df')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0f34341dd19236a27053b1fa22672051')"
     ]
   }
 }

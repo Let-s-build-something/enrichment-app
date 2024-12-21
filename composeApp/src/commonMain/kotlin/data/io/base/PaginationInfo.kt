@@ -12,5 +12,8 @@ data class PaginationInfo(
     val size: Int,
 
     /** total number of pages */
-    val totalPages: Int
+    val totalPages: Int = 0,
+
+    /** total number of items */
+    val totalItems: Int = totalPages * size
 )

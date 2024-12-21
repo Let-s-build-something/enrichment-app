@@ -1,6 +1,8 @@
 package database.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
@@ -10,6 +12,25 @@ import database.AppRoomDatabase
 interface NetworkItemDao {
 
     /** Returns all network items */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} WHERE ownerPublicId == :ownerPublicId ORDER BY proximity DESC")
-    suspend fun getNetworkItems(ownerPublicId: String): List<NetworkItemIO>
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND page = :page " +
+            "ORDER BY proximity DESC")
+    suspend fun getPaginated(
+        ownerPublicId: String?,
+        page: Int
+    ): List<NetworkItemIO>
+
+    /** Counts the number of items */
+    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId")
+    suspend fun getCount(ownerPublicId: String?): Int
+
+    /** Inserts or updates a set of item objects */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<NetworkItemIO>)
+
+    /** Removes all items from the database */
+    @Query("DELETE FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE}")
+    suspend fun removeAll()
 }

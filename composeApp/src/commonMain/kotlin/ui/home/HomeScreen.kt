@@ -100,6 +100,8 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
+    val isEmpty = networkItems.itemCount == 0 && networkItems.loadState.append.endOfPaginationReached
+            && !isLoadingInitialPage
 
     val listState = rememberLazyGridState()
     val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
@@ -253,7 +255,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 )
                 androidx.compose.animation.AnimatedVisibility(
                     modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
-                    visible = checkedItems.size == 0 && !(networkItems.itemCount == 0 && !isLoadingInitialPage)
+                    visible = isEmpty
                 ) {
                     Crossfade(
                         modifier = Modifier.zIndex(1f),

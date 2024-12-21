@@ -144,9 +144,9 @@ kotlin {
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
 
-            implementation(libs.compose.paging.common)
             implementation(libs.room.runtime)
-            //implementation(libs.room.compiler)
+            //implementation(libs.room.paging)
+            implementation(libs.compose.paging.common)
             implementation(libs.sqlite.bundled)
 
             api(libs.koin.core)

@@ -104,6 +104,7 @@ open class KeyboardViewModel(
     /** Makes a request to retrieve trending GIFs */
     fun requestGifSearch(query: String) {
         viewModelScope.launch {
+            if(query.isBlank()) requestTrendingGifs()
             gifUseCase.requestGifs(
                 coroutineScope = viewModelScope,
                 section = SEARCH_SECTION,

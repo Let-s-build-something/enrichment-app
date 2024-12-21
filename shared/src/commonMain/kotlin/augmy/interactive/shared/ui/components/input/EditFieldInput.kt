@@ -213,4 +213,4 @@ fun EditFieldInput(
     }
 }
 
-const val DELAY_BETWEEN_TYPING_SHORT = 200L
+const val DELAY_BETWEEN_TYPING_SHORT = 300L

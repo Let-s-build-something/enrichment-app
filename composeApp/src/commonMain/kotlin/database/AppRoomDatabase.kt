@@ -5,17 +5,20 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
+import data.io.base.PagingMetaIO
 import data.io.social.network.conversation.EmojiSelection
 import data.io.user.NetworkItemIO
 import database.dao.EmojiSelectionDao
 import database.dao.NetworkItemDao
+import database.dao.PagingMetaDao
 
 @Database(
     entities = [
         NetworkItemIO::class,
-        EmojiSelection::class
+        EmojiSelection::class,
+        PagingMetaIO::class
     ],
-    version = 2,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -25,6 +28,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     /** An interface for interacting with local database for collections */
     abstract fun networkItemDbDao(): NetworkItemDao
     abstract fun emojiSelectionDao(): EmojiSelectionDao
+    abstract fun pagingMetaDao(): PagingMetaDao
 
 
     companion object {
@@ -36,6 +40,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [EmojiSelection] */
         const val ROOM_EMOJI_SELECTION_TABLE = "room_emoji_selection"
+
+        /** Identification of table for [PagingMetaIO] */
+        const val ROOM_PAGING_META_TABLE = "room_paging_meta_table"
     }
 }
 

@@ -62,6 +62,7 @@ compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref 
 compose-paging-common = { module = "app.cash.paging:paging-compose-common", version.ref = "pagingCompose" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-paging = { module = "androidx.room:room-paging", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
 
 media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
