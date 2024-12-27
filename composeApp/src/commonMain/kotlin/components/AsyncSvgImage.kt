@@ -23,6 +23,7 @@ import coil3.svg.SvgDecoder
 fun AsyncSvgImage(
     modifier: Modifier = Modifier,
     model: Any?,
+    contentScale: ContentScale = ContentScale.Crop,
     contentDescription: String? = null
 ) {
     val state = remember(model) {
@@ -41,7 +42,7 @@ fun AsyncSvgImage(
                 state.value = it
             },
             contentDescription = contentDescription,
-            contentScale = ContentScale.Crop
+            contentScale = contentScale
         )
         AnimatedVisibility(state.value is State.Loading) {
             CircularProgressIndicator(

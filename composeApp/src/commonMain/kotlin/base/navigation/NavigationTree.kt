@@ -75,6 +75,12 @@ sealed class NavigationNode {
         override val deepLink: String = ""
     }
 
+    /** Full screen gif detail */
+    @Serializable
+    data class GifDetail(val url: String): NavigationNode() {
+        override val deepLink: String = ""
+    }
+
     companion object {
         val allNodes = listOf(
             Login,

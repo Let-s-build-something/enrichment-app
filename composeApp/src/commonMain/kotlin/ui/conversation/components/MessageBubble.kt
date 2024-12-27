@@ -13,6 +13,7 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -109,6 +110,7 @@ fun MessageBubble(
     isReplying: Boolean = false,
     currentUserPublicId: String,
     state: MessageBubbleState,
+    additionalContent: @Composable ColumnScope.() -> Unit
 ) {
     Crossfade(targetState = data == null) { isLoading ->
         if(isLoading) {
@@ -125,7 +127,8 @@ fun MessageBubble(
                 enabled = enabled,
                 isReacting = isReacting,
                 isReplying = isReplying,
-                state = state
+                state = state,
+                additionalContent = additionalContent
             )
         }
     }
@@ -143,7 +146,8 @@ private fun ContentLayout(
     isReplying: Boolean = false,
     currentUserPublicId: String,
     isReacting: Boolean,
-    state: MessageBubbleState
+    state: MessageBubbleState,
+    additionalContent: @Composable ColumnScope.() -> Unit
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
@@ -357,9 +361,7 @@ private fun ContentLayout(
                             modifier = Modifier
                                 .offset(
                                     x = (if(isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
-                                        if(isReplying) 1f else {
-                                            percentageAchieved.coerceAtMost(1f)
-                                        }
+                                        if(isReplying) 1f else percentageAchieved.coerceAtMost(1f)
                                     )
                                 )
                                 .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
@@ -388,7 +390,7 @@ private fun ContentLayout(
                         }
                     }
 
-                    Box(
+                    Column(
                         modifier = Modifier
                             .then(
                                 if (!data.reactions.isNullOrEmpty()) {
@@ -423,6 +425,8 @@ private fun ContentLayout(
                             )
                             .animateContentSize()
                     ) {
+                        additionalContent()
+
                         Text(
                             modifier = Modifier,
                             text = data.content ?: "",

@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.audio
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -71,6 +71,7 @@ import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_resume
 import augmy.composeapp.generated.resources.conversation_action_delete
 import augmy.composeapp.generated.resources.conversation_action_send
+import augmy.interactive.shared.ext.scalingDraggable
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
@@ -80,11 +81,10 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.isDarkTheme
 import base.theme.Colors
-import base.utils.AudioRecorder
 import base.utils.PermissionType
-import base.utils.rememberAudioRecorder
+import base.utils.audio.AudioRecorder
+import base.utils.audio.rememberAudioRecorder
 import base.utils.rememberPermissionRequesterState
-import augmy.interactive.shared.ext.scalingDraggable
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -655,8 +655,8 @@ private fun AudioWaveForm(
                         recorder.saveRecording()?.let {
                             onSaveRequest(it)
                         }
+                        stopRecording()
                     }
-                    stopRecording()
                 }
             )
         }

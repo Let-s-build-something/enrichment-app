@@ -1,4 +1,4 @@
-package base.utils
+package base.utils.audio
 
 import android.annotation.SuppressLint
 import android.media.AudioFormat
@@ -82,7 +82,11 @@ actual fun rememberAudioRecorder(
             }
 
             override suspend fun saveRecording(): ByteArray? {
-                return buffer?.toByteArray()
+                return pcmToWav(
+                    pcmData = buffer?.toByteArray(),
+                    channels = 1,
+                    bitsPerSample = 16
+                )
             }
 
             override fun pauseRecording() {

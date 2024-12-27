@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -33,6 +34,7 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -72,6 +74,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -107,6 +110,7 @@ import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
@@ -116,6 +120,7 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.navigation.NavigationNode
 import base.utils.MediaType
 import base.utils.getBitmapFromFile
 import base.utils.getMediaType
@@ -132,6 +137,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
+import ui.conversation.components.audio.PanelMicrophone
+import ui.conversation.components.gif.GifImage
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -144,6 +151,7 @@ internal fun BoxScope.SendMessagePanel(
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
+    val navController = LocalNavController.current
     val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
@@ -237,6 +245,7 @@ internal fun BoxScope.SendMessagePanel(
         messageContent.value = TextFieldValue()
         viewModel.saveMessage(null)
         replyToMessage.value = null
+        gifAttached.value = null
     }
 
 
@@ -284,6 +293,37 @@ internal fun BoxScope.SendMessagePanel(
         modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.Top
     ) {
+        AnimatedVisibility(gifAttached.value != null) {
+            gifAttached.value?.let { gifAsset ->
+                Box {
+                    GifImage(
+                        modifier = Modifier
+                            .heightIn(max = 200.dp)
+                            .zIndex(1f)
+                            .scalingClickable(scaleInto = .95f) {
+                                navController?.navigate(
+                                    NavigationNode.GifDetail(gifAsset.original ?: "")
+                                )
+                            }
+                            .clip(RoundedCornerShape(6.dp))
+                            .wrapContentHeight(),
+                        url = gifAsset.fixedWidthSmall ?: "",
+                        contentDescription = gifAsset.description,
+                        contentScale = ContentScale.FillHeight
+                    )
+                    MinimalisticIcon(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd),
+                        imageVector = Icons.Outlined.Close,
+                        tint = LocalTheme.current.colors.secondary,
+                        onTap = {
+                            gifAttached.value = null
+                        }
+                    )
+                }
+            }
+        }
+
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
         replyToMessage.value?.let { originalMessage ->
@@ -441,7 +481,7 @@ internal fun BoxScope.SendMessagePanel(
                                     }
                                 }
                                 MediaType.VIDEO -> {
-
+                                    // TODO
                                 }
                                 else -> {
                                     Column(
@@ -659,7 +699,6 @@ internal fun BoxScope.SendMessagePanel(
                     ),
                     tint = Color.White
                 )
-
             }
         }
 

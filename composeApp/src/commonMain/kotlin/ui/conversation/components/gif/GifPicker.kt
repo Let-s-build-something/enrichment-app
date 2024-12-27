@@ -226,7 +226,8 @@ fun GifPicker(
                                         GifAsset(
                                             original = data?.images?.original?.url,
                                             fixedWidthOriginal = data?.images?.fixedWidth?.url,
-                                            fixedWidthSmall = data?.images?.fixedWidthDownsampled?.url
+                                            fixedWidthSmall = data?.images?.fixedWidthDownsampled?.url,
+                                            description = data?.altText ?: data?.title
                                         )
                                     )
                                 }

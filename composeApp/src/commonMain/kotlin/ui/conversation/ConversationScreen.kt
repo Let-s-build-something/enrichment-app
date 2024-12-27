@@ -23,22 +23,29 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -49,13 +56,19 @@ import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
+import augmy.interactive.shared.ext.mouseDraggable
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
+import base.navigation.NavigationNode
 import base.utils.getOrNull
+import components.AsyncSvgImage
 import components.UserProfileImage
 import data.io.social.network.conversation.ConversationMessageIO
 import kotlinx.coroutines.launch
@@ -66,7 +79,9 @@ import org.koin.core.parameter.parametersOf
 import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.SendMessagePanel
+import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
+import ui.conversation.components.gif.GifImage
 import ui.conversation.components.rememberMessageBubbleState
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -83,8 +98,10 @@ fun ConversationScreen(
         parameters = { parametersOf(conversationId ?: "") }
     )
 
+    val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
+    val navController = LocalNavController.current
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
@@ -250,6 +267,7 @@ fun ConversationScreen(
                                     LocalTheme.current.shapes.betweenItemsSpace + profileImageSize
                                 ))
                             }
+
                             MessageBubble(
                                 data = data,
                                 isReacting = reactingToMessageId.value == data?.id,
@@ -278,7 +296,71 @@ fun ConversationScreen(
                                         }
                                         replyToMessage.value = data
                                     }
-                                )
+                                ),
+                                additionalContent = {
+                                    if(data?.gifAsset != null) {
+                                        GifImage(
+                                            modifier = Modifier
+                                                .align(Alignment.End)
+                                                .zIndex(1f)
+                                                .scalingClickable(scaleInto = .95f) {
+                                                    navController?.navigate(
+                                                        NavigationNode.GifDetail(data.gifAsset.original ?: "")
+                                                    )
+                                                }
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .wrapContentWidth()
+                                                .animateContentSize(),
+                                            url = data.gifAsset.original ?: "",
+                                            contentDescription = data.gifAsset.description,
+                                            contentScale = ContentScale.Inside
+                                        )
+                                    }
+                                    if(data?.mediaUrls?.isNotEmpty() == true) {
+                                        val imageIndex = rememberSaveable {
+                                            mutableStateOf(0)
+                                        }
+                                        val pagerState = rememberPagerState(
+                                            initialPage = imageIndex.value,
+                                            pageCount = { data.mediaUrls.size }
+                                        )
+
+                                        LaunchedEffect(pagerState) {
+                                            snapshotFlow { pagerState.settledPage }.collect {
+                                                imageIndex.value = it
+                                            }
+                                        }
+
+                                        HorizontalPager(
+                                            modifier = Modifier
+                                                .mouseDraggable(pagerState) { index ->
+                                                    coroutineScope.launch {
+                                                        pagerState.animateScrollToPage(index)
+                                                    }
+                                                }
+                                                .weight(1f)
+                                                .animateContentSize(),
+                                            state = pagerState,
+                                            beyondViewportPageCount = 0
+                                        ) { index ->
+                                            AsyncSvgImage(
+                                                modifier = Modifier
+                                                    .height((screenSize.height * .2f).dp),
+                                                model = data.mediaUrls[index],
+                                                contentScale = ContentScale.FillHeight
+                                            )
+                                        }
+                                    }
+                                    if(!data?.audioUrl.isNullOrBlank()) {
+                                        AudioMessageBubble(
+                                            modifier = Modifier
+                                                .wrapContentWidth()
+                                                .align(Alignment.End)
+                                                .zIndex(1f),
+                                            url = data?.audioUrl ?: ""
+                                        )
+                                    }
+                                }
                             )
                         }
                     }

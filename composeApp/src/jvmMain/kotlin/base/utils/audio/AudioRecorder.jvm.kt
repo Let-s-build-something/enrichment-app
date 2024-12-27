@@ -1,4 +1,4 @@
-package base.utils
+package base.utils.audio
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -29,7 +29,7 @@ actual fun rememberAudioRecorder(
             barsCount = barsCount
         ) {
             // audio recording
-            private val format = AudioFormat(sampleRate.toFloat(), 16, 2, true, true)
+            private val format = AudioFormat(sampleRate.toFloat(), 16, 1, true, false)
             private val lineInfo = DataLine.Info(TargetDataLine::class.java, format)
             private var line: TargetDataLine? = null
             private var buffer: ByteArrayOutputStream? = null
@@ -77,13 +77,18 @@ actual fun rememberAudioRecorder(
                             }
                         }
                     }
+                    recordingThread?.priority = Thread.MAX_PRIORITY
                     recordingThread?.start()
                     line?.start()
                 }
             }
 
             override suspend fun saveRecording(): ByteArray? {
-                return buffer?.toByteArray()
+                return pcmToWav(
+                    pcmData = buffer?.toByteArray(),
+                    channels = 1,
+                    bitsPerSample = 16
+                )
             }
 
             override fun pauseRecording() {

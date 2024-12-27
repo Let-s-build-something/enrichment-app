@@ -12,5 +12,8 @@ data class GifAsset(
     val fixedWidthOriginal: String? = null,
 
     /** Original gif url */
-    val original: String? = null
+    val original: String? = null,
+
+    /** Description of the gif */
+    val description: String? = null
 )

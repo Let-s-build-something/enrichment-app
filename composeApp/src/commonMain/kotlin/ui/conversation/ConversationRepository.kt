@@ -15,9 +15,12 @@ import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
+import data.shared.fromByteArrayToData
 import data.shared.setPaging
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.storage.storage
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -653,3 +656,10 @@ class ConversationRepository(
         )
     }
 }
+
+/** Attempts to upload a file to Firebase storage, and returns the download URL of the uploaded file. */
+expect suspend fun uploadMediaToStorage(
+    conversationId: String,
+    byteArray: ByteArray,
+    fileName: String
+): String

@@ -48,6 +48,11 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES }}" > google-services.json.b64
           certutil -decode google-services.json.b64 ${{ github.workspace }}\composeApp\google-services.json
 
+      - name: Decode chat-enrichment.json
+        run: |
+          echo "${{ secrets.GCS }}" > chat-enrichment-fbc09765a643.json.b64
+          certutil -decode chat-enrichment-fbc09765a643.json.b64 ${{ github.workspace }}\composeApp\chat-enrichment-fbc09765a643.json
+
       - name: Decode Microsoft PFX certificate
         run: |
           echo "${{ secrets.WINDOWS_PFX_BASE64 }}" > augmy.pfx.b64
