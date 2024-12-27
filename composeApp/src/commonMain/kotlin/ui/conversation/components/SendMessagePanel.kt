@@ -184,6 +184,10 @@ internal fun BoxScope.SendMessagePanel(
         mutableStateOf(-1f)
     }
 
+    val isContentEmpty = messageContent.value.text.isBlank()
+            && mediaAttached.isEmpty()
+            && gifAttached.value == null
+
     val bottomPadding = animateFloatAsState(
         targetValue = if (imeHeightPadding >= keyboardHeight.value.div(2) || !isDefaultMode) {
             LocalTheme.current.shapes.betweenItemsSpace.value
@@ -679,7 +683,7 @@ internal fun BoxScope.SendMessagePanel(
             }
 
             // space for the microphone action
-            Crossfade(targetState = messageContent.value.text.isBlank()) { isBlank ->
+            Crossfade(targetState = isContentEmpty) { isBlank ->
                 Icon(
                     modifier = Modifier
                         .scalingClickable(enabled = !isBlank) {
@@ -796,7 +800,7 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     // Has to be outside of message panel in order to lay over everything else
-    if(messageContent.value.text.isBlank()) {
+    if(isContentEmpty) {
         PanelMicrophone(
             modifier = Modifier
                 .offset(y = - (screenSize.height.dp - with(density) { actionYCoordinate.value.toDp() } - 44.dp))

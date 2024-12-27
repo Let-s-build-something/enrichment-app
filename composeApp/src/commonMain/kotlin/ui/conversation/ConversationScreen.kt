@@ -25,9 +25,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -56,7 +56,6 @@ import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
-import augmy.interactive.shared.ext.mouseDraggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -242,7 +241,6 @@ fun ConversationScreen(
 
                         Row(
                             modifier = Modifier
-                                .padding(start = if(isCurrentUser) 50.dp else 12.dp)
                                 .fillMaxWidth()
                                 .padding(
                                     top = if(isPreviousMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2),
@@ -253,22 +251,33 @@ fun ConversationScreen(
                             verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
                         ) {
                             val profileImageSize = with(density) { 38.sp.toDp() }
-                            if(!isCurrentUser && !isNextMessageSameAuthor) {
+                            val isLastOfStack = !isCurrentUser && !isNextMessageSameAuthor
+                            if(isLastOfStack) {
                                 UserProfileImage(
                                     modifier = Modifier
+                                        .padding(start = 12.dp)
                                         .zIndex(4f)
                                         .size(profileImageSize),
                                     model = data?.user?.photoUrl,
                                     tag = data?.user?.tag
                                 )
-                                Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
-                            }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
-                                Spacer(Modifier.width(
-                                    LocalTheme.current.shapes.betweenItemsSpace + profileImageSize
-                                ))
                             }
 
                             MessageBubble(
+                                modifier = Modifier
+                                    .padding(
+                                        start = LocalTheme.current.shapes.betweenItemsSpace.plus(
+                                            if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
+                                                12.dp + profileImageSize
+                                            } else 0.dp
+                                        ).plus(
+                                            if (isCurrentUser) 50.dp else 0.dp
+                                        )
+                                    )
+                                    .padding(
+                                        start = if (isCurrentUser) 16.dp else 0.dp,
+                                        end = if (isCurrentUser) 0.dp else 16.dp,
+                                    ),
                                 data = data,
                                 isReacting = reactingToMessageId.value == data?.id,
                                 currentUserPublicId = currentUser.value?.publicId ?: "",
@@ -317,38 +326,59 @@ fun ConversationScreen(
                                         )
                                     }
                                     if(data?.mediaUrls?.isNotEmpty() == true) {
-                                        val imageIndex = rememberSaveable {
+                                        println("kostka_test, mediaUrls: ${data.mediaUrls}")
+                                        val imageIndex = rememberSaveable(data.id) {
                                             mutableStateOf(0)
                                         }
-                                        val pagerState = rememberPagerState(
-                                            initialPage = imageIndex.value,
-                                            pageCount = { data.mediaUrls.size }
+                                        val rowState = rememberLazyListState(
+                                            initialFirstVisibleItemIndex = imageIndex.value
                                         )
 
-                                        LaunchedEffect(pagerState) {
-                                            snapshotFlow { pagerState.settledPage }.collect {
+                                        LaunchedEffect(rowState) {
+                                            snapshotFlow { rowState.firstVisibleItemIndex }.collect {
                                                 imageIndex.value = it
                                             }
                                         }
 
-                                        HorizontalPager(
+                                        LazyRow(
                                             modifier = Modifier
-                                                .mouseDraggable(pagerState) { index ->
-                                                    coroutineScope.launch {
-                                                        pagerState.animateScrollToPage(index)
+                                                .fillMaxWidth()
+                                                .draggable(
+                                                    orientation = Orientation.Horizontal,
+                                                    state = rememberDraggableState { delta ->
+                                                        coroutineScope.launch {
+                                                            rowState.scrollBy(-delta)
+                                                        }
                                                     }
-                                                }
-                                                .weight(1f)
+                                                )
                                                 .animateContentSize(),
-                                            state = pagerState,
-                                            beyondViewportPageCount = 0
-                                        ) { index ->
-                                            AsyncSvgImage(
-                                                modifier = Modifier
-                                                    .height((screenSize.height * .2f).dp),
-                                                model = data.mediaUrls[index],
-                                                contentScale = ContentScale.FillHeight
+                                            state = rowState,
+                                            reverseLayout = !isCurrentUser,
+                                            horizontalArrangement = Arrangement.spacedBy(
+                                                LocalTheme.current.shapes.betweenItemsSpace
                                             )
+                                        ) {
+                                            if(isCurrentUser) {
+                                                item {
+                                                    Spacer(Modifier.width(50.dp))
+                                                }
+                                            }
+                                            items(data.mediaUrls) { mediaUrl ->
+                                                AsyncSvgImage(
+                                                    modifier = Modifier
+                                                        .clip(LocalTheme.current.shapes.rectangularActionShape)
+                                                        .height((screenSize.height * .3f).dp)
+                                                        .width(250.dp),
+                                                    model = mediaUrl,
+                                                    contentScale = ContentScale.FillHeight,
+                                                    contentDescription = null
+                                                )
+                                            }
+                                            if(!isCurrentUser) {
+                                                item {
+                                                    Spacer(Modifier.width(50.dp))
+                                                }
+                                            }
                                         }
                                     }
                                     if(!data?.audioUrl.isNullOrBlank()) {

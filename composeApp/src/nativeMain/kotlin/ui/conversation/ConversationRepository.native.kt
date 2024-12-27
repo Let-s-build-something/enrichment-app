@@ -14,7 +14,7 @@ actual suspend fun uploadMediaToStorage(
     fileName: String
 ): String {
     return withContext(Dispatchers.IO) {
-        val reference = Firebase.storage.reference.child("conversations/$conversationId/$fileName")
+        val reference = Firebase.storage.reference.child("conversation/$conversationId/$fileName")
 
         reference.putData(fromByteArrayToData(byteArray))
         reference.getDownloadUrl()

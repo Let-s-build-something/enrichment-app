@@ -221,327 +221,347 @@ private fun ContentLayout(
     }
 
     // everything + message footer information
-    Column(
-        modifier = modifier
-            .hoverable(
-                enabled = !isCompact,
-                interactionSource = hoverInteractionSource
-            )
-            .padding(vertical = verticalPadding.value.dp)
-            .offset(
-                x = with(density) { animatedOffsetX.value.toDp() } + additionalOffsetDp.value.dp
-            )
-            .pointerInput(enabled) {
-                detectMessageInteraction(
-                    onTap = {
-                        showHistory.value = !showHistory.value
-                        state.onReactionRequest(false)
-                    },
-                    onLongPress = {
-                        state.onReactionRequest(true)
-                    },
-                    onDrag = { dragged ->
-                        isDragged.value = dragged
-
-                        // cancel dragging and animate back to original position
-                        dragCoroutineScope.coroutineContext.cancelChildren()
-                        if(!dragged) {
-                            if(animatedOffsetX.value !in replyBounds) {
-                                coroutineScope.launch {
-                                    state.onReplyRequest()
-                                    offsetX.value = 0f
-                                    animatedOffsetX.animateTo(0f)
-                                }
-                            }else {
-                                dragCoroutineScope.launch {
-                                    delay(DragCancelDelayMillis)
-                                    offsetX.value = 0f
-                                    animatedOffsetX.animateTo(0f)
-                                }
-                            }
-                        }
-                    },
-                    onDragChange = { _, dragAmount ->
-                        offsetX.value = (offsetX.value + dragAmount.x / 3).coerceIn(
-                            minimumValue = if(isCurrentUser) replyBounds.start.times(1.4f) else 0f,
-                            maximumValue = if(isCurrentUser) 0f else replyBounds.endInclusive.times(1.4f)
-                        )
-                        coroutineScope.launch {
-                            animatedOffsetX.animateTo(offsetX.value)
-                        }
-                    }
-                )
-            }
-            .then(
-                if(isReacting) {
-                    Modifier
-                        .background(
-                            color = LocalTheme.current.colors.component,
-                            shape = LocalTheme.current.shapes.componentShape
-                        )
-                }else Modifier
-            )
-            .padding(
-                start = if(isCurrentUser) 16.dp else 0.dp,
-                end = if(isCurrentUser) 0.dp else 16.dp,
-            ),
-        horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // new or a change of a reaction - indication
-        AnimatedVisibility(isReacting) {
-            Row(
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
+            Icon(
                 modifier = Modifier
-                    .padding(
-                        vertical = 10.dp,
-                        horizontal = 12.dp
-                    )
-                    .horizontalScroll(rememberScrollState())
-                    .zIndex(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                preferredEmojis.forEach { emojiData ->
-                    Text(
-                        modifier = Modifier
-                            .scalingClickable(scaleInto = .7f) {
-                                state.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
-                            }
-                            .padding(8.dp),
-                        text = emojiData.emoji.firstOrNull() ?: "",
-                        style = LocalTheme.current.styles.heading
-                    )
-                }
-                Icon(
-                    modifier = Modifier
-                        .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
-                        .scalingClickable {
-                            state.onAdditionalReactionRequest()
-                        },
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = stringResource(Res.string.accessibility_reaction_other),
-                    tint = LocalTheme.current.colors.secondary
-                )
-            }
+                    .scalingClickable { state.onReplyRequest() }
+                    .padding(5.dp),
+                imageVector = Icons.AutoMirrored.Outlined.Reply,
+                contentDescription = stringResource(Res.string.accessibility_message_reply),
+                tint = LocalTheme.current.colors.secondary
+            )
         }
 
-        // message content + reply function + desktop options
-        Row {
-            if(!isCompact && isCurrentUser) {
-                val isFocused = hoverInteractionSource.collectIsHoveredAsState()
+        Column(
+            modifier = Modifier
+                .hoverable(
+                    enabled = !isCompact,
+                    interactionSource = hoverInteractionSource
+                )
+                .padding(vertical = verticalPadding.value.dp)
+                .offset(
+                    x = with(density) { animatedOffsetX.value.toDp() } + additionalOffsetDp.value.dp
+                )
+                .pointerInput(enabled) {
+                    detectMessageInteraction(
+                        onTap = {
+                            showHistory.value = !showHistory.value
+                            state.onReactionRequest(false)
+                        },
+                        onLongPress = {
+                            state.onReactionRequest(true)
+                        },
+                        onDrag = { dragged ->
+                            isDragged.value = dragged
 
-                LaunchedEffect(isFocused) {
-                    if(isFocused.value) {
-                        showHistory.value = true
-                    }
+                            // cancel dragging and animate back to original position
+                            dragCoroutineScope.coroutineContext.cancelChildren()
+                            if(!dragged) {
+                                if(animatedOffsetX.value !in replyBounds) {
+                                    coroutineScope.launch {
+                                        state.onReplyRequest()
+                                        offsetX.value = 0f
+                                        animatedOffsetX.animateTo(0f)
+                                    }
+                                }else {
+                                    dragCoroutineScope.launch {
+                                        delay(DragCancelDelayMillis)
+                                        offsetX.value = 0f
+                                        animatedOffsetX.animateTo(0f)
+                                    }
+                                }
+                            }
+                        },
+                        onDragChange = { _, dragAmount ->
+                            offsetX.value = (offsetX.value + dragAmount.x / 3).coerceIn(
+                                minimumValue = if(isCurrentUser) replyBounds.start.times(1.4f) else 0f,
+                                maximumValue = if(isCurrentUser) 0f else replyBounds.endInclusive.times(1.4f)
+                            )
+                            coroutineScope.launch {
+                                animatedOffsetX.animateTo(offsetX.value)
+                            }
+                        }
+                    )
                 }
-
-                AnimatedVisibility(
-                    modifier = Modifier.align(Alignment.Top),
-                    visible = isFocused.value
+                .then(
+                    if(isReacting) {
+                        Modifier
+                            .background(
+                                color = LocalTheme.current.colors.component,
+                                shape = LocalTheme.current.shapes.componentShape
+                            )
+                    }else Modifier
+                )
+                .animateContentSize(),
+            horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // new or a change of a reaction - indication
+            AnimatedVisibility(isReacting) {
+                Row(
+                    modifier = modifier
+                        .padding(
+                            vertical = 10.dp,
+                            horizontal = 12.dp
+                        )
+                        .horizontalScroll(rememberScrollState())
+                        .zIndex(1f),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    DesktopOptions(
-                        modifier = Modifier.padding(top = 5.dp, start = 8.dp),
-                        onReaction = { state.onReactionRequest(!isReacting) },
-                        onReply = { state.onReplyRequest() }
+                    preferredEmojis.forEach { emojiData ->
+                        Text(
+                            modifier = Modifier
+                                .scalingClickable(scaleInto = .7f) {
+                                    state.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
+                                }
+                                .padding(8.dp),
+                            text = emojiData.emoji.firstOrNull() ?: "",
+                            style = LocalTheme.current.styles.heading
+                        )
+                    }
+                    Icon(
+                        modifier = Modifier
+                            .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
+                            .scalingClickable {
+                                state.onAdditionalReactionRequest()
+                            },
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = stringResource(Res.string.accessibility_reaction_other),
+                        tint = LocalTheme.current.colors.secondary
                     )
                 }
             }
 
+            additionalContent()
 
-            // message content + reply function + reactions + desktop options
-            Box(contentAlignment = Alignment.CenterEnd) {
-                // message content + reply function
-                Box {
-                    if(animatedOffsetX.value.absoluteValue > 0f || isReplying) {
-                        val percentageAchieved = (if(isCurrentUser) {
-                            animatedOffsetX.value / replyBounds.start
-                        }else animatedOffsetX.value / replyBounds.endInclusive).times(2)
+            // message content + reply function + desktop options
+            Row(modifier = modifier) {
+                if(!isCompact && isCurrentUser) {
+                    val isFocused = hoverInteractionSource.collectIsHoveredAsState()
 
-                        Box(
-                            modifier = Modifier
-                                .offset(
-                                    x = (if(isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
-                                        if(isReplying) 1f else percentageAchieved.coerceAtMost(1f)
-                                    )
-                                )
-                                .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.requiredSize(replyIndicationSize),
-                                progress = { percentageAchieved / 2 },
-                                strokeWidth = 4.dp,
-                                color = LocalTheme.current.colors.component,
-                                trackColor = Color.Transparent
-                            )
-                            Icon(
-                                modifier = Modifier
-                                    .size(replyIndicationSize)
-                                    .then(if(animatedOffsetX.value !in replyBounds) {
-                                        Modifier.background(
-                                            color = LocalTheme.current.colors.component,
-                                            shape = CircleShape
-                                        )
-                                    }else Modifier)
-                                    .padding(5.dp),
-                                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                                tint = LocalTheme.current.colors.secondary
-                            )
+                    LaunchedEffect(isFocused) {
+                        if(isFocused.value) {
+                            showHistory.value = true
                         }
                     }
 
-                    Column(
-                        modifier = Modifier
-                            .then(
-                                if (!data.reactions.isNullOrEmpty()) {
-                                    Modifier.padding(bottom = with(density) {
-                                        LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                    })
-                                } else Modifier
-                            )
-                            .background(
-                                color = tagToColor(data.user?.tag) ?: if(isCurrentUser) {
-                                    LocalTheme.current.colors.brandMainDark
-                                } else LocalTheme.current.colors.backgroundContrast,
-                                shape = if(isCurrentUser) {
-                                    RoundedCornerShape(
-                                        topStart = 24.dp,
-                                        bottomStart = 24.dp,
-                                        topEnd = if(hasPrevious) 1.dp else 24.dp,
-                                        bottomEnd = if(hasNext) 1.dp else 24.dp
-                                    )
-                                }else {
-                                    RoundedCornerShape(
-                                        topEnd = 24.dp,
-                                        bottomEnd = 24.dp,
-                                        topStart = if(hasPrevious) 1.dp else 24.dp,
-                                        bottomStart = if(hasNext) 1.dp else 24.dp
-                                    )
-                                }
-                            )
-                            .padding(
-                                vertical = 10.dp,
-                                horizontal = 14.dp
-                            )
-                            .animateContentSize()
+                    AnimatedVisibility(
+                        modifier = Modifier.align(Alignment.Top),
+                        visible = isFocused.value
                     ) {
-                        additionalContent()
-
-                        Text(
-                            modifier = Modifier,
-                            text = data.content ?: "",
-                            style = LocalTheme.current.styles.category.copy(
-                                color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
-                            )
+                        DesktopOptions(
+                            modifier = Modifier.padding(top = 5.dp, start = 8.dp),
+                            onReaction = { state.onReactionRequest(!isReacting) },
+                            onReply = { state.onReplyRequest() }
                         )
                     }
                 }
 
-                androidx.compose.animation.AnimatedVisibility(
-                    modifier = Modifier.align(
-                        if(isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
-                    ),
-                    visible = !data.reactions.isNullOrEmpty()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(
-                                start = if(isCurrentUser) 0.dp else 12.dp,
-                                end = if(isCurrentUser) 12.dp else 0.dp,
-                                top = with(density) {
-                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                }
+
+                // message content + reply function + reactions + desktop options
+                Box(contentAlignment = Alignment.CenterEnd) {
+                    // message content + reply function
+                    Box {
+                        if(animatedOffsetX.value.absoluteValue > 0f || isReplying) {
+                            val percentageAchieved = (if(isCurrentUser) {
+                                animatedOffsetX.value / replyBounds.start
+                            }else animatedOffsetX.value / replyBounds.endInclusive).times(2)
+
+                            Box(
+                                modifier = Modifier
+                                    .offset(
+                                        x = (if(isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
+                                            if(isReplying) 1f else percentageAchieved.coerceAtMost(1f)
+                                        )
+                                    )
+                                    .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.requiredSize(replyIndicationSize),
+                                    progress = { percentageAchieved / 2 },
+                                    strokeWidth = 4.dp,
+                                    color = LocalTheme.current.colors.component,
+                                    trackColor = Color.Transparent
+                                )
+                                Icon(
+                                    modifier = Modifier
+                                        .size(replyIndicationSize)
+                                        .then(if(animatedOffsetX.value !in replyBounds) {
+                                            Modifier.background(
+                                                color = LocalTheme.current.colors.component,
+                                                shape = CircleShape
+                                            )
+                                        }else Modifier)
+                                        .padding(5.dp),
+                                    imageVector = Icons.AutoMirrored.Outlined.Reply,
+                                    contentDescription = stringResource(Res.string.accessibility_message_reply),
+                                    tint = LocalTheme.current.colors.secondary
+                                )
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .then(
+                                    if (!data.reactions.isNullOrEmpty()) {
+                                        Modifier.padding(bottom = with(density) {
+                                            LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                        })
+                                    } else Modifier
+                                )
+                                .background(
+                                    color = tagToColor(data.user?.tag) ?: if(isCurrentUser) {
+                                        LocalTheme.current.colors.brandMainDark
+                                    } else LocalTheme.current.colors.backgroundContrast,
+                                    shape = if(isCurrentUser) {
+                                        RoundedCornerShape(
+                                            topStart = 24.dp,
+                                            bottomStart = 24.dp,
+                                            topEnd = if(hasPrevious) 1.dp else 24.dp,
+                                            bottomEnd = if(hasNext) 1.dp else 24.dp
+                                        )
+                                    }else {
+                                        RoundedCornerShape(
+                                            topEnd = 24.dp,
+                                            bottomEnd = 24.dp,
+                                            topStart = if(hasPrevious) 1.dp else 24.dp,
+                                            bottomStart = if(hasNext) 1.dp else 24.dp
+                                        )
+                                    }
+                                )
+                                .padding(
+                                    vertical = 10.dp,
+                                    horizontal = 14.dp
+                                )
+                                .animateContentSize()
+                        ) {
+                            Text(
+                                modifier = Modifier,
+                                text = data.content ?: "",
+                                style = LocalTheme.current.styles.category.copy(
+                                    color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
+                                )
                             )
-                            .then(
-                                if(reactions.value.size > 1) {
-                                    Modifier.offset(x = if(isCurrentUser) (-8).dp else 8.dp)
-                                }else Modifier
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
+                        }
+                    }
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        modifier = Modifier.align(
+                            if(isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
+                        ),
+                        visible = !data.reactions.isNullOrEmpty()
                     ) {
-                        reactions.value.take(MaximumReactions).forEach { reaction ->
-                            Row(
-                                Modifier
-                                    .scalingClickable {
-                                        if((data.reactions?.size ?: 0) > 1) {
-                                            showDetailDialogOf.value = data.content to reaction.first
+                        Row(
+                            modifier = Modifier
+                                .padding(
+                                    start = if(isCurrentUser) 0.dp else 12.dp,
+                                    end = if(isCurrentUser) 12.dp else 0.dp,
+                                    top = with(density) {
+                                        LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                    }
+                                )
+                                .then(
+                                    if(reactions.value.size > 1) {
+                                        Modifier.offset(x = if(isCurrentUser) (-8).dp else 8.dp)
+                                    }else Modifier
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            reactions.value.take(MaximumReactions).forEach { reaction ->
+                                Row(
+                                    Modifier
+                                        .scalingClickable {
+                                            if((data.reactions?.size ?: 0) > 1) {
+                                                showDetailDialogOf.value = data.content to reaction.first
+                                            }
+                                        }
+                                        .width(IntrinsicSize.Min)
+                                        .background(
+                                            color = LocalTheme.current.colors.disabledComponent,
+                                            shape = LocalTheme.current.shapes.componentShape
+                                        )
+                                        .padding(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            modifier = Modifier.padding(end = 2.dp),
+                                            text = reaction.first ?: "",
+                                            style = LocalTheme.current.styles.category.copy(
+                                                textAlign = TextAlign.Center
+                                            )
+                                        )
+                                        if(reaction.second.second) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .height(2.dp)
+                                                    .fillMaxWidth(.6f)
+                                                    .background(
+                                                        color = LocalTheme.current.colors.brandMain,
+                                                        shape = RoundedCornerShape(8.dp)
+                                                    )
+                                            )
                                         }
                                     }
-                                    .width(IntrinsicSize.Min)
-                                    .background(
-                                        color = LocalTheme.current.colors.disabledComponent,
-                                        shape = LocalTheme.current.shapes.componentShape
-                                    )
-                                    .padding(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        modifier = Modifier.padding(end = 2.dp),
-                                        text = reaction.first ?: "",
-                                        style = LocalTheme.current.styles.category.copy(
-                                            textAlign = TextAlign.Center
-                                        )
-                                    )
-                                    if(reaction.second.second) {
-                                        Box(
-                                            modifier = Modifier
-                                                .height(2.dp)
-                                                .fillMaxWidth(.6f)
-                                                .background(
-                                                    color = LocalTheme.current.colors.brandMain,
-                                                    shape = RoundedCornerShape(8.dp)
-                                                )
+                                    reaction.second.first.size.takeIf { it > 1 }?.let { count ->
+                                        Text(
+                                            text = count.toString(),
+                                            style = LocalTheme.current.styles.regular
                                         )
                                     }
-                                }
-                                reaction.second.first.size.takeIf { it > 1 }?.let { count ->
-                                    Text(
-                                        text = count.toString(),
-                                        style = LocalTheme.current.styles.regular
-                                    )
                                 }
                             }
                         }
                     }
                 }
-            }
 
 
-            // desktop reactions for messages of others
-            if(!isCompact && !isCurrentUser) {
-                val isFocused = hoverInteractionSource.collectIsHoveredAsState()
+                // desktop reactions for messages of others
+                if(!isCompact && !isCurrentUser) {
+                    val isFocused = hoverInteractionSource.collectIsHoveredAsState()
+                    LaunchedEffect(isFocused) {
+                        if(isFocused.value) {
+                            showHistory.value = true
+                        }
+                    }
 
-                LaunchedEffect(isFocused) {
-                    if(isFocused.value) {
-                        showHistory.value = true
+                    AnimatedVisibility(
+                        modifier = Modifier.align(Alignment.Top),
+                        visible = isFocused.value || isReacting
+                    ) {
+                        DesktopOptions(
+                            modifier = Modifier.padding(top = 5.dp, end = 8.dp),
+                            onReaction = { state.onReactionRequest(!isReacting) },
+                            onReply = { state.onReplyRequest() }
+                        )
                     }
                 }
+            }
 
-                AnimatedVisibility(
-                    modifier = Modifier.align(Alignment.Top),
-                    visible = isFocused.value
-                ) {
-                    DesktopOptions(
-                        modifier = Modifier.padding(top = 5.dp, end = 8.dp),
-                        onReaction = { state.onReactionRequest(!isReacting) },
-                        onReply = { state.onReplyRequest() }
-                    )
-                }
+            AnimatedVisibility(showHistory.value) {
+                Text(
+                    modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp),
+                    text = data.createdAt?.formatAsRelative() ?: "",
+                    style = LocalTheme.current.styles.regular
+                )
+            }
+
+            // bottom spacing
+            AnimatedVisibility(isReacting) {
+                Spacer(Modifier.height(8.dp))
             }
         }
 
-        AnimatedVisibility(showHistory.value) {
-            Text(
-                modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp),
-                text = data.createdAt?.formatAsRelative() ?: "",
-                style = LocalTheme.current.styles.regular
+        AnimatedVisibility(!isCurrentUser && isCompact && isReacting && !isReplying) {
+            Icon(
+                modifier = Modifier
+                    .scalingClickable { state.onReplyRequest() }
+                    .padding(5.dp),
+                imageVector = Icons.AutoMirrored.Outlined.Reply,
+                contentDescription = stringResource(Res.string.accessibility_message_reply),
+                tint = LocalTheme.current.colors.secondary
             )
-        }
-
-        // bottom spacing
-        AnimatedVisibility(isReacting) {
-            Spacer(Modifier.height(8.dp))
         }
     }
 }

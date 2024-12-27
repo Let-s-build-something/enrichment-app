@@ -140,13 +140,16 @@ class ConversationViewModel(
         gifAsset: GifAsset?
     ) {
         viewModelScope.launch {
+            println("kostka_test, sendMessage, mediaFiles: ${mediaFiles.size}")
             val mediaUrls = listOf(*mediaFiles.toTypedArray()).mapNotNull { media ->
                 val bytes = media.readBytes()
+                println("kostka_test, sendMessage, bytes: ${bytes.size}")
                 requestMediaUpload(
                     mediaByteArray = bytes,
                     fileName = "${Uuid.random()}.${media.extension.lowercase()}",
                 ).takeIf { !it.isNullOrBlank() }
             }
+            println("kostka_test, sendMessage, mediaUrls: ${mediaUrls.size}")
 
             repository.sendMessage(
                 conversationId = conversationId,
