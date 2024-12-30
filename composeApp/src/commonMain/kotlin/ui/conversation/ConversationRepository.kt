@@ -15,12 +15,11 @@ import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
-import data.shared.fromByteArrayToData
 import data.shared.setPaging
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.storage.storage
+import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.core.extension
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -52,6 +51,7 @@ class ConversationRepository(
     private val pagingMetaDao: PagingMetaDao
 ) {
     private var currentPagingSource: ConversationRoomSource? = null
+    val cachedByteArrays = hashMapOf<String, PlatformFile>()
 
     /** Attempts to invalidate local PagingSource with conversation messages */
     private fun invalidateLocalSource() {
@@ -169,25 +169,62 @@ class ConversationRepository(
     }
 
     /** Sends a message to a conversation */
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun sendMessage(
         conversationId: String,
-        message: ConversationMessageIO
+        message: ConversationMessageIO,
+        audioByteArray: ByteArray? = null,
+        mediaFiles: List<PlatformFile> = listOf(),
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
-            conversationMessageDao.insert(message.copy(
+            val uuids = mutableListOf<String>()
+            var msg = message.copy(
                 conversationId = conversationId,
                 createdAt = localNow,
-                authorPublicId = dataManager.currentUser.value?.publicId
-            ))
+                authorPublicId = dataManager.currentUser.value?.publicId,
+                mediaUrls = if(mediaFiles.isNotEmpty()) {
+                    mediaFiles.map { media ->
+                        (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                            cachedByteArrays[uuid] = media
+                            uuids.add(uuid)
+                        }
+                    }
+                }else message.mediaUrls
+            )
+            // loading message preview
+            conversationMessageDao.insert(msg)
             invalidateLocalSource()
 
+            // real message preview
+            msg = msg.copy(
+                mediaUrls = mediaFiles.mapNotNull { media ->
+                    val bytes = media.readBytes()
+                    requestMediaUpload(
+                        mediaByteArray = bytes,
+                        fileName = "${Uuid.random()}.${media.extension.lowercase()}",
+                        conversationId = conversationId
+                    ).takeIf { !it.isNullOrBlank() }
+                },
+                audioUrl = requestMediaUpload(
+                    mediaByteArray = audioByteArray,
+                    fileName = "${Uuid.random()}.wav",
+                    conversationId = conversationId
+                )
+            )
+            uuids.forEach {
+                cachedByteArrays.remove(it)
+            }
+            conversationMessageDao.insert(msg)
+            invalidateLocalSource()
+
+            // upload the real message
             httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/send",
                     block = {
                         parameter("conversationId", conversationId)
-                        setBody(message)
+                        setBody(msg)
                     }
                 )
             }
@@ -223,6 +260,25 @@ class ConversationRepository(
                     }
                 )
             }
+        }
+    }
+
+    /** Makes a request to change user's profile picture */
+    private suspend fun requestMediaUpload(
+        conversationId: String,
+        mediaByteArray: ByteArray?,
+        fileName: String
+    ): String? {
+        return try {
+            if(mediaByteArray == null) null
+            else uploadMediaToStorage(
+                conversationId = conversationId,
+                byteArray = mediaByteArray,
+                fileName = fileName
+            )
+        }catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

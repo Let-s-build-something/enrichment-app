@@ -18,6 +18,9 @@ import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
@@ -122,13 +125,19 @@ fun Modifier.scalingClickable(
     onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
     if(enabled) {
+        val hoverInteractionSource = remember { MutableInteractionSource() }
+        val isHovered = hoverInteractionSource.collectIsHoveredAsState()
         val isPressed = remember { mutableStateOf(false) }
         val scale = animateFloatAsState(
-            if (isPressed.value && enabled) scaleInto else 1f,
+            if ((isPressed.value || isHovered.value) && enabled) scaleInto else 1f,
             label = "scalingClickableAnimation"
         )
 
         scale(scale.value)
+            .hoverable(
+                enabled = enabled,
+                interactionSource = hoverInteractionSource
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {

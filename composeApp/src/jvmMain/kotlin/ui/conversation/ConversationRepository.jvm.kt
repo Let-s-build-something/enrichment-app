@@ -8,6 +8,7 @@ import com.google.cloud.storage.StorageOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
+import java.util.concurrent.TimeUnit
 
 /** Attempts to upload a file to Firebase storage, and returns the download URL of the uploaded file. */
 actual suspend fun uploadMediaToStorage(
@@ -32,9 +33,8 @@ actual suspend fun uploadMediaToStorage(
             // Create a blob ID and blob info
             val blobId = BlobId.of(bucketName, objectPath)
             val blobInfo = BlobInfo.newBuilder(blobId).build()
-
             storage.create(blobInfo, byteArray)
-            "https://storage.googleapis.com/$bucketName/$objectPath"
+            storage.signUrl(blobInfo, 10 * 365, TimeUnit.DAYS).toString()
         } catch (e: Exception) {
             e.printStackTrace()
             throw e

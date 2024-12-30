@@ -11,15 +11,12 @@ import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -74,11 +71,11 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
             }
-            Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
+            /*Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
                 sharedDataManager.currentUser.update {
                     it?.copy(idToken = firebaseUser?.getIdToken(false))
                 }
-            }
+            }*/
         }
     }
 

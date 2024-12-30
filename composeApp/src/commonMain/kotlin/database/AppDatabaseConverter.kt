@@ -25,7 +25,7 @@ class AppDatabaseConverter {
     /** Converts string to list of strings */
     @TypeConverter
     fun toStringList(value: String): List<String> {
-        return value.split(',')
+        return value.split(",")
     }
 
     /** Converts object to string */

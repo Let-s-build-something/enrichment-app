@@ -15,7 +15,6 @@ import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -34,8 +33,6 @@ import ui.conversation.components.audio.audioProcessorModule
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
     includes(keyboardModule)
@@ -74,6 +71,10 @@ class ConversationViewModel(
 
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
+
+    /** currently locally cached byte arrays */
+    val cachedByteArrays
+        get() = repository.cachedByteArrays
 
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
@@ -132,7 +133,6 @@ class ConversationViewModel(
      * @param content textual content of the message
      * @param mediaFiles list of urls in the format of: [Pair.first]: file name, [Pair.second]: [ByteArray] content of the image
      */
-    @OptIn(ExperimentalUuidApi::class)
     fun sendMessage(
         content: String,
         anchorMessageId: String?,
@@ -140,22 +140,11 @@ class ConversationViewModel(
         gifAsset: GifAsset?
     ) {
         viewModelScope.launch {
-            println("kostka_test, sendMessage, mediaFiles: ${mediaFiles.size}")
-            val mediaUrls = listOf(*mediaFiles.toTypedArray()).mapNotNull { media ->
-                val bytes = media.readBytes()
-                println("kostka_test, sendMessage, bytes: ${bytes.size}")
-                requestMediaUpload(
-                    mediaByteArray = bytes,
-                    fileName = "${Uuid.random()}.${media.extension.lowercase()}",
-                ).takeIf { !it.isNullOrBlank() }
-            }
-            println("kostka_test, sendMessage, mediaUrls: ${mediaUrls.size}")
-
             repository.sendMessage(
                 conversationId = conversationId,
+                mediaFiles = mediaFiles,
                 message = ConversationMessageIO(
                     content = content,
-                    mediaUrls = mediaUrls,
                     anchorMessageId = anchorMessageId,
                     gifAsset = gifAsset
                 )
@@ -177,40 +166,13 @@ class ConversationViewModel(
     }
 
     /** Makes a request to send a conversation audio message */
-    @OptIn(ExperimentalUuidApi::class)
     fun sendAudioMessage(byteArray: ByteArray) {
         viewModelScope.launch {
-            requestMediaUpload(
-                mediaByteArray = byteArray,
-                fileName = "${Uuid.random()}.wav"
-            ).takeIf { !it.isNullOrBlank() }?.let { audioUrl ->
-                //TODO add to audio cache
-
-                repository.sendMessage(
-                    conversationId = conversationId,
-                    message = ConversationMessageIO(
-                        audioUrl = audioUrl
-                    )
-                )
-            }
-        }
-    }
-
-    /** Makes a request to change user's profile picture */
-    private suspend fun requestMediaUpload(
-        mediaByteArray: ByteArray?,
-        fileName: String
-    ): String? {
-        return try {
-            if(mediaByteArray == null) null
-            else uploadMediaToStorage(
+            repository.sendMessage(
+                audioByteArray = byteArray,
                 conversationId = conversationId,
-                byteArray = mediaByteArray,
-                fileName = fileName
+                message = ConversationMessageIO()
             )
-        }catch (e: Exception) {
-            e.printStackTrace()
-            null
         }
     }
 }

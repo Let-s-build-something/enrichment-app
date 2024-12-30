@@ -18,6 +18,7 @@ import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UIViewController
 import platform.UIKit.navigationController
 import platform.darwin.NSObject
+import ui.conversation.components.gif.PlatformFileFetcher
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun MainViewController() = ComposeUIViewController {
@@ -60,6 +61,7 @@ fun MainViewController() = ComposeUIViewController {
     val kamelConfig = remember {
         KamelConfig {
             takeFrom(KamelConfig.Default)
+            fetcher(PlatformFileFetcher)
         }
     }
 

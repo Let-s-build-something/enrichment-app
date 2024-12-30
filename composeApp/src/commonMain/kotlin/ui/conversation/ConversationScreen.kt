@@ -67,7 +67,6 @@ import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.getOrNull
-import components.AsyncSvgImage
 import components.UserProfileImage
 import data.io.social.network.conversation.ConversationMessageIO
 import kotlinx.coroutines.launch
@@ -76,6 +75,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.components.ConversationKeyboardMode
+import ui.conversation.components.MediaElement
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.audio.AudioMessageBubble
@@ -312,6 +312,7 @@ fun ConversationScreen(
                                             modifier = Modifier
                                                 .align(Alignment.End)
                                                 .zIndex(1f)
+                                                .height((screenSize.height * .3f).dp)
                                                 .scalingClickable(scaleInto = .95f) {
                                                     navController?.navigate(
                                                         NavigationNode.GifDetail(data.gifAsset.original ?: "")
@@ -320,15 +321,14 @@ fun ConversationScreen(
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .wrapContentWidth()
                                                 .animateContentSize(),
-                                            url = data.gifAsset.original ?: "",
+                                            data = data.gifAsset.original ?: "",
                                             contentDescription = data.gifAsset.description,
-                                            contentScale = ContentScale.Inside
+                                            contentScale = ContentScale.FillHeight
                                         )
                                     }
-                                    if(data?.mediaUrls?.isNotEmpty() == true) {
-                                        println("kostka_test, mediaUrls: ${data.mediaUrls}")
+                                    if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
                                         val imageIndex = rememberSaveable(data.id) {
-                                            mutableStateOf(0)
+                                            mutableStateOf(if(isCurrentUser) 0 else 1)
                                         }
                                         val rowState = rememberLazyListState(
                                             initialFirstVisibleItemIndex = imageIndex.value
@@ -342,7 +342,8 @@ fun ConversationScreen(
 
                                         LazyRow(
                                             modifier = Modifier
-                                                .fillMaxWidth()
+                                                .height((screenSize.height * .3f).dp)
+                                                .wrapContentWidth()
                                                 .draggable(
                                                     orientation = Orientation.Horizontal,
                                                     state = rememberDraggableState { delta ->
@@ -358,25 +359,26 @@ fun ConversationScreen(
                                                 LocalTheme.current.shapes.betweenItemsSpace
                                             )
                                         ) {
-                                            if(isCurrentUser) {
+                                            if(!isCurrentUser) {
                                                 item {
-                                                    Spacer(Modifier.width(50.dp))
+                                                    Spacer(Modifier.width((screenSize.width * .3f).dp))
                                                 }
                                             }
                                             items(data.mediaUrls) { mediaUrl ->
-                                                AsyncSvgImage(
+                                                MediaElement(
                                                     modifier = Modifier
                                                         .clip(LocalTheme.current.shapes.rectangularActionShape)
-                                                        .height((screenSize.height * .3f).dp)
-                                                        .width(250.dp),
-                                                    model = mediaUrl,
-                                                    contentScale = ContentScale.FillHeight,
-                                                    contentDescription = null
+                                                        .height((screenSize.height * .3f).dp),
+                                                    url = mediaUrl,
+                                                    media = viewModel.cachedByteArrays[mediaUrl],
+                                                    onClick = {
+                                                        // TODO image carousel detail
+                                                    }
                                                 )
                                             }
-                                            if(!isCurrentUser) {
+                                            if(isCurrentUser) {
                                                 item {
-                                                    Spacer(Modifier.width(50.dp))
+                                                    Spacer(Modifier.width((screenSize.width * .3f).dp))
                                                 }
                                             }
                                         }

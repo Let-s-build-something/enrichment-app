@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
@@ -45,9 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.FilePresent
-import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Mic
@@ -73,7 +69,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -83,7 +78,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,19 +89,11 @@ import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_message_action_audio
 import augmy.composeapp.generated.resources.accessibility_message_action_file
 import augmy.composeapp.generated.resources.accessibility_message_action_image
-import augmy.composeapp.generated.resources.accessibility_message_audio
-import augmy.composeapp.generated.resources.accessibility_message_file
-import augmy.composeapp.generated.resources.accessibility_message_image
 import augmy.composeapp.generated.resources.accessibility_message_more_options
-import augmy.composeapp.generated.resources.accessibility_message_pdf
-import augmy.composeapp.generated.resources.accessibility_message_presentation
-import augmy.composeapp.generated.resources.accessibility_message_text
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
 import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.composeapp.generated.resources.conversation_reply_prefix_self
-import augmy.composeapp.generated.resources.logo_pdf
-import augmy.composeapp.generated.resources.logo_powerpoint
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -121,20 +107,15 @@ import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
-import base.utils.MediaType
-import base.utils.getBitmapFromFile
-import base.utils.getMediaType
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 import ui.conversation.components.audio.PanelMicrophone
@@ -240,7 +221,7 @@ internal fun BoxScope.SendMessagePanel(
     val sendMessage = {
         viewModel.sendMessage(
             content = messageContent.value.text,
-            mediaFiles = mediaAttached,
+            mediaFiles = mediaAttached.toList(),
             anchorMessageId = replyToMessage.value?.id,
             gifAsset = gifAttached.value
         )
@@ -311,7 +292,7 @@ internal fun BoxScope.SendMessagePanel(
                             }
                             .clip(RoundedCornerShape(6.dp))
                             .wrapContentHeight(),
-                        url = gifAsset.fixedWidthSmall ?: "",
+                        data = gifAsset.fixedWidthSmall ?: "",
                         contentDescription = gifAsset.description,
                         contentScale = ContentScale.FillHeight
                     )
@@ -339,7 +320,7 @@ internal fun BoxScope.SendMessagePanel(
             Row(
                 modifier = Modifier
                     .padding(start = 12.dp)
-                    .scalingClickable {
+                    .clickable {
                         scrollToMessage(originalMessage)
                     }
                     .widthIn(max = MaxModalWidthDp.dp)
@@ -458,95 +439,13 @@ internal fun BoxScope.SendMessagePanel(
                             val contentPreviewModifier = Modifier
                                 .widthIn(max = previewHeight.times(1.25).dp)
                                 .fillMaxHeight()
-                                .background(
-                                    color = LocalTheme.current.colors.brandMainDark,
-                                    shape = LocalTheme.current.shapes.componentShape
-                                )
-                                .padding(vertical = 3.dp, horizontal = 4.dp)
                                 .clip(LocalTheme.current.shapes.rectangularActionShape)
 
-                            // content preview
-                            when(val mediaType = getMediaType(media.extension)) {
-                                MediaType.IMAGE -> {
-                                    val bitmap = remember {
-                                        mutableStateOf<ImageBitmap?>(null)
-                                    }
-
-                                    LaunchedEffect(Unit) {
-                                        bitmap.value = getBitmapFromFile(media)
-                                    }
-
-                                    bitmap.value?.let { value ->
-                                        Image(
-                                            modifier = contentPreviewModifier,
-                                            bitmap = value,
-                                            contentDescription = stringResource(Res.string.accessibility_message_image)
-                                        )
-                                    }
-                                }
-                                MediaType.VIDEO -> {
-                                    // TODO
-                                }
-                                else -> {
-                                    Column(
-                                        modifier = Modifier.width(IntrinsicSize.Min),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        val iconModifier = Modifier.size(previewHeight.div(2).dp)
-                                        when(mediaType) {
-                                            MediaType.PDF -> {
-                                                Image(
-                                                    modifier = iconModifier,
-                                                    painter = painterResource(Res.drawable.logo_pdf),
-                                                    contentDescription = stringResource(Res.string.accessibility_message_pdf)
-                                                )
-                                            }
-                                            MediaType.AUDIO -> {
-                                                Icon(
-                                                    modifier = iconModifier,
-                                                    imageVector = Icons.Outlined.GraphicEq,
-                                                    tint = LocalTheme.current.colors.secondary,
-                                                    contentDescription = stringResource(Res.string.accessibility_message_audio)
-                                                )
-                                            }
-                                            MediaType.TEXT -> {
-                                                Icon(
-                                                    modifier = iconModifier,
-                                                    imageVector = Icons.Outlined.Description,
-                                                    tint = LocalTheme.current.colors.secondary,
-                                                    contentDescription = stringResource(Res.string.accessibility_message_text)
-                                                )
-                                            }
-                                            MediaType.PRESENTATION -> {
-                                                Image(
-                                                    modifier = iconModifier,
-                                                    painter = painterResource(Res.drawable.logo_powerpoint),
-                                                    contentDescription = stringResource(Res.string.accessibility_message_presentation)
-                                                )
-                                            }
-                                            else -> {
-                                                Icon(
-                                                    modifier = iconModifier,
-                                                    imageVector = Icons.Outlined.FilePresent,
-                                                    tint = LocalTheme.current.colors.secondary,
-                                                    contentDescription = stringResource(Res.string.accessibility_message_file)
-                                                )
-                                            }
-                                        }
-                                        Text(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 4.dp),
-                                            text = media.name,
-                                            style = LocalTheme.current.styles.regular.copy(
-                                                textAlign = TextAlign.Center
-                                            ),
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                }
-                            }
+                            MediaElement(
+                                modifier = contentPreviewModifier,
+                                media = media,
+                                onClick = {},
+                            )
                         }
                     }
                     item {

@@ -22,8 +22,6 @@ import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ui.base.BackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
-import com.google.auth.oauth2.ServiceAccountCredentials
-import com.google.cloud.storage.StorageOptions
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
@@ -48,6 +46,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
+import ui.conversation.components.gif.PlatformFileFetcher
 import java.awt.Button
 import java.awt.Dialog
 import java.awt.Dimension
@@ -56,7 +55,6 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
 import java.io.File
-import java.io.FileInputStream
 import java.io.PrintWriter
 import java.io.StringWriter
 import javax.swing.JScrollPane
@@ -144,6 +142,7 @@ fun main(args: Array<String>) = application {
     val kamelConfig = remember {
         KamelConfig {
             takeFrom(KamelConfig.Default)
+            fetcher(PlatformFileFetcher)
         }
     }
 

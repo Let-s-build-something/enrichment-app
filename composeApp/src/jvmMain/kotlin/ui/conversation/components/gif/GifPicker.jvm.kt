@@ -11,15 +11,18 @@ import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 
-/** Image displaying a GIF from an [url] */
+/** Image displaying a GIF from data */
 @Composable
 actual fun GifImage(
     modifier: Modifier,
-    url: String,
+    data: Any,
     contentDescription: String?,
     contentScale: ContentScale
 ) {
-    val resource = asyncPainterResource(key = url, data = Url(url)) {
+    val resource = asyncPainterResource(
+        key = data,
+        data = if(data is String) Url(data) else data
+    ) {
         coroutineContext = Job() + Dispatchers.IO
         requestBuilder {
             cacheControl(CacheControl.MaxAge(maxAgeSeconds = 86400))
@@ -28,9 +31,7 @@ actual fun GifImage(
 
     KamelImage(
         modifier = modifier,
-        resource = {
-            resource
-        },
+        resource = { resource },
         onLoading = { progress ->
             //onLoading?.invoke(progress)
         },
