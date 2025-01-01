@@ -16,38 +16,20 @@ import data.shared.SharedViewModel
 import data.shared.appServiceModule
 import data.shared.developerConsoleModule
 import database.databaseModule
+import database.file.FileAccess
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.format
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-object DateTimeAsStringSerializer : KSerializer<LocalDateTime> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
-
-    override fun deserialize(decoder: kotlinx.serialization.encoding.Decoder): LocalDateTime {
-        return LocalDateTime.parse(
-            decoder.decodeString(),
-            LocalDateTime.Formats.ISO
-        )
-    }
-
-    override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: LocalDateTime) {
-        encoder.encodeString(value.format(LocalDateTime.Formats.ISO))
-    }
-}
 
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class)
 internal val commonModule = module {
     if(currentPlatform != PlatformType.Jvm) includes(settingsModule)
+    single { FileAccess() }
     single { SharedDataManager() }
     single {
         Json {

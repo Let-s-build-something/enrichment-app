@@ -51,9 +51,10 @@ fun AudioMessageBubble(
     url: String,
     isCurrentUser: Boolean,
     hasPrevious: Boolean,
-    hasNext: Boolean,
-    processorModel: AudioProcessorModel = koinViewModel()
+    hasNext: Boolean
 ) {
+    val processorModel: AudioProcessorModel = koinViewModel(key = url)
+
     val tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
     val cancellableCoroutineScope = rememberCoroutineScope()
 

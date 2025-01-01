@@ -2,6 +2,7 @@ package ui.conversation.components.audio
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import database.file.FileAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +12,7 @@ import org.koin.dsl.module
 
 internal val audioProcessorModule = module {
     factory { AudioProcessorModel(get()) }
-    factory { AudioProcessorRepository() }
+    factory { AudioProcessorRepository(get<FileAccess>()) }
     viewModelOf(::AudioProcessorModel)
 }
 

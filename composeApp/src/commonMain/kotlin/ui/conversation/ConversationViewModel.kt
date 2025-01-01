@@ -14,6 +14,7 @@ import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
+import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +39,7 @@ internal val conversationModule = module {
     includes(keyboardModule)
     includes(audioProcessorModule)
 
-    factory { ConversationRepository(get(), get(), get()) }
+    factory { ConversationRepository(get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
             get<ConversationRepository>(),

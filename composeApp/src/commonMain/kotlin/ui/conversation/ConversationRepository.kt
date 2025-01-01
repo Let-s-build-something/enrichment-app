@@ -5,6 +5,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import augmy.interactive.shared.DateUtils.localNow
 import augmy.interactive.shared.DateUtils.now
+import base.utils.sha256
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
 import data.io.social.network.conversation.ConversationMessageIO
@@ -18,6 +19,7 @@ import data.shared.SharedDataManager
 import data.shared.setPaging
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
+import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.extension
 import io.ktor.client.HttpClient
@@ -48,7 +50,8 @@ import kotlin.uuid.Uuid
 class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
-    private val pagingMetaDao: PagingMetaDao
+    private val pagingMetaDao: PagingMetaDao,
+    private val fileAccess: FileAccess
 ) {
     private var currentPagingSource: ConversationRoomSource? = null
     val cachedByteArrays = hashMapOf<String, PlatformFile>()
@@ -179,6 +182,8 @@ class ConversationRepository(
         return withContext(Dispatchers.IO) {
             val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
             val uuids = mutableListOf<String>()
+
+            // placeholder/loading message preview
             var msg = message.copy(
                 conversationId = conversationId,
                 createdAt = localNow,
@@ -190,9 +195,11 @@ class ConversationRepository(
                             uuids.add(uuid)
                         }
                     }
-                }else message.mediaUrls
+                }else message.mediaUrls,
+                audioUrl = if(audioByteArray?.isNotEmpty() == true) {
+                    MESSAGE_AUDIO_URL_PLACEHOLDER
+                }else null
             )
-            // loading message preview
             conversationMessageDao.insert(msg)
             invalidateLocalSource()
 
@@ -200,17 +207,24 @@ class ConversationRepository(
             msg = msg.copy(
                 mediaUrls = mediaFiles.mapNotNull { media ->
                     val bytes = media.readBytes()
-                    requestMediaUpload(
+                    uploadMedia(
                         mediaByteArray = bytes,
                         fileName = "${Uuid.random()}.${media.extension.lowercase()}",
                         conversationId = conversationId
                     ).takeIf { !it.isNullOrBlank() }
                 },
-                audioUrl = requestMediaUpload(
+                audioUrl = uploadMedia(
                     mediaByteArray = audioByteArray,
                     fileName = "${Uuid.random()}.wav",
                     conversationId = conversationId
-                )
+                ).also { audioUrl ->
+                    if(!audioUrl.isNullOrBlank()) {
+                        msg = msg.copy(audioUrl = audioUrl)
+                        audioByteArray?.let { data ->
+                            fileAccess.saveFileToCache(data = data, fileName = sha256(audioUrl))
+                        }
+                    }
+                }
             )
             uuids.forEach {
                 cachedByteArrays.remove(it)
@@ -263,8 +277,11 @@ class ConversationRepository(
         }
     }
 
-    /** Makes a request to change user's profile picture */
-    private suspend fun requestMediaUpload(
+    /**
+     * Uploads media to the server
+     * @return the server location URL
+     */
+    private suspend fun uploadMedia(
         conversationId: String,
         mediaByteArray: ByteArray?,
         fileName: String
@@ -712,6 +729,8 @@ class ConversationRepository(
         )
     }
 }
+
+const val MESSAGE_AUDIO_URL_PLACEHOLDER = "audio_placeholder"
 
 /** Attempts to upload a file to Firebase storage, and returns the download URL of the uploaded file. */
 expect suspend fun uploadMediaToStorage(

@@ -50,9 +50,8 @@ actual fun rememberAudioRecorder(
 
                     buffer = ByteArrayOutputStream()
                     barBuffer = ByteArrayOutputStream()
-                    line = AudioSystem.getLine(lineInfo) as? TargetDataLine
 
-                    line?.open(format, bufferSize)
+                    line = getMicrophoneLine(format = format)
                 }
 
                 if(line?.isOpen == true) {
@@ -121,4 +120,25 @@ actual fun rememberAudioRecorder(
     }
 
     return audioRecorder
+}
+
+private fun getMicrophoneLine(format: AudioFormat): TargetDataLine? {
+    val mixers = AudioSystem.getMixerInfo()
+
+    for (mixerInfo in mixers) {
+        val mixer = AudioSystem.getMixer(mixerInfo)
+
+        for (lineInfo in mixer.targetLineInfo) {
+            if (lineInfo is DataLine.Info
+                && TargetDataLine::class.java.isAssignableFrom(lineInfo.lineClass)
+                && lineInfo.isFormatSupported(format)
+            ) {
+                val line = mixer.getLine(lineInfo) as TargetDataLine
+                line.open(format)
+                return line
+            }
+        }
+    }
+
+    return null
 }

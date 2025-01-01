@@ -4,10 +4,10 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import data.io.DateTimeAsStringSerializer
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
-import koin.DateTimeAsStringSerializer
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
