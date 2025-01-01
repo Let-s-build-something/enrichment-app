@@ -31,22 +31,6 @@ abstract class AudioRecorder(
         peakMedian.doubleValue = 0.0
     }
 
-    @OptIn(ExperimentalUuidApi::class)
-    protected suspend fun processChunk(byteArray: ByteArray?) {
-        withContext(Dispatchers.Default) {
-            generateChunkedPeaks(
-                byteArray = byteArray,
-                samplesPerBar = bytesPerBar / 2,
-            )?.let { peaks ->
-                val amplitudes = peaks.map { d -> d to Uuid.random().toString() }
-                samplePeakSum += peaks.sum()
-                samplePeakCount += peaks.size
-                peakMedian.doubleValue = samplePeakSum / samplePeakCount * 3.5f
-                barPeakAmplitudes.value = barPeakAmplitudes.value.plus(amplitudes).takeLast(barsCount)
-            }
-        }
-    }
-
     protected suspend fun pcmToWav(
         pcmData: ByteArray?,
         channels: Int,
@@ -103,7 +87,7 @@ abstract class AudioRecorder(
 abstract class AudioProcessor(
     sampleRate: Int,
     secondsPerBar: Double,
-    protected val barsCount: Int
+    val barsCount: Int
 ) {
     protected val bytesPerBar = (sampleRate * secondsPerBar * 2).toInt()
     protected var samplePeakSum = 0.0
@@ -111,6 +95,22 @@ abstract class AudioProcessor(
 
     val barPeakAmplitudes = mutableStateOf(listOf<Pair<Double, String>>())
     val peakMedian = mutableDoubleStateOf(0.0)
+
+    @OptIn(ExperimentalUuidApi::class)
+    protected suspend fun processChunk(byteArray: ByteArray?) {
+        withContext(Dispatchers.Default) {
+            generateChunkedPeaks(
+                byteArray = byteArray,
+                samplesPerBar = bytesPerBar / 2,
+            )?.let { peaks ->
+                val amplitudes = peaks.map { d -> d to Uuid.random().toString() }
+                samplePeakSum += peaks.sum()
+                samplePeakCount += peaks.size
+                peakMedian.doubleValue = samplePeakSum / samplePeakCount * 3.5f
+                barPeakAmplitudes.value = barPeakAmplitudes.value.plus(amplitudes).takeLast(barsCount)
+            }
+        }
+    }
 }
 
 /** Automatically disposed audio recorder */

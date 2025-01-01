@@ -389,7 +389,10 @@ fun ConversationScreen(
                                                 .wrapContentWidth()
                                                 .align(Alignment.End)
                                                 .zIndex(1f),
-                                            url = data?.audioUrl ?: ""
+                                            url = data?.audioUrl ?: "",
+                                            isCurrentUser = isCurrentUser,
+                                            hasPrevious = isPreviousMessageSameAuthor,
+                                            hasNext = isNextMessageSameAuthor
                                         )
                                     }
                                 }

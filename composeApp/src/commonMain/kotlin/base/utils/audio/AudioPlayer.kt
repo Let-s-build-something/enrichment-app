@@ -1,11 +1,14 @@
 package base.utils.audio
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /** Audio player for playing a byteArray */
-class AudioPlayer(
+abstract class AudioPlayer(
     private val byteArray: ByteArray,
+    scope: CoroutineScope,
     barsCount: Int,
     secondsPerBar: Double,
     bufferSize: Int
@@ -14,23 +17,28 @@ class AudioPlayer(
     sampleRate = bufferSize,
     barsCount = barsCount
 ) {
+    // preprocess just enough for the component size
+    init {
+        val initialBoundary = barsCount * bytesPerBar / 2
+
+        if(byteArray.size > initialBoundary) {
+            scope.launch(Dispatchers.Default) {
+                processChunk(byteArray.copyOfRange(0, initialBoundary))
+            }
+        }
+    }
+
     /**
      * Starts playing the audio and initializes the player if it is not already,
      * otherwise, it just resumes the playing.
      */
-    fun play() {
-        TODO("Not yet implemented")
-    }
+    abstract fun play()
 
     /** Pauses the audio player, can be resumed by calling [play] again. */
-    fun pause() {
-        TODO("Not yet implemented")
-    }
+    abstract fun pause()
 
     /** Stops and discards the audio player. */
-    fun discard() {
-        TODO("Not yet implemented")
-    }
+    abstract fun discard()
 }
 
 /**
@@ -38,20 +46,11 @@ class AudioPlayer(
  * @param secondsPerBar how many seconds should be represented by a single bar
  */
 @Composable
-fun rememberAudioPlayer(
-    key: Any? = null,
+expect fun rememberAudioPlayer(
     byteArray: ByteArray,
+    onFinish: () -> Unit,
     barsCount: Int,
     sampleRate: Int = 44100,
     secondsPerBar: Double = 0.1,
     bufferSize: Int = sampleRate / 21
-): AudioPlayer {
-    return remember(key) {
-        AudioPlayer(
-            byteArray = byteArray,
-            barsCount = barsCount,
-            secondsPerBar = secondsPerBar,
-            bufferSize = bufferSize
-        )
-    }
-}
+): AudioPlayer

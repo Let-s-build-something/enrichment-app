@@ -71,6 +71,7 @@ import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_resume
 import augmy.composeapp.generated.resources.conversation_action_delete
 import augmy.composeapp.generated.resources.conversation_action_send
+import augmy.interactive.shared.DateUtils
 import augmy.interactive.shared.ext.scalingDraggable
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.PlatformType
@@ -290,8 +291,8 @@ private fun MicrophoneIcon(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 4.dp),
-                        text = "${formatTime(millisecondsElapsed.longValue)}/${
-                            formatTime(
+                        text = "${DateUtils.formatTime(millisecondsElapsed.longValue)}/${
+                            DateUtils.formatTime(
                                 MAX_RECORDING_LENGTH_MILLIS
                             )
                         }",
@@ -566,8 +567,8 @@ private fun AudioWaveForm(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(bottom = 4.dp),
-            text = "${formatTime(millisecondsElapsed.longValue)}/${
-                formatTime(
+            text = "${DateUtils.formatTime(millisecondsElapsed.longValue)}/${
+                DateUtils.formatTime(
                     MAX_RECORDING_LENGTH_MILLIS
                 )
             }",
@@ -672,13 +673,6 @@ private fun calculateActionOffsets(radius: Float): List<Offset> {
             y = (radius + radius * sin(radian))
         )
     }
-}
-
-private fun formatTime(millis: Long): String {
-    val seconds = ((millis / 1000.0) % 60.0).toInt()
-    val minutes = ((millis / (1000.0 * 60.0)) % 60.0).toInt()
-
-    return "${if(minutes < 10) "0$minutes" else minutes}:${if(seconds < 10) "0$seconds" else seconds}"
 }
 
 private const val MAX_RECORDING_LENGTH_MILLIS = 4L * 60L * 1000L

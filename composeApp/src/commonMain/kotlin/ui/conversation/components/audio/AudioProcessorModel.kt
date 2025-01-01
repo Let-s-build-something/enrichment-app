@@ -11,7 +11,7 @@ import org.koin.dsl.module
 
 internal val audioProcessorModule = module {
     factory { AudioProcessorModel(get()) }
-    factory { AudioProcessorRepository(get()) }
+    factory { AudioProcessorRepository() }
     viewModelOf(::AudioProcessorModel)
 }
 
@@ -27,8 +27,9 @@ class AudioProcessorModel(
     /** Download the remote [ByteArray] by [url] */
     fun downloadByteArray(url: String) {
         viewModelScope.launch {
-            repository.getFile(url).success?.data?.let { file ->
-                _resultByteArray.value = file as? ByteArray
+            repository.getAudioBytes(url)?.let { file ->
+                // wav to PCM
+                _resultByteArray.value = file.copyOfRange(44, file.size)
             }
         }
     }
