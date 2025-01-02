@@ -7,6 +7,7 @@ import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
+import kotlin.math.ceil
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -119,7 +120,7 @@ expect fun rememberAudioRecorder(
     barsCount: Int,
     sampleRate: Int = 44100,
     secondsPerBar: Double = 0.25,
-    bufferSize: Int = sampleRate / 11
+    bufferSize: Int = ceil(sampleRate / 11f).toInt()
 ): AudioRecorder
 
 /**
