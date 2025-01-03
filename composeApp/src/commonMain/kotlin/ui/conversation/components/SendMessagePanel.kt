@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -32,8 +32,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
@@ -71,7 +74,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
@@ -84,19 +86,24 @@ import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_more_options
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
+import augmy.interactive.shared.ext.contentReceiver
 import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
+import base.utils.MediaType
+import base.utils.getMediaType
+import coil3.toUri
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
@@ -112,6 +119,7 @@ import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
@@ -133,30 +141,32 @@ internal fun BoxScope.SendMessagePanel(
 
     val keyboardHeight = viewModel.keyboardHeight.collectAsState()
     val savedMessage = viewModel.savedMessage.collectAsState()
-    val messageContent = remember(savedMessage.value) {
-        mutableStateOf(
-            TextFieldValue(
-                savedMessage.value,
-                TextRange(savedMessage.value.length)
-            )
+    val messageState = remember(savedMessage.value) {
+        TextFieldState(
+            initialText = savedMessage.value,
+            initialSelection = TextRange(savedMessage.value.length)
         )
     }
     val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
     val mediaAttached = remember {
         mutableStateListOf<PlatformFile>()
     }
+    val urlsAttached = remember {
+        mutableStateListOf<String>()
+    }
     val gifAttached = remember {
         mutableStateOf<GifAsset?>(null)
     }
     val showMoreOptions = rememberSaveable {
-        mutableStateOf(messageContent.value.text.isBlank())
+        mutableStateOf(messageState.text.isBlank())
     }
     val actionYCoordinate = rememberSaveable {
         mutableStateOf(-1f)
     }
 
-    val isContentEmpty = messageContent.value.text.isBlank()
+    val isContentEmpty = messageState.text.isBlank()
             && mediaAttached.isEmpty()
+            && urlsAttached.isEmpty()
             && gifAttached.value == null
 
     val bottomPadding = animateFloatAsState(
@@ -210,14 +220,15 @@ internal fun BoxScope.SendMessagePanel(
 
     val sendMessage = {
         viewModel.sendMessage(
-            content = messageContent.value.text,
+            content = messageState.text.toString(),
             mediaFiles = mediaAttached.toList(),
             anchorMessage = replyToMessage.value,
-            gifAsset = gifAttached.value
+            gifAsset = gifAttached.value,
+            mediaUrls = urlsAttached
         )
         mediaAttached.clear()
         keyboardMode.value = ConversationKeyboardMode.Default.ordinal
-        messageContent.value = TextFieldValue()
+        messageState.clearText()
         viewModel.saveMessage(null)
         replyToMessage.value = null
         gifAttached.value = null
@@ -226,7 +237,7 @@ internal fun BoxScope.SendMessagePanel(
 
     DisposableEffect(null) {
         onDispose {
-            viewModel.saveMessage(messageContent.value.text)
+            viewModel.saveMessage(messageState.text.toString())
         }
     }
 
@@ -253,6 +264,12 @@ internal fun BoxScope.SendMessagePanel(
         when(keyboardMode.value) {
             ConversationKeyboardMode.Default.ordinal -> viewModel.additionalBottomPadding.animateTo(0f)
             else -> keyboardController?.hide()
+        }
+    }
+
+    LaunchedEffect(messageState.text) {
+        if(messageState.text.isNotBlank()) {
+            showMoreOptions.value = false
         }
     }
 
@@ -307,7 +324,10 @@ internal fun BoxScope.SendMessagePanel(
             }
 
             ReplyIndication(
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .widthIn(max = MaxModalWidthDp.dp)
+                    .fillMaxWidth(),
                 data = originalMessage.toAnchorMessage(),
                 onClick = {
                     scrollToMessage(originalMessage)
@@ -321,9 +341,9 @@ internal fun BoxScope.SendMessagePanel(
         }
 
         // media preview
-        if(mediaAttached.isNotEmpty()) {
+        if(mediaAttached.isNotEmpty() || urlsAttached.isNotEmpty()) {
             val mediaListState = rememberScrollState(
-                initial = mediaAttached.lastIndex
+                initial = mediaAttached.lastIndex + urlsAttached.lastIndex
             )
 
             Column(modifier = Modifier.padding(bottom = bottomPadding.value.dp)) {
@@ -347,7 +367,7 @@ internal fun BoxScope.SendMessagePanel(
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
                     Spacer(Modifier)
-                    mediaAttached.forEachIndexed { index, media ->
+                    (mediaAttached + arrayOfNulls(urlsAttached.size)).forEachIndexed { index, media ->
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
@@ -379,6 +399,7 @@ internal fun BoxScope.SendMessagePanel(
                             MediaElement(
                                 modifier = contentPreviewModifier,
                                 media = media,
+                                url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
                                 contentScale = ContentScale.FillHeight
                             )
                         }
@@ -397,7 +418,7 @@ internal fun BoxScope.SendMessagePanel(
                 .then(if(isDefaultMode) Modifier.imePadding() else Modifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            EditFieldInput(
+            CustomTextField(
                 modifier = Modifier
                     .requiredHeight(44.dp)
                     .weight(1f)
@@ -405,12 +426,23 @@ internal fun BoxScope.SendMessagePanel(
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionInRoot().y
                     }
+                    .contentReceiver { uri ->
+                        when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
+                            MediaType.IMAGE -> urlsAttached.add(uri)
+                            MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
+                            //MediaType.VIDEO -> TODO()
+                            else -> {}
+                        }
+                    }
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send
                 ),
-                textValue = messageContent.value,
+                state = messageState,
+                onKeyboardAction = {
+                    sendMessage()
+                },
                 trailingIcon = {
                     Crossfade(targetState = !isDefaultMode) { isMedia ->
                         Image(
@@ -446,18 +478,8 @@ internal fun BoxScope.SendMessagePanel(
                         )
                     }
                 },
-                minHeight = 44.dp,
-                shape = LocalTheme.current.shapes.componentShape,
-                paddingValues = PaddingValues(start = 16.dp),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        sendMessage()
-                    }
-                ),
-                onValueChange = {
-                    showMoreOptions.value = false
-                    messageContent.value = it
-                }
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = LocalTheme.current.shapes.componentShape
             )
 
             Icon(
@@ -543,7 +565,7 @@ internal fun BoxScope.SendMessagePanel(
             MessageMediaPanel(
                 mode = keyboardMode,
                 viewModel = viewModel,
-                showBackSpace = messageContent.value.text.isNotBlank(),
+                showBackSpace = messageState.text.isNotBlank(),
                 onGifSelected = { gif ->
                     gifAttached.value = gif
                 },
@@ -553,58 +575,52 @@ internal fun BoxScope.SendMessagePanel(
                     val newContent = buildString {
                         // before selection
                         append(
-                            messageContent.value.text.subSequence(
-                                0, messageContent.value.selection.start
+                            messageState.text.subSequence(
+                                0, messageState.selection.start
                             )
                         )
                         // selection
                         append(emoji)
                         // after selection
                         append(
-                            messageContent.value.text.subSequence(
-                                messageContent.value.selection.end,
-                                messageContent.value.text.length
+                            messageState.text.subSequence(
+                                messageState.selection.end,
+                                messageState.text.length
                             )
                         )
                     }
-                    messageContent.value = TextFieldValue(
-                        text = newContent,
-                        selection = TextRange(
-                            messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
-                        )
-                    )
+                    messageState.setTextAndPlaceCursorAtEnd(newContent)
                 },
                 onBackSpace = {
                     showMoreOptions.value = false
 
-                    val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
+                    val isRangeRemoval = messageState.selection.start != messageState.selection.end
 
                     if(isRangeRemoval) {
-                        messageContent.value = TextFieldValue(
-                            text = buildString {
+                        messageState.setTextAndPlaceCursorAtEnd(
+                            buildString {
                                 // before selection
                                 append(
-                                    messageContent.value.text.subSequence(
+                                    messageState.text.subSequence(
                                         startIndex = 0,
-                                        endIndex = messageContent.value.selection.start
+                                        endIndex = messageState.selection.start
                                     ).toString()
                                 )
                                 // after selection
                                 append(
-                                    messageContent.value.text.subSequence(
-                                        startIndex = messageContent.value.selection.end,
-                                        endIndex = messageContent.value.text.length
+                                    messageState.text.subSequence(
+                                        startIndex = messageState.selection.end,
+                                        endIndex = messageState.text.length
                                     )
                                 )
-                            },
-                            selection = TextRange(messageContent.value.selection.start)
+                            }
                         )
                     }else {
                         val modifiedPrefix = removeUnicodeCharacter(
-                            text = messageContent.value.text.subSequence(
-                                0, messageContent.value.selection.start
+                            text = messageState.text.subSequence(
+                                0, messageState.selection.start
                             ).toString(),
-                            index = messageContent.value.selection.start
+                            index = messageState.selection.start
                         )
 
                         val newContent = buildString {
@@ -612,16 +628,13 @@ internal fun BoxScope.SendMessagePanel(
                             append(modifiedPrefix)
                             // after selection
                             append(
-                                messageContent.value.text.subSequence(
-                                    messageContent.value.selection.end,
-                                    messageContent.value.text.length
+                                messageState.text.subSequence(
+                                    messageState.selection.end,
+                                    messageState.text.length
                                 )
                             )
                         }
-                        messageContent.value = TextFieldValue(
-                            text = newContent,
-                            selection = TextRange(modifiedPrefix.length)
-                        )
+                        messageState.setTextAndPlaceCursorAtEnd(newContent)
                     }
                 },
                 onDismissRequest = {

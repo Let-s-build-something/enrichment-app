@@ -338,16 +338,14 @@ fun ConversationScreen(
                                 additionalContent = {
                                     data?.anchorMessage?.let { anchorData ->
                                         ReplyIndication(
-                                            modifier = Modifier.padding(start = 12.dp),
+                                            modifier = Modifier
+                                                .wrapContentWidth()
+                                                .padding(start = 12.dp),
                                             data = anchorData,
                                             onClick = {
                                                 scrollToMessage(anchorData.id, anchorData.index)
                                             },
-                                            onRemoveRequest = {
-                                                replyToMessage.value = null
-                                            },
-                                            isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId,
-                                            removable = true
+                                            isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
                                         )
                                     }
                                     if(data?.gifAsset != null) {

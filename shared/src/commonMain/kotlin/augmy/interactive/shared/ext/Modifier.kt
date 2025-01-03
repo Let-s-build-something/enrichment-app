@@ -339,7 +339,7 @@ fun Modifier.horizontallyDraggable(state: ScrollState) = composed {
     val coroutineScope = rememberCoroutineScope()
 
     if(currentPlatform == PlatformType.Jvm || LocalDeviceType.current == WindowWidthSizeClass.Expanded) {
-        Modifier.draggable(
+        draggable(
             orientation = Orientation.Horizontal,
             state = rememberDraggableState { delta ->
                 coroutineScope.launch {
@@ -540,3 +540,5 @@ fun Modifier.customTabIndicatorOffset(
         .offset(x = indicatorOffset.plus(horizontalPadding))
         .width(currentTabWidth.minus(horizontalPadding.times(2)))
 }
+
+expect fun Modifier.contentReceiver(onUriSelected: (uri: String) -> Unit): Modifier

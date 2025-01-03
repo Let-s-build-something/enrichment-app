@@ -188,14 +188,12 @@ class ConversationRepository(
                 conversationId = conversationId,
                 createdAt = localNow,
                 authorPublicId = dataManager.currentUser.value?.publicId,
-                mediaUrls = if(mediaFiles.isNotEmpty()) {
-                    mediaFiles.map { media ->
-                        (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                            cachedFiles[uuid] = media
-                            uuids.add(uuid)
-                        }
+                mediaUrls = mediaFiles.map { media ->
+                    (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                        cachedFiles[uuid] = media
+                        uuids.add(uuid)
                     }
-                }else message.mediaUrls,
+                } + message.mediaUrls.orEmpty(),
                 audioUrl = if(audioByteArray?.isNotEmpty() == true) {
                     MESSAGE_AUDIO_URL_PLACEHOLDER
                 }else null,
@@ -213,7 +211,7 @@ class ConversationRepository(
                         fileName = "${Uuid.random()}.${media.extension.lowercase()}",
                         conversationId = conversationId
                     ).takeIf { !it.isNullOrBlank() }
-                },
+                } + message.mediaUrls.orEmpty(),
                 audioUrl = uploadMedia(
                     mediaByteArray = audioByteArray,
                     fileName = "${Uuid.random()}.wav",

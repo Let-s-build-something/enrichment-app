@@ -4,22 +4,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.composeapp.generated.resources.conversation_reply_prefix_self
-import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.social.network.conversation.ConversationAnchorMessageIO
@@ -47,8 +45,6 @@ fun ReplyIndication(
             .clickable {
                 onClick()
             }
-            .widthIn(max = MaxModalWidthDp.dp)
-            .fillMaxWidth()
             .background(
                 color = LocalTheme.current.colors.backgroundContrast,
                 shape = RoundedCornerShape(
@@ -56,20 +52,24 @@ fun ReplyIndication(
                     topEnd = LocalTheme.current.shapes.componentCornerRadius
                 )
             )
+            .background(color = Color.Red)
             .padding(top = 2.dp, bottom = 10.dp, start = 16.dp, end = 8.dp)
     ) {
-        Text(
-            modifier = Modifier.padding(top = 8.dp),
-            text = stringResource(Res.string.conversation_reply_heading),
-            style = LocalTheme.current.styles.regular
-        )
+        if(removable) {
+            Text(
+                modifier = Modifier.padding(top = 8.dp),
+                text = stringResource(Res.string.conversation_reply_heading),
+                style = LocalTheme.current.styles.regular
+            )
+        }
         Column(
             modifier = Modifier
                 .padding(top = 8.dp, start = 6.dp)
-                .weight(1f)
+                //.weight(1f)
+                //.width(IntrinsicSize.Min)
         ) {
             Text(
-                modifier = Modifier.fillMaxWidth(),
+                //modifier = Modifier.fillMaxWidth(),
                 text = if(isCurrentUser) {
                     stringResource(Res.string.conversation_reply_prefix_self)
                 }else data.user?.displayName?.plus(":") ?: "",

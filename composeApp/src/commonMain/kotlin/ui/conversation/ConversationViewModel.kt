@@ -139,6 +139,7 @@ class ConversationViewModel(
         content: String,
         anchorMessage: ConversationMessageIO?,
         mediaFiles: List<PlatformFile>,
+        mediaUrls: List<String>,
         gifAsset: GifAsset?
     ) {
         viewModelScope.launch {
@@ -149,7 +150,8 @@ class ConversationViewModel(
                     content = content,
                     anchorMessageId = anchorMessage?.id,
                     anchorMessage = anchorMessage?.toAnchorMessage(),
-                    gifAsset = gifAsset
+                    gifAsset = gifAsset,
+                    mediaUrls = mediaUrls
                 )
             )
         }

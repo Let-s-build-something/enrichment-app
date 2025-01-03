@@ -16,4 +16,10 @@ data class GifAsset(
 
     /** Description of the gif */
     val description: String? = null
-)
+) {
+    constructor(singleUrl: String) : this(
+        fixedWidthSmall = singleUrl,
+        fixedWidthOriginal = singleUrl,
+        original = singleUrl
+    )
+}
