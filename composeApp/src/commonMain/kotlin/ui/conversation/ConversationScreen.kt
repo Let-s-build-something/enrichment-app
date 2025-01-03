@@ -6,10 +6,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -25,9 +27,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -56,6 +57,8 @@ import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
+import augmy.interactive.shared.DateUtils.formatAsRelative
+import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -69,6 +72,7 @@ import base.navigation.NavigationNode
 import base.utils.getOrNull
 import components.UserProfileImage
 import data.io.social.network.conversation.ConversationMessageIO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -77,11 +81,13 @@ import org.koin.core.parameter.parametersOf
 import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.MediaElement
 import ui.conversation.components.MessageBubble
+import ui.conversation.components.ReplyIndication
 import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.rememberMessageBubbleState
+import kotlin.math.abs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -127,6 +133,17 @@ fun ConversationScreen(
     }
     val replyToMessage = remember {
         mutableStateOf<ConversationMessageIO?>(null)
+    }
+
+    val scrollToMessage: (String?, Int?) -> Unit = { id, fallBackIndex ->
+        val currentSnapshotList = messages.itemSnapshotList.toList()
+        val index = currentSnapshotList.indexOfFirst { it?.id == id }
+
+        (index.takeIf { it != -1 } ?: fallBackIndex.takeIf { it != -1 })?.let { messageIndex ->
+            coroutineScope.launch {
+                listState.animateScrollToItem(messageIndex)
+            }
+        }
     }
 
     OnBackHandler(enabled = reactingToMessageId.value != null) {
@@ -238,6 +255,18 @@ fun ConversationScreen(
                         }else (0..1).random() == 0
                         val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
                         val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
+                        val scrollPosition = rememberSaveable(data?.id) {
+                            mutableStateOf(0)
+                        }
+                        val mediaRowState = rememberScrollState(
+                            initial = scrollPosition.value
+                        )
+                        if(scrollPosition.value != 0) {
+                            LaunchedEffect(Unit) {
+                                delay(400)
+                                mediaRowState.animateScrollBy(scrollPosition.value.toFloat())
+                            }
+                        }
 
                         Row(
                             modifier = Modifier
@@ -248,7 +277,7 @@ fun ConversationScreen(
                                 )
                                 .animateItem(),
                             horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-                            verticalAlignment = if(isPreviousMessageSameAuthor) Alignment.Top else Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             val profileImageSize = with(density) { 38.sp.toDp() }
                             val isLastOfStack = !isCurrentUser && !isNextMessageSameAuthor
@@ -307,79 +336,105 @@ fun ConversationScreen(
                                     }
                                 ),
                                 additionalContent = {
+                                    data?.anchorMessage?.let { anchorData ->
+                                        ReplyIndication(
+                                            modifier = Modifier.padding(start = 12.dp),
+                                            data = anchorData,
+                                            onClick = {
+                                                scrollToMessage(anchorData.id, anchorData.index)
+                                            },
+                                            onRemoveRequest = {
+                                                replyToMessage.value = null
+                                            },
+                                            isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId,
+                                            removable = true
+                                        )
+                                    }
                                     if(data?.gifAsset != null) {
+                                        val date = data.createdAt?.formatAsRelative() ?: ""
+
                                         GifImage(
                                             modifier = Modifier
                                                 .align(Alignment.End)
                                                 .zIndex(1f)
                                                 .height((screenSize.height * .3f).dp)
-                                                .scalingClickable(scaleInto = .95f) {
+                                                .scalingClickable(
+                                                    scaleInto = .95f,
+                                                    onLongPress = {
+                                                        reactingToMessageId.value = data.id
+                                                    }
+                                                ) {
                                                     navController?.navigate(
-                                                        NavigationNode.GifDetail(data.gifAsset.original ?: "")
+                                                        NavigationNode.MediaDetail(
+                                                            urls = listOf(data.gifAsset.original ?: ""),
+                                                            title = data.user?.displayName,
+                                                            subtitle = date
+                                                        )
                                                     )
                                                 }
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .wrapContentWidth()
-                                                .animateContentSize(),
+                                                .fillMaxWidth(),
                                             data = data.gifAsset.original ?: "",
                                             contentDescription = data.gifAsset.description,
                                             contentScale = ContentScale.FillHeight
                                         )
                                     }
                                     if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
-                                        val imageIndex = rememberSaveable(data.id) {
-                                            mutableStateOf(if(isCurrentUser) 0 else 1)
-                                        }
-                                        val rowState = rememberLazyListState(
-                                            initialFirstVisibleItemIndex = imageIndex.value
-                                        )
+                                        val date = data.createdAt?.formatAsRelative() ?: ""
 
-                                        LaunchedEffect(rowState) {
-                                            snapshotFlow { rowState.firstVisibleItemIndex }.collect {
-                                                imageIndex.value = it
+                                        LaunchedEffect(mediaRowState) {
+                                            snapshotFlow { mediaRowState.value }.collect {
+                                                if(abs(scrollPosition.value - it) < 300) {
+                                                    scrollPosition.value = it
+                                                }
                                             }
                                         }
 
-                                        LazyRow(
+                                        Row(
                                             modifier = Modifier
                                                 .height((screenSize.height * .3f).dp)
                                                 .wrapContentWidth()
-                                                .draggable(
-                                                    orientation = Orientation.Horizontal,
-                                                    state = rememberDraggableState { delta ->
-                                                        coroutineScope.launch {
-                                                            rowState.scrollBy(-delta)
-                                                        }
-                                                    }
-                                                )
-                                                .animateContentSize(),
-                                            state = rowState,
-                                            reverseLayout = !isCurrentUser,
-                                            horizontalArrangement = Arrangement.spacedBy(
-                                                LocalTheme.current.shapes.betweenItemsSpace
-                                            )
+                                                .horizontalScroll(state = mediaRowState)
+                                                .horizontallyDraggable(state = mediaRowState)
+                                                .animateContentSize()
                                         ) {
-                                            if(!isCurrentUser) {
-                                                item {
-                                                    Spacer(Modifier.width((screenSize.width * .3f).dp))
-                                                }
+                                            if(isCurrentUser) {
+                                                Spacer(Modifier.width((screenSize.width * .3f).dp))
                                             }
-                                            items(data.mediaUrls) { mediaUrl ->
+                                            (if(isCurrentUser) {
+                                                data.mediaUrls
+                                            } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
+                                                val media = viewModel.cachedFiles[mediaUrl]
+
                                                 MediaElement(
                                                     modifier = Modifier
+                                                        .padding(
+                                                            horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
+                                                        )
+                                                        .scalingClickable(
+                                                            enabled = (data.state?.ordinal ?: 0) > 0,
+                                                            scaleInto = .95f,
+                                                            onLongPress = {
+                                                                reactingToMessageId.value = data.id
+                                                            }
+                                                        ) {
+                                                            navController?.navigate(
+                                                                NavigationNode.MediaDetail(
+                                                                    urls = data.mediaUrls,
+                                                                    selectedIndex = index,
+                                                                    title = data.user?.displayName,
+                                                                    subtitle = date
+                                                                )
+                                                            )
+                                                        }
                                                         .clip(LocalTheme.current.shapes.rectangularActionShape)
                                                         .height((screenSize.height * .3f).dp),
                                                     url = mediaUrl,
-                                                    media = viewModel.cachedByteArrays[mediaUrl],
-                                                    onClick = {
-                                                        // TODO image carousel detail
-                                                    }
+                                                    media = media
                                                 )
                                             }
-                                            if(isCurrentUser) {
-                                                item {
-                                                    Spacer(Modifier.width((screenSize.width * .3f).dp))
-                                                }
+                                            if(!isCurrentUser) {
+                                                Spacer(Modifier.width((screenSize.width * .3f).dp))
                                             }
                                         }
                                     }
@@ -408,7 +463,7 @@ fun ConversationScreen(
             SendMessagePanel(
                 modifier = Modifier
                     .background(
-                        color = LocalTheme.current.colors.backgroundContrast,
+                        color = LocalTheme.current.colors.backgroundDark,
                         shape = RoundedCornerShape(
                             topStart = LocalTheme.current.shapes.componentCornerRadius,
                             topEnd = LocalTheme.current.shapes.componentCornerRadius
@@ -425,14 +480,7 @@ fun ConversationScreen(
                 viewModel = viewModel,
                 replyToMessage = replyToMessage,
                 scrollToMessage = {
-                    val currentSnapshotList = messages.itemSnapshotList.toList() // Make a copy of the current state
-                    val index = currentSnapshotList.indexOfFirst { it?.id == replyToMessage.value?.id }
-
-                    index.takeIf { it != -1 }?.let { messageIndex ->
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(messageIndex)
-                        }
-                    }
+                    scrollToMessage(it.id, -1)
                 }
             )
         }

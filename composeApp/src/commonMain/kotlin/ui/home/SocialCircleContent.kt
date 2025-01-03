@@ -41,22 +41,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalContentSize
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.utils.getOrNull
 import base.navigation.NavigationNode
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
+import base.utils.getOrNull
 import components.UserProfileImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
-import augmy.interactive.shared.ext.brandShimmerEffect
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
@@ -123,16 +122,9 @@ fun SocialCircleContent(
                             coroutineScope.launch {
                                 scale.animateTo(initialScale * 2f)
                             }
-                            val center = IntSize(
-                                (contentSize.width.dp.toPx() / 2f).toInt(),
-                                (contentHeightPx / 2f).toInt()
-                            )
-                            val xDiff = (tapCenter.x - center.width) * initialScale * 2f
-                            val yDiff = ((tapCenter.y - center.height) * initialScale * 2f).coerceIn(
-                                minimumValue = -(center.height * 2f),
-                                maximumValue = (center.height * 2f)
-                            )
-                            offset.value = Offset(-xDiff, -yDiff)
+                            val xDiff = contentSize.width - tapCenter.x
+                            val yDiff = contentSize.height - tapCenter.y
+                            offset.value = Offset(xDiff, yDiff)
                         }
                     }
                 )

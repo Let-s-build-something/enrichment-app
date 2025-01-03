@@ -234,8 +234,8 @@ private fun ContentLayout(
             .pointerInput(enabled) {
                 detectMessageInteraction(
                     onTap = {
-                        showHistory.value = !showHistory.value
-                        state.onReactionRequest(false)
+                        if(isReacting) state.onReactionRequest(false)
+                        else showHistory.value = !showHistory.value
                     },
                     onLongPress = {
                         state.onReactionRequest(true)
@@ -274,17 +274,6 @@ private fun ContentLayout(
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
-            Icon(
-                modifier = Modifier
-                    .scalingClickable { state.onReplyRequest() }
-                    .padding(5.dp),
-                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                tint = LocalTheme.current.colors.secondary
-            )
-        }
-
         if(!isCompact && isCurrentUser) {
             val isFocused = hoverInteractionSource.collectIsHoveredAsState()
 
@@ -306,17 +295,27 @@ private fun ContentLayout(
             }
         }
 
+        // start spacing correction
+        AnimatedVisibility(isReacting) { Spacer(modifier = modifier) }
+
+        AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
+            Icon(
+                modifier = Modifier
+                    .scalingClickable { state.onReplyRequest() }
+                    .padding(5.dp),
+                imageVector = Icons.AutoMirrored.Outlined.Reply,
+                contentDescription = stringResource(Res.string.accessibility_message_reply),
+                tint = LocalTheme.current.colors.secondary
+            )
+        }
+
         Column(
-            modifier = Modifier
-                .then(
-                    if(isReacting) {
-                        Modifier
-                            .background(
-                                color = LocalTheme.current.colors.component,
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                    }else Modifier
-                ),
+            modifier = if(isReacting || data.anchorMessage != null) {
+                Modifier.background(
+                    color = LocalTheme.current.colors.backgroundDark,
+                    shape = LocalTheme.current.shapes.componentShape
+                )
+            }else Modifier,
             horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {

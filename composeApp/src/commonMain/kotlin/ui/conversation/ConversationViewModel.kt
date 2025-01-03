@@ -74,8 +74,8 @@ class ConversationViewModel(
     val conversationDetail = _conversationDetail.asStateFlow()
 
     /** currently locally cached byte arrays */
-    val cachedByteArrays
-        get() = repository.cachedByteArrays
+    val cachedFiles
+        get() = repository.cachedFiles
 
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
@@ -92,6 +92,7 @@ class ConversationViewModel(
                 messages.map {
                     it.apply {
                         user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
                     }
                 }
             }
@@ -136,7 +137,7 @@ class ConversationViewModel(
      */
     fun sendMessage(
         content: String,
-        anchorMessageId: String?,
+        anchorMessage: ConversationMessageIO?,
         mediaFiles: List<PlatformFile>,
         gifAsset: GifAsset?
     ) {
@@ -146,7 +147,8 @@ class ConversationViewModel(
                 mediaFiles = mediaFiles,
                 message = ConversationMessageIO(
                     content = content,
-                    anchorMessageId = anchorMessageId,
+                    anchorMessageId = anchorMessage?.id,
+                    anchorMessage = anchorMessage?.toAnchorMessage(),
                     gifAsset = gifAsset
                 )
             )

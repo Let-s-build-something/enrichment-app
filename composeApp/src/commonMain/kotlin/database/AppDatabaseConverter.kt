@@ -2,6 +2,7 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
+import data.io.social.network.conversation.ConversationAnchorMessageIO
 import data.io.social.network.conversation.MessageReactionIO
 import data.io.social.network.conversation.giphy.GifAsset
 import kotlinx.datetime.LocalDateTime
@@ -62,5 +63,17 @@ class AppDatabaseConverter {
     @TypeConverter
     fun toLocalDateTime(value: String): LocalDateTime {
         return LocalDateTime.parse(value, LocalDateTime.Formats.ISO)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromConversationAnchorMessageIO(value: ConversationAnchorMessageIO): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toConversationAnchorMessageIO(value: String): ConversationAnchorMessageIO? {
+        return json.decodeFromString(value)
     }
 }

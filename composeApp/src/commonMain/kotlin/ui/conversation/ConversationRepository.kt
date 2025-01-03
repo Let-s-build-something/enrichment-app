@@ -54,7 +54,7 @@ class ConversationRepository(
     private val fileAccess: FileAccess
 ) {
     private var currentPagingSource: ConversationRoomSource? = null
-    val cachedByteArrays = hashMapOf<String, PlatformFile>()
+    val cachedFiles = hashMapOf<String, PlatformFile?>()
 
     /** Attempts to invalidate local PagingSource with conversation messages */
     private fun invalidateLocalSource() {
@@ -191,14 +191,15 @@ class ConversationRepository(
                 mediaUrls = if(mediaFiles.isNotEmpty()) {
                     mediaFiles.map { media ->
                         (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                            cachedByteArrays[uuid] = media
+                            cachedFiles[uuid] = media
                             uuids.add(uuid)
                         }
                     }
                 }else message.mediaUrls,
                 audioUrl = if(audioByteArray?.isNotEmpty() == true) {
                     MESSAGE_AUDIO_URL_PLACEHOLDER
-                }else null
+                }else null,
+                state = MessageState.SENDING
             )
             conversationMessageDao.insert(msg)
             invalidateLocalSource()
@@ -224,10 +225,14 @@ class ConversationRepository(
                             fileAccess.saveFileToCache(data = data, fileName = sha256(audioUrl))
                         }
                     }
-                }
+                },
+                state = MessageState.SENT
             )
-            uuids.forEach {
-                cachedByteArrays.remove(it)
+            uuids.forEachIndexed { index, s ->
+                msg.mediaUrls?.getOrNull(index)?.let {
+                    cachedFiles[it] = cachedFiles[s]
+                }
+                cachedFiles.remove(s)
             }
             conversationMessageDao.insert(msg)
             invalidateLocalSource()

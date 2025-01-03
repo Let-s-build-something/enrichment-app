@@ -80,7 +80,6 @@ fun VerticalAppBar(
         ) {
             actions(isBarExpanded.value)
             CustomDivider(actionsWidth.value)
-            // TODO list of sections
         }
 
         Column {

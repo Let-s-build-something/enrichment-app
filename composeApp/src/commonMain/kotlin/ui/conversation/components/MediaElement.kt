@@ -27,7 +27,6 @@ import augmy.composeapp.generated.resources.accessibility_message_presentation
 import augmy.composeapp.generated.resources.accessibility_message_text
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
-import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.MediaType
 import base.utils.PlatformFileShell
@@ -41,13 +40,19 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.components.gif.GifImage
 
+/**
+ * Media element, which is anything from an image, video, gif, to any type of file
+ * @param url full url path to the media
+ * @param media reference to a local file containing the media
+ * @param contentDescription textual description of the content
+ */
 @Composable
 fun MediaElement(
     modifier: Modifier = Modifier,
     url: String? = null,
     media: PlatformFile? = null,
     contentDescription: String? = null,
-    onClick: () -> Unit
+    contentScale: ContentScale = ContentScale.Inside
 ) {
     if(!url.isNullOrBlank() || media != null) {
         when(val mediaType = getMediaType(
@@ -57,14 +62,14 @@ fun MediaElement(
                 if (media != null) {
                     PlatformFileImage(
                         modifier = modifier.wrapContentWidth(),
-                        contentScale = ContentScale.FillHeight,
+                        contentScale = contentScale,
                         media = media
                     )
                 } else if(url != null) {
                     AsyncSvgImage(
                         modifier = modifier.wrapContentWidth(),
                         model = url,
-                        contentScale = ContentScale.FillHeight,
+                        contentScale = contentScale,
                         contentDescription = contentDescription
                     )
                 }
@@ -75,14 +80,11 @@ fun MediaElement(
                     GifImage(
                         modifier = modifier
                             .zIndex(1f)
-                            .scalingClickable(scaleInto = .95f) {
-                                onClick()
-                            }
                             .clip(RoundedCornerShape(6.dp))
                             .wrapContentWidth(),
                         data = data,
                         contentDescription = contentDescription,
-                        contentScale = ContentScale.Inside
+                        contentScale = contentScale
                     )
                 }
             }

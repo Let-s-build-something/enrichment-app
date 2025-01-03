@@ -75,9 +75,14 @@ sealed class NavigationNode {
         override val deepLink: String = ""
     }
 
-    /** Full screen gif detail */
+    /** Full screen media detail */
     @Serializable
-    data class GifDetail(val url: String): NavigationNode() {
+    data class MediaDetail(
+        val urls: List<String> = listOf(),
+        val title: String? = null,
+        val subtitle: String? = null,
+        val selectedIndex: Int = 0
+    ): NavigationNode() {
         override val deepLink: String = ""
     }
 

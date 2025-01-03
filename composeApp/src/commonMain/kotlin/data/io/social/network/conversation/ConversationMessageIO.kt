@@ -44,6 +44,12 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Identification of a message to which this message is anchored to, such as a reply */
     val anchorMessageId: String? = null,
 
+    /**
+     * Content of message this message is anchored to.
+     * It doesn't contain any [anchorMessage] itself.
+     */
+    val anchorMessage: ConversationAnchorMessageIO? = null,
+
     /** Time of creation */
     @ColumnInfo(name = "created_at")
     @Serializable(with = DateTimeAsStringSerializer::class)
@@ -64,4 +70,15 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @Ignore
     @Transient
     var user: NetworkItemIO? = null
+
+    /** Converts this message to an anchor message */
+    @Ignore
+    fun toAnchorMessage() = ConversationAnchorMessageIO(
+        id = id,
+        content = content,
+        mediaUrls = mediaUrls,
+        audioUrl = audioUrl,
+        gifAsset = gifAsset,
+        authorPublicId = authorPublicId
+    )
 }

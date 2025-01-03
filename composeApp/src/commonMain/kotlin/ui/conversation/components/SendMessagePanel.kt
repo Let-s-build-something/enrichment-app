@@ -8,11 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -34,9 +30,7 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -78,9 +72,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
@@ -92,13 +84,11 @@ import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_more_options
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
-import augmy.composeapp.generated.resources.conversation_reply_heading
-import augmy.composeapp.generated.resources.conversation_reply_prefix_self
+import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
-import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
@@ -222,7 +212,7 @@ internal fun BoxScope.SendMessagePanel(
         viewModel.sendMessage(
             content = messageContent.value.text,
             mediaFiles = mediaAttached.toList(),
-            anchorMessageId = replyToMessage.value?.id,
+            anchorMessage = replyToMessage.value,
             gifAsset = gifAttached.value
         )
         mediaAttached.clear()
@@ -287,7 +277,7 @@ internal fun BoxScope.SendMessagePanel(
                             .zIndex(1f)
                             .scalingClickable(scaleInto = .95f) {
                                 navController?.navigate(
-                                    NavigationNode.GifDetail(gifAsset.original ?: "")
+                                    NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
                                 )
                             }
                             .clip(RoundedCornerShape(6.dp))
@@ -316,65 +306,24 @@ internal fun BoxScope.SendMessagePanel(
                 focusRequester.requestFocus()
             }
 
-            // reply indication
-            Row(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .clickable {
-                        scrollToMessage(originalMessage)
-                    }
-                    .widthIn(max = MaxModalWidthDp.dp)
-                    .fillMaxWidth()
-                    .background(
-                        color = LocalTheme.current.colors.backgroundDark,
-                        shape = RoundedCornerShape(
-                            topStart = LocalTheme.current.shapes.componentCornerRadius,
-                            topEnd = LocalTheme.current.shapes.componentCornerRadius
-                        )
-                    )
-                    .padding(top = 2.dp, bottom = 10.dp, start = 16.dp, end = 8.dp)
-            ) {
-                Text(
-                    modifier = Modifier.padding(top = 8.dp),
-                    text = stringResource(Res.string.conversation_reply_heading),
-                    style = LocalTheme.current.styles.regular
-                )
-                Column(
-                    modifier = Modifier
-                        .padding(top = 8.dp, start = 6.dp)
-                        .weight(1f)
-                ) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = if(originalMessage.authorPublicId == viewModel.currentUser.value?.publicId) {
-                            stringResource(Res.string.conversation_reply_prefix_self)
-                        }else originalMessage.user?.displayName?.plus(":") ?: "",
-                        style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        modifier = Modifier.padding(top = 2.dp, start = 4.dp),
-                        text = originalMessage.content ?: "",
-                        style = LocalTheme.current.styles.regular.copy(fontSize = 14.sp),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                MinimalisticIcon(
-                    imageVector = Icons.Outlined.Close,
-                    tint = LocalTheme.current.colors.secondary,
-                    onTap = {
-                        replyToMessage.value = null
-                    }
-                )
-            }
+            ReplyIndication(
+                modifier = Modifier.padding(start = 12.dp),
+                data = originalMessage.toAnchorMessage(),
+                onClick = {
+                    scrollToMessage(originalMessage)
+                },
+                onRemoveRequest = {
+                    replyToMessage.value = null
+                },
+                isCurrentUser = originalMessage.authorPublicId == viewModel.currentUser.value?.publicId,
+                removable = true
+            )
         }
 
         // media preview
         if(mediaAttached.isNotEmpty()) {
-            val mediaListState = rememberLazyListState(
-                initialFirstVisibleItemIndex = mediaAttached.lastIndex
+            val mediaListState = rememberScrollState(
+                initial = mediaAttached.lastIndex
             )
 
             Column(modifier = Modifier.padding(bottom = bottomPadding.value.dp)) {
@@ -388,35 +337,21 @@ internal fun BoxScope.SendMessagePanel(
                 )
 
                 val previewHeight = screenSize.height.div(7).coerceAtMost(MEDIA_MAX_HEIGHT_DP)
-                LazyRow(
+                Row(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
                         .height(previewHeight.dp)
-                        .draggable(
-                            orientation = Orientation.Horizontal,
-                            state = rememberDraggableState { delta ->
-                                coroutineScope.launch {
-                                    mediaListState.scrollBy(-delta)
-                                }
-                            }
-                        ),
-                    reverseLayout = true,
-                    horizontalArrangement = Arrangement.spacedBy(spacing),
-                    state = mediaListState
+                        .horizontalScroll(state = mediaListState)
+                        .horizontallyDraggable(state = mediaListState),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
-                    item {
-                        Spacer(Modifier)
-                    }
-                    itemsIndexed(
-                        items = mediaAttached,
-                        key = { _, media -> media.name }
-                    ) { index, media ->
+                    Spacer(Modifier)
+                    mediaAttached.forEachIndexed { index, media ->
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .widthIn(min = previewHeight.times(.75).dp)
-                                .animateItem(),
+                                .widthIn(min = previewHeight.times(.75).dp),
                             contentAlignment = Alignment.Center
                         ) {
                             MinimalisticIcon(
@@ -444,13 +379,11 @@ internal fun BoxScope.SendMessagePanel(
                             MediaElement(
                                 modifier = contentPreviewModifier,
                                 media = media,
-                                onClick = {},
+                                contentScale = ContentScale.FillHeight
                             )
                         }
                     }
-                    item {
-                        Spacer(Modifier)
-                    }
+                    Spacer(Modifier)
                 }
             }
         }
