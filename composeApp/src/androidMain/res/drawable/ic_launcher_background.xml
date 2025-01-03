@@ -6,17 +6,7 @@
         android:width="108dp"
         android:height="108dp">
 
-        <corners android:radius="19dp"/>
-        <solid android:color="#FF81A263" />
-    </shape>
-</item>
-<item>
-    <shape
-        android:shape="oval"
-        android:width="108dp"
-        android:height="108dp">
-
-        <stroke android:width="3dp" android:color="#FFE7D37F"/>
+        <corners android:radius="24dp"/>
         <solid android:color="#FF81A263" />
     </shape>
 </item>

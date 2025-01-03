@@ -302,7 +302,7 @@ compose.desktop {
                 )
                 menuGroup = "Augmy Interactive"
                 shortcut = true
-                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.ico"))
+                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/favicon.ico"))
             }
             linux {
                 modules(
@@ -315,7 +315,7 @@ compose.desktop {
                     "java.net.http"
                 )
                 menuGroup = "Augmy Interactive"
-                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/app_icon.png"))
+                iconFile.set(project.file("${project.projectDir}/src/jvmMain/resources/drawable/favicon.png"))
             }
         }
     }
