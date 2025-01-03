@@ -123,6 +123,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
+            implementation(libs.java.cloud.storage)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)

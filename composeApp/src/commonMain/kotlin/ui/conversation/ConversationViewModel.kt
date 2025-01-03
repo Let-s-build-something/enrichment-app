@@ -14,9 +14,7 @@ import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
-import data.shared.fromByteArrayToData
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.storage.storage
+import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,16 +30,16 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
 import ui.conversation.components.KeyboardViewModel
+import ui.conversation.components.audio.audioProcessorModule
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
     includes(keyboardModule)
+    includes(audioProcessorModule)
 
-    factory { ConversationRepository(get(), get(), get()) }
+    factory { ConversationRepository(get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
             get<ConversationRepository>(),
@@ -75,6 +73,10 @@ class ConversationViewModel(
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
 
+    /** currently locally cached byte arrays */
+    val cachedFiles
+        get() = repository.cachedFiles
+
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
         config = PagingConfig(
@@ -90,6 +92,7 @@ class ConversationViewModel(
                 messages.map {
                     it.apply {
                         user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
                     }
                 }
             }
@@ -134,25 +137,21 @@ class ConversationViewModel(
      */
     fun sendMessage(
         content: String,
-        anchorMessageId: String?,
-        mediaFiles: MutableList<PlatformFile>,
+        anchorMessage: ConversationMessageIO?,
+        mediaFiles: List<PlatformFile>,
+        mediaUrls: List<String>,
         gifAsset: GifAsset?
     ) {
         viewModelScope.launch {
-            val mediaUrls = mediaFiles.mapNotNull { media ->
-                requestMediaUpload(
-                    mediaByteArray = media.readBytes(),
-                    fileName = media.name
-                ).takeIf { !it.isNullOrBlank() }
-            }
-
             repository.sendMessage(
                 conversationId = conversationId,
+                mediaFiles = mediaFiles,
                 message = ConversationMessageIO(
                     content = content,
-                    mediaUrls = mediaUrls,
-                    anchorMessageId = anchorMessageId,
-                    gifAsset = gifAsset
+                    anchorMessageId = anchorMessage?.id,
+                    anchorMessage = anchorMessage?.toAnchorMessage(),
+                    gifAsset = gifAsset,
+                    mediaUrls = mediaUrls
                 )
             )
         }
@@ -168,54 +167,17 @@ class ConversationViewModel(
                     messageId = messageId
                 )
             )
-            // TODO change local data and refresh
         }
     }
 
     /** Makes a request to send a conversation audio message */
-    @OptIn(ExperimentalUuidApi::class)
     fun sendAudioMessage(byteArray: ByteArray) {
         viewModelScope.launch {
-            val audioUrl = requestMediaUpload(
-                mediaByteArray = byteArray,
-                fileName = Uuid.random().toString()
-            ).takeIf { !it.isNullOrBlank() }
-
             repository.sendMessage(
+                audioByteArray = byteArray,
                 conversationId = conversationId,
-                message = ConversationMessageIO(
-                    audioUrl = audioUrl
-                )
+                message = ConversationMessageIO()
             )
-        }
-    }
-
-    /** Makes a request to change user's profile picture */
-    private suspend fun requestMediaUpload(
-        mediaByteArray: ByteArray?,
-        fileName: String
-    ): String? {
-        return try {
-            if(mediaByteArray == null) null
-            else uploadPictureStorage(
-                byteArray = mediaByteArray,
-                fileName = fileName
-            )
-        }catch (e: Exception) {
-            null
-        }
-    }
-
-    /** @return if true, it was successful, if false, it failed */
-    private suspend fun uploadPictureStorage(
-        byteArray: ByteArray,
-        fileName: String
-    ): String {
-        return withContext(Dispatchers.IO) {
-            val reference = Firebase.storage.reference.child("conversations/$conversationId/$fileName")
-
-            reference.putData(fromByteArrayToData(byteArray))
-            reference.getDownloadUrl()
         }
     }
 }

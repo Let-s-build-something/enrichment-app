@@ -25,6 +25,13 @@ object DateUtils {
     val localNow
         get() = now.toLocalDateTime(TimeZone.currentSystemDefault())
 
+    /** Formats milliseconds as minutes and seconds */
+    fun formatTime(millis: Long): String {
+        val seconds = ((millis / 1000.0) % 60.0).toInt()
+        val minutes = ((millis / (1000.0 * 60.0)) % 60.0).toInt()
+
+        return "${if(minutes < 10) "0$minutes" else minutes}:${if(seconds < 10) "0$seconds" else seconds}"
+    }
 
     /** Formats a localized time to a string */
     @OptIn(FormatStringsInDatetimeFormats::class)

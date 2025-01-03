@@ -133,10 +133,10 @@ class ProfileChangeViewModel (
             val fileSuffix = ".${fileName.split(".").lastOrNull()}"
 
             val reference = Firebase.storage.reference.child(
-                "${firebaseUser.firstOrNull()?.uid}/profile-picture$fileSuffix"
+                "user/${firebaseUser.firstOrNull()?.uid}/profile-picture$fileSuffix"
             )
             val previousReference = Firebase.storage.reference.child(
-                "${firebaseUser.firstOrNull()?.uid}/profile-picture$previousFileSuffix"
+                "user/${firebaseUser.firstOrNull()?.uid}/profile-picture$previousFileSuffix"
             )
 
             reference.putData(fromByteArrayToData(byteArray))

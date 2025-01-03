@@ -14,6 +14,7 @@ import ui.account.AccountDashboardScreen
 import ui.account.WaterPleaseScreen
 import ui.account.accountDashboardModule
 import ui.conversation.ConversationScreen
+import ui.conversation.media.MediaDetailScreen
 import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
@@ -56,6 +57,14 @@ fun NavigationHost(
         composable<NavigationNode.NetworkManagement> {
             loadKoinModules(networkManagementModule)
             NetworkManagementScreen()
+        }
+        composable<NavigationNode.MediaDetail> {
+            MediaDetailScreen(
+                urls = it.arguments?.getStringArray("urls").orEmpty(),
+                selectedIndex = it.arguments?.getInt("selectedIndex") ?: 0,
+                title = it.arguments?.getString("title"),
+                subtitle = it.arguments?.getString("subtitle")
+            )
         }
         composable<NavigationNode.Conversation> {
             ConversationScreen(

@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.audio
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -71,6 +71,8 @@ import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_resume
 import augmy.composeapp.generated.resources.conversation_action_delete
 import augmy.composeapp.generated.resources.conversation_action_send
+import augmy.interactive.shared.DateUtils
+import augmy.interactive.shared.ext.scalingDraggable
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
@@ -80,11 +82,10 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.isDarkTheme
 import base.theme.Colors
-import base.utils.AudioRecorder
 import base.utils.PermissionType
-import base.utils.rememberAudioRecorder
+import base.utils.audio.AudioRecorder
+import base.utils.audio.rememberAudioRecorder
 import base.utils.rememberPermissionRequesterState
-import augmy.interactive.shared.ext.scalingDraggable
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -290,8 +291,8 @@ private fun MicrophoneIcon(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 4.dp),
-                        text = "${formatTime(millisecondsElapsed.longValue)}/${
-                            formatTime(
+                        text = "${DateUtils.formatTime(millisecondsElapsed.longValue)}/${
+                            DateUtils.formatTime(
                                 MAX_RECORDING_LENGTH_MILLIS
                             )
                         }",
@@ -566,8 +567,8 @@ private fun AudioWaveForm(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(bottom = 4.dp),
-            text = "${formatTime(millisecondsElapsed.longValue)}/${
-                formatTime(
+            text = "${DateUtils.formatTime(millisecondsElapsed.longValue)}/${
+                DateUtils.formatTime(
                     MAX_RECORDING_LENGTH_MILLIS
                 )
             }",
@@ -655,8 +656,8 @@ private fun AudioWaveForm(
                         recorder.saveRecording()?.let {
                             onSaveRequest(it)
                         }
+                        stopRecording()
                     }
-                    stopRecording()
                 }
             )
         }
@@ -672,13 +673,6 @@ private fun calculateActionOffsets(radius: Float): List<Offset> {
             y = (radius + radius * sin(radian))
         )
     }
-}
-
-private fun formatTime(millis: Long): String {
-    val seconds = ((millis / 1000.0) % 60.0).toInt()
-    val minutes = ((millis / (1000.0 * 60.0)) % 60.0).toInt()
-
-    return "${if(minutes < 10) "0$minutes" else minutes}:${if(seconds < 10) "0$seconds" else seconds}"
 }
 
 private const val MAX_RECORDING_LENGTH_MILLIS = 4L * 60L * 1000L

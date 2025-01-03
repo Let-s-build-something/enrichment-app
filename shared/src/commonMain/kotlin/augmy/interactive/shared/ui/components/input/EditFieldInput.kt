@@ -47,6 +47,7 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Generic input field for text input
  */
+@Deprecated("Replaced by CustomTextField")
 @Composable
 fun EditFieldInput(
     modifier: Modifier = Modifier,
@@ -102,7 +103,7 @@ fun EditFieldInput(
             .width(IntrinsicSize.Min)
             .animateContentSize()
     ) {
-        CustomTextField(
+        CustomFieldInput(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(

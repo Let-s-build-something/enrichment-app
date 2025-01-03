@@ -1,4 +1,4 @@
-package base.utils
+package base.utils.audio
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -19,15 +19,11 @@ import platform.AVFAudio.AVAudioEngine
 import platform.AVFAudio.AVAudioFormat
 import platform.AVFAudio.AVAudioMixerNode
 import platform.AVFAudio.AVAudioNode
-import platform.AVFAudio.AVAudioPCMFormatFloat32
 import platform.AVFAudio.AVAudioPCMFormatInt16
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
 import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
-import platform.AVFAudio.AVAudioSessionModeDefault
-import platform.AVFAudio.AVAudioSessionModeMeasurement
-import platform.AVFAudio.AVAudioSessionModeVoiceChat
 import platform.AVFAudio.setActive
 import platform.Foundation.NSError
 import platform.Foundation.NSMutableData
@@ -97,8 +93,9 @@ actual fun rememberAudioRecorder(
                             bufferSize = bufferSize.toUInt(),
                             format = mixerNode?.outputFormatForBus(0u)
                         ) { tapBuffer, _ ->
-                            val data = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)?.mData
-                            val size = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)?.mDataByteSize?.toInt() ?: 0
+                            val audioBuffer = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)
+                            val data = audioBuffer?.mData
+                            val size = audioBuffer?.mDataByteSize?.toInt() ?: 0
 
                             byteOutputStream?.appendBytes(data, size.toULong())
                             barByteOutputStream?.appendBytes(data, size.toULong())
@@ -120,7 +117,11 @@ actual fun rememberAudioRecorder(
 
             override suspend fun saveRecording(): ByteArray? {
                 return withContext(Dispatchers.Default) {
-                    byteOutputStream?.byteArray
+                    pcmToWav(
+                        pcmData = byteOutputStream?.byteArray,
+                        channels = 1,
+                        bitsPerSample = 16
+                    )
                 }
             }
 

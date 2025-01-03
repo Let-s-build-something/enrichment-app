@@ -1,4 +1,4 @@
-package base.utils
+package base.utils.audio
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -29,7 +29,7 @@ actual fun rememberAudioRecorder(
             barsCount = barsCount
         ) {
             // audio recording
-            private val format = AudioFormat(sampleRate.toFloat(), 16, 2, true, true)
+            private val format = AudioFormat(sampleRate.toFloat(), 16, 1, true, false)
             private val lineInfo = DataLine.Info(TargetDataLine::class.java, format)
             private var line: TargetDataLine? = null
             private var buffer: ByteArrayOutputStream? = null
@@ -50,9 +50,8 @@ actual fun rememberAudioRecorder(
 
                     buffer = ByteArrayOutputStream()
                     barBuffer = ByteArrayOutputStream()
-                    line = AudioSystem.getLine(lineInfo) as? TargetDataLine
 
-                    line?.open(format, bufferSize)
+                    line = getMicrophoneLine(format = format)
                 }
 
                 if(line?.isOpen == true) {
@@ -77,13 +76,18 @@ actual fun rememberAudioRecorder(
                             }
                         }
                     }
+                    recordingThread?.priority = Thread.MAX_PRIORITY
                     recordingThread?.start()
                     line?.start()
                 }
             }
 
             override suspend fun saveRecording(): ByteArray? {
-                return buffer?.toByteArray()
+                return pcmToWav(
+                    pcmData = buffer?.toByteArray(),
+                    channels = 1,
+                    bitsPerSample = 16
+                )
             }
 
             override fun pauseRecording() {
@@ -116,4 +120,25 @@ actual fun rememberAudioRecorder(
     }
 
     return audioRecorder
+}
+
+private fun getMicrophoneLine(format: AudioFormat): TargetDataLine? {
+    val mixers = AudioSystem.getMixerInfo()
+
+    for (mixerInfo in mixers) {
+        val mixer = AudioSystem.getMixer(mixerInfo)
+
+        for (lineInfo in mixer.targetLineInfo) {
+            if (lineInfo is DataLine.Info
+                && TargetDataLine::class.java.isAssignableFrom(lineInfo.lineClass)
+                && lineInfo.isFormatSupported(format)
+            ) {
+                val line = mixer.getLine(lineInfo) as TargetDataLine
+                line.open(format)
+                return line
+            }
+        }
+    }
+
+    return null
 }

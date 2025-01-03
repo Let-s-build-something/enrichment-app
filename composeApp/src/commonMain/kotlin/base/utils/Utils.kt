@@ -19,7 +19,8 @@ fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)
 /** Returns a media type of a file */
 fun getMediaType(extension: String): MediaType {
     return when (extension.lowercase()) {
-        "jpg", "jpeg", "png", "bmp", "gif", "svg", "webp", "avif" -> MediaType.IMAGE
+        "jpg", "jpeg", "png", "bmp", "svg", "webp", "avif" -> MediaType.IMAGE
+        "gif" -> MediaType.GIF
         "mp4", "avi", "mkv", "mov", "webm" -> MediaType.VIDEO
         "mp3", "wav", "aac", "flac", "ogg" -> MediaType.AUDIO
         "txt", "csv", "log" -> MediaType.TEXT
@@ -33,6 +34,7 @@ fun getMediaType(extension: String): MediaType {
 enum class MediaType {
     IMAGE,
     VIDEO,
+    GIF,
     AUDIO,
     TEXT,
     PDF,
@@ -42,3 +44,9 @@ enum class MediaType {
 
 /** Returns a bitmap from a given file */
 expect suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap?
+
+/**
+ * Converts any value to SHA-256 hash
+ * @return the generated SHA-256 hash
+ */
+expect fun sha256(value: Any?): String

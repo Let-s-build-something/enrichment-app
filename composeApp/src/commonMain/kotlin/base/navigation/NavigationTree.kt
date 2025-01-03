@@ -75,6 +75,17 @@ sealed class NavigationNode {
         override val deepLink: String = ""
     }
 
+    /** Full screen media detail */
+    @Serializable
+    data class MediaDetail(
+        val urls: List<String> = listOf(),
+        val title: String? = null,
+        val subtitle: String? = null,
+        val selectedIndex: Int = 0
+    ): NavigationNode() {
+        override val deepLink: String = ""
+    }
+
     companion object {
         val allNodes = listOf(
             Login,

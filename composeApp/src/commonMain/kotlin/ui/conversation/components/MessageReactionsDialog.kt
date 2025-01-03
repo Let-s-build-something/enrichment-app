@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -32,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_reactions_all
+import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.MultiChoiceSwitchMinimalistic
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
@@ -53,6 +56,7 @@ fun MessageReactionsDialog(
     users: List<NetworkItemIO>,
     onDismissRequest: () -> Unit
 ) {
+    val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -85,8 +89,8 @@ fun MessageReactionsDialog(
         additionalContent = {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(.8f)
-                    .fillMaxHeight(.5f),
+                    .width((screenSize.width * 0.65f).dp)
+                    .height((screenSize.height * 0.4f).dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(

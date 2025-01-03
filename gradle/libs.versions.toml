@@ -11,10 +11,9 @@ kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 ktor = "3.0.1"
 navigationCompose = "2.8.0-alpha10"
-compose-plugin = "1.7.1"
+compose-plugin = "1.8.0-alpha01"
 compottie = "2.0.0-rc02"
 mediaPlayerChaintech = "1.0.26"
-firebaseJavaSdk = "0.4.6"
 kotlinCrypto = "0.5.3"
 koin = "4.0.0"
 pagingCompose = "3.3.0-alpha02-0.5.1"
@@ -22,6 +21,7 @@ room = "2.7.0-alpha07"
 sqlite-bundled = "2.5.0-alpha12"
 lifecycle = "2.8.4"
 googleId = "1.1.1"
+firebaseJavaSdk = "0.4.6"
 firebaseGitlive = "2.1.0"
 windowSizeClass = "0.5.0"
 coilCompose = "3.0.4"
@@ -44,6 +44,9 @@ androidFirebaseAuth = "23.1.0"
 androidFirebaseCommon = "21.0.0"
 androidFirebaseMessaging = "24.1.0"
 
+# Java
+jvmGoogleCloudStorage = "2.46.0"
+
 
 [libraries]
 firebase-java-sdk = { module = "dev.gitlive:firebase-java-sdk", version.ref = "firebaseJavaSdk" }
@@ -62,7 +65,6 @@ compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref 
 compose-paging-common = { module = "app.cash.paging:paging-compose-common", version.ref = "pagingCompose" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-room-paging = { module = "androidx.room:room-paging", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
 
 media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
@@ -118,6 +120,9 @@ android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", 
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
+
+#------------------- ANDROID -------------------
+java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
 
 
 [bundles]

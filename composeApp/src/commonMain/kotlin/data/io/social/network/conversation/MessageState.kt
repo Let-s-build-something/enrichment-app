@@ -2,6 +2,9 @@ package data.io.social.network.conversation
 
 /** State of a message */
 enum class MessageState {
+    /** Message is being sent to the server */
+    SENDING,
+
     /** Successfully uploaded to the server */
     SENT,
 

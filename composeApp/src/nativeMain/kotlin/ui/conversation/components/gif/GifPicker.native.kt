@@ -8,23 +8,22 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import io.ktor.http.Url
 
-/** Image displaying a GIF from an [url] */
+/** Image displaying a GIF from data */
 @Composable
 actual fun GifImage(
     modifier: Modifier,
-    url: String,
+    data: Any,
     contentDescription: String?,
     contentScale: ContentScale
 ) {
-    val resource = asyncPainterResource(data = Url(url))
+    val resource = asyncPainterResource(
+        data = if(data is String) Url(data) else data
+    )
 
     KamelImage(
         modifier = modifier,
         resource = {
             resource
-        },
-        onLoading = { progress ->
-            onLoading?.invoke(progress)
         },
         animationSpec = tween(),
         contentDescription = contentDescription,

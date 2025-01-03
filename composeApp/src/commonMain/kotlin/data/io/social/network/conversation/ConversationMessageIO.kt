@@ -4,10 +4,10 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import data.io.DateTimeAsStringSerializer
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
-import koin.DateTimeAsStringSerializer
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -44,7 +44,14 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Identification of a message to which this message is anchored to, such as a reply */
     val anchorMessageId: String? = null,
 
+    /**
+     * Content of message this message is anchored to.
+     * It doesn't contain any [anchorMessage] itself.
+     */
+    val anchorMessage: ConversationAnchorMessageIO? = null,
+
     /** Time of creation */
+    @ColumnInfo(name = "created_at")
     @Serializable(with = DateTimeAsStringSerializer::class)
     val createdAt: LocalDateTime? = null,
 
@@ -63,4 +70,15 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @Ignore
     @Transient
     var user: NetworkItemIO? = null
+
+    /** Converts this message to an anchor message */
+    @Ignore
+    fun toAnchorMessage() = ConversationAnchorMessageIO(
+        id = id,
+        content = content,
+        mediaUrls = mediaUrls,
+        audioUrl = audioUrl,
+        gifAsset = gifAsset,
+        authorPublicId = authorPublicId
+    )
 }

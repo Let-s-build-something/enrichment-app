@@ -204,6 +204,7 @@
   <string name="accessibility_reaction_other">Choose emoji other than the set offers</string>
   <string name="accessibility_message_reply">Drag the same direction to reply to this message</string>
   <string name="accessibility_giphy_logo">Powered by GIPHY</string>
+  <string name="accessibility_play">Play</string>
 
   <!--- ============================= FIREBASE ==================================== -->
   <string name="firebase_web_client_id" translatable="false">96838385672-63j7rip50fom6s06usjn11tjskrf6n2h.apps.googleusercontent.com</string>

@@ -226,7 +226,8 @@ fun GifPicker(
                                         GifAsset(
                                             original = data?.images?.original?.url,
                                             fixedWidthOriginal = data?.images?.fixedWidth?.url,
-                                            fixedWidthSmall = data?.images?.fixedWidthDownsampled?.url
+                                            fixedWidthSmall = data?.images?.fixedWidthDownsampled?.url,
+                                            description = data?.altText ?: data?.title
                                         )
                                     )
                                 }
@@ -238,7 +239,7 @@ fun GifPicker(
                                         isLoaded.value = true
                                     }
                                 },
-                            url = data?.images?.fixedWidthDownsampled?.url ?: "",
+                            data = data?.images?.fixedWidthDownsampled?.url ?: "",
                             contentDescription = data?.altText ?: data?.title,
                             contentScale = ContentScale.FillWidth
                         )
@@ -272,11 +273,11 @@ fun GifPicker(
 
 private const val SHIMMER_ITEM_COUNT = 20
 
-/** Image displaying a GIF from an [url] */
+/** Image displaying a GIF from [data] */
 @Composable
 expect fun GifImage(
     modifier: Modifier = Modifier,
-    url: String,
+    data: Any,
     contentDescription: String?,
     contentScale: ContentScale = ContentScale.Fit
 )

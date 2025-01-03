@@ -5,6 +5,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import augmy.interactive.shared.DateUtils.localNow
 import augmy.interactive.shared.DateUtils.now
+import base.utils.sha256
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
 import data.io.social.network.conversation.ConversationMessageIO
@@ -14,9 +15,13 @@ import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.user.NetworkItemIO
+import data.shared.SharedDataManager
 import data.shared.setPaging
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
+import database.file.FileAccess
+import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.core.extension
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -35,6 +40,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
+import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
@@ -44,8 +50,16 @@ import kotlin.uuid.Uuid
 class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
-    private val pagingMetaDao: PagingMetaDao
+    private val pagingMetaDao: PagingMetaDao,
+    private val fileAccess: FileAccess
 ) {
+    private var currentPagingSource: ConversationRoomSource? = null
+    val cachedFiles = hashMapOf<String, PlatformFile?>()
+
+    /** Attempts to invalidate local PagingSource with conversation messages */
+    private fun invalidateLocalSource() {
+        currentPagingSource?.invalidate()
+    }
 
     /** returns a list of network list */
     private suspend fun getMessages(
@@ -96,7 +110,6 @@ class ConversationRepository(
         conversationId: String? = null
     ): Pager<Int, ConversationMessageIO> {
         val scope = CoroutineScope(Dispatchers.Default)
-        var currentPagingSource: ConversationRoomSource? = null
 
         return Pager(
             config = config,
@@ -159,17 +172,76 @@ class ConversationRepository(
     }
 
     /** Sends a message to a conversation */
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun sendMessage(
         conversationId: String,
-        message: ConversationMessageIO
+        message: ConversationMessageIO,
+        audioByteArray: ByteArray? = null,
+        mediaFiles: List<PlatformFile> = listOf(),
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
+            val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
+            val uuids = mutableListOf<String>()
+
+            // placeholder/loading message preview
+            var msg = message.copy(
+                conversationId = conversationId,
+                createdAt = localNow,
+                authorPublicId = dataManager.currentUser.value?.publicId,
+                mediaUrls = mediaFiles.map { media ->
+                    (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                        cachedFiles[uuid] = media
+                        uuids.add(uuid)
+                    }
+                } + message.mediaUrls.orEmpty(),
+                audioUrl = if(audioByteArray?.isNotEmpty() == true) {
+                    MESSAGE_AUDIO_URL_PLACEHOLDER
+                }else null,
+                state = MessageState.SENDING
+            )
+            conversationMessageDao.insert(msg)
+            invalidateLocalSource()
+
+            // real message preview
+            msg = msg.copy(
+                mediaUrls = mediaFiles.mapNotNull { media ->
+                    val bytes = media.readBytes()
+                    uploadMedia(
+                        mediaByteArray = bytes,
+                        fileName = "${Uuid.random()}.${media.extension.lowercase()}",
+                        conversationId = conversationId
+                    ).takeIf { !it.isNullOrBlank() }
+                } + message.mediaUrls.orEmpty(),
+                audioUrl = uploadMedia(
+                    mediaByteArray = audioByteArray,
+                    fileName = "${Uuid.random()}.wav",
+                    conversationId = conversationId
+                ).also { audioUrl ->
+                    if(!audioUrl.isNullOrBlank()) {
+                        msg = msg.copy(audioUrl = audioUrl)
+                        audioByteArray?.let { data ->
+                            fileAccess.saveFileToCache(data = data, fileName = sha256(audioUrl))
+                        }
+                    }
+                },
+                state = MessageState.SENT
+            )
+            uuids.forEachIndexed { index, s ->
+                msg.mediaUrls?.getOrNull(index)?.let {
+                    cachedFiles[it] = cachedFiles[s]
+                }
+                cachedFiles.remove(s)
+            }
+            conversationMessageDao.insert(msg)
+            invalidateLocalSource()
+
+            // upload the real message
             httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/send",
                     block = {
                         parameter("conversationId", conversationId)
-                        setBody(message)
+                        setBody(msg)
                     }
                 )
             }
@@ -182,6 +254,20 @@ class ConversationRepository(
         reaction: MessageReactionRequest
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
+            conversationMessageDao.get(reaction.messageId)?.let { message ->
+                val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
+
+                conversationMessageDao.insert(message.copy(
+                    reactions = message.reactions.orEmpty().toMutableList().apply {
+                        add(MessageReactionIO(
+                            content = reaction.content,
+                            authorPublicId = dataManager.currentUser.value?.publicId
+                        ))
+                    }
+                ))
+            }
+            invalidateLocalSource()
+
             httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/react",
@@ -191,6 +277,28 @@ class ConversationRepository(
                     }
                 )
             }
+        }
+    }
+
+    /**
+     * Uploads media to the server
+     * @return the server location URL
+     */
+    private suspend fun uploadMedia(
+        conversationId: String,
+        mediaByteArray: ByteArray?,
+        fileName: String
+    ): String? {
+        return try {
+            if(mediaByteArray == null) null
+            else uploadMediaToStorage(
+                conversationId = conversationId,
+                byteArray = mediaByteArray,
+                fileName = fileName
+            )
+        }catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -624,3 +732,12 @@ class ConversationRepository(
         )
     }
 }
+
+const val MESSAGE_AUDIO_URL_PLACEHOLDER = "audio_placeholder"
+
+/** Attempts to upload a file to Firebase storage, and returns the download URL of the uploaded file. */
+expect suspend fun uploadMediaToStorage(
+    conversationId: String,
+    byteArray: ByteArray,
+    fileName: String
+): String

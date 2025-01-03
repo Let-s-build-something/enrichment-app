@@ -6,18 +6,14 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,21 +27,19 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.FilePresent
-import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Mic
@@ -71,7 +65,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -79,11 +73,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
@@ -92,21 +82,14 @@ import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_message_action_audio
 import augmy.composeapp.generated.resources.accessibility_message_action_file
 import augmy.composeapp.generated.resources.accessibility_message_action_image
-import augmy.composeapp.generated.resources.accessibility_message_audio
-import augmy.composeapp.generated.resources.accessibility_message_file
-import augmy.composeapp.generated.resources.accessibility_message_image
 import augmy.composeapp.generated.resources.accessibility_message_more_options
-import augmy.composeapp.generated.resources.accessibility_message_pdf
-import augmy.composeapp.generated.resources.accessibility_message_presentation
-import augmy.composeapp.generated.resources.accessibility_message_text
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
-import augmy.composeapp.generated.resources.conversation_reply_heading
-import augmy.composeapp.generated.resources.conversation_reply_prefix_self
-import augmy.composeapp.generated.resources.logo_pdf
-import augmy.composeapp.generated.resources.logo_powerpoint
+import augmy.interactive.shared.ext.contentReceiver
+import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
@@ -114,26 +97,28 @@ import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.navigation.NavigationNode
 import base.utils.MediaType
-import base.utils.getBitmapFromFile
 import base.utils.getMediaType
+import coil3.toUri
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
+import ui.conversation.components.audio.PanelMicrophone
+import ui.conversation.components.gif.GifImage
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
@@ -144,6 +129,7 @@ internal fun BoxScope.SendMessagePanel(
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
+    val navController = LocalNavController.current
     val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
@@ -154,27 +140,33 @@ internal fun BoxScope.SendMessagePanel(
 
     val keyboardHeight = viewModel.keyboardHeight.collectAsState()
     val savedMessage = viewModel.savedMessage.collectAsState()
-    val messageContent = remember(savedMessage.value) {
-        mutableStateOf(
-            TextFieldValue(
-                savedMessage.value,
-                TextRange(savedMessage.value.length)
-            )
+    val messageState = remember(savedMessage.value) {
+        TextFieldState(
+            initialText = savedMessage.value,
+            initialSelection = TextRange(savedMessage.value.length)
         )
     }
     val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
     val mediaAttached = remember {
         mutableStateListOf<PlatformFile>()
     }
+    val urlsAttached = remember {
+        mutableStateListOf<String>()
+    }
     val gifAttached = remember {
         mutableStateOf<GifAsset?>(null)
     }
     val showMoreOptions = rememberSaveable {
-        mutableStateOf(messageContent.value.text.isBlank())
+        mutableStateOf(messageState.text.isBlank())
     }
     val actionYCoordinate = rememberSaveable {
         mutableStateOf(-1f)
     }
+
+    val isContentEmpty = messageState.text.isBlank()
+            && mediaAttached.isEmpty()
+            && urlsAttached.isEmpty()
+            && gifAttached.value == null
 
     val bottomPadding = animateFloatAsState(
         targetValue = if (imeHeightPadding >= keyboardHeight.value.div(2) || !isDefaultMode) {
@@ -227,22 +219,24 @@ internal fun BoxScope.SendMessagePanel(
 
     val sendMessage = {
         viewModel.sendMessage(
-            content = messageContent.value.text,
-            mediaFiles = mediaAttached,
-            anchorMessageId = replyToMessage.value?.id,
-            gifAsset = gifAttached.value
+            content = messageState.text.toString(),
+            mediaFiles = mediaAttached.toList(),
+            anchorMessage = replyToMessage.value,
+            gifAsset = gifAttached.value,
+            mediaUrls = urlsAttached
         )
         mediaAttached.clear()
         keyboardMode.value = ConversationKeyboardMode.Default.ordinal
-        messageContent.value = TextFieldValue()
+        messageState.clearText()
         viewModel.saveMessage(null)
         replyToMessage.value = null
+        gifAttached.value = null
     }
 
 
     DisposableEffect(null) {
         onDispose {
-            viewModel.saveMessage(messageContent.value.text)
+            viewModel.saveMessage(messageState.text.toString())
         }
     }
 
@@ -272,6 +266,12 @@ internal fun BoxScope.SendMessagePanel(
         }
     }
 
+    LaunchedEffect(messageState.text) {
+        if(messageState.text.isNotBlank()) {
+            showMoreOptions.value = false
+        }
+    }
+
     OnBackHandler(enabled = imeHeightPadding > 0 || !isDefaultMode) {
         when {
             imeHeightPadding > 0 -> keyboardController?.hide()
@@ -284,6 +284,37 @@ internal fun BoxScope.SendMessagePanel(
         modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.Top
     ) {
+        AnimatedVisibility(gifAttached.value != null) {
+            gifAttached.value?.let { gifAsset ->
+                Box {
+                    GifImage(
+                        modifier = Modifier
+                            .zIndex(1f)
+                            .scalingClickable(scaleInto = .95f) {
+                                navController?.navigate(
+                                    NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                                )
+                            }
+                            .height(MEDIA_MAX_HEIGHT_DP.dp)
+                            .wrapContentWidth()
+                            .clip(RoundedCornerShape(6.dp)),
+                        data = gifAsset.fixedWidthSmall ?: "",
+                        contentDescription = gifAsset.description,
+                        contentScale = ContentScale.FillHeight
+                    )
+                    MinimalisticIcon(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd),
+                        imageVector = Icons.Outlined.Close,
+                        tint = LocalTheme.current.colors.secondary,
+                        onTap = {
+                            gifAttached.value = null
+                        }
+                    )
+                }
+            }
+        }
+
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
         replyToMessage.value?.let { originalMessage ->
@@ -291,65 +322,27 @@ internal fun BoxScope.SendMessagePanel(
                 focusRequester.requestFocus()
             }
 
-            // reply indication
-            Row(
+            ReplyIndication(
                 modifier = Modifier
                     .padding(start = 12.dp)
-                    .scalingClickable {
-                        scrollToMessage(originalMessage)
-                    }
                     .widthIn(max = MaxModalWidthDp.dp)
-                    .fillMaxWidth()
-                    .background(
-                        color = LocalTheme.current.colors.backgroundDark,
-                        shape = RoundedCornerShape(
-                            topStart = LocalTheme.current.shapes.componentCornerRadius,
-                            topEnd = LocalTheme.current.shapes.componentCornerRadius
-                        )
-                    )
-                    .padding(top = 2.dp, bottom = 10.dp, start = 16.dp, end = 8.dp)
-            ) {
-                Text(
-                    modifier = Modifier.padding(top = 8.dp),
-                    text = stringResource(Res.string.conversation_reply_heading),
-                    style = LocalTheme.current.styles.regular
-                )
-                Column(
-                    modifier = Modifier
-                        .padding(top = 8.dp, start = 6.dp)
-                        .weight(1f)
-                ) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = if(originalMessage.authorPublicId == viewModel.currentUser.value?.publicId) {
-                            stringResource(Res.string.conversation_reply_prefix_self)
-                        }else originalMessage.user?.displayName?.plus(":") ?: "",
-                        style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        modifier = Modifier.padding(top = 2.dp, start = 4.dp),
-                        text = originalMessage.content ?: "",
-                        style = LocalTheme.current.styles.regular.copy(fontSize = 14.sp),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                MinimalisticIcon(
-                    imageVector = Icons.Outlined.Close,
-                    tint = LocalTheme.current.colors.secondary,
-                    onTap = {
-                        replyToMessage.value = null
-                    }
-                )
-            }
+                    .fillMaxWidth(),
+                data = originalMessage.toAnchorMessage(),
+                onClick = {
+                    scrollToMessage(originalMessage)
+                },
+                onRemoveRequest = {
+                    replyToMessage.value = null
+                },
+                isCurrentUser = originalMessage.authorPublicId == viewModel.currentUser.value?.publicId,
+                removable = true
+            )
         }
 
         // media preview
-        if(mediaAttached.isNotEmpty()) {
-            val mediaListState = rememberLazyListState(
-                initialFirstVisibleItemIndex = mediaAttached.lastIndex
+        if(mediaAttached.isNotEmpty() || urlsAttached.isNotEmpty()) {
+            val mediaListState = rememberScrollState(
+                initial = mediaAttached.lastIndex + urlsAttached.lastIndex
             )
 
             Column(modifier = Modifier.padding(bottom = bottomPadding.value.dp)) {
@@ -362,36 +355,19 @@ internal fun BoxScope.SendMessagePanel(
                     style = LocalTheme.current.styles.regular
                 )
 
-                val previewHeight = screenSize.height.div(7).coerceAtMost(MEDIA_MAX_HEIGHT_DP)
-                LazyRow(
+                Row(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
-                        .height(previewHeight.dp)
-                        .draggable(
-                            orientation = Orientation.Horizontal,
-                            state = rememberDraggableState { delta ->
-                                coroutineScope.launch {
-                                    mediaListState.scrollBy(-delta)
-                                }
-                            }
-                        ),
-                    reverseLayout = true,
-                    horizontalArrangement = Arrangement.spacedBy(spacing),
-                    state = mediaListState
+                        .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                        .horizontalScroll(state = mediaListState)
+                        .horizontallyDraggable(state = mediaListState),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
-                    item {
-                        Spacer(Modifier)
-                    }
-                    itemsIndexed(
-                        items = mediaAttached,
-                        key = { _, media -> media.name }
-                    ) { index, media ->
+                    Spacer(Modifier)
+                    (mediaAttached + arrayOfNulls(urlsAttached.size)).forEachIndexed { index, media ->
                         Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .widthIn(min = previewHeight.times(.75).dp)
-                                .animateItem(),
+                            modifier = Modifier.fillMaxHeight(),
                             contentAlignment = Alignment.Center
                         ) {
                             MinimalisticIcon(
@@ -411,103 +387,18 @@ internal fun BoxScope.SendMessagePanel(
                                 }
                             )
 
-                            val contentPreviewModifier = Modifier
-                                .widthIn(max = previewHeight.times(1.25).dp)
-                                .fillMaxHeight()
-                                .background(
-                                    color = LocalTheme.current.colors.brandMainDark,
-                                    shape = LocalTheme.current.shapes.componentShape
-                                )
-                                .padding(vertical = 3.dp, horizontal = 4.dp)
-                                .clip(LocalTheme.current.shapes.rectangularActionShape)
-
-                            // content preview
-                            when(val mediaType = getMediaType(media.extension)) {
-                                MediaType.IMAGE -> {
-                                    val bitmap = remember {
-                                        mutableStateOf<ImageBitmap?>(null)
-                                    }
-
-                                    LaunchedEffect(Unit) {
-                                        bitmap.value = getBitmapFromFile(media)
-                                    }
-
-                                    bitmap.value?.let { value ->
-                                        Image(
-                                            modifier = contentPreviewModifier,
-                                            bitmap = value,
-                                            contentDescription = stringResource(Res.string.accessibility_message_image)
-                                        )
-                                    }
-                                }
-                                MediaType.VIDEO -> {
-
-                                }
-                                else -> {
-                                    Column(
-                                        modifier = Modifier.width(IntrinsicSize.Min),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        val iconModifier = Modifier.size(previewHeight.div(2).dp)
-                                        when(mediaType) {
-                                            MediaType.PDF -> {
-                                                Image(
-                                                    modifier = iconModifier,
-                                                    painter = painterResource(Res.drawable.logo_pdf),
-                                                    contentDescription = stringResource(Res.string.accessibility_message_pdf)
-                                                )
-                                            }
-                                            MediaType.AUDIO -> {
-                                                Icon(
-                                                    modifier = iconModifier,
-                                                    imageVector = Icons.Outlined.GraphicEq,
-                                                    tint = LocalTheme.current.colors.secondary,
-                                                    contentDescription = stringResource(Res.string.accessibility_message_audio)
-                                                )
-                                            }
-                                            MediaType.TEXT -> {
-                                                Icon(
-                                                    modifier = iconModifier,
-                                                    imageVector = Icons.Outlined.Description,
-                                                    tint = LocalTheme.current.colors.secondary,
-                                                    contentDescription = stringResource(Res.string.accessibility_message_text)
-                                                )
-                                            }
-                                            MediaType.PRESENTATION -> {
-                                                Image(
-                                                    modifier = iconModifier,
-                                                    painter = painterResource(Res.drawable.logo_powerpoint),
-                                                    contentDescription = stringResource(Res.string.accessibility_message_presentation)
-                                                )
-                                            }
-                                            else -> {
-                                                Icon(
-                                                    modifier = iconModifier,
-                                                    imageVector = Icons.Outlined.FilePresent,
-                                                    tint = LocalTheme.current.colors.secondary,
-                                                    contentDescription = stringResource(Res.string.accessibility_message_file)
-                                                )
-                                            }
-                                        }
-                                        Text(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(top = 4.dp),
-                                            text = media.name,
-                                            style = LocalTheme.current.styles.regular.copy(
-                                                textAlign = TextAlign.Center
-                                            ),
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                }
-                            }
+                            MediaElement(
+                                modifier = Modifier
+                                    .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                                    .wrapContentWidth()
+                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
+                                media = media,
+                                url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
+                                contentScale = ContentScale.FillHeight
+                            )
                         }
                     }
-                    item {
-                        Spacer(Modifier)
-                    }
+                    Spacer(Modifier)
                 }
             }
         }
@@ -521,7 +412,7 @@ internal fun BoxScope.SendMessagePanel(
                 .then(if(isDefaultMode) Modifier.imePadding() else Modifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            EditFieldInput(
+            CustomTextField(
                 modifier = Modifier
                     .requiredHeight(44.dp)
                     .weight(1f)
@@ -529,12 +420,21 @@ internal fun BoxScope.SendMessagePanel(
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionInRoot().y
                     }
+                    .contentReceiver { uri ->
+                        when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
+                            MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
+                            else -> urlsAttached.add(uri)
+                        }
+                    }
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send
                 ),
-                textValue = messageContent.value,
+                state = messageState,
+                onKeyboardAction = {
+                    sendMessage()
+                },
                 trailingIcon = {
                     Crossfade(targetState = !isDefaultMode) { isMedia ->
                         Image(
@@ -570,18 +470,8 @@ internal fun BoxScope.SendMessagePanel(
                         )
                     }
                 },
-                minHeight = 44.dp,
-                shape = LocalTheme.current.shapes.componentShape,
-                paddingValues = PaddingValues(start = 16.dp),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        sendMessage()
-                    }
-                ),
-                onValueChange = {
-                    showMoreOptions.value = false
-                    messageContent.value = it
-                }
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = LocalTheme.current.shapes.componentShape
             )
 
             Icon(
@@ -639,7 +529,7 @@ internal fun BoxScope.SendMessagePanel(
             }
 
             // space for the microphone action
-            Crossfade(targetState = messageContent.value.text.isBlank()) { isBlank ->
+            Crossfade(targetState = isContentEmpty) { isBlank ->
                 Icon(
                     modifier = Modifier
                         .scalingClickable(enabled = !isBlank) {
@@ -659,7 +549,6 @@ internal fun BoxScope.SendMessagePanel(
                     ),
                     tint = Color.White
                 )
-
             }
         }
 
@@ -668,7 +557,7 @@ internal fun BoxScope.SendMessagePanel(
             MessageMediaPanel(
                 mode = keyboardMode,
                 viewModel = viewModel,
-                showBackSpace = messageContent.value.text.isNotBlank(),
+                showBackSpace = messageState.text.isNotBlank(),
                 onGifSelected = { gif ->
                     gifAttached.value = gif
                 },
@@ -678,58 +567,52 @@ internal fun BoxScope.SendMessagePanel(
                     val newContent = buildString {
                         // before selection
                         append(
-                            messageContent.value.text.subSequence(
-                                0, messageContent.value.selection.start
+                            messageState.text.subSequence(
+                                0, messageState.selection.start
                             )
                         )
                         // selection
                         append(emoji)
                         // after selection
                         append(
-                            messageContent.value.text.subSequence(
-                                messageContent.value.selection.end,
-                                messageContent.value.text.length
+                            messageState.text.subSequence(
+                                messageState.selection.end,
+                                messageState.text.length
                             )
                         )
                     }
-                    messageContent.value = TextFieldValue(
-                        text = newContent,
-                        selection = TextRange(
-                            messageContent.value.selection.start + emoji.length.coerceAtMost(newContent.length)
-                        )
-                    )
+                    messageState.setTextAndPlaceCursorAtEnd(newContent)
                 },
                 onBackSpace = {
                     showMoreOptions.value = false
 
-                    val isRangeRemoval = messageContent.value.selection.start != messageContent.value.selection.end
+                    val isRangeRemoval = messageState.selection.start != messageState.selection.end
 
                     if(isRangeRemoval) {
-                        messageContent.value = TextFieldValue(
-                            text = buildString {
+                        messageState.setTextAndPlaceCursorAtEnd(
+                            buildString {
                                 // before selection
                                 append(
-                                    messageContent.value.text.subSequence(
+                                    messageState.text.subSequence(
                                         startIndex = 0,
-                                        endIndex = messageContent.value.selection.start
+                                        endIndex = messageState.selection.start
                                     ).toString()
                                 )
                                 // after selection
                                 append(
-                                    messageContent.value.text.subSequence(
-                                        startIndex = messageContent.value.selection.end,
-                                        endIndex = messageContent.value.text.length
+                                    messageState.text.subSequence(
+                                        startIndex = messageState.selection.end,
+                                        endIndex = messageState.text.length
                                     )
                                 )
-                            },
-                            selection = TextRange(messageContent.value.selection.start)
+                            }
                         )
                     }else {
                         val modifiedPrefix = removeUnicodeCharacter(
-                            text = messageContent.value.text.subSequence(
-                                0, messageContent.value.selection.start
+                            text = messageState.text.subSequence(
+                                0, messageState.selection.start
                             ).toString(),
-                            index = messageContent.value.selection.start
+                            index = messageState.selection.start
                         )
 
                         val newContent = buildString {
@@ -737,16 +620,13 @@ internal fun BoxScope.SendMessagePanel(
                             append(modifiedPrefix)
                             // after selection
                             append(
-                                messageContent.value.text.subSequence(
-                                    messageContent.value.selection.end,
-                                    messageContent.value.text.length
+                                messageState.text.subSequence(
+                                    messageState.selection.end,
+                                    messageState.text.length
                                 )
                             )
                         }
-                        messageContent.value = TextFieldValue(
-                            text = newContent,
-                            selection = TextRange(modifiedPrefix.length)
-                        )
+                        messageState.setTextAndPlaceCursorAtEnd(newContent)
                     }
                 },
                 onDismissRequest = {
@@ -757,7 +637,7 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     // Has to be outside of message panel in order to lay over everything else
-    if(messageContent.value.text.isBlank()) {
+    if(isContentEmpty) {
         PanelMicrophone(
             modifier = Modifier
                 .offset(y = - (screenSize.height.dp - with(density) { actionYCoordinate.value.toDp() } - 44.dp))
@@ -780,7 +660,8 @@ private fun removeUnicodeCharacter(text: String, index: Int): String {
 /** Maximum amount of files, images, and videos to be selected and sent within a singular message */
 private const val MAX_ITEMS_SELECTED = 20
 
-private const val MEDIA_MAX_HEIGHT_DP = 250
+/** Maximum height of a user attached media */
+const val MEDIA_MAX_HEIGHT_DP = 250
 
 // IOS does not support unicode special classes, must be done manually
 private val REGEX_GRAPHEME_IOS = """

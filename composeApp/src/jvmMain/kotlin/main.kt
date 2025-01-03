@@ -46,6 +46,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
+import ui.conversation.components.gif.PlatformFileFetcher
 import java.awt.Button
 import java.awt.Dialog
 import java.awt.Dimension
@@ -141,6 +142,7 @@ fun main(args: Array<String>) = application {
     val kamelConfig = remember {
         KamelConfig {
             takeFrom(KamelConfig.Default)
+            fetcher(PlatformFileFetcher)
         }
     }
 
