@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -29,7 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -290,15 +289,15 @@ internal fun BoxScope.SendMessagePanel(
                 Box {
                     GifImage(
                         modifier = Modifier
-                            .heightIn(max = 200.dp)
                             .zIndex(1f)
                             .scalingClickable(scaleInto = .95f) {
                                 navController?.navigate(
                                     NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
                                 )
                             }
-                            .clip(RoundedCornerShape(6.dp))
-                            .wrapContentHeight(),
+                            .height(MEDIA_MAX_HEIGHT_DP.dp)
+                            .wrapContentWidth()
+                            .clip(RoundedCornerShape(6.dp)),
                         data = gifAsset.fixedWidthSmall ?: "",
                         contentDescription = gifAsset.description,
                         contentScale = ContentScale.FillHeight
@@ -356,12 +355,11 @@ internal fun BoxScope.SendMessagePanel(
                     style = LocalTheme.current.styles.regular
                 )
 
-                val previewHeight = screenSize.height.div(7).coerceAtMost(MEDIA_MAX_HEIGHT_DP)
                 Row(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
-                        .height(previewHeight.dp)
+                        .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
                         .horizontallyDraggable(state = mediaListState),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
@@ -369,9 +367,7 @@ internal fun BoxScope.SendMessagePanel(
                     Spacer(Modifier)
                     (mediaAttached + arrayOfNulls(urlsAttached.size)).forEachIndexed { index, media ->
                         Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .widthIn(min = previewHeight.times(.75).dp),
+                            modifier = Modifier.fillMaxHeight(),
                             contentAlignment = Alignment.Center
                         ) {
                             MinimalisticIcon(
@@ -391,13 +387,11 @@ internal fun BoxScope.SendMessagePanel(
                                 }
                             )
 
-                            val contentPreviewModifier = Modifier
-                                .widthIn(max = previewHeight.times(1.25).dp)
-                                .fillMaxHeight()
-                                .clip(LocalTheme.current.shapes.rectangularActionShape)
-
                             MediaElement(
-                                modifier = contentPreviewModifier,
+                                modifier = Modifier
+                                    .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                                    .wrapContentWidth()
+                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
                                 media = media,
                                 url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
                                 contentScale = ContentScale.FillHeight
@@ -428,10 +422,8 @@ internal fun BoxScope.SendMessagePanel(
                     }
                     .contentReceiver { uri ->
                         when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
-                            MediaType.IMAGE -> urlsAttached.add(uri)
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
-                            //MediaType.VIDEO -> TODO()
-                            else -> {}
+                            else -> urlsAttached.add(uri)
                         }
                     }
                     .focusRequester(focusRequester),
@@ -668,7 +660,8 @@ private fun removeUnicodeCharacter(text: String, index: Int): String {
 /** Maximum amount of files, images, and videos to be selected and sent within a singular message */
 private const val MAX_ITEMS_SELECTED = 20
 
-private const val MEDIA_MAX_HEIGHT_DP = 250
+/** Maximum height of a user attached media */
+const val MEDIA_MAX_HEIGHT_DP = 250
 
 // IOS does not support unicode special classes, must be done manually
 private val REGEX_GRAPHEME_IOS = """

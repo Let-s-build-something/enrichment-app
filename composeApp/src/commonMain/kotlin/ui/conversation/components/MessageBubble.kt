@@ -322,7 +322,7 @@ private fun ContentLayout(
             // new or a change of a reaction - indication
             AnimatedVisibility(isReacting) {
                 Row(
-                    modifier = modifier
+                    modifier = Modifier
                         .padding(
                             vertical = 10.dp,
                             horizontal = 12.dp

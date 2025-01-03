@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -79,6 +80,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.components.ConversationKeyboardMode
+import ui.conversation.components.MEDIA_MAX_HEIGHT_DP
 import ui.conversation.components.MediaElement
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.ReplyIndication
@@ -336,6 +338,11 @@ fun ConversationScreen(
                                     }
                                 ),
                                 additionalContent = {
+                                    val heightModifier = Modifier.heightIn(
+                                        max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
+                                        min = MEDIA_MAX_HEIGHT_DP.dp
+                                    )
+
                                     data?.anchorMessage?.let { anchorData ->
                                         ReplyIndication(
                                             modifier = Modifier
@@ -352,10 +359,9 @@ fun ConversationScreen(
                                         val date = data.createdAt?.formatAsRelative() ?: ""
 
                                         GifImage(
-                                            modifier = Modifier
+                                            modifier = heightModifier
                                                 .align(Alignment.End)
                                                 .zIndex(1f)
-                                                .height((screenSize.height * .3f).dp)
                                                 .scalingClickable(
                                                     scaleInto = .95f,
                                                     onLongPress = {
@@ -370,8 +376,7 @@ fun ConversationScreen(
                                                         )
                                                     )
                                                 }
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .fillMaxWidth(),
+                                                .clip(RoundedCornerShape(6.dp)),
                                             data = data.gifAsset.original ?: "",
                                             contentDescription = data.gifAsset.description,
                                             contentScale = ContentScale.FillHeight
@@ -389,8 +394,7 @@ fun ConversationScreen(
                                         }
 
                                         Row(
-                                            modifier = Modifier
-                                                .height((screenSize.height * .3f).dp)
+                                            modifier = heightModifier
                                                 .wrapContentWidth()
                                                 .horizontalScroll(state = mediaRowState)
                                                 .horizontallyDraggable(state = mediaRowState)
@@ -405,7 +409,7 @@ fun ConversationScreen(
                                                 val media = viewModel.cachedFiles[mediaUrl]
 
                                                 MediaElement(
-                                                    modifier = Modifier
+                                                    modifier = heightModifier
                                                         .padding(
                                                             horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
                                                         )
@@ -425,8 +429,7 @@ fun ConversationScreen(
                                                                 )
                                                             )
                                                         }
-                                                        .clip(LocalTheme.current.shapes.rectangularActionShape)
-                                                        .height((screenSize.height * .3f).dp),
+                                                        .clip(LocalTheme.current.shapes.rectangularActionShape),
                                                     url = mediaUrl,
                                                     media = media
                                                 )
