@@ -109,10 +109,9 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
         mutableStateOf<String?>(null)
     }
     val password = remember { mutableStateOf("") }
-    val screenStateIndex = rememberSaveable(clientStatus.value) {
+    val screenStateIndex = rememberSaveable {
         mutableStateOf(clientStatus.value.ordinal)
     }
-    val screenType = LoginScreenType.entries[screenStateIndex.value]
     val validations = remember {
         mutableStateOf(listOf<FieldValidation>())
     }
@@ -129,6 +128,9 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
             errorMessage.value = null
         }
     )
+    LaunchedEffect(clientStatus.value) {
+        switchScreenState.selectedTabIndex.value = clientStatus.value.ordinal
+    }
 
     LaunchedEffect(Unit) {
         if(viewModel.currentUser.value != null) navController?.popBackStack()
@@ -215,7 +217,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 
             Crossfade(
                 modifier = Modifier.fillMaxWidth(),
-                targetState = screenType,
+                targetState = LoginScreenType.entries[screenStateIndex.value],
                 animationSpec = tween(DEFAULT_ANIMATION_LENGTH_LONG),
                 label = ""
             ) { type ->
@@ -241,7 +243,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
             }
             LoginScreenContent(
                 viewModel = viewModel,
-                screenType = screenType,
+                screenStateIndex = screenStateIndex,
                 validations = validations.value,
                 errorMessage = errorMessage,
                 isWaitingForResult = isWaitingForResult,
@@ -254,7 +256,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 @Composable
 private fun ColumnScope.LoginScreenContent(
     viewModel: LoginViewModel,
-    screenType: LoginScreenType,
+    screenStateIndex: MutableState<Int>,
     validations: List<FieldValidation>,
     errorMessage: MutableState<String?>,
     password: MutableState<String>,
@@ -265,6 +267,7 @@ private fun ColumnScope.LoginScreenContent(
     val email = remember { mutableStateOf("") }
     val isPasswordValid = validations.all { it.isValid || it.isRequired.not() }
     val isEmailValid = emailAddressRegex.matches(email.value) && errorMessage.value == null
+    val screenType = LoginScreenType.entries[screenStateIndex.value]
 
     EditFieldInput(
         modifier = Modifier
