@@ -24,6 +24,7 @@ import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
 import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
+import platform.AVFAudio.availableInputs
 import platform.AVFAudio.setActive
 import platform.Foundation.NSError
 import platform.Foundation.NSMutableData
@@ -77,6 +78,10 @@ actual fun rememberAudioRecorder(
 
                     engine?.inputNode?.let { inputNode ->
                         AVAudioSession.sharedInstance().apply {
+                            if((this.availableInputs()?.size ?: 0) == 0) {
+                                stopRecording()
+                                return@let
+                            }
                             setCategory(
                                 AVAudioSessionCategoryPlayAndRecord,
                                 AVAudioSessionCategoryOptionMixWithOthers or AVAudioSessionCategoryOptionAllowBluetooth,
