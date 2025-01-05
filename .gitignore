@@ -55,3 +55,4 @@ GoogleService-Info.plist
 commonizedNativeDistributionLocation.txt
 composeApp/datastore/app_preferences.preferences_pb
 composeApp/chat-enrichment-fbc09765a643.json
+app_preferences.preferences_pb.tmp
