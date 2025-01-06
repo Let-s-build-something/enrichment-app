@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -118,7 +119,6 @@ import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
@@ -418,7 +418,7 @@ internal fun BoxScope.SendMessagePanel(
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
                     .onGloballyPositioned {
-                        actionYCoordinate.value = it.positionInRoot().y
+                        actionYCoordinate.value = it.positionOnScreen().y
                     }
                     .contentReceiver { uri ->
                         when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
