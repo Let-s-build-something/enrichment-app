@@ -1,28 +1,44 @@
 package base.utils.audio
 
+import androidx.collection.MutableFloatList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import io.ktor.utils.io.core.ByteOrder
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.ShortVar
+import kotlinx.cinterop.ShortVarOf
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.allocPointerTo
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
 import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.reinterpret
+import kotlinx.cinterop.set
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import okio.Buffer
+import platform.AVFAudio.AVAudioCommonFormat
 import platform.AVFAudio.AVAudioEngine
 import platform.AVFAudio.AVAudioFormat
 import platform.AVFAudio.AVAudioPCMBuffer
+import platform.AVFAudio.AVAudioPCMFormatFloat32
+import platform.AVFAudio.AVAudioPCMFormatInt16
 import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
+import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
+import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
+import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.AVAudioSessionModeMeasurement
+import platform.AVFAudio.AVAudioSessionModeSpokenAudio
+import platform.AVFAudio.availableInputs
 import platform.AVFAudio.setActive
+import platform.AVFAudio.setPreferredSampleRate
 import platform.Foundation.NSError
 import platform.darwin.ByteVar
 import platform.darwin.dispatch_get_main_queue
@@ -56,8 +72,13 @@ actual fun rememberAudioPlayer(
             private var engine: AVAudioEngine? = null
             private var playerNode: AVAudioPlayerNode? = null
             private var barBuffer: Buffer? = null
-            private val format = AVAudioFormat(sampleRate.toDouble(), 1u)
             private var playedBytes = 0
+            private var format = AVAudioFormat(
+                AVAudioPCMFormatInt16,
+                sampleRate.toDouble(),
+                1u,
+                false
+            )
 
             override fun play() {
                 scope.launch {
@@ -68,24 +89,28 @@ actual fun rememberAudioPlayer(
                         playerNode = AVAudioPlayerNode().also {
                             engine?.attachNode(it)
                             engine?.mainMixerNode?.let { mixer ->
+                                format = mixer.outputFormatForBus(0u)
                                 engine?.connect(it, mixer, format)
                             }
                         }
-
-                        engine?.prepare()
-                        engine?.startAndReturnError(null)
-                    }
-
-                    val audioBuffer = AVAudioPCMBuffer(
-                        AVAudioFormat(sampleRate.toDouble(), 1u),
-                        byteArray.size.toUInt()
-                    )
-                    audioBuffer.frameLength = (byteArray.size / 2).toUInt()
-                    byteArray.usePinned { pinnedBytes ->
-                        audioBuffer.int16ChannelData?.get(0)?.reinterpret<ShortVar>()?.let { destPointer ->
-                            memcpy(destPointer, pinnedBytes.addressOf(0), byteArray.size.convert())
+                        AVAudioSession.sharedInstance().apply {
+                            if((this.availableInputs()?.size ?: 0) == 0) {
+                                discard()
+                                return@launch
+                            }
+                            setPreferredSampleRate(sampleRate.toDouble(), null)
+                            setMode(AVAudioSessionModeSpokenAudio, null)
+                            setCategory(
+                                AVAudioSessionCategoryPlayback,
+                                AVAudioSessionCategoryOptionMixWithOthers or AVAudioSessionCategoryOptionAllowBluetooth,
+                                null
+                            )
+                            setActive(true, null)
                         }
                     }
+
+                    val audioBuffer = AVAudioPCMBuffer(format, byteArray.size.toUInt())
+                    audioBuffer.frameLength = (byteArray.size / 2).toUInt()
 
                     engine?.mainMixerNode?.installTapOnBus(
                         bus = 0u,
@@ -95,12 +120,32 @@ actual fun rememberAudioPlayer(
                         handleAudioBuffer(buffer)
                     }
 
+                    if (format.commonFormat == AVAudioPCMFormatFloat32) {
+                        byteArray.usePinned { pinnedBytes ->
+                            val int16Data = pinnedBytes.addressOf(0).reinterpret<ShortVar>()
+                            val floatData = audioBuffer.floatChannelData?.get(0) ?: return@usePinned
+
+                            // Convert Int16 to Float32 (normalize to the range -1.0 to 1.0)
+                            for (i in 0 until byteArray.size / 2) {
+                                val intValue = int16Data[i].toInt()
+                                floatData[i] = (intValue.toFloat() / Short.MAX_VALUE.toFloat())
+                            }
+                        }
+                    } else {
+                        byteArray.usePinned { pinnedBytes ->
+                            val destination = audioBuffer.int16ChannelData?.get(0) ?: return@usePinned
+                            memcpy(destination, pinnedBytes.addressOf(0), byteArray.size.convert())
+                        }
+                    }
+
                     playerNode?.scheduleBuffer(audioBuffer) {
                         dispatch_sync(dispatch_get_main_queue()) {
                             discard()
                         }
                     }
 
+                    engine?.prepare()
+                    engine?.startAndReturnError(null)
                     playerNode?.play()
                 }
             }
@@ -110,46 +155,106 @@ actual fun rememberAudioPlayer(
             }
 
             override fun discard() {
-                onFinish()
-                AVAudioSession.sharedInstance().setActive(
-                    active = false,
-                    nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>().value
-                )
                 scope.coroutineContext.cancelChildren()
-                playerNode?.stop()
-                engine?.stop()
-                playedBytes = 0
-                playerNode = null
-                engine = null
-                barBuffer = null
+                scope.launch(Dispatchers.Main) {
+                    onFinish()
+                    engine?.mainMixerNode?.removeTapOnBus(0u)
+                    playerNode?.stop()
+                    engine?.stop()
+                    playedBytes = 0
+                    playerNode = null
+                    engine = null
+                    barBuffer = null
+                    AVAudioSession.sharedInstance().setActive(
+                        active = false,
+                        nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>().value
+                    )
+                }
             }
 
             private fun handleAudioBuffer(buffer: AVAudioPCMBuffer?) {
-                if (buffer != null) {
-                    val frameLength = buffer.frameLength.toInt()
-                    val byteData = ByteArray(frameLength * 2) // Assuming 16-bit PCM data
+                if (buffer == null) return
 
-                    buffer.int16ChannelData?.get(0)?.reinterpret<ByteVar>()?.let { sourcePointer ->
-                        byteData.usePinned { pinnedByteArray ->
-                            memcpy(
-                                pinnedByteArray.addressOf(0),
-                                sourcePointer,
-                                byteData.size.convert()
-                            )
+                val frameLength = buffer.frameLength.toInt()
+                val channelCount = buffer.format.channelCount.toInt()
+                val isFloat32 = buffer.format.commonFormat == AVAudioPCMFormatFloat32
+
+                scope.launch {
+                    val int16Data: ShortArray
+
+                    if (isFloat32) {
+                        // Handle Float32 data
+                        val channelData = buffer.floatChannelData ?: return@launch
+                        val monoData = FloatArray(frameLength) // Pre-allocate for performance
+
+                        for (channel in 0 until channelCount) {
+                            val channelSamples = channelData[channel] ?: continue
+                            for (frame in 0 until frameLength) {
+                                monoData[frame] += channelSamples[frame]
+                            }
                         }
+
+                        // Average stereo channels if applicable
+                        if (channelCount > 1) {
+                            for (frame in monoData.indices) {
+                                monoData[frame] = (monoData.getOrNull(frame) ?: 0f) / channelCount
+                            }
+                        }
+
+                        // Convert to Int16
+                        int16Data = ShortArray(frameLength)
+                        for (i in monoData.indices) {
+                            println("kostka_test, int16Data[i] = monoData[i]")
+                            int16Data[i] = (monoData[i].coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort()
+                        }
+                    } else {
+                        // Handle Int16 data
+                        val channelData = buffer.int16ChannelData ?: return@launch
+                        val monoData = ShortArray(frameLength) // Pre-allocate for performance
+
+                        for (channel in 0 until channelCount) {
+                            val channelSamples = channelData[channel] ?: continue
+                            for (frame in 0 until frameLength) {
+                                monoData[frame] = (monoData[frame] + channelSamples[frame]).toShort()
+                            }
+                        }
+
+                        // Average stereo channels if applicable
+                        if (channelCount > 1) {
+                            for (frame in monoData.indices) {
+                                monoData[frame] = (monoData[frame] / channelCount).toShort()
+                            }
+                        }
+
+                        int16Data = monoData
                     }
+
+                    // Convert Int16 data to ByteArray for processing
+                    val byteData = shortArrayToByteArray(int16Data)
+
+                    // Write to bar buffer
                     barBuffer?.write(byteData)
                     playedBytes += byteData.size
 
+                    // Process chunks if barBuffer has enough data
                     if (playedBytes >= bytesPerBar) {
-                        scope.launch {
-                            processChunk(barBuffer?.readByteArray())
-                        }
+                        processChunk(barBuffer?.readByteArray())
                         barBuffer?.clear()
                         playedBytes -= bytesPerBar
                     }
                 }
             }
+
+            private fun shortArrayToByteArray(shortArray: ShortArray): ByteArray {
+                val res = ByteArray(shortArray.size * 2) // 2 bytes per short
+                for (i in shortArray.indices) {
+                    val value = shortArray[i].toInt()
+                    res[i * 2] = (value and 0xFF).toByte() // Low byte
+                    res[i * 2 + 1] = ((value shr 8) and 0xFF).toByte() // High byte
+                }
+                return res
+            }
+
         }
     }
 }

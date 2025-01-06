@@ -27,6 +27,7 @@ import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
 import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
 import platform.AVFAudio.AVAudioSessionModeMeasurement
+import platform.AVFAudio.AVAudioSessionModeSpokenAudio
 import platform.AVFAudio.availableInputs
 import platform.AVFAudio.setActive
 import platform.AVFAudio.setPreferredSampleRate
@@ -55,6 +56,12 @@ actual fun rememberAudioRecorder(
             private var byteOutputStream: NSMutableData? = null
             private var barByteOutputStream: NSMutableData? = null
             private var mixerNode: AVAudioMixerNode? = null
+            private val format = AVAudioFormat(
+                AVAudioPCMFormatInt16,
+                sampleRate.toDouble(),
+                1u,
+                false
+            )
 
             override fun startRecording() {
                 if(engine == null) {
@@ -73,7 +80,7 @@ actual fun rememberAudioRecorder(
                                 return@let
                             }
                             setPreferredSampleRate(sampleRate.toDouble(), errorPointer.value)
-                            setMode(AVAudioSessionModeMeasurement, errorPointer.value)
+                            setMode(AVAudioSessionModeSpokenAudio, errorPointer.value)
                             setCategory(
                                 AVAudioSessionCategoryPlayAndRecord,
                                 AVAudioSessionCategoryOptionMixWithOthers or AVAudioSessionCategoryOptionAllowBluetooth,
@@ -88,12 +95,7 @@ actual fun rememberAudioRecorder(
                         inputNode.installTapOnBus(
                             bus = 0u,
                             bufferSize = bufferSize.toUInt(),
-                            format = AVAudioFormat(
-                                AVAudioPCMFormatInt16,
-                                sampleRate.toDouble(),
-                                1u,
-                                false
-                            )
+                            format = format
                         ) { tapBuffer, _ ->
                             val audioBuffer = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)
                             val data = audioBuffer?.mData
