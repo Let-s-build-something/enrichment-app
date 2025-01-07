@@ -125,6 +125,7 @@
   <string name="conversation_action_delete">Delete</string>
   <string name="conversation_reply_heading">Replying to...</string>
   <string name="conversation_reply_prefix_self">You:</string>
+  <string name="conversation_detail_you">You</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>
@@ -188,6 +189,11 @@
   <string name="accessibility_message_action_audio">Record an audio track that will be attach to your message</string>
   <string name="accessibility_message_action_image">Attach an image to your message</string>
   <string name="accessibility_message_action_file">Attach any file to your message</string>
+  <string name="accessibility_message_status_loading">Loading</string>
+  <string name="accessibility_message_status_sent">Sent</string>
+  <string name="accessibility_message_status_failed">Failed</string>
+  <string name="accessibility_message_status_received">Received</string>
+  <string name="accessibility_message_status_read">Read</string>
   <string name="accessibility_audio_action_delete">Delete the recording</string>
   <string name="accessibility_audio_action_send">Send the recording as a message</string>
   <string name="accessibility_audio_action_lock">Lock the recording, so you don't have to hold it</string>

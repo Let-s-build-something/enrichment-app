@@ -6,7 +6,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -67,7 +66,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -284,34 +282,32 @@ internal fun BoxScope.SendMessagePanel(
         modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.Top
     ) {
-        AnimatedVisibility(gifAttached.value != null) {
-            gifAttached.value?.let { gifAsset ->
-                Box {
-                    GifImage(
-                        modifier = Modifier
-                            .zIndex(1f)
-                            .scalingClickable(scaleInto = .95f) {
-                                navController?.navigate(
-                                    NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
-                                )
-                            }
-                            .height(MEDIA_MAX_HEIGHT_DP.dp)
-                            .wrapContentWidth()
-                            .clip(RoundedCornerShape(6.dp)),
-                        data = gifAsset.fixedWidthSmall ?: "",
-                        contentDescription = gifAsset.description,
-                        contentScale = ContentScale.FillHeight
-                    )
-                    MinimalisticIcon(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd),
-                        imageVector = Icons.Outlined.Close,
-                        tint = LocalTheme.current.colors.secondary,
-                        onTap = {
-                            gifAttached.value = null
+        gifAttached.value?.let { gifAsset ->
+            Box {
+                GifImage(
+                    modifier = Modifier
+                        .zIndex(1f)
+                        .scalingClickable(scaleInto = .95f) {
+                            navController?.navigate(
+                                NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                            )
                         }
-                    )
-                }
+                        .height(MEDIA_MAX_HEIGHT_DP.dp)
+                        .wrapContentWidth()
+                        .clip(RoundedCornerShape(6.dp)),
+                    data = gifAsset.fixedWidthSmall ?: "",
+                    contentDescription = gifAsset.description,
+                    contentScale = ContentScale.FillHeight
+                )
+                MinimalisticIcon(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd),
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        gifAttached.value = null
+                    }
+                )
             }
         }
 

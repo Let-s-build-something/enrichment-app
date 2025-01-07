@@ -62,8 +62,8 @@ fun NavigationHost(
             MediaDetailScreen(
                 urls = it.arguments?.getStringArray("urls").orEmpty(),
                 selectedIndex = it.arguments?.getInt("selectedIndex") ?: 0,
-                title = it.arguments?.getString("title"),
-                subtitle = it.arguments?.getString("subtitle")
+                title = it.arguments?.getString("title") ?: "",
+                subtitle = it.arguments?.getString("subtitle") ?: ""
             )
         }
         composable<NavigationNode.Conversation> {

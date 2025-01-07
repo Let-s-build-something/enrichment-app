@@ -93,20 +93,22 @@ fun MessageReactionsDialog(
                     .height((screenSize.height * 0.4f).dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    modifier = Modifier
-                        .padding(bottom = 24.dp)
-                        .background(
-                            color = LocalTheme.current.colors.component,
-                            shape = RoundedCornerShape(24.dp)
-                        )
-                        .padding(
-                            vertical = 10.dp,
-                            horizontal = 14.dp
-                        ),
-                    text = messageContent ?: "",
-                    style = LocalTheme.current.styles.category
-                )
+                messageContent?.let { text ->
+                    Text(
+                        modifier = Modifier
+                            .padding(bottom = 24.dp)
+                            .background(
+                                color = LocalTheme.current.colors.component,
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                            .padding(
+                                vertical = 10.dp,
+                                horizontal = 14.dp
+                            ),
+                        text = text,
+                        style = LocalTheme.current.styles.category
+                    )
+                }
                 if(tabs.size > 2) {
                     MultiChoiceSwitchMinimalistic(
                         modifier = Modifier.fillMaxWidth(),

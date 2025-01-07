@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +60,7 @@ import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
+import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.DateUtils.formatAsRelative
 import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
@@ -73,8 +76,10 @@ import base.navigation.NavigationNode
 import base.utils.getOrNull
 import components.UserProfileImage
 import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.EmojiData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -105,22 +110,22 @@ fun ConversationScreen(
         parameters = { parametersOf(conversationId ?: "") }
     )
 
-    val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
-    val navController = LocalNavController.current
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
     val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
     val preferredEmojis = viewModel.preferredEmojis.collectAsState()
-    val currentUser = viewModel.currentUser.collectAsState()
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
             || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
     val isEmpty = messages.itemCount == 0 && messages.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
+    val lastCurrentUserMessage = rememberSaveable(viewModel) {
+        mutableStateOf(500)
+    }
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
     }
@@ -251,210 +256,35 @@ fun ConversationScreen(
                     count = if(messages.itemCount == 0 && isLoadingInitialPage) MESSAGES_SHIMMER_ITEM_COUNT else messages.itemCount,
                     key = { index -> messages.getOrNull(index)?.id ?: Uuid.random().toString() }
                 ) { index ->
-                    messages.getOrNull(index).let { data ->
-                        val isCurrentUser = if(data != null) {
-                            data.authorPublicId == currentUser.value?.publicId
-                        }else (0..1).random() == 0
-                        val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
-                        val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
-                        val scrollPosition = rememberSaveable(data?.id) {
-                            mutableStateOf(0)
-                        }
-                        val mediaRowState = rememberScrollState(
-                            initial = scrollPosition.value
-                        )
-                        if(scrollPosition.value != 0) {
-                            LaunchedEffect(Unit) {
-                                delay(400)
-                                mediaRowState.animateScrollBy(scrollPosition.value.toFloat())
-                            }
-                        }
+                    val data = messages.getOrNull(index)
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    top = if(isPreviousMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2),
-                                    bottom = if(isNextMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2)
-                                )
-                                .animateItem(),
-                            horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val profileImageSize = with(density) { 38.sp.toDp() }
-                            val isLastOfStack = !isCurrentUser && !isNextMessageSameAuthor
-                            if(isLastOfStack) {
-                                UserProfileImage(
-                                    modifier = Modifier
-                                        .padding(start = 12.dp)
-                                        .zIndex(4f)
-                                        .size(profileImageSize),
-                                    model = data?.user?.photoUrl,
-                                    tag = data?.user?.tag
-                                )
-                            }
+                    val isCurrentUser = data?.authorPublicId == viewModel.currentUser.value?.publicId
+                    val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
+                    val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
 
-                            MessageBubble(
-                                modifier = Modifier
-                                    .padding(
-                                        start = LocalTheme.current.shapes.betweenItemsSpace.plus(
-                                            if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
-                                                12.dp + profileImageSize
-                                            } else 0.dp
-                                        ).plus(
-                                            if (isCurrentUser) 50.dp else 0.dp
-                                        )
-                                    )
-                                    .padding(
-                                        start = if (isCurrentUser) 16.dp else 0.dp,
-                                        end = if (isCurrentUser) 0.dp else 16.dp,
-                                    ),
-                                data = data,
-                                isReacting = reactingToMessageId.value == data?.id,
-                                currentUserPublicId = currentUser.value?.publicId ?: "",
-                                hasPrevious = isPreviousMessageSameAuthor,
-                                hasNext = isNextMessageSameAuthor,
-                                isReplying = replyToMessage.value?.id == data?.id,
-                                users = conversationDetail.value?.users.orEmpty(),
-                                preferredEmojis = preferredEmojis.value,
-                                state = rememberMessageBubbleState(
-                                    onReactionRequest = { show ->
-                                        reactingToMessageId.value = if(show) data?.id else null
-                                    },
-                                    onReactionChange = { emoji ->
-                                        if(data?.id != null) {
-                                            viewModel.reactToMessage(content = emoji, messageId = data.id)
-                                            reactingToMessageId.value = null
-                                        }
-                                    },
-                                    onAdditionalReactionRequest = {
-                                        showEmojiPreferencesId.value = data?.id
-                                    },
-                                    onReplyRequest = {
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(index = 0)
-                                        }
-                                        replyToMessage.value = data
-                                    }
-                                ),
-                                additionalContent = {
-                                    val heightModifier = Modifier.heightIn(
-                                        max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
-                                        min = MEDIA_MAX_HEIGHT_DP.dp
-                                    )
-
-                                    data?.anchorMessage?.let { anchorData ->
-                                        ReplyIndication(
-                                            modifier = Modifier
-                                                .wrapContentWidth()
-                                                .padding(start = 12.dp),
-                                            data = anchorData,
-                                            onClick = {
-                                                scrollToMessage(anchorData.id, anchorData.index)
-                                            },
-                                            isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
-                                        )
-                                    }
-                                    if(data?.gifAsset != null) {
-                                        val date = data.createdAt?.formatAsRelative() ?: ""
-
-                                        GifImage(
-                                            modifier = heightModifier
-                                                .align(Alignment.End)
-                                                .zIndex(1f)
-                                                .scalingClickable(
-                                                    scaleInto = .95f,
-                                                    onLongPress = {
-                                                        reactingToMessageId.value = data.id
-                                                    }
-                                                ) {
-                                                    navController?.navigate(
-                                                        NavigationNode.MediaDetail(
-                                                            urls = listOf(data.gifAsset.original ?: ""),
-                                                            title = data.user?.displayName,
-                                                            subtitle = date
-                                                        )
-                                                    )
-                                                }
-                                                .clip(RoundedCornerShape(6.dp)),
-                                            data = data.gifAsset.original ?: "",
-                                            contentDescription = data.gifAsset.description,
-                                            contentScale = ContentScale.FillHeight
-                                        )
-                                    }
-                                    if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
-                                        val date = data.createdAt?.formatAsRelative() ?: ""
-
-                                        LaunchedEffect(mediaRowState) {
-                                            snapshotFlow { mediaRowState.value }.collect {
-                                                if(abs(scrollPosition.value - it) < 300) {
-                                                    scrollPosition.value = it
-                                                }
-                                            }
-                                        }
-
-                                        Row(
-                                            modifier = heightModifier
-                                                .wrapContentWidth()
-                                                .horizontalScroll(state = mediaRowState)
-                                                .horizontallyDraggable(state = mediaRowState)
-                                                .animateContentSize()
-                                        ) {
-                                            if(isCurrentUser) {
-                                                Spacer(Modifier.width((screenSize.width * .3f).dp))
-                                            }
-                                            (if(isCurrentUser) {
-                                                data.mediaUrls
-                                            } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
-                                                val media = viewModel.cachedFiles[mediaUrl]
-
-                                                MediaElement(
-                                                    modifier = heightModifier
-                                                        .padding(
-                                                            horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
-                                                        )
-                                                        .scalingClickable(
-                                                            enabled = (data.state?.ordinal ?: 0) > 0,
-                                                            scaleInto = .95f,
-                                                            onLongPress = {
-                                                                reactingToMessageId.value = data.id
-                                                            }
-                                                        ) {
-                                                            navController?.navigate(
-                                                                NavigationNode.MediaDetail(
-                                                                    urls = data.mediaUrls,
-                                                                    selectedIndex = index,
-                                                                    title = data.user?.displayName,
-                                                                    subtitle = date
-                                                                )
-                                                            )
-                                                        }
-                                                        .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                                    url = mediaUrl,
-                                                    media = media
-                                                )
-                                            }
-                                            if(!isCurrentUser) {
-                                                Spacer(Modifier.width((screenSize.width * .3f).dp))
-                                            }
-                                        }
-                                    }
-                                    if(!data?.audioUrl.isNullOrBlank()) {
-                                        AudioMessageBubble(
-                                            modifier = Modifier
-                                                .wrapContentWidth()
-                                                .align(Alignment.End)
-                                                .zIndex(1f),
-                                            url = data?.audioUrl ?: "",
-                                            isCurrentUser = isCurrentUser,
-                                            hasPrevious = isPreviousMessageSameAuthor,
-                                            hasNext = isNextMessageSameAuthor
-                                        )
-                                    }
-                                }
-                            )
-                        }
+                    if(isCurrentUser && !isNextMessageSameAuthor && lastCurrentUserMessage.value > index) {
+                        lastCurrentUserMessage.value = index
                     }
+
+                    MessageContent(
+                        data = data,
+                        isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
+                        isNextMessageSameAuthor = isNextMessageSameAuthor,
+                        currentUser = isCurrentUser,
+                        viewModel = viewModel,
+                        reactingToMessageId = reactingToMessageId,
+                        showEmojiPreferencesId = showEmojiPreferencesId,
+                        replyToMessage = replyToMessage,
+                        scrollToMessage = scrollToMessage,
+                        preferredEmojis = preferredEmojis.value,
+                        isMyLastMessage = lastCurrentUserMessage.value == index,
+                        onReplyRequest = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(index = 0)
+                            }
+                            replyToMessage.value = data
+                        }
+                    )
                 }
                 item(key = "topPadding") {
                     Spacer(Modifier.height(42.dp))
@@ -485,6 +315,227 @@ fun ConversationScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun LazyItemScope.MessageContent(
+    viewModel: ConversationViewModel,
+    data: ConversationMessageIO?,
+    isPreviousMessageSameAuthor: Boolean,
+    isNextMessageSameAuthor: Boolean,
+    currentUser: Boolean,
+    isMyLastMessage: Boolean,
+    reactingToMessageId: MutableState<String?>,
+    showEmojiPreferencesId: MutableState<String?>,
+    replyToMessage: MutableState<ConversationMessageIO?>,
+    preferredEmojis: List<EmojiData>,
+    scrollToMessage: (String?, Int?) -> Unit,
+    onReplyRequest: () -> Unit
+) {
+    val density = LocalDensity.current
+    val screenSize = LocalScreenSize.current
+    val navController = LocalNavController.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val isCurrentUser = if(data != null) currentUser else (0..1).random() == 0
+    val scrollPosition = rememberSaveable(data?.id) {
+        mutableStateOf(0)
+    }
+    val mediaRowState = rememberScrollState(
+        initial = scrollPosition.value
+    )
+    if(scrollPosition.value != 0) {
+        LaunchedEffect(Unit) {
+            delay(400)
+            mediaRowState.animateScrollBy(scrollPosition.value.toFloat())
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                top = if(isPreviousMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2),
+                bottom = if(isNextMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2)
+            )
+            .animateItem(),
+        horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val profileImageSize = with(density) { 38.sp.toDp() }
+        val isLastOfStack = !isCurrentUser && !isNextMessageSameAuthor
+        if(isLastOfStack) {
+            UserProfileImage(
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .zIndex(4f)
+                    .size(profileImageSize),
+                model = data?.user?.photoUrl,
+                tag = data?.user?.tag
+            )
+        }
+
+        MessageBubble(
+            modifier = Modifier
+                .padding(
+                    start = LocalTheme.current.shapes.betweenItemsSpace.plus(
+                        if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
+                            12.dp + profileImageSize
+                        } else 0.dp
+                    )
+                )
+                .padding(
+                    start = if (isCurrentUser) 16.dp else 0.dp,
+                    end = if (isCurrentUser) 0.dp else 16.dp,
+                ),
+            data = data,
+            isReacting = reactingToMessageId.value == data?.id,
+            currentUserPublicId = viewModel.currentUser.value?.publicId ?: "",
+            hasPrevious = isPreviousMessageSameAuthor,
+            hasNext = isNextMessageSameAuthor,
+            isReplying = replyToMessage.value?.id == data?.id,
+            users = viewModel.conversationDetail.value?.users.orEmpty(),
+            isMyLastMessage = isMyLastMessage,
+            preferredEmojis = preferredEmojis,
+            state = rememberMessageBubbleState(
+                onReactionRequest = { show ->
+                    reactingToMessageId.value = if(show) data?.id else null
+                },
+                onReactionChange = { emoji ->
+                    if(data?.id != null) {
+                        viewModel.reactToMessage(content = emoji, messageId = data.id)
+                        reactingToMessageId.value = null
+                    }
+                },
+                onAdditionalReactionRequest = {
+                    showEmojiPreferencesId.value = data?.id
+                },
+                onReplyRequest = onReplyRequest
+            ),
+            additionalContent = {
+                val heightModifier = Modifier.heightIn(
+                    max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
+                    min = MEDIA_MAX_HEIGHT_DP.dp
+                )
+
+                data?.anchorMessage?.let { anchorData ->
+                    ReplyIndication(
+                        modifier = Modifier
+                            .wrapContentWidth()
+                            .padding(start = 12.dp),
+                        data = anchorData,
+                        onClick = {
+                            scrollToMessage(anchorData.id, anchorData.index)
+                        },
+                        isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
+                    )
+                }
+                if(data?.gifAsset != null) {
+                    val date = data.createdAt?.formatAsRelative() ?: ""
+
+                    GifImage(
+                        modifier = heightModifier
+                            .align(Alignment.End)
+                            .zIndex(1f)
+                            .scalingClickable(
+                                scaleInto = .95f,
+                                onLongPress = {
+                                    reactingToMessageId.value = data.id
+                                }
+                            ) {
+                                coroutineScope.launch {
+                                    navController?.navigate(
+                                        NavigationNode.MediaDetail(
+                                            urls = listOf(data.gifAsset.original ?: ""),
+                                            title = if(isCurrentUser) {
+                                                getString(Res.string.conversation_detail_you)
+                                            } else data.user?.displayName,
+                                            subtitle = date
+                                        )
+                                    )
+                                }
+                            }
+                            .clip(RoundedCornerShape(6.dp)),
+                        data = data.gifAsset.original ?: "",
+                        contentDescription = data.gifAsset.description,
+                        contentScale = ContentScale.FillHeight
+                    )
+                }
+                if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
+                    val date = data.createdAt?.formatAsRelative() ?: ""
+
+                    LaunchedEffect(mediaRowState) {
+                        snapshotFlow { mediaRowState.value }.collect {
+                            if(abs(scrollPosition.value - it) < 300) {
+                                scrollPosition.value = it
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = heightModifier
+                            .wrapContentWidth()
+                            .horizontalScroll(state = mediaRowState)
+                            .horizontallyDraggable(state = mediaRowState)
+                    ) {
+                        if(isCurrentUser) {
+                            Spacer(Modifier.width((screenSize.width * .3f).dp))
+                        }
+                        (if(isCurrentUser) {
+                            data.mediaUrls
+                        } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
+                            val media = viewModel.cachedFiles[mediaUrl]
+
+                            MediaElement(
+                                modifier = heightModifier
+                                    .padding(
+                                        horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
+                                    )
+                                    .scalingClickable(
+                                        enabled = (data.state?.ordinal ?: 0) > 0,
+                                        scaleInto = .95f,
+                                        onLongPress = {
+                                            reactingToMessageId.value = data.id
+                                        }
+                                    ) {
+                                        coroutineScope.launch {
+                                            navController?.navigate(
+                                                NavigationNode.MediaDetail(
+                                                    urls = data.mediaUrls,
+                                                    selectedIndex = index,
+                                                    title = if(isCurrentUser) {
+                                                        getString(Res.string.conversation_detail_you)
+                                                    } else data.user?.displayName,
+                                                    subtitle = date
+                                                )
+                                            )
+                                        }
+                                    }
+                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
+                                url = mediaUrl,
+                                media = media
+                            )
+                        }
+                        if(!isCurrentUser) {
+                            Spacer(Modifier.width((screenSize.width * .3f).dp))
+                        }
+                    }
+                }
+                if(!data?.audioUrl.isNullOrBlank()) {
+                    AudioMessageBubble(
+                        modifier = Modifier
+                            .wrapContentWidth()
+                            .align(Alignment.End)
+                            .zIndex(1f),
+                        url = data?.audioUrl ?: "",
+                        isCurrentUser = isCurrentUser,
+                        hasPrevious = isPreviousMessageSameAuthor,
+                        hasNext = isNextMessageSameAuthor
+                    )
+                }
+            }
+        )
     }
 }
 

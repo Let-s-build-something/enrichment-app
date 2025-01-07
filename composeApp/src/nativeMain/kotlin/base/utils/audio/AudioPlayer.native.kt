@@ -204,7 +204,6 @@ actual fun rememberAudioPlayer(
                         // Convert to Int16
                         int16Data = ShortArray(frameLength)
                         for (i in monoData.indices) {
-                            println("kostka_test, int16Data[i] = monoData[i]")
                             int16Data[i] = (monoData[i].coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort()
                         }
                     } else {
