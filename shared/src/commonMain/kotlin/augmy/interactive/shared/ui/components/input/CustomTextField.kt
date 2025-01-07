@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +27,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
@@ -62,6 +65,7 @@ fun CustomTextField(
     isCorrect: Boolean = false,
     enabled: Boolean = true
 ) {
+    val focusRequester = remember(state) { FocusRequester() }
     val isFocused = remember(state.text) { mutableStateOf(false) }
     val controlColor by animateColorAsState(
         when {
@@ -87,11 +91,15 @@ fun CustomTextField(
                     width = if (isFocused.value) 1.dp else 0.25.dp,
                     color = controlColor,
                     shape = shape
-                ),
+                )
+                .clickable(indication = null, interactionSource = null) {
+                    focusRequester.requestFocus()
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             BasicTextField(
                 modifier = Modifier
+                    .focusRequester(focusRequester)
                     .weight(1f, fill = true)
                     .onFocusChanged {
                         isFocused.value = it.isFocused

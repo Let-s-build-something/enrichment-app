@@ -16,6 +16,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import platform.AVFAudio.AVAudioEngine
+import platform.AVFAudio.AVAudioEnvironmentReverbParameters
+import platform.AVFAudio.AVAudioEnvironmentReverbParametersMeta
 import platform.AVFAudio.AVAudioFormat
 import platform.AVFAudio.AVAudioMixerNode
 import platform.AVFAudio.AVAudioNode
@@ -24,8 +26,11 @@ import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
 import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
+import platform.AVFAudio.AVAudioSessionModeMeasurement
+import platform.AVFAudio.AVAudioSessionModeSpokenAudio
 import platform.AVFAudio.availableInputs
 import platform.AVFAudio.setActive
+import platform.AVFAudio.setPreferredSampleRate
 import platform.Foundation.NSError
 import platform.Foundation.NSMutableData
 import platform.Foundation.appendBytes
@@ -51,26 +56,18 @@ actual fun rememberAudioRecorder(
             private var byteOutputStream: NSMutableData? = null
             private var barByteOutputStream: NSMutableData? = null
             private var mixerNode: AVAudioMixerNode? = null
+            private val format = AVAudioFormat(
+                AVAudioPCMFormatInt16,
+                sampleRate.toDouble(),
+                1u,
+                false
+            )
 
             override fun startRecording() {
                 if(engine == null) {
                     stopRecording()
                 }
                 val errorPointer = nativeHeap.allocPointerTo<ObjCObjectVar<NSError?>>()
-                engine?.inputNode?.let { inputNode ->
-                    val inputFormat = inputNode.outputFormatForBus(0u)
-                    val mainMixerNode = engine?.mainMixerNode as AVAudioNode
-                    val mixerFormat = AVAudioFormat(AVAudioPCMFormatInt16, inputFormat.sampleRate, 1u, false)
-
-                    // remove interrupting audio
-                    mixerNode?.apply {
-                        setVolume(0f)
-                        engine?.attachNode(this)
-                        engine?.connect(inputNode, this, inputFormat)
-                        engine?.connect(this, mainMixerNode, mixerFormat)
-                    }
-                }
-
 
                 if(engine == null) {
                     engine = AVAudioEngine()
@@ -82,6 +79,8 @@ actual fun rememberAudioRecorder(
                                 stopRecording()
                                 return@let
                             }
+                            setPreferredSampleRate(sampleRate.toDouble(), errorPointer.value)
+                            setMode(AVAudioSessionModeSpokenAudio, errorPointer.value)
                             setCategory(
                                 AVAudioSessionCategoryPlayAndRecord,
                                 AVAudioSessionCategoryOptionMixWithOthers or AVAudioSessionCategoryOptionAllowBluetooth,
@@ -96,7 +95,7 @@ actual fun rememberAudioRecorder(
                         inputNode.installTapOnBus(
                             bus = 0u,
                             bufferSize = bufferSize.toUInt(),
-                            format = mixerNode?.outputFormatForBus(0u)
+                            format = format
                         ) { tapBuffer, _ ->
                             val audioBuffer = tapBuffer?.audioBufferList?.get(0)?.mBuffers?.get(0)
                             val data = audioBuffer?.mData
@@ -113,6 +112,25 @@ actual fun rememberAudioRecorder(
                                 barByteOutputStream?.setLength(0u)
                             }
                         }
+                    }
+                }
+
+                engine?.inputNode?.let { inputNode ->
+                    val inputFormat = inputNode.outputFormatForBus(0u)
+                    val mainMixerNode = engine?.mainMixerNode as? AVAudioNode
+                    val mixerFormat = AVAudioFormat(
+                        AVAudioPCMFormatInt16,
+                        sampleRate.toDouble(),
+                        1u,
+                        false
+                    )
+
+                    // remove interrupting audio
+                    mixerNode?.apply {
+                        setVolume(0f)
+                        engine?.attachNode(this)
+                        engine?.connect(inputNode, this, inputFormat)
+                        mainMixerNode?.let { engine?.connect(this, it, mixerFormat) }
                     }
                 }
 

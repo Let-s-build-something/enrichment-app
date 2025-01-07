@@ -198,12 +198,23 @@ class ConversationRepository(
                 audioUrl = if(audioByteArray?.isNotEmpty() == true) {
                     MESSAGE_AUDIO_URL_PLACEHOLDER
                 }else null,
-                state = MessageState.SENDING
+                state = MessageState.Pending
             )
             conversationMessageDao.insert(msg)
             invalidateLocalSource()
 
-            // real message preview
+            // upload the real message
+            val response = httpClient.safeRequest<Any> {
+                post(
+                    urlString = "/api/v1/social/conversation/send",
+                    block = {
+                        parameter("conversationId", conversationId)
+                        setBody(msg)
+                    }
+                )
+            }
+
+            // real message
             msg = msg.copy(
                 mediaUrls = mediaFiles.mapNotNull { media ->
                     val bytes = media.readBytes()
@@ -225,7 +236,7 @@ class ConversationRepository(
                         }
                     }
                 },
-                state = MessageState.SENT
+                state = if(response is BaseResponse.Success) MessageState.Sent else MessageState.Failed
             )
             uuids.forEachIndexed { index, s ->
                 msg.mediaUrls?.getOrNull(index)?.let {
@@ -236,16 +247,7 @@ class ConversationRepository(
             conversationMessageDao.insert(msg)
             invalidateLocalSource()
 
-            // upload the real message
-            httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/conversation/send",
-                    block = {
-                        parameter("conversationId", conversationId)
-                        setBody(msg)
-                    }
-                )
-            }
+            response
         }
     }
 
@@ -315,7 +317,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.RECEIVED
+                state = MessageState.Received
             ),
             ConversationMessageIO(
                 content = "Yes! It was so intense! 😱",
@@ -329,7 +331,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "I couldn't believe the twist at the end! 🤯",
@@ -340,7 +342,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Me neither! Any theories for next week?",
@@ -351,7 +353,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "I think the protagonist might switch sides... 😮",
@@ -366,7 +368,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.RECEIVED
+                state = MessageState.Received
             ),
             ConversationMessageIO(
                 content = "That would be wild! I can't wait! 🚀",
@@ -377,7 +379,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "By the way, are we still on for dinner tomorrow? 🍲",
@@ -388,7 +390,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Absolutely! Looking forward to it! 😊",
@@ -402,7 +404,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "Do you think we should invite more friends? 🤔",
@@ -413,7 +415,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Sure! The more, the merrier! 😄",
@@ -424,7 +426,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "I'll check with Sarah and Jake. 🌟",
@@ -435,7 +437,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Sounds great. Let me know what they say! 📞",
@@ -446,7 +448,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "Sarah is in, but Jake is busy. 🤷‍♂️",
@@ -457,7 +459,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Got it! I'll plan accordingly. 😊",
@@ -468,7 +470,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "Any food preferences for tomorrow? 🍝",
@@ -479,7 +481,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "I'm good with anything! Just no peanuts, please. 🥜",
@@ -490,12 +492,13 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "Yoddaaa \uD83D\uDFE2\uD83D\uDFE2",
                 id = Uuid.random().toString(),
                 authorPublicId = "me",
+                state = MessageState.Read,
                 createdAt = LocalDateTime.parse(
                     now.minus(25, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -511,7 +514,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.RECEIVED
+                state = MessageState.Received
             ),
             ConversationMessageIO(
                 content = "Yes! It was so intense! 😱",
@@ -525,7 +528,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "I couldn't believe the twist at the end! 🤯",
@@ -536,7 +539,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Me neither! Any theories for next week?",
@@ -547,7 +550,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "I think the protagonist might switch sides... 😮",
@@ -562,7 +565,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.RECEIVED
+                state = MessageState.Received
             ),
             ConversationMessageIO(
                 content = "That would be wild! I can't wait! 🚀",
@@ -573,7 +576,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "By the way, are we still on for dinner tomorrow? 🍲",
@@ -584,7 +587,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             ),
             ConversationMessageIO(
                 content = "Absolutely! Looking forward to it! 😊",
@@ -598,11 +601,12 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "How are you? \uD83D\uDC40",
                 id = Uuid.random().toString(),
+                state = MessageState.Failed,
                 authorPublicId = "me",
                 createdAt = LocalDateTime.parse(
                     now.minus(8, DateTimeUnit.HOUR)
@@ -624,7 +628,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "Maybe a success of sorts? ☺",
@@ -650,7 +654,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "I'm great. What about yourself?",
@@ -661,7 +665,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.READ
+                state = MessageState.Read
             ),
             ConversationMessageIO(
                 content = "You bet! We've just won! ⚽⚽\uD83C\uDFC6\uD83C\uDFC5",
@@ -672,7 +676,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.RECEIVED,
+                state = MessageState.Received,
                 reactions = listOf(
                     MessageReactionIO(
                         content = "\uD83E\uDD73",
@@ -689,7 +693,7 @@ class ConversationRepository(
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.FAILED
+                state = MessageState.Failed
             ),
             ConversationMessageIO(
                 content = "I can tell! Thank you ❤\uFE0F",
@@ -698,7 +702,7 @@ class ConversationRepository(
                 createdAt = LocalDateTime.parse(
                     localNow.format(LocalDateTime.Formats.ISO)
                 ),
-                state = MessageState.SENT
+                state = MessageState.Sent
             )
         ).apply {
             repeat(100) { index ->

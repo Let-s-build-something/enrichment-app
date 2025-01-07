@@ -6,7 +6,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -67,7 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
@@ -118,7 +117,6 @@ import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
@@ -284,34 +282,32 @@ internal fun BoxScope.SendMessagePanel(
         modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.Top
     ) {
-        AnimatedVisibility(gifAttached.value != null) {
-            gifAttached.value?.let { gifAsset ->
-                Box {
-                    GifImage(
-                        modifier = Modifier
-                            .zIndex(1f)
-                            .scalingClickable(scaleInto = .95f) {
-                                navController?.navigate(
-                                    NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
-                                )
-                            }
-                            .height(MEDIA_MAX_HEIGHT_DP.dp)
-                            .wrapContentWidth()
-                            .clip(RoundedCornerShape(6.dp)),
-                        data = gifAsset.fixedWidthSmall ?: "",
-                        contentDescription = gifAsset.description,
-                        contentScale = ContentScale.FillHeight
-                    )
-                    MinimalisticIcon(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd),
-                        imageVector = Icons.Outlined.Close,
-                        tint = LocalTheme.current.colors.secondary,
-                        onTap = {
-                            gifAttached.value = null
+        gifAttached.value?.let { gifAsset ->
+            Box {
+                GifImage(
+                    modifier = Modifier
+                        .zIndex(1f)
+                        .scalingClickable(scaleInto = .95f) {
+                            navController?.navigate(
+                                NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                            )
                         }
-                    )
-                }
+                        .height(MEDIA_MAX_HEIGHT_DP.dp)
+                        .wrapContentWidth()
+                        .clip(RoundedCornerShape(6.dp)),
+                    data = gifAsset.fixedWidthSmall ?: "",
+                    contentDescription = gifAsset.description,
+                    contentScale = ContentScale.FillHeight
+                )
+                MinimalisticIcon(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd),
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        gifAttached.value = null
+                    }
+                )
             }
         }
 
@@ -418,7 +414,7 @@ internal fun BoxScope.SendMessagePanel(
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
                     .onGloballyPositioned {
-                        actionYCoordinate.value = it.positionInRoot().y
+                        actionYCoordinate.value = it.positionOnScreen().y
                     }
                     .contentReceiver { uri ->
                         when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
@@ -564,24 +560,16 @@ internal fun BoxScope.SendMessagePanel(
                 onEmojiSelected = { emoji ->
                     showMoreOptions.value = false
 
-                    val newContent = buildString {
-                        // before selection
-                        append(
-                            messageState.text.subSequence(
-                                0, messageState.selection.start
-                            )
+                    messageState.edit {
+                        replace(
+                            text = emoji,
+                            start = messageState.selection.start,
+                            end = messageState.selection.end
                         )
-                        // selection
-                        append(emoji)
-                        // after selection
-                        append(
-                            messageState.text.subSequence(
-                                messageState.selection.end,
-                                messageState.text.length
-                            )
+                        selection = TextRange(
+                            messageState.selection.start + emoji.length
                         )
                     }
-                    messageState.setTextAndPlaceCursorAtEnd(newContent)
                 },
                 onBackSpace = {
                     showMoreOptions.value = false

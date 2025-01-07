@@ -92,7 +92,8 @@ sealed class NavigationNode {
             Water,
             Conversation(),
             AccountDashboard,
-            NetworkManagement()
+            NetworkManagement(),
+            MediaDetail()
         )
     }
 }

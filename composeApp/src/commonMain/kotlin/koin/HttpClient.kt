@@ -49,7 +49,7 @@ internal fun httpClientFactory(
             logger = Logger.SIMPLE
             level = LogLevel.ALL
 
-            sanitizeHeader { header -> header == HttpHeaders.Authorization }
+            sanitizeHeader { header -> header == HttpHeaders.Authorization || header == HttpHeaders.IdToken }
         }
         ResponseObserver { response ->
             developerViewModel?.appendHttpLog(

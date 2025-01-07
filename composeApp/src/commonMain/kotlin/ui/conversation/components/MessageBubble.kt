@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,10 +60,12 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.theme.SharedColors
 import base.theme.Colors
 import base.utils.tagToColor
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
+import data.io.social.network.conversation.MessageState
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
@@ -72,44 +75,28 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.absoluteValue
 
-@Composable
-fun rememberMessageBubbleState(
-    onReactionRequest: (Boolean) -> Unit,
-    onReactionChange: (String) -> Unit,
-    onAdditionalReactionRequest: () -> Unit,
-    onReplyRequest: () -> Unit
-): MessageBubbleState {
-    return remember {
-        MessageBubbleState(
-            onReactionRequest = onReactionRequest,
-            onReactionChange = onReactionChange,
-            onAdditionalReactionRequest = onAdditionalReactionRequest,
-            onReplyRequest = onReplyRequest
-        )
-    }
-}
 
-data class MessageBubbleState(
-    val onReactionRequest: (Boolean) -> Unit,
-    val onReactionChange: (String) -> Unit,
-    val onAdditionalReactionRequest: () -> Unit,
-    val onReplyRequest: () -> Unit
-)
-
-/** Horizontal bubble displaying textual content of a message and its reactions */
+/**
+ * Horizontal bubble displaying textual content of a message and its reactions
+ * @param isMyLastMessage whether this message is the last of the current user overall
+ */
 @Composable
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
+    contentPadding: PaddingValues,
     users: List<NetworkItemIO>,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
-    enabled: Boolean = true,
-    hasPrevious: Boolean = false,
-    hasNext: Boolean = false,
-    isReplying: Boolean = false,
+    hasPrevious: Boolean,
+    hasNext: Boolean,
+    isMyLastMessage: Boolean,
+    isReplying: Boolean,
     currentUserPublicId: String,
-    state: MessageBubbleState,
+    onReactionRequest: (Boolean) -> Unit,
+    onReactionChange: (String) -> Unit,
+    onAdditionalReactionRequest: () -> Unit,
+    onReplyRequest: () -> Unit,
     additionalContent: @Composable ColumnScope.() -> Unit
 ) {
     Crossfade(targetState = data == null) { isLoading ->
@@ -118,17 +105,21 @@ fun MessageBubble(
         }else if(data != null) {
             ContentLayout(
                 modifier = modifier,
+                contentPadding = contentPadding,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
                 data = data,
                 users = users,
                 preferredEmojis = preferredEmojis,
                 currentUserPublicId = currentUserPublicId,
-                enabled = enabled,
                 isReacting = isReacting,
                 isReplying = isReplying,
-                state = state,
-                additionalContent = additionalContent
+                isMyLastMessage = isMyLastMessage,
+                additionalContent = additionalContent,
+                onReactionRequest = onReactionRequest,
+                onReactionChange = onReactionChange,
+                onAdditionalReactionRequest = onAdditionalReactionRequest,
+                onReplyRequest = onReplyRequest
             )
         }
     }
@@ -137,16 +128,20 @@ fun MessageBubble(
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues,
     data: ConversationMessageIO,
     users: List<NetworkItemIO>,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
+    isMyLastMessage: Boolean,
     hasNext: Boolean,
-    enabled: Boolean,
-    isReplying: Boolean = false,
+    isReplying: Boolean,
     currentUserPublicId: String,
     isReacting: Boolean,
-    state: MessageBubbleState,
+    onReactionRequest: (Boolean) -> Unit,
+    onReactionChange: (String) -> Unit,
+    onAdditionalReactionRequest: () -> Unit,
+    onReplyRequest: () -> Unit,
     additionalContent: @Composable ColumnScope.() -> Unit
 ) {
     val density = LocalDensity.current
@@ -222,7 +217,7 @@ private fun ContentLayout(
 
     // everything + message footer information
     Row(
-        modifier = Modifier
+        modifier = modifier
             .hoverable(
                 enabled = !isCompact,
                 interactionSource = hoverInteractionSource
@@ -231,14 +226,14 @@ private fun ContentLayout(
             .offset(
                 x = with(density) { animatedOffsetX.value.toDp() } + additionalOffsetDp.value.dp
             )
-            .pointerInput(enabled) {
+            .pointerInput(data.id, isReacting) {
                 detectMessageInteraction(
                     onTap = {
-                        if(isReacting) state.onReactionRequest(false)
+                        if(isReacting) onReactionRequest(false)
                         else showHistory.value = !showHistory.value
                     },
                     onLongPress = {
-                        state.onReactionRequest(true)
+                        onReactionRequest(true)
                     },
                     onDrag = { dragged ->
                         isDragged.value = dragged
@@ -248,7 +243,7 @@ private fun ContentLayout(
                         if(!dragged) {
                             if(animatedOffsetX.value !in replyBounds) {
                                 coroutineScope.launch {
-                                    state.onReplyRequest()
+                                    onReplyRequest()
                                     offsetX.value = 0f
                                     animatedOffsetX.animateTo(0f)
                                 }
@@ -289,19 +284,19 @@ private fun ContentLayout(
             ) {
                 DesktopOptions(
                     modifier = Modifier.padding(top = 5.dp, start = 8.dp),
-                    onReaction = { state.onReactionRequest(!isReacting) },
-                    onReply = { state.onReplyRequest() }
+                    onReaction = { onReactionRequest(!isReacting) },
+                    onReply = { onReplyRequest() }
                 )
             }
         }
 
         // start spacing correction
-        AnimatedVisibility(isReacting) { Spacer(modifier = modifier) }
+        AnimatedVisibility(isReacting) { Spacer(modifier = Modifier.padding(contentPadding)) }
 
         AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
             Icon(
                 modifier = Modifier
-                    .scalingClickable { state.onReplyRequest() }
+                    .scalingClickable { onReplyRequest() }
                     .padding(5.dp),
                 imageVector = Icons.AutoMirrored.Outlined.Reply,
                 contentDescription = stringResource(Res.string.accessibility_message_reply),
@@ -310,12 +305,13 @@ private fun ContentLayout(
         }
 
         Column(
-            modifier = if(isReacting || data.anchorMessage != null) {
+            modifier = (if(isReacting || data.anchorMessage != null) {
                 Modifier.background(
                     color = LocalTheme.current.colors.backgroundDark,
                     shape = LocalTheme.current.shapes.componentShape
                 )
-            }else Modifier,
+            }else Modifier)
+                .then(if(isReacting) Modifier.width((screenSize.width * .85f).dp) else Modifier),
             horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
@@ -335,7 +331,7 @@ private fun ContentLayout(
                         Text(
                             modifier = Modifier
                                 .scalingClickable(scaleInto = .7f) {
-                                    state.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
+                                    onReactionChange(emojiData.emoji.firstOrNull() ?: "")
                                 }
                                 .padding(8.dp),
                             text = emojiData.emoji.firstOrNull() ?: "",
@@ -346,7 +342,7 @@ private fun ContentLayout(
                         modifier = Modifier
                             .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
                             .scalingClickable {
-                                state.onAdditionalReactionRequest()
+                                onAdditionalReactionRequest()
                             },
                         imageVector = Icons.Outlined.Add,
                         contentDescription = stringResource(Res.string.accessibility_reaction_other),
@@ -359,52 +355,53 @@ private fun ContentLayout(
 
             // message content + reply function + reactions
             Box(
-                modifier = modifier,
+                modifier = Modifier.padding(contentPadding),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 // message content + reply function
-                Box {
-                    if(animatedOffsetX.value.absoluteValue > 0f || isReplying) {
-                        val percentageAchieved = (if(isCurrentUser) {
-                            animatedOffsetX.value / replyBounds.start
-                        }else animatedOffsetX.value / replyBounds.endInclusive).times(2)
+                if(!data.content.isNullOrEmpty()) {
+                    Box {
+                        if(animatedOffsetX.value.absoluteValue > 0f || isReplying) {
+                            val percentageAchieved = (if(isCurrentUser) {
+                                animatedOffsetX.value / replyBounds.start
+                            }else animatedOffsetX.value / replyBounds.endInclusive).times(2)
 
-                        Box(
-                            modifier = Modifier
-                                .offset(
-                                    x = (if(isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
-                                        if(isReplying) 1f else percentageAchieved.coerceAtMost(1f)
-                                    )
-                                )
-                                .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.requiredSize(replyIndicationSize),
-                                progress = { percentageAchieved / 2 },
-                                strokeWidth = 4.dp,
-                                color = LocalTheme.current.colors.component,
-                                trackColor = Color.Transparent
-                            )
-                            Icon(
+                            Box(
                                 modifier = Modifier
-                                    .size(replyIndicationSize)
-                                    .then(if(animatedOffsetX.value !in replyBounds) {
-                                        Modifier.background(
-                                            color = LocalTheme.current.colors.component,
-                                            shape = CircleShape
+                                    .offset(
+                                        x = (if(isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
+                                            if(isReplying) 1f else percentageAchieved.coerceAtMost(1f)
                                         )
-                                    }else Modifier)
-                                    .padding(5.dp),
-                                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                                tint = LocalTheme.current.colors.secondary
-                            )
+                                    )
+                                    .align(if(isCurrentUser) Alignment.TopEnd else Alignment.TopStart)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.requiredSize(replyIndicationSize),
+                                    progress = { percentageAchieved / 2 },
+                                    strokeWidth = 4.dp,
+                                    color = LocalTheme.current.colors.component,
+                                    trackColor = Color.Transparent
+                                )
+                                Icon(
+                                    modifier = Modifier
+                                        .size(replyIndicationSize)
+                                        .then(if(animatedOffsetX.value !in replyBounds) {
+                                            Modifier.background(
+                                                color = LocalTheme.current.colors.component,
+                                                shape = CircleShape
+                                            )
+                                        }else Modifier)
+                                        .padding(5.dp),
+                                    imageVector = Icons.AutoMirrored.Outlined.Reply,
+                                    contentDescription = stringResource(Res.string.accessibility_message_reply),
+                                    tint = LocalTheme.current.colors.secondary
+                                )
+                            }
                         }
-                    }
 
-                    androidx.compose.animation.AnimatedVisibility(!data.content.isNullOrEmpty()) {
-                        Column(
+                        Text(
                             modifier = Modifier
+                                .animateContentSize()
                                 .then(
                                     if (!data.reactions.isNullOrEmpty()) {
                                         Modifier.padding(bottom = with(density) {
@@ -435,39 +432,39 @@ private fun ContentLayout(
                                 .padding(
                                     vertical = 10.dp,
                                     horizontal = 14.dp
-                                )
-                                .animateContentSize()
-                        ) {
-                            Text(
-                                modifier = Modifier,
-                                text = data.content ?: "",
-                                style = LocalTheme.current.styles.category.copy(
-                                    color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
-                                )
+                                ),
+                            text = data.content,
+                            style = LocalTheme.current.styles.category.copy(
+                                color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
                             )
-                        }
+                        )
                     }
                 }
 
                 androidx.compose.animation.AnimatedVisibility(
-                    modifier = Modifier.align(
-                        if(isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
-                    ),
+                    modifier = Modifier
+                        .align(
+                            if(isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
+                        )
+                        .zIndex(2f),
                     visible = !data.reactions.isNullOrEmpty()
                 ) {
                     Row(
                         modifier = Modifier
                             .padding(
                                 start = if(isCurrentUser) 0.dp else 12.dp,
-                                end = if(isCurrentUser) 12.dp else 0.dp,
-                                top = with(density) {
-                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                }
+                                end = if(isCurrentUser) 12.dp else 0.dp
                             )
                             .then(
                                 if(reactions.value.size > 1) {
                                     Modifier.offset(x = if(isCurrentUser) (-8).dp else 8.dp)
                                 }else Modifier
+                            )
+                            .offset(
+                                x = 0.dp,
+                                y = with(density) {
+                                    -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
+                                }
                             ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -519,13 +516,48 @@ private fun ContentLayout(
                 }
             }
 
-            AnimatedVisibility(showHistory.value) {
-                Text(
-                    modifier = modifier.padding(vertical = 4.dp, horizontal = 6.dp),
-                    text = data.createdAt?.formatAsRelative() ?: "",
-                    style = LocalTheme.current.styles.regular
-                )
+            Row(
+                modifier = Modifier
+                    .animateContentSize()
+                    .padding(contentPadding)
+                    .align(Alignment.End)
+                    .offset(
+                        x = 0.dp,
+                        y = if(!data.reactions.isNullOrEmpty()) {
+                            with(density) {
+                                -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
+                            }
+                        }else 0.dp
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if(isCurrentUser && (isMyLastMessage || (data.state?.ordinal ?: 0) < MessageState.Sent.ordinal)) {
+                    data.state?.imageVector?.let { imgVector ->
+                        Icon(
+                            modifier = Modifier.size(16.dp),
+                            imageVector = imgVector,
+                            contentDescription = data.state.description,
+                            tint = if(data.state == MessageState.Failed) {
+                                SharedColors.RED_ERROR
+                            }else LocalTheme.current.colors.disabled
+                        )
+                    } ?: CircularProgressIndicator(
+                        modifier = Modifier.requiredSize(12.dp),
+                        color = LocalTheme.current.colors.disabled,
+                        trackColor = LocalTheme.current.colors.disabledComponent,
+                        strokeWidth = 2.dp
+                    )
+                }
+
+                if(showHistory.value) {
+                    Text(
+                        modifier = Modifier.padding(start = 4.dp, end = 6.dp),
+                        text = "${data.state?.description?.plus(", ") ?: ""}${data.createdAt?.formatAsRelative() ?: ""}",
+                        style = LocalTheme.current.styles.regular
+                    )
+                }
             }
+
 
             // bottom spacing
             AnimatedVisibility(isReacting) {
@@ -548,8 +580,8 @@ private fun ContentLayout(
             ) {
                 DesktopOptions(
                     modifier = Modifier.padding(top = 5.dp, end = 8.dp),
-                    onReaction = { state.onReactionRequest(!isReacting) },
-                    onReply = { state.onReplyRequest() }
+                    onReaction = { onReactionRequest(!isReacting) },
+                    onReply = { onReplyRequest() }
                 )
             }
         }
@@ -557,7 +589,7 @@ private fun ContentLayout(
         AnimatedVisibility(!isCurrentUser && isCompact && isReacting && !isReplying) {
             Icon(
                 modifier = Modifier
-                    .scalingClickable { state.onReplyRequest() }
+                    .scalingClickable { onReplyRequest() }
                     .padding(5.dp),
                 imageVector = Icons.AutoMirrored.Outlined.Reply,
                 contentDescription = stringResource(Res.string.accessibility_message_reply),
