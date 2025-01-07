@@ -26,10 +26,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
                 httpClient.safeRequest<UserIO> {
                     post(urlString = "/api/v1/auth/init-app") {
                         setBody(
-                            RequestGetUser(
-                                fcmToken = localSettings?.fcmToken,
-                                platform = currentPlatform
-                            )
+                            RequestGetUser(fcmToken = localSettings?.fcmToken)
                         )
                     }
                 }.success?.data ?: UserIO()

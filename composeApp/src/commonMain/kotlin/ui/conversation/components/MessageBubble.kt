@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -291,7 +292,9 @@ private fun ContentLayout(
         }
 
         // start spacing correction
-        AnimatedVisibility(isReacting) { Spacer(modifier = Modifier.padding(contentPadding)) }
+        AnimatedVisibility(isReacting && !isCurrentUser) {
+            Spacer(modifier = Modifier.padding(contentPadding))
+        }
 
         AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
             Icon(
@@ -311,7 +314,7 @@ private fun ContentLayout(
                     shape = LocalTheme.current.shapes.componentShape
                 )
             }else Modifier)
-                .then(if(isReacting) Modifier.width((screenSize.width * .85f).dp) else Modifier),
+                .then(if(isReacting) Modifier.width((screenSize.width * .8f).dp) else Modifier),
             horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
@@ -355,7 +358,7 @@ private fun ContentLayout(
 
             // message content + reply function + reactions
             Box(
-                modifier = Modifier.padding(contentPadding),
+                modifier = Modifier.padding(if(!isReacting) contentPadding else PaddingValues()),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 // message content + reply function
@@ -401,6 +404,7 @@ private fun ContentLayout(
 
                         Text(
                             modifier = Modifier
+                                .widthIn(max = (screenSize.width * .8f).dp)
                                 .animateContentSize()
                                 .then(
                                     if (!data.reactions.isNullOrEmpty()) {
@@ -519,7 +523,7 @@ private fun ContentLayout(
             Row(
                 modifier = Modifier
                     .animateContentSize()
-                    .padding(contentPadding)
+                    .padding(if(!isReacting) contentPadding else PaddingValues())
                     .align(Alignment.End)
                     .offset(
                         x = 0.dp,

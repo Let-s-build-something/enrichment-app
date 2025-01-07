@@ -1,6 +1,7 @@
 package data.io.user
 
 import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import kotlinx.serialization.Serializable
 
 /** Request body for creation of a user on our BE */
@@ -19,5 +20,5 @@ data class RequestCreateUser(
     val fcmToken: String? = null, //optional
 
     /** Currently used platform */
-    val platform: PlatformType
+    val platform: PlatformType = currentPlatform
 )

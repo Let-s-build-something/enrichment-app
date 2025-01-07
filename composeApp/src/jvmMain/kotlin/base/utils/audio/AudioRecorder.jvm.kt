@@ -57,7 +57,9 @@ actual fun rememberAudioRecorder(
                 if(line?.isOpen == true) {
                     recordingThread = Thread {
                         val audioStream = AudioInputStream(line)
-                        val data = ByteArray(bufferSize)
+                        val data = ByteArray(
+                            bufferSize / audioStream.format.frameSize.times(2) * audioStream.format.frameSize.times(2)
+                        )
 
                         while (recordingThread != null) {
                             val bytesRead = audioStream.read(data, 0, data.size)

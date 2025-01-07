@@ -17,13 +17,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 internal val appServiceModule = module {
     single<AppServiceDataManager> { AppServiceDataManager() }
-    factory { AppServiceViewModel(get()) }
+    factory { AppServiceRepository(get()) }
+    factory { AppServiceViewModel(get(), get()) }
     viewModelOf(::AppServiceViewModel)
 }
 
@@ -34,7 +36,10 @@ class AppServiceDataManager {
 }
 
 /** Shared viewmodel for services specific to the runtime of the application */
-class AppServiceViewModel(private val dataManager: AppServiceDataManager): SharedViewModel() {
+class AppServiceViewModel(
+    private val repository: AppServiceRepository,
+    private val dataManager: AppServiceDataManager
+): SharedViewModel() {
 
     /** Newly emitted deep link which should be handled */
     val newDeeplink = dataManager.newDeeplink.asSharedFlow()
@@ -98,6 +103,20 @@ class AppServiceViewModel(private val dataManager: AppServiceDataManager): Share
                     .replace("""\/$""".toRegex(), "")
                     .replace("augmy://", "")
             )
+        }
+    }
+
+    /** Updates with new token and sends this information to BE */
+    fun updateFcmToken(newToken: String) {
+        viewModelScope.launch {
+            repository.updateFCMToken(
+                prevFcmToken = sharedDataManager.localSettings.value?.fcmToken,
+                publicId = sharedDataManager.currentUser.value?.publicId,
+                newToken = newToken
+            )
+        }
+        sharedDataManager.localSettings.update {
+            it?.copy(fcmToken = newToken)
         }
     }
 }

@@ -52,5 +52,5 @@ expect fun rememberAudioPlayer(
     barsCount: Int,
     sampleRate: Int = 44100,
     secondsPerBar: Double = 0.1,
-    bufferSize: Int = sampleRate / 21
+    bufferSize: Int = sampleRate / 20
 ): AudioPlayer
