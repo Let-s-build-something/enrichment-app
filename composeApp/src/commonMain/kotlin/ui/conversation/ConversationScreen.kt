@@ -433,8 +433,7 @@ private fun LazyItemScope.MessageContent(
                     if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
                         12.dp + profileImageSize
                     } else 0.dp
-                ) + if (isCurrentUser) 16.dp else 0.dp,
-                end = if (isCurrentUser) 0.dp else 16.dp
+                ) + if (isCurrentUser) 16.dp else 0.dp
             ),
             isReacting = reactingToMessageId.value == data?.id,
             currentUserPublicId = viewModel.currentUser.value?.publicId ?: "",
