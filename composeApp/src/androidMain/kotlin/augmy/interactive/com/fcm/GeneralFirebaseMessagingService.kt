@@ -10,9 +10,9 @@ import android.graphics.drawable.BitmapDrawable
 import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import base.navigation.NavigationNode
 import augmy.interactive.com.MainActivity
 import augmy.interactive.com.R
+import base.navigation.NavigationNode
 import coil3.ImageLoader
 import coil3.request.CachePolicy
 import coil3.request.ErrorResult
@@ -21,7 +21,7 @@ import coil3.request.allowHardware
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import data.io.notifications.NotificationTag
-import data.shared.SharedViewModel
+import data.shared.AppServiceViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,7 +34,7 @@ import kotlin.coroutines.suspendCoroutine
 
 internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
 
-    private val viewModel: SharedViewModel = KoinPlatform.getKoin().get()
+    private val viewModel: AppServiceViewModel = KoinPlatform.getKoin().get()
 
     companion object {
         /**

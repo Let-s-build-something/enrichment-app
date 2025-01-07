@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
@@ -90,17 +89,6 @@ open class SharedViewModel: ViewModel() {
         runBlocking {
             Firebase.auth.signOut()
             sharedDataManager.currentUser.value = null
-        }
-    }
-
-    /** Updates with new token and sends this information to BE */
-    fun updateFcmToken(newToken: String) {
-        println("New FCM token: $newToken")
-        sharedDataManager.localSettings.update {
-            it?.copy(fcmToken = newToken)
-        }
-        viewModelScope.launch {
-            //TODO send token to BE
         }
     }
 }

@@ -4,12 +4,14 @@ import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import kotlinx.serialization.Serializable
 
-/** Request body for retrieval of a user */
+/** Request for an FCM token */
 @Serializable
-data class RequestGetUser(
-    /** Currently used platform */
+data class RequestUpdateFcmToken(
+    val fcmToken: String,
+
+    /** Current platform */
     val platform: PlatformType = currentPlatform,
 
-    /** FCM token for push notifications to be refreshed */
-    val fcmToken: String? = null
+    /** Previous fcm token which is to be replaced */
+    val oldFcmToken: String? = null
 )

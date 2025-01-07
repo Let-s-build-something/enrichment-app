@@ -144,7 +144,6 @@ class LoginViewModel(
                                 Firebase.auth.currentUser?.email
                             } catch (e: NotImplementedError) { null },
                             clientId = clientId,
-                            platform = currentPlatform,
                             fcmToken = localSettings.value?.fcmToken
                         )
                     )?.publicId
