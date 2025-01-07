@@ -103,7 +103,6 @@ import base.utils.MediaType
 import base.utils.getMediaType
 import coil3.toUri
 import data.io.social.network.conversation.ConversationMessageIO
-import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
@@ -561,24 +560,16 @@ internal fun BoxScope.SendMessagePanel(
                 onEmojiSelected = { emoji ->
                     showMoreOptions.value = false
 
-                    val newContent = buildString {
-                        // before selection
-                        append(
-                            messageState.text.subSequence(
-                                0, messageState.selection.start
-                            )
+                    messageState.edit {
+                        replace(
+                            text = emoji,
+                            start = messageState.selection.start,
+                            end = messageState.selection.end
                         )
-                        // selection
-                        append(emoji)
-                        // after selection
-                        append(
-                            messageState.text.subSequence(
-                                messageState.selection.end,
-                                messageState.text.length
-                            )
+                        selection = TextRange(
+                            messageState.selection.start + emoji.length
                         )
                     }
-                    messageState.setTextAndPlaceCursorAtEnd(newContent)
                 },
                 onBackSpace = {
                     showMoreOptions.value = false
