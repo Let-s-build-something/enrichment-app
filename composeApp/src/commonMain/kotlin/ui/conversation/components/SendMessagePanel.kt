@@ -103,6 +103,7 @@ import base.utils.MediaType
 import base.utils.getMediaType
 import coil3.toUri
 import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode

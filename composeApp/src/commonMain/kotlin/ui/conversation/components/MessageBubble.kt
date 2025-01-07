@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,29 +75,6 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.absoluteValue
 
-@Composable
-fun rememberMessageBubbleState(
-    onReactionRequest: (Boolean) -> Unit,
-    onReactionChange: (String) -> Unit,
-    onAdditionalReactionRequest: () -> Unit,
-    onReplyRequest: () -> Unit
-): MessageBubbleState {
-    return remember {
-        MessageBubbleState(
-            onReactionRequest = onReactionRequest,
-            onReactionChange = onReactionChange,
-            onAdditionalReactionRequest = onAdditionalReactionRequest,
-            onReplyRequest = onReplyRequest
-        )
-    }
-}
-
-data class MessageBubbleState(
-    val onReactionRequest: (Boolean) -> Unit,
-    val onReactionChange: (String) -> Unit,
-    val onAdditionalReactionRequest: () -> Unit,
-    val onReplyRequest: () -> Unit
-)
 
 /**
  * Horizontal bubble displaying textual content of a message and its reactions
@@ -107,6 +84,7 @@ data class MessageBubbleState(
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
+    contentPadding: PaddingValues,
     users: List<NetworkItemIO>,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
@@ -115,7 +93,10 @@ fun MessageBubble(
     isMyLastMessage: Boolean,
     isReplying: Boolean,
     currentUserPublicId: String,
-    state: MessageBubbleState,
+    onReactionRequest: (Boolean) -> Unit,
+    onReactionChange: (String) -> Unit,
+    onAdditionalReactionRequest: () -> Unit,
+    onReplyRequest: () -> Unit,
     additionalContent: @Composable ColumnScope.() -> Unit
 ) {
     Crossfade(targetState = data == null) { isLoading ->
@@ -124,6 +105,7 @@ fun MessageBubble(
         }else if(data != null) {
             ContentLayout(
                 modifier = modifier,
+                contentPadding = contentPadding,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
                 data = data,
@@ -133,8 +115,11 @@ fun MessageBubble(
                 isReacting = isReacting,
                 isReplying = isReplying,
                 isMyLastMessage = isMyLastMessage,
-                state = state,
-                additionalContent = additionalContent
+                additionalContent = additionalContent,
+                onReactionRequest = onReactionRequest,
+                onReactionChange = onReactionChange,
+                onAdditionalReactionRequest = onAdditionalReactionRequest,
+                onReplyRequest = onReplyRequest
             )
         }
     }
@@ -143,6 +128,7 @@ fun MessageBubble(
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues,
     data: ConversationMessageIO,
     users: List<NetworkItemIO>,
     preferredEmojis: List<EmojiData>,
@@ -152,7 +138,10 @@ private fun ContentLayout(
     isReplying: Boolean,
     currentUserPublicId: String,
     isReacting: Boolean,
-    state: MessageBubbleState,
+    onReactionRequest: (Boolean) -> Unit,
+    onReactionChange: (String) -> Unit,
+    onAdditionalReactionRequest: () -> Unit,
+    onReplyRequest: () -> Unit,
     additionalContent: @Composable ColumnScope.() -> Unit
 ) {
     val density = LocalDensity.current
@@ -228,8 +217,7 @@ private fun ContentLayout(
 
     // everything + message footer information
     Row(
-        modifier = Modifier
-            .widthIn(max = (screenSize.width * 0.8f).dp)
+        modifier = modifier
             .hoverable(
                 enabled = !isCompact,
                 interactionSource = hoverInteractionSource
@@ -238,14 +226,14 @@ private fun ContentLayout(
             .offset(
                 x = with(density) { animatedOffsetX.value.toDp() } + additionalOffsetDp.value.dp
             )
-            .pointerInput(Unit) {
+            .pointerInput(data.id, isReacting) {
                 detectMessageInteraction(
                     onTap = {
-                        if(isReacting) state.onReactionRequest(false)
+                        if(isReacting) onReactionRequest(false)
                         else showHistory.value = !showHistory.value
                     },
                     onLongPress = {
-                        state.onReactionRequest(true)
+                        onReactionRequest(true)
                     },
                     onDrag = { dragged ->
                         isDragged.value = dragged
@@ -255,7 +243,7 @@ private fun ContentLayout(
                         if(!dragged) {
                             if(animatedOffsetX.value !in replyBounds) {
                                 coroutineScope.launch {
-                                    state.onReplyRequest()
+                                    onReplyRequest()
                                     offsetX.value = 0f
                                     animatedOffsetX.animateTo(0f)
                                 }
@@ -296,19 +284,19 @@ private fun ContentLayout(
             ) {
                 DesktopOptions(
                     modifier = Modifier.padding(top = 5.dp, start = 8.dp),
-                    onReaction = { state.onReactionRequest(!isReacting) },
-                    onReply = { state.onReplyRequest() }
+                    onReaction = { onReactionRequest(!isReacting) },
+                    onReply = { onReplyRequest() }
                 )
             }
         }
 
         // start spacing correction
-        AnimatedVisibility(isReacting) { Spacer(modifier = modifier) }
+        AnimatedVisibility(isReacting) { Spacer(modifier = Modifier.padding(contentPadding)) }
 
         AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
             Icon(
                 modifier = Modifier
-                    .scalingClickable { state.onReplyRequest() }
+                    .scalingClickable { onReplyRequest() }
                     .padding(5.dp),
                 imageVector = Icons.AutoMirrored.Outlined.Reply,
                 contentDescription = stringResource(Res.string.accessibility_message_reply),
@@ -317,12 +305,13 @@ private fun ContentLayout(
         }
 
         Column(
-            modifier = if(isReacting || data.anchorMessage != null) {
+            modifier = (if(isReacting || data.anchorMessage != null) {
                 Modifier.background(
                     color = LocalTheme.current.colors.backgroundDark,
                     shape = LocalTheme.current.shapes.componentShape
                 )
-            }else Modifier,
+            }else Modifier)
+                .then(if(isReacting) Modifier.width((screenSize.width * .85f).dp) else Modifier),
             horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
@@ -342,7 +331,7 @@ private fun ContentLayout(
                         Text(
                             modifier = Modifier
                                 .scalingClickable(scaleInto = .7f) {
-                                    state.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
+                                    onReactionChange(emojiData.emoji.firstOrNull() ?: "")
                                 }
                                 .padding(8.dp),
                             text = emojiData.emoji.firstOrNull() ?: "",
@@ -353,7 +342,7 @@ private fun ContentLayout(
                         modifier = Modifier
                             .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
                             .scalingClickable {
-                                state.onAdditionalReactionRequest()
+                                onAdditionalReactionRequest()
                             },
                         imageVector = Icons.Outlined.Add,
                         contentDescription = stringResource(Res.string.accessibility_reaction_other),
@@ -366,7 +355,7 @@ private fun ContentLayout(
 
             // message content + reply function + reactions
             Box(
-                modifier = modifier,
+                modifier = Modifier.padding(contentPadding),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 // message content + reply function
@@ -411,11 +400,15 @@ private fun ContentLayout(
                         }
 
                         Text(
-                            modifier = (if (!data.reactions.isNullOrEmpty()) {
-                                Modifier.padding(bottom = with(density) {
-                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                })
-                            } else Modifier)
+                            modifier = Modifier
+                                .animateContentSize()
+                                .then(
+                                    if (!data.reactions.isNullOrEmpty()) {
+                                        Modifier.padding(bottom = with(density) {
+                                            LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                        })
+                                    } else Modifier
+                                )
                                 .background(
                                     color = tagToColor(data.user?.tag) ?: if(isCurrentUser) {
                                         LocalTheme.current.colors.brandMainDark
@@ -439,8 +432,7 @@ private fun ContentLayout(
                                 .padding(
                                     vertical = 10.dp,
                                     horizontal = 14.dp
-                                )
-                                .animateContentSize(),
+                                ),
                             text = data.content,
                             style = LocalTheme.current.styles.category.copy(
                                 color = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
@@ -525,7 +517,9 @@ private fun ContentLayout(
             }
 
             Row(
-                modifier = modifier
+                modifier = Modifier
+                    .animateContentSize()
+                    .padding(contentPadding)
                     .align(Alignment.End)
                     .offset(
                         x = 0.dp,
@@ -534,8 +528,7 @@ private fun ContentLayout(
                                 -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
                             }
                         }else 0.dp
-                    )
-                    .animateContentSize(),
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if(isCurrentUser && (isMyLastMessage || (data.state?.ordinal ?: 0) < MessageState.Sent.ordinal)) {
@@ -587,8 +580,8 @@ private fun ContentLayout(
             ) {
                 DesktopOptions(
                     modifier = Modifier.padding(top = 5.dp, end = 8.dp),
-                    onReaction = { state.onReactionRequest(!isReacting) },
-                    onReply = { state.onReplyRequest() }
+                    onReaction = { onReactionRequest(!isReacting) },
+                    onReply = { onReplyRequest() }
                 )
             }
         }
@@ -596,7 +589,7 @@ private fun ContentLayout(
         AnimatedVisibility(!isCurrentUser && isCompact && isReacting && !isReplying) {
             Icon(
                 modifier = Modifier
-                    .scalingClickable { state.onReplyRequest() }
+                    .scalingClickable { onReplyRequest() }
                     .padding(5.dp),
                 imageVector = Icons.AutoMirrored.Outlined.Reply,
                 contentDescription = stringResource(Res.string.accessibility_message_reply),

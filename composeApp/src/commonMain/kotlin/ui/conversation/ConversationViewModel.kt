@@ -11,6 +11,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
@@ -70,8 +72,13 @@ class ConversationViewModel(
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
 
+    private val _typingIndicators = MutableStateFlow<Pair<Int, List<ConversationTypingIndicator>>>(-1 to listOf())
+
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
+
+    /** Current typing indicators, indicating typing statuses of other users */
+    val typingIndicators = _typingIndicators.asStateFlow()
 
     /** currently locally cached byte arrays */
     val cachedFiles
@@ -114,8 +121,10 @@ class ConversationViewModel(
         }
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
-    }
 
+        // TODO socket listening on typing indicators
+        //appendTypingIndicator()
+    }
 
 
     // ==================== functions ===========================
@@ -127,6 +136,27 @@ class ConversationViewModel(
             if(content != null) {
                 settings.putString(key, content)
             }else settings.remove(key)
+        }
+    }
+
+    /** Appends or updates a typing indicator */
+    private fun appendTypingIndicator(indicator: ConversationTypingIndicator) {
+        viewModelScope.launch(Dispatchers.Default) {
+            _typingIndicators.update { previous ->
+                val res = previous.second.toMutableList().apply {
+                    // update existing indicator or add a new one
+                    find { it.authorPublicId == indicator.authorPublicId }?.apply {
+                        content = indicator.content
+                    } ?: add(indicator.also {
+                        // find relevant user for new indicator
+                        it.user = _conversationDetail.value?.users?.find { user -> user.publicId == indicator.authorPublicId }
+                    })
+
+                    // remove irrelevant indicator - better than just filtering them
+                    removeAll { it.content.isNullOrBlank() }
+                }
+                res.hashCode() to res.takeLast(MAX_TYPING_INDICATORS)
+            }
         }
     }
 
@@ -181,3 +211,5 @@ class ConversationViewModel(
         }
     }
 }
+
+private const val MAX_TYPING_INDICATORS = 3

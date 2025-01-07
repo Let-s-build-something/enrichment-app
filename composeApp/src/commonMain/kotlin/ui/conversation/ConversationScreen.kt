@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -14,6 +15,8 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -90,10 +93,10 @@ import ui.conversation.components.MediaElement
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.ReplyIndication
 import ui.conversation.components.SendMessagePanel
+import ui.conversation.components.TypingIndicator
 import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.gif.GifImage
-import ui.conversation.components.rememberMessageBubbleState
 import kotlin.math.abs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -128,6 +131,9 @@ fun ConversationScreen(
     }
     val messagePanelHeight = rememberSaveable {
         mutableStateOf(100f)
+    }
+    val typingIndicatorsHeight = rememberSaveable {
+        mutableStateOf(0f)
     }
     val keyboardMode = rememberSaveable {
         mutableStateOf(ConversationKeyboardMode.Default.ordinal)
@@ -206,6 +212,50 @@ fun ConversationScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
+            val typingIndicators = viewModel.typingIndicators.collectAsState()
+
+            if(typingIndicators.value.second.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .animateContentSize()
+                        .zIndex(5f)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(bottom = messagePanelHeight.value.dp)
+                            .padding(WindowInsets.navigationBars.asPaddingValues())
+                            .fillMaxWidth()
+                            .align(Alignment.BottomStart)
+                            .zIndex(5f)
+                            .onSizeChanged {
+                                if(it.height != 0) {
+                                    with(density) { typingIndicatorsHeight.value = it.height.toDp().value }
+                                }
+                            }
+                            .animateContentSize(),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        typingIndicators.value.second.forEachIndexed { index, indicator ->
+                            TypingIndicator(
+                                modifier = Modifier
+                                    .padding(start = 12.dp,)
+                                    .fillMaxWidth(.8f)
+                                    .clickable(indication = null, interactionSource = null) {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(0)
+                                        }
+                                    },
+                                key = typingIndicators.value.first,
+                                data = indicator,
+                                hasPrevious = index > 0,
+                                hasNext = index < typingIndicators.value.second.lastIndex
+                            )
+                        }
+                    }
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .pointerInput(Unit) {
@@ -240,7 +290,7 @@ fun ConversationScreen(
                     Spacer(
                         Modifier
                             .padding(WindowInsets.navigationBars.asPaddingValues())
-                            .height(messagePanelHeight.value.dp)
+                            .height(messagePanelHeight.value.dp + typingIndicatorsHeight.value.dp)
                             .animateContentSize()
                     )
                 }
@@ -377,19 +427,15 @@ private fun LazyItemScope.MessageContent(
         }
 
         MessageBubble(
-            modifier = Modifier
-                .padding(
-                    start = LocalTheme.current.shapes.betweenItemsSpace.plus(
-                        if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
-                            12.dp + profileImageSize
-                        } else 0.dp
-                    )
-                )
-                .padding(
-                    start = if (isCurrentUser) 16.dp else 0.dp,
-                    end = if (isCurrentUser) 0.dp else 16.dp,
-                ),
             data = data,
+            contentPadding = PaddingValues(
+                start = LocalTheme.current.shapes.betweenItemsSpace.plus(
+                    if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
+                        12.dp + profileImageSize
+                    } else 0.dp
+                ) + if (isCurrentUser) 16.dp else 0.dp,
+                end = if (isCurrentUser) 0.dp else 16.dp
+            ),
             isReacting = reactingToMessageId.value == data?.id,
             currentUserPublicId = viewModel.currentUser.value?.publicId ?: "",
             hasPrevious = isPreviousMessageSameAuthor,
@@ -398,21 +444,19 @@ private fun LazyItemScope.MessageContent(
             users = viewModel.conversationDetail.value?.users.orEmpty(),
             isMyLastMessage = isMyLastMessage,
             preferredEmojis = preferredEmojis,
-            state = rememberMessageBubbleState(
-                onReactionRequest = { show ->
-                    reactingToMessageId.value = if(show) data?.id else null
-                },
-                onReactionChange = { emoji ->
-                    if(data?.id != null) {
-                        viewModel.reactToMessage(content = emoji, messageId = data.id)
-                        reactingToMessageId.value = null
-                    }
-                },
-                onAdditionalReactionRequest = {
-                    showEmojiPreferencesId.value = data?.id
-                },
-                onReplyRequest = onReplyRequest
-            ),
+            onReactionRequest = { show ->
+                reactingToMessageId.value = if(show) data?.id else null
+            },
+            onReactionChange = { emoji ->
+                if(data?.id != null) {
+                    viewModel.reactToMessage(content = emoji, messageId = data.id)
+                    reactingToMessageId.value = null
+                }
+            },
+            onAdditionalReactionRequest = {
+                showEmojiPreferencesId.value = data?.id
+            },
+            onReplyRequest = onReplyRequest,
             additionalContent = {
                 val heightModifier = Modifier.heightIn(
                     max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
