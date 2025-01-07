@@ -14,10 +14,14 @@ import ui.login.safeRequest
 class AppServiceRepository(private val httpClient: HttpClient) {
 
     /** Makes a request to update an FCM token */
-    suspend fun updateFCMToken(prevFcmToken: String?, newToken: String): BaseResponse<Any> {
+    suspend fun updateFCMToken(
+        prevFcmToken: String?,
+        publicId: String?,
+        newToken: String
+    ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest {
-                post(urlString = "/users/fcm-tokens") {
+                post(urlString = "/users/${publicId}/fcm-tokens") {
                     setBody(
                         RequestUpdateFcmToken(
                             fcmToken = newToken,
