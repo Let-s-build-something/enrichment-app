@@ -1,5 +1,6 @@
-package ui.account
+package base.utils
 
+import platform.Foundation.NSURL
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
@@ -27,4 +28,13 @@ fun UIViewController.getTopViewController(): UIViewController? {
         currentController = currentController.presentedViewController
     }
     return currentController
+}
+
+actual fun openLink(link: String): Boolean {
+    val nsUrl = NSURL.URLWithString(link)
+
+    return if (nsUrl != null && UIApplication.sharedApplication.canOpenURL(nsUrl)) {
+        UIApplication.sharedApplication.openURL(nsUrl)
+        true
+    }else false
 }

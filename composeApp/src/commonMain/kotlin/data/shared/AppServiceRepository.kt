@@ -3,7 +3,7 @@ package data.shared
 import data.io.base.BaseResponse
 import data.io.user.RequestUpdateFcmToken
 import io.ktor.client.HttpClient
-import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -21,7 +21,7 @@ class AppServiceRepository(private val httpClient: HttpClient) {
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest {
-                post(urlString = "/users/${publicId}/fcm-tokens") {
+                put(urlString = "/api/v1/users/${publicId}/fcm-tokens") {
                     setBody(
                         RequestUpdateFcmToken(
                             fcmToken = newToken,

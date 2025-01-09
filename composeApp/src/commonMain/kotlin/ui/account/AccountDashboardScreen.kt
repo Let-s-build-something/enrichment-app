@@ -65,12 +65,13 @@ import augmy.composeapp.generated.resources.network_action_share
 import augmy.composeapp.generated.resources.screen_account_title
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_search_preferences
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.ModalScreenContent
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
-import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
+import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
@@ -79,11 +80,11 @@ import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
+import base.utils.shareLink
 import components.RowSetting
 import components.UserProfileImage
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
-import augmy.interactive.shared.ext.scalingClickable
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -391,5 +392,3 @@ fun shareProfile(
         }
     }
 }
-
-expect fun shareLink(title: String, link: String): Boolean
