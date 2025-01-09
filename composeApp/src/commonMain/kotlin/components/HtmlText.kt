@@ -105,3 +105,44 @@ fun buildAnnotatedLinkString(
     }
     append(appendableText)
 }
+
+/** Builds text with a single link represented by a text */
+@Composable
+fun buildAnnotatedLink(
+    text: String,
+    linkTexts: List<String>,
+    onLinkClicked: (link: String, index: Int) -> Unit
+) = buildAnnotatedString {
+    append(text.substring(
+        startIndex = 0,
+        endIndex = linkTexts.firstOrNull()?.let { text.indexOf(it) } ?: text.length
+    ))
+    linkTexts.forEachIndexed { index, linkTextWithin ->
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "ACTION",
+                styles = LocalTheme.current.styles.link,
+                linkInteractionListener = {
+                    onLinkClicked(linkTextWithin, index)
+                },
+            ),
+        ) {
+            append(linkTextWithin)
+        }
+        // space between this and next link
+        if(linkTexts.size > 1 && index != linkTexts.lastIndex) {
+            append(
+                text.substring(
+                    startIndex = text.indexOf(linkTextWithin) + linkTextWithin.length,
+                    endIndex = linkTexts.getOrNull(index + 1)?.let { text.indexOf(it) } ?: text.length
+                )
+            )
+        }
+    }
+    if(linkTexts.isNotEmpty()) {
+        append(text.substring(
+            startIndex = text.indexOf(linkTexts.last()) + linkTexts.last().length,
+            endIndex = text.length
+        ))
+    }
+}

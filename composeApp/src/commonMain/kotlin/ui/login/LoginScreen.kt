@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -48,6 +51,7 @@ import augmy.composeapp.generated.resources.accessibility_sign_in_illustration
 import augmy.composeapp.generated.resources.accessibility_sign_up_illustration
 import augmy.composeapp.generated.resources.error_general
 import augmy.composeapp.generated.resources.error_google_sign_in_unavailable
+import augmy.composeapp.generated.resources.login_agreement
 import augmy.composeapp.generated.resources.login_email_error
 import augmy.composeapp.generated.resources.login_error_canceled
 import augmy.composeapp.generated.resources.login_error_duplicate_email
@@ -61,10 +65,12 @@ import augmy.composeapp.generated.resources.login_password_condition_2
 import augmy.composeapp.generated.resources.login_password_condition_empty
 import augmy.composeapp.generated.resources.login_password_email_hint
 import augmy.composeapp.generated.resources.login_password_password_hint
+import augmy.composeapp.generated.resources.login_privacy_policy
 import augmy.composeapp.generated.resources.login_screen_type_sign_in
 import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
 import augmy.composeapp.generated.resources.login_success_snackbar_action
+import augmy.composeapp.generated.resources.login_terms_of_use
 import augmy.composeapp.generated.resources.screen_login
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
@@ -83,7 +89,9 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.utils.openLink
 import components.AsyncImageThumbnail
+import components.buildAnnotatedLink
 import data.Asset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -249,6 +257,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 isWaitingForResult = isWaitingForResult,
                 password = password
             )
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -343,9 +352,10 @@ private fun ColumnScope.LoginScreenContent(
     )
 
     AnimatedVisibility(screenType == LoginScreenType.SIGN_UP) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column {
             validations.forEach { validation ->
                 CorrectionText(
+                    modifier = Modifier.padding(bottom = 2.dp),
                     text = validation.message,
                     isCorrect = validation.isValid,
                     isRequired = validation.isRequired
@@ -370,6 +380,29 @@ private fun ColumnScope.LoginScreenContent(
             )
         }
     )
+    AnimatedVisibility(
+        modifier = Modifier.align(Alignment.CenterHorizontally),
+        visible = screenType == LoginScreenType.SIGN_UP
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            text = buildAnnotatedLink(
+                text = stringResource(Res.string.login_agreement),
+                linkTexts = listOf(
+                    stringResource(Res.string.login_terms_of_use),
+                    stringResource(Res.string.login_privacy_policy)
+                ),
+                onLinkClicked = { _, index ->
+                    when(index) {
+                        0 -> openLink("https://augmy.org/terms-of-use")
+                        1 -> openLink("https://augmy.org/privacy-policy")
+                    }
+                }
+            ),
+            style = LocalTheme.current.styles.regular
+        )
+    }
+
     AnimatedVisibility(
         modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
         visible = isWaitingForResult.value.not()
