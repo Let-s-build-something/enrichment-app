@@ -3,6 +3,7 @@ package base.utils
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import app.cash.paging.compose.LazyPagingItems
+import coil3.toUri
 import io.github.vinceglb.filekit.core.PlatformFile
 
 /** Returns item at a specific index and handles indexOutOfBounds exception */
@@ -17,8 +18,8 @@ fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else
 fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)
 
 /** Returns a media type of a file */
-fun getMediaType(extension: String): MediaType {
-    return when (extension.lowercase()) {
+fun getMediaType(url: String): MediaType {
+    return when (getUrlExtension(url).lowercase()) {
         "jpg", "jpeg", "png", "bmp", "svg", "webp", "avif" -> MediaType.IMAGE
         "gif" -> MediaType.GIF
         "mp4", "avi", "mkv", "mov", "webm" -> MediaType.VIDEO
@@ -30,6 +31,9 @@ fun getMediaType(extension: String): MediaType {
     }
 }
 
+/** Returns the extension of an url */
+fun getUrlExtension(url: String): String = (url.toUri().path ?: url).substringAfterLast(".").lowercase()
+
 /** Type of a media file */
 enum class MediaType {
     IMAGE,
@@ -39,7 +43,11 @@ enum class MediaType {
     TEXT,
     PDF,
     PRESENTATION,
-    UNKNOWN
+    UNKNOWN;
+
+    /** Whether this media can be or is visualized */
+    val isVisualized: Boolean
+        get() = this == IMAGE || this == VIDEO || this == GIF
 }
 
 /** Returns a bitmap from a given file */

@@ -32,6 +32,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationRepository.Companion.demoConversationDetail
 import ui.conversation.components.KeyboardViewModel
+import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.audioProcessorModule
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
@@ -71,14 +72,18 @@ class ConversationViewModel(
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
-
     private val _typingIndicators = MutableStateFlow<Pair<Int, List<ConversationTypingIndicator>>>(-1 to listOf())
+    private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
+
 
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
 
     /** Current typing indicators, indicating typing statuses of other users */
     val typingIndicators = _typingIndicators.asStateFlow()
+
+    /** Progress of the current upload */
+    val uploadProgress = _uploadProgress.asStateFlow()
 
     /** currently locally cached byte arrays */
     val cachedFiles
@@ -173,9 +178,18 @@ class ConversationViewModel(
         gifAsset: GifAsset?
     ) {
         viewModelScope.launch {
+            var progressId = ""
             repository.sendMessage(
                 conversationId = conversationId,
                 mediaFiles = mediaFiles,
+                onProgressChange = { progress ->
+                    _uploadProgress.update {
+                        it.toMutableList().apply {
+                            add(progress)
+                            progressId = progress.id
+                        }
+                    }
+                },
                 message = ConversationMessageIO(
                     content = content,
                     anchorMessageId = anchorMessage?.id,
@@ -184,6 +198,11 @@ class ConversationViewModel(
                     mediaUrls = mediaUrls
                 )
             )
+            _uploadProgress.update { previous ->
+                previous.toMutableList().apply {
+                    removeAll { it.id == progressId }
+                }
+            }
         }
     }
 

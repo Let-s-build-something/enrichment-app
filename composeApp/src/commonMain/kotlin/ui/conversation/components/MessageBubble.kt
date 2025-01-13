@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_message_react
+import augmy.composeapp.generated.resources.accessibility_message_download
 import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
 import augmy.interactive.shared.DateUtils.formatAsRelative
@@ -85,7 +86,6 @@ import kotlin.math.absoluteValue
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
-    contentPadding: PaddingValues,
     users: List<NetworkItemIO>,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
@@ -97,6 +97,7 @@ fun MessageBubble(
     onReactionRequest: (Boolean) -> Unit,
     onReactionChange: (String) -> Unit,
     onAdditionalReactionRequest: () -> Unit,
+    onDownloadRequest: () -> Unit,
     onReplyRequest: () -> Unit,
     additionalContent: @Composable ColumnScope.() -> Unit
 ) {
@@ -106,7 +107,6 @@ fun MessageBubble(
         }else if(data != null) {
             ContentLayout(
                 modifier = modifier,
-                contentPadding = contentPadding,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
                 data = data,
@@ -119,6 +119,7 @@ fun MessageBubble(
                 additionalContent = additionalContent,
                 onReactionRequest = onReactionRequest,
                 onReactionChange = onReactionChange,
+                onDownloadRequest = onDownloadRequest,
                 onAdditionalReactionRequest = onAdditionalReactionRequest,
                 onReplyRequest = onReplyRequest
             )
@@ -129,7 +130,6 @@ fun MessageBubble(
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues,
     data: ConversationMessageIO,
     users: List<NetworkItemIO>,
     preferredEmojis: List<EmojiData>,
@@ -142,6 +142,7 @@ private fun ContentLayout(
     onReactionRequest: (Boolean) -> Unit,
     onReactionChange: (String) -> Unit,
     onAdditionalReactionRequest: () -> Unit,
+    onDownloadRequest: () -> Unit,
     onReplyRequest: () -> Unit,
     additionalContent: @Composable ColumnScope.() -> Unit
 ) {
@@ -285,26 +286,12 @@ private fun ContentLayout(
             ) {
                 DesktopOptions(
                     modifier = Modifier.padding(top = 5.dp, start = 8.dp),
+                    data = data,
                     onReaction = { onReactionRequest(!isReacting) },
-                    onReply = { onReplyRequest() }
+                    onReply = { onReplyRequest() },
+                    onDownloadRequest = onDownloadRequest
                 )
             }
-        }
-
-        // start spacing correction
-        AnimatedVisibility(isReacting && !isCurrentUser) {
-            Spacer(modifier = Modifier.padding(contentPadding))
-        }
-
-        AnimatedVisibility(isCurrentUser && isCompact && isReacting && !isReplying) {
-            Icon(
-                modifier = Modifier
-                    .scalingClickable { onReplyRequest() }
-                    .padding(5.dp),
-                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                tint = LocalTheme.current.colors.secondary
-            )
         }
 
         Column(
@@ -314,7 +301,8 @@ private fun ContentLayout(
                     shape = LocalTheme.current.shapes.componentShape
                 )
             }else Modifier)
-                .then(if(isReacting) Modifier.width((screenSize.width * .8f).dp) else Modifier),
+                .then(if(isReacting) Modifier.widthIn(min = (screenSize.width * .8f).coerceAtMost(325f).dp) else Modifier)
+                .weight(1f, fill = false),
             horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
@@ -357,10 +345,7 @@ private fun ContentLayout(
             additionalContent()
 
             // message content + reply function + reactions
-            Box(
-                modifier = Modifier.padding(if(!isReacting) contentPadding else PaddingValues()),
-                contentAlignment = Alignment.CenterEnd
-            ) {
+            Box(contentAlignment = Alignment.CenterEnd) {
                 // message content + reply function
                 if(!data.content.isNullOrEmpty()) {
                     Box {
@@ -404,8 +389,8 @@ private fun ContentLayout(
 
                         Text(
                             modifier = Modifier
-                                .widthIn(max = (screenSize.width * .8f).dp)
                                 .animateContentSize()
+                                .widthIn(max = (screenSize.width * .8f).dp)
                                 .then(
                                     if (!data.reactions.isNullOrEmpty()) {
                                         Modifier.padding(bottom = with(density) {
@@ -509,6 +494,7 @@ private fun ContentLayout(
                                     }
                                 }
                                 reaction.second.first.size.takeIf { it > 1 }?.let { count ->
+                                    // TODO link support
                                     Text(
                                         text = count.toString(),
                                         style = LocalTheme.current.styles.regular
@@ -523,7 +509,6 @@ private fun ContentLayout(
             Row(
                 modifier = Modifier
                     .animateContentSize()
-                    .padding(if(!isReacting) contentPadding else PaddingValues())
                     .align(Alignment.End)
                     .offset(
                         x = 0.dp,
@@ -562,6 +547,45 @@ private fun ContentLayout(
                 }
             }
 
+            AnimatedVisibility(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = if(isCurrentUser) 16.dp else 0.dp),
+                visible = isCompact && isReacting && !isReplying
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    /*Icon(
+                        modifier = Modifier
+                            .scalingClickable {
+                                onForwardRequest()
+                            }
+                            .padding(5.dp),
+                        painter = painterResource(Res.drawable.ic_forward),
+                        contentDescription = stringResource(Res.string.accessibility_message_forward),
+                        tint = LocalTheme.current.colors.secondary
+                    )*/
+                    if(!data.mediaUrls.isNullOrEmpty()) {
+                        Icon(
+                            modifier = Modifier
+                                .scalingClickable {
+                                    onDownloadRequest()
+                                }
+                                .padding(5.dp),
+                            imageVector = Icons.Outlined.Download,
+                            contentDescription = stringResource(Res.string.accessibility_message_download),
+                            tint = LocalTheme.current.colors.secondary
+                        )
+                    }
+                    Icon(
+                        modifier = Modifier
+                            .scalingClickable { onReplyRequest() }
+                            .padding(5.dp),
+                        imageVector = Icons.AutoMirrored.Outlined.Reply,
+                        contentDescription = stringResource(Res.string.accessibility_message_reply),
+                        tint = LocalTheme.current.colors.secondary
+                    )
+                }
+            }
 
             // bottom spacing
             AnimatedVisibility(isReacting) {
@@ -584,21 +608,12 @@ private fun ContentLayout(
             ) {
                 DesktopOptions(
                     modifier = Modifier.padding(top = 5.dp, end = 8.dp),
+                    data = data,
                     onReaction = { onReactionRequest(!isReacting) },
-                    onReply = { onReplyRequest() }
+                    onReply = { onReplyRequest() },
+                    onDownloadRequest = onDownloadRequest
                 )
             }
-        }
-
-        AnimatedVisibility(!isCurrentUser && isCompact && isReacting && !isReplying) {
-            Icon(
-                modifier = Modifier
-                    .scalingClickable { onReplyRequest() }
-                    .padding(5.dp),
-                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                tint = LocalTheme.current.colors.secondary
-            )
         }
     }
 }
@@ -606,13 +621,27 @@ private fun ContentLayout(
 @Composable
 private fun DesktopOptions(
     modifier: Modifier = Modifier,
+    data: ConversationMessageIO,
     onReply: () -> Unit,
-    onReaction: () -> Unit
+    onReaction: () -> Unit,
+    onDownloadRequest: () -> Unit
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        if(!data.mediaUrls.isNullOrEmpty()) {
+            Icon(
+                modifier = Modifier
+                    .scalingClickable {
+                        onDownloadRequest()
+                    }
+                    .padding(5.dp),
+                imageVector = Icons.Outlined.Download,
+                contentDescription = stringResource(Res.string.accessibility_message_download),
+                tint = LocalTheme.current.colors.secondary
+            )
+        }
         Icon(
             modifier = Modifier
                 .scalingClickable {

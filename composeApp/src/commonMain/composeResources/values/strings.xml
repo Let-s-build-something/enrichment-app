@@ -160,8 +160,14 @@
   <string name="button_tune">Tune</string>
 
   <string name="action_settings">Options</string>
+  <string name="action_download_all">Download all</string>
+  <string name="action_share">Share</string>
   <string name="action_link_copied">Link successfully copied!</string>
   <string name="action_general_copied">Information copied!</string>
+
+  <string name="download_loading">Loading:</string>
+  <string name="download_success">Successfully downloaded</string>
+  <string name="download_failure">There was an error, try again later.</string>
 
   <string name="work_in_progress">We are actively working on this, hang on tight!</string>
   <string name="function_unavailable">This functionality is not supported on your device yet. But you can use Android, iOS, or macOS device to complete your action.</string>
@@ -183,6 +189,8 @@
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>
+  <string name="accessibility_message_forward">Forward</string>
+  <string name="accessibility_message_download">Download</string>
   <string name="accessibility_message_pdf">A pdf file attached to your message</string>
   <string name="accessibility_message_image">An image attached to your message</string>
   <string name="accessibility_message_file">Any file attached to your message</string>

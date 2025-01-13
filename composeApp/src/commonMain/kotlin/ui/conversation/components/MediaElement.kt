@@ -1,9 +1,11 @@
 package ui.conversation.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,15 +29,14 @@ import augmy.composeapp.generated.resources.accessibility_message_presentation
 import augmy.composeapp.generated.resources.accessibility_message_text
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getMediaType
-import coil3.toUri
 import components.AsyncSvgImage
 import components.PlatformFileImage
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.components.gif.GifImage
@@ -52,22 +53,35 @@ fun MediaElement(
     url: String? = null,
     media: PlatformFile? = null,
     contentDescription: String? = null,
-    contentScale: ContentScale = ContentScale.Inside
+    contentScale: ContentScale = ContentScale.Inside,
+    onTap: ((MediaType) -> Unit)? = null,
+    enabled: Boolean = onTap != null,
+    onLongPress: () -> Unit = {}
 ) {
+    val mediaType = getMediaType(url ?: media?.name ?: "")
+    val itemModifier = modifier.scalingClickable(
+        enabled = enabled,
+        scaleInto = .95f,
+        onLongPress = {
+            onLongPress()
+        },
+        onTap = {
+            onTap?.invoke(mediaType)
+        }
+    )
+
     if(!url.isNullOrBlank() || media != null) {
-        when(val mediaType = getMediaType(
-            (url?.toUri()?.path ?: url)?.substringAfterLast(".") ?: media?.extension ?: ""
-        )) {
+        when(mediaType) {
             MediaType.IMAGE -> {
                 if (media != null) {
                     PlatformFileImage(
-                        modifier = modifier.wrapContentWidth(),
+                        modifier = itemModifier.wrapContentWidth(),
                         contentScale = contentScale,
                         media = media
                     )
                 } else if(url != null) {
                     AsyncSvgImage(
-                        modifier = modifier.wrapContentWidth(),
+                        modifier = itemModifier.wrapContentWidth(),
                         model = url,
                         contentScale = contentScale,
                         contentDescription = contentDescription
@@ -78,7 +92,7 @@ fun MediaElement(
                 @Suppress("IMPLICIT_CAST_TO_ANY")
                 (if(media != null) PlatformFileShell(media) else url)?.let { data ->
                     GifImage(
-                        modifier = modifier
+                        modifier = itemModifier
                             .zIndex(1f)
                             .clip(RoundedCornerShape(6.dp))
                             .wrapContentWidth(),
@@ -93,10 +107,12 @@ fun MediaElement(
             }
             else -> {
                 Column(
-                    modifier = Modifier.width(IntrinsicSize.Min),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = itemModifier.width(IntrinsicSize.Min),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    val iconModifier = modifier.sizeIn(maxHeight = 50.dp, maxWidth = 50.dp)
+                    val iconModifier = modifier.fillMaxWidth(.5f).aspectRatio(1f)
+
                     when(mediaType) {
                         MediaType.PDF -> {
                             Image(

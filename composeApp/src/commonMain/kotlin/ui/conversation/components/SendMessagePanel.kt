@@ -101,7 +101,6 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
 import base.utils.MediaType
 import base.utils.getMediaType
-import coil3.toUri
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
@@ -417,7 +416,7 @@ internal fun BoxScope.SendMessagePanel(
                         actionYCoordinate.value = it.positionOnScreen().y
                     }
                     .contentReceiver { uri ->
-                        when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
+                        when(getMediaType(uri)) {
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
                             else -> urlsAttached.add(uri)
                         }

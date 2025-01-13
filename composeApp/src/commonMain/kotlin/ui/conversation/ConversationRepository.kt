@@ -41,6 +41,7 @@ import kotlinx.datetime.format
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import org.koin.mp.KoinPlatform
+import ui.conversation.components.audio.MediaHttpProgress
 import ui.login.safeRequest
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
@@ -178,6 +179,8 @@ class ConversationRepository(
         conversationId: String,
         message: ConversationMessageIO,
         audioByteArray: ByteArray? = null,
+        // TODO upload progress
+        onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
         mediaFiles: List<PlatformFile> = listOf(),
     ): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {

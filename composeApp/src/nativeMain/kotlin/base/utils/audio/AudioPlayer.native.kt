@@ -1,14 +1,11 @@
 package base.utils.audio
 
-import androidx.collection.MutableFloatList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import io.ktor.utils.io.core.ByteOrder
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.ShortVar
-import kotlinx.cinterop.ShortVarOf
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.allocPointerTo
 import kotlinx.cinterop.convert
@@ -22,7 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import okio.Buffer
-import platform.AVFAudio.AVAudioCommonFormat
 import platform.AVFAudio.AVAudioEngine
 import platform.AVFAudio.AVAudioFormat
 import platform.AVFAudio.AVAudioPCMBuffer
@@ -32,15 +28,12 @@ import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
-import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
-import platform.AVFAudio.AVAudioSessionModeMeasurement
 import platform.AVFAudio.AVAudioSessionModeSpokenAudio
 import platform.AVFAudio.availableInputs
 import platform.AVFAudio.setActive
 import platform.AVFAudio.setPreferredSampleRate
 import platform.Foundation.NSError
-import platform.darwin.ByteVar
 import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_sync
 import platform.posix.memcpy

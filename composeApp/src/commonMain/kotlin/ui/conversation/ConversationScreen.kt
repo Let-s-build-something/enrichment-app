@@ -16,7 +16,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -414,27 +413,24 @@ private fun LazyItemScope.MessageContent(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val profileImageSize = with(density) { 38.sp.toDp() }
-        val isLastOfStack = !isCurrentUser && !isNextMessageSameAuthor
-        if(isLastOfStack) {
-            UserProfileImage(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .zIndex(4f)
-                    .size(profileImageSize),
-                model = data?.user?.photoUrl,
-                tag = data?.user?.tag
-            )
+
+        if(!isCurrentUser) {
+            if(!isNextMessageSameAuthor) {
+                UserProfileImage(
+                    modifier = Modifier
+                        .padding(start = 12.dp, end = 10.dp)
+                        .zIndex(4f)
+                        .size(profileImageSize),
+                    model = data?.user?.photoUrl,
+                    tag = data?.user?.tag
+                )
+            }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
+                Spacer(Modifier.width(profileImageSize + 22.dp))
+            }
         }
 
         MessageBubble(
             data = data,
-            contentPadding = PaddingValues(
-                start = LocalTheme.current.shapes.betweenItemsSpace.plus(
-                    if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
-                        12.dp + profileImageSize
-                    } else 0.dp
-                ) + if (isCurrentUser) 16.dp else 0.dp
-            ),
             isReacting = reactingToMessageId.value == data?.id,
             currentUserPublicId = viewModel.currentUser.value?.publicId ?: "",
             hasPrevious = isPreviousMessageSameAuthor,
@@ -456,6 +452,9 @@ private fun LazyItemScope.MessageContent(
                 showEmojiPreferencesId.value = data?.id
             },
             onReplyRequest = onReplyRequest,
+            onDownloadRequest = {
+                // TODO download image
+            },
             additionalContent = {
                 val heightModifier = Modifier.heightIn(
                     max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
@@ -535,13 +534,15 @@ private fun LazyItemScope.MessageContent(
                                     .padding(
                                         horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
                                     )
-                                    .scalingClickable(
-                                        enabled = (data.state?.ordinal ?: 0) > 0,
-                                        scaleInto = .95f,
-                                        onLongPress = {
-                                            reactingToMessageId.value = data.id
-                                        }
-                                    ) {
+                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
+                                url = mediaUrl,
+                                media = media,
+                                enabled = (data.state?.ordinal ?: 0) > 0,
+                                onLongPress = {
+                                    reactingToMessageId.value = data.id
+                                },
+                                onTap = { mediaType ->
+                                    if(mediaType.isVisualized) {
                                         coroutineScope.launch {
                                             navController?.navigate(
                                                 NavigationNode.MediaDetail(
@@ -555,9 +556,7 @@ private fun LazyItemScope.MessageContent(
                                             )
                                         }
                                     }
-                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                url = mediaUrl,
-                                media = media
+                                }
                             )
                         }
                         if(!isCurrentUser) {
