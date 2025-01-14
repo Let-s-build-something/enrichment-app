@@ -4,6 +4,7 @@ import base.utils.sha256
 import database.file.FileAccess
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.onDownload
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
 import kotlinx.coroutines.Dispatchers
@@ -11,17 +12,24 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /** Class for calling APIs and remote work in general */
-class AudioProcessorRepository(
+class MediaProcessorRepository(
     private val fileAccess: FileAccess
 ) {
 
-    /** returns an audio wav file from Google cloud storage */
-    suspend fun getAudioBytes(url: String): ByteArray? {
+    /** returns a file from Google cloud storage or cache and caches it if it is not cached */
+    suspend fun getFileByteArray(
+        url: String,
+        onProgressChange: (bytesSentTotal: Long, contentLength: Long?) -> Unit
+    ): ByteArray? {
         return withContext(Dispatchers.IO) {
             fileAccess.loadFileFromCache(sha256(url)) ?: try {
                 HttpClient().config {
                     install(ContentNegotiation)
-                }.get(urlString = url).bodyAsBytes().also { byteArray ->
+                }.get(urlString = url) {
+                    onDownload { bytesSentTotal, contentLength ->
+                        onProgressChange(bytesSentTotal, contentLength)
+                    }
+                }.bodyAsBytes().also { byteArray ->
                     byteArray.takeIf { it.isNotEmpty() }?.let {
                         fileAccess.saveFileToCache(data = it, fileName = sha256(url))
                     }

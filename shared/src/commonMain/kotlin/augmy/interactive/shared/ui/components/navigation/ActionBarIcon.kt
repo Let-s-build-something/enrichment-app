@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -47,6 +48,7 @@ fun ActionBarIcon(
     enabled: Boolean = true,
     text: String? = null,
     imageVector: ImageVector? = null,
+    painter: Painter? = null,
     imageUrl: String? = null,
     onClick: () -> Unit = {},
     content: @Composable () -> Unit = {}
@@ -86,6 +88,14 @@ fun ActionBarIcon(
                 Icon(
                     modifier = Modifier.size(24.dp),
                     imageVector = imageVector,
+                    contentDescription = text,
+                    tint = tint
+                )
+            }
+            painter != null -> {
+                Icon(
+                    modifier = Modifier.size(24.dp),
+                    painter = painter,
                     contentDescription = text,
                     tint = tint
                 )

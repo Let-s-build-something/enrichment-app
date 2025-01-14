@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -101,7 +102,6 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
 import base.utils.MediaType
 import base.utils.getMediaType
-import coil3.toUri
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.giphy.GifAsset
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
@@ -355,7 +355,7 @@ internal fun BoxScope.SendMessagePanel(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
-                        .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                        .heightIn(max = MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
                         .horizontallyDraggable(state = mediaListState),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
@@ -417,7 +417,7 @@ internal fun BoxScope.SendMessagePanel(
                         actionYCoordinate.value = it.positionOnScreen().y
                     }
                     .contentReceiver { uri ->
-                        when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
+                        when(getMediaType(uri)) {
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
                             else -> urlsAttached.add(uri)
                         }

@@ -1,6 +1,16 @@
 package base.utils
 
+import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
+import platform.Foundation.NSData
+import platform.Foundation.NSDocumentDirectory
+import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
+import platform.Foundation.NSUserDomainMask
+import platform.Foundation.create
+import platform.Foundation.writeToFile
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
@@ -30,6 +40,10 @@ fun UIViewController.getTopViewController(): UIViewController? {
     return currentController
 }
 
+actual fun shareMessage(media: List<String>, messageContent: String): Boolean {
+    return false
+}
+
 actual fun openLink(link: String): Boolean {
     val nsUrl = NSURL.URLWithString(link)
 
@@ -37,4 +51,55 @@ actual fun openLink(link: String): Boolean {
         UIApplication.sharedApplication.openURL(nsUrl)
         true
     }else false
+}
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
+    var result = true
+
+    data.forEach { (url, data) ->
+        val extension = getUrlExtension(url)
+
+        // Prepare file path
+        val fileManager = NSFileManager.defaultManager()
+        val documentsDirectoryURL: NSURL? = getDocumentsDirectory()
+        val documentsDirectory = fileManager.URLForDirectory(
+            NSDocumentDirectory,
+            NSUserDomainMask,
+            documentsDirectoryURL,
+            false,
+            null
+        )
+        val fileName = "${sha256(url)}.${extension}"
+        val fileURL = documentsDirectory?.URLByAppendingPathComponent(fileName)
+
+        if (fileURL != null) {
+            try {
+                data.usePinned { pinnedData ->
+                    val fileData = NSData.create(pinnedData.addressOf(0), data.size.toULong())
+                    fileData.writeToFile(documentsDirectory.path ?: "", atomically = true)
+                }
+            } catch (e: Exception) {
+                result = false
+            }
+        }
+    }
+
+    return result
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun getDocumentsDirectory(): NSURL? {
+    val fileManager = NSFileManager.defaultManager()
+    val url = fileManager.URLForDirectory(
+        NSDocumentDirectory,
+        NSUserDomainMask,
+        null,
+        true,
+        null
+    )
+    return url
+}
+
+actual fun openFile(path: String?) {
 }
