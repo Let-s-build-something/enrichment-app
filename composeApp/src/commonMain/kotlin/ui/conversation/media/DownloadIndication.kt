@@ -77,7 +77,7 @@ fun rememberIndicationState(
             coroutineScope.launch {
                 if(it.isNotEmpty()) {
                     state.state.value = BaseResponse.Success(null)
-                    delay(if(currentPlatform == PlatformType.Jvm) 4000 else 1000)
+                    delay(if(currentPlatform == PlatformType.Jvm) 8000 else 1000)
                 }
                 state.state.value = null
                 processor.flush()

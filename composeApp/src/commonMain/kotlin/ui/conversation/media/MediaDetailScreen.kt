@@ -120,13 +120,6 @@ fun MediaDetailScreen(
     ) {
         val contentSize = LocalContentSize.current
 
-        DownloadIndication(
-            modifier = Modifier
-                .navigationBarsPadding()
-                .align(alignment = Alignment.BottomCenter),
-            state = downloadState
-        )
-
         Column(modifier = Modifier.navigationBarsPadding()) {
             AnimatedVisibility(
                 modifier = Modifier.zIndex(1f),
@@ -167,7 +160,8 @@ fun MediaDetailScreen(
             }
             HorizontalPager(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .mouseDraggable(pagerState) {
                         currentIndex.value = ConversationKeyboardMode.entries[it].ordinal
                     },
@@ -241,16 +235,17 @@ fun MediaDetailScreen(
                                     )
                                 },
                             contentScale = ContentScale.Fit,
-                            url = url
+                            url = url,
+                            videoPlayerEnabled = true
                         )
                         Icon(
                             modifier = Modifier
+                                .padding(bottom = 8.dp, end = 12.dp)
                                 .size(36.dp)
                                 .align(Alignment.BottomEnd)
                                 .scalingClickable {
                                     processor.processFiles(url)
-                                }
-                                .padding(5.dp),
+                                },
                             imageVector = Icons.Outlined.Download,
                             contentDescription = stringResource(Res.string.accessibility_message_download),
                             tint = LocalTheme.current.colors.secondary
@@ -258,6 +253,10 @@ fun MediaDetailScreen(
                     }
                 }
             }
+            DownloadIndication(
+                modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
+                state = downloadState
+            )
         }
     }
 }

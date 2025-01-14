@@ -54,7 +54,7 @@ kotlin {
 
     cocoapods {
         version = libs.versions.version.name.get()
-        summary = "Communicate meaningfully"
+        summary = "Expressive messenger"
         homepage = "https://augmy.org"
 
         // Optional properties
@@ -127,6 +127,9 @@ kotlin {
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
+
+            implementation(libs.java.jogamp.jogl)
+            implementation(libs.java.jogamp.gluegen)
         }
 
         commonMain.dependencies {
@@ -172,7 +175,10 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
-            //implementation(libs.media.player.chaintech)
+            implementation("network.chaintech:compose-multiplatform-media-player:1.0.29") {
+                exclude(group = "org.jogamp.gluegen", module = "gluegen-rt")
+                exclude(group = "org.jogamp.jogl", module = "jogl-all")
+            }
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
