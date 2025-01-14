@@ -11,8 +11,6 @@ import android.provider.MediaStore
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
-import augmy.interactive.shared.DateUtils
-import augmy.interactive.shared.DateUtils.formatAs
 import org.koin.mp.KoinPlatform.getKoin
 
 actual fun shareLink(title: String, link: String): Boolean {
@@ -70,7 +68,7 @@ actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
         val isVideo = mimeType.startsWith("video/")
 
         val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, "${DateUtils.localNow.formatAs("yyyy_MM_dd_HH_mm")}.${getUrlExtension(url)}")
+            put(MediaStore.Downloads.DISPLAY_NAME, "${sha256(url)}.${getUrlExtension(url)}")
             put(MediaStore.Downloads.MIME_TYPE, mimeType)
             put(
                 MediaStore.Downloads.RELATIVE_PATH,
@@ -108,4 +106,7 @@ actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
     }
 
     return result
+}
+
+actual fun openFile(path: String?) {
 }

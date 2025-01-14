@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.LoadingIndicator
 import components.OptionsLayout
@@ -36,8 +37,6 @@ import components.OptionsLayoutAction
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
-import augmy.interactive.shared.ext.brandShimmerEffect
-import augmy.interactive.shared.ext.scalingClickable
 
 /**
  * Horizontal layout visualizing a user with ability for actions and checked state
@@ -108,6 +107,9 @@ private fun ContentLayout(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
+                modifier = Modifier
+                    .animateContentSize()
+                    .weight(1f),
                 verticalAlignment = if(data.lastMessage.isNullOrBlank()) {
                     Alignment.CenterVertically
                 }else Alignment.Top
@@ -167,11 +169,8 @@ private fun ContentLayout(
                     )
                 }
             }
-            AnimatedVisibility(response != null) {
-                LoadingIndicator(
-                    modifier = Modifier.requiredSize(32.dp),
-                    response = response
-                )
+            if(response != null) {
+                LoadingIndicator(response = response)
             }
         }
         OptionsLayout(

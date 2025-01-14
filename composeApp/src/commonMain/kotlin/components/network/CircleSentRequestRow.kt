@@ -102,6 +102,7 @@ private fun ContentLayout(
             targetState = response != null
         ) { isLoading ->
             Box(modifier = Modifier
+                .animateContentSize()
                 .padding(8.dp)
                 .fillMaxWidth()
                 .height(56.dp)

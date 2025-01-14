@@ -58,8 +58,15 @@ class MediaProcessorModel(
         }
     }
 
+    /** Flushes the cached downloaded data */
+    fun flush() {
+        _resultByteArray.value = null
+        _resultData.value = mapOf()
+        _downloadProgress.value = null
+    }
+
     /** Attempts to retrieve bitmaps out of urls */
-    fun downloadFiles(vararg urls: String?) {
+    fun processFiles(vararg urls: String?) {
         viewModelScope.launch {
             _downloadProgress.value = MediaHttpProgress(
                 items = urls.size,

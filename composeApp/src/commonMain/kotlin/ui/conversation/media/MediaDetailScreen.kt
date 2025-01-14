@@ -49,6 +49,7 @@ import augmy.composeapp.generated.resources.action_share
 import augmy.composeapp.generated.resources.ic_forward
 import augmy.composeapp.generated.resources.navigate_close
 import augmy.interactive.shared.ext.detectTransformTwoDown
+import augmy.interactive.shared.ext.mouseDraggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalContentSize
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -56,15 +57,13 @@ import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
-import base.utils.downloadFiles
 import base.utils.shareMessage
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.MediaElement
 import ui.conversation.components.audio.MediaProcessorModel
 
@@ -93,46 +92,11 @@ fun MediaDetailScreen(
     val showOptions = rememberSaveable(urls, selectedIndex) {
         mutableStateOf(false)
     }
-    val downloadState = rememberIndicationState()
+    val downloadState = rememberIndicationState(processor)
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collectLatest {
             currentIndex.value = it
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        processor.resultData.collectLatest {
-            if(it.isNotEmpty()) {
-                downloadFiles(data = it)
-            }
-            coroutineScope.coroutineContext.cancelChildren()
-            coroutineScope.launch {
-                if(it.isNotEmpty()) {
-                    downloadState.state.value = DownloadState.Finished
-                    delay(1000)
-                    downloadState.state.value = DownloadState.Initialized
-                } else DownloadState.Initialized
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        processor.downloadProgress.collectLatest {
-            downloadState.state.value = when {
-                it == null -> DownloadState.Initialized
-                it.item != 0 || (it.progress?.first ?: 0) > 0 -> DownloadState.Progressing
-                else ->DownloadState.Initialized
-            }
-            it?.progress?.let { progress ->
-                downloadState.progress.value = progress
-            }
-            it?.items?.let { items ->
-                downloadState.items.value = items
-            }
-            it?.item?.let { item ->
-                downloadState.item.value = item
-            }
         }
     }
 
@@ -157,7 +121,9 @@ fun MediaDetailScreen(
         val contentSize = LocalContentSize.current
 
         DownloadIndication(
-            modifier = Modifier.align(alignment = Alignment.BottomCenter),
+            modifier = Modifier
+                .navigationBarsPadding()
+                .align(alignment = Alignment.BottomCenter),
             state = downloadState
         )
 
@@ -179,7 +145,7 @@ fun MediaDetailScreen(
                         text = stringResource(Res.string.action_download_all),
                         imageVector = Icons.Outlined.Download,
                         onClick = {
-                            processor.downloadFiles(*urls)
+                            processor.processFiles(*urls)
                         }
                     )
                     ActionBarIcon(
@@ -200,7 +166,11 @@ fun MediaDetailScreen(
                 }
             }
             HorizontalPager(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .mouseDraggable(pagerState) {
+                        currentIndex.value = ConversationKeyboardMode.entries[it].ordinal
+                    },
                 state = pagerState,
                 beyondViewportPageCount = 1
             ) { index ->
@@ -278,7 +248,7 @@ fun MediaDetailScreen(
                                 .size(36.dp)
                                 .align(Alignment.BottomEnd)
                                 .scalingClickable {
-                                    processor.downloadFiles(url)
+                                    processor.processFiles(url)
                                 }
                                 .padding(5.dp),
                             imageVector = Icons.Outlined.Download,

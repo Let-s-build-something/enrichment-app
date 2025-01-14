@@ -75,6 +75,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.utils.getMediaType
 import base.utils.getOrNull
 import components.UserProfileImage
 import data.io.social.network.conversation.ConversationMessageIO
@@ -452,115 +453,128 @@ private fun LazyItemScope.MessageContent(
                 showEmojiPreferencesId.value = data?.id
             },
             onReplyRequest = onReplyRequest,
-            onDownloadRequest = {
-                // TODO download image
-            },
             additionalContent = {
-                val heightModifier = Modifier.heightIn(
-                    max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
-                    min = MEDIA_MAX_HEIGHT_DP.dp
-                )
-
-                data?.anchorMessage?.let { anchorData ->
-                    ReplyIndication(
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .padding(start = 12.dp),
-                        data = anchorData,
-                        onClick = {
-                            scrollToMessage(anchorData.id, anchorData.index)
-                        },
-                        isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
-                    )
+                val rememberedHeight = rememberSaveable(data?.id) {
+                    mutableStateOf(0f)
                 }
-                if(data?.gifAsset != null) {
-                    val date = data.createdAt?.formatAsRelative() ?: ""
-
-                    GifImage(
-                        modifier = heightModifier
-                            .align(Alignment.End)
-                            .zIndex(1f)
-                            .scalingClickable(
-                                scaleInto = .95f,
-                                onLongPress = {
-                                    reactingToMessageId.value = data.id
-                                }
-                            ) {
-                                coroutineScope.launch {
-                                    navController?.navigate(
-                                        NavigationNode.MediaDetail(
-                                            urls = listOf(data.gifAsset.original ?: ""),
-                                            title = if(isCurrentUser) {
-                                                getString(Res.string.conversation_detail_you)
-                                            } else data.user?.displayName,
-                                            subtitle = date
-                                        )
-                                    )
-                                }
-                            }
-                            .clip(RoundedCornerShape(6.dp)),
-                        data = data.gifAsset.original ?: "",
-                        contentDescription = data.gifAsset.description,
-                        contentScale = ContentScale.FillHeight
+                val heightModifier = Modifier
+                    .heightIn(
+                        max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
+                        min = MEDIA_MAX_HEIGHT_DP.dp
                     )
-                }
-                if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
-                    val date = data.createdAt?.formatAsRelative() ?: ""
 
-                    LaunchedEffect(mediaRowState) {
-                        snapshotFlow { mediaRowState.value }.collect {
-                            if(abs(scrollPosition.value - it) < 300) {
-                                scrollPosition.value = it
+                Column(
+                    modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                        .wrapContentWidth()
+                        .onSizeChanged {
+                            if(it.height != 0) {
+                                with(density) {
+                                    rememberedHeight.value = it.height.toDp().value
+                                }
                             }
                         }
+                ) {
+                    data?.anchorMessage?.let { anchorData ->
+                        ReplyIndication(
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .padding(start = 12.dp),
+                            data = anchorData,
+                            onClick = {
+                                scrollToMessage(anchorData.id, anchorData.index)
+                            },
+                            isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
+                        )
                     }
+                    if(data?.gifAsset != null) {
+                        val date = data.createdAt?.formatAsRelative() ?: ""
 
-                    Row(
-                        modifier = heightModifier
-                            .wrapContentWidth()
-                            .horizontalScroll(state = mediaRowState)
-                            .horizontallyDraggable(state = mediaRowState)
-                    ) {
-                        if(isCurrentUser) {
-                            Spacer(Modifier.width((screenSize.width * .3f).dp))
-                        }
-                        (if(isCurrentUser) {
-                            data.mediaUrls
-                        } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
-                            val media = viewModel.cachedFiles[mediaUrl]
-
-                            MediaElement(
-                                modifier = heightModifier
-                                    .padding(
-                                        horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
-                                    )
-                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                url = mediaUrl,
-                                media = media,
-                                enabled = (data.state?.ordinal ?: 0) > 0,
-                                onLongPress = {
-                                    reactingToMessageId.value = data.id
-                                },
-                                onTap = { mediaType ->
-                                    if(mediaType.isVisualized) {
-                                        coroutineScope.launch {
-                                            navController?.navigate(
-                                                NavigationNode.MediaDetail(
-                                                    urls = data.mediaUrls,
-                                                    selectedIndex = index,
-                                                    title = if(isCurrentUser) {
-                                                        getString(Res.string.conversation_detail_you)
-                                                    } else data.user?.displayName,
-                                                    subtitle = date
-                                                )
+                        GifImage(
+                            modifier = heightModifier
+                                .zIndex(1f)
+                                .scalingClickable(
+                                    scaleInto = .95f,
+                                    onLongPress = {
+                                        reactingToMessageId.value = data.id
+                                    }
+                                ) {
+                                    coroutineScope.launch {
+                                        navController?.navigate(
+                                            NavigationNode.MediaDetail(
+                                                urls = listOf(data.gifAsset.original ?: ""),
+                                                title = if(isCurrentUser) {
+                                                    getString(Res.string.conversation_detail_you)
+                                                } else data.user?.displayName,
+                                                subtitle = date
                                             )
-                                        }
+                                        )
                                     }
                                 }
-                            )
+                                .clip(RoundedCornerShape(6.dp)),
+                            data = data.gifAsset.original ?: "",
+                            contentDescription = data.gifAsset.description,
+                            contentScale = ContentScale.FillHeight
+                        )
+                    }
+                    if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
+                        val date = data.createdAt?.formatAsRelative() ?: ""
+
+                        LaunchedEffect(mediaRowState) {
+                            snapshotFlow { mediaRowState.value }.collect {
+                                if(abs(scrollPosition.value - it) < 300) {
+                                    scrollPosition.value = it
+                                }
+                            }
                         }
-                        if(!isCurrentUser) {
-                            Spacer(Modifier.width((screenSize.width * .3f).dp))
+
+                        Row(
+                            modifier = heightModifier
+                                .wrapContentWidth()
+                                .horizontalScroll(state = mediaRowState)
+                                .horizontallyDraggable(state = mediaRowState)
+                        ) {
+                            if(isCurrentUser) {
+                                Spacer(Modifier.width((screenSize.width * .3f).dp))
+                            }
+                            (if(isCurrentUser) {
+                                data.mediaUrls
+                            } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
+                                val media = viewModel.cachedFiles[mediaUrl]
+                                val type = getMediaType(mediaUrl)
+
+                                MediaElement(
+                                    modifier = heightModifier
+                                        .padding(
+                                            horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
+                                        )
+                                        .clip(LocalTheme.current.shapes.rectangularActionShape),
+                                    url = mediaUrl,
+                                    media = media,
+                                    enabled = (data.state?.ordinal ?: 0) > 0 && type.isVisualized,
+                                    onLongPress = {
+                                        reactingToMessageId.value = data.id
+                                    },
+                                    onTap = { mediaType ->
+                                        if(mediaType.isVisualized) {
+                                            coroutineScope.launch {
+                                                navController?.navigate(
+                                                    NavigationNode.MediaDetail(
+                                                        urls = data.mediaUrls,
+                                                        selectedIndex = index,
+                                                        title = if(isCurrentUser) {
+                                                            getString(Res.string.conversation_detail_you)
+                                                        } else data.user?.displayName,
+                                                        subtitle = date
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                            if(!isCurrentUser) {
+                                Spacer(Modifier.width((screenSize.width * .3f).dp))
+                            }
                         }
                     }
                 }
@@ -568,7 +582,6 @@ private fun LazyItemScope.MessageContent(
                     AudioMessageBubble(
                         modifier = Modifier
                             .wrapContentWidth()
-                            .align(Alignment.End)
                             .zIndex(1f),
                         url = data?.audioUrl ?: "",
                         isCurrentUser = isCurrentUser,

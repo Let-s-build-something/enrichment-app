@@ -1,7 +1,5 @@
 package base.utils
 
-import augmy.interactive.shared.DateUtils
-import augmy.interactive.shared.DateUtils.formatAs
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -72,7 +70,7 @@ actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
             false,
             null
         )
-        val fileName = "${DateUtils.localNow.formatAs("yyyy_MM_dd_HH_mm")}.${extension}"
+        val fileName = "${sha256(url)}.${extension}"
         val fileURL = documentsDirectory?.URLByAppendingPathComponent(fileName)
 
         if (fileURL != null) {
@@ -101,4 +99,7 @@ private fun getDocumentsDirectory(): NSURL? {
         null
     )
     return url
+}
+
+actual fun openFile(path: String?) {
 }

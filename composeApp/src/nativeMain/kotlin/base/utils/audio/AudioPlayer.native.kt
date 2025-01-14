@@ -250,3 +250,13 @@ actual fun rememberAudioPlayer(
         }
     }
 }
+
+actual fun getMinBufferSize(sampleRate: Int, channels: Int, encoding: Int): Int {
+    val bytesPerSample = when (encoding) {
+        16 -> 2
+        8 -> 1
+        else -> throw IllegalArgumentException("Unsupported encoding: $encoding")
+    }
+    val estimatedFramesPerBuffer = (sampleRate * 0.02).toInt() // 20ms buffer
+    return estimatedFramesPerBuffer * channels * bytesPerSample
+}

@@ -1,8 +1,7 @@
 package base.utils
 
-import augmy.interactive.shared.DateUtils
-import augmy.interactive.shared.DateUtils.formatAs
 import java.awt.Desktop
+import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.nio.file.Files
@@ -27,6 +26,12 @@ actual fun openLink(link: String): Boolean {
     }
 }
 
+actual fun openFile(path: String?) {
+    Desktop.getDesktop().open(
+        File(path ?: Paths.get(System.getProperty("user.home"), "Downloads").toString())
+    )
+}
+
 actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
     var result = true
 
@@ -34,7 +39,7 @@ actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
         val extension = getUrlExtension(url)
 
         // Determine file path based on mimeType
-        val fileName = "${DateUtils.localNow.formatAs("yyyy_MM_dd_HH_mm")}.${extension}"
+        val fileName = "${sha256(url)}.${extension}"
         val filePath = Paths.get(System.getProperty("user.home"), "Downloads", fileName)
 
         try {

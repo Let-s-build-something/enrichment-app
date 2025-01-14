@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getMediaType
+import base.utils.getUrlExtension
 import components.AsyncSvgImage
 import components.PlatformFileImage
 import io.github.vinceglb.filekit.core.PlatformFile
@@ -111,7 +113,7 @@ fun MediaElement(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    val iconModifier = modifier.fillMaxWidth(.5f).aspectRatio(1f)
+                    val iconModifier = modifier.fillMaxWidth(.3f).aspectRatio(1f)
 
                     when(mediaType) {
                         MediaType.PDF -> {
@@ -153,6 +155,11 @@ fun MediaElement(
                             )
                         }
                     }
+                    Text(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        text = getUrlExtension(url ?: media?.name ?: ""),
+                        style = LocalTheme.current.styles.regular
+                    )
                 }
             }
         }

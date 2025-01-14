@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -354,7 +355,7 @@ internal fun BoxScope.SendMessagePanel(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
-                        .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                        .heightIn(max = MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
                         .horizontallyDraggable(state = mediaListState),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
