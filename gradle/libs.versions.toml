@@ -13,7 +13,7 @@ ktor = "3.0.1"
 navigationCompose = "2.8.0-alpha10"
 compose-plugin = "1.7.3"
 compottie = "2.0.0-rc02"
-mediaPlayerChaintech = "1.0.26"
+mediaPlayerChaintech = "1.0.29"
 kotlinCrypto = "0.5.3"
 koin = "4.0.0"
 pagingCompose = "3.3.0-alpha02-0.5.1"
@@ -46,6 +46,7 @@ androidFirebaseMessaging = "24.1.0"
 
 # Java
 jvmGoogleCloudStorage = "2.46.0"
+jogamp = "2.3.2"
 
 
 [libraries]
@@ -121,8 +122,10 @@ android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", vers
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
 
-#------------------- ANDROID -------------------
+#------------------- JVM -------------------
 java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
+java-jogamp-jogl = { module = "org.jogamp.jogl:jogl-all", version.ref = "jogamp" }
+java-jogamp-gluegen = { module = "org.jogamp.gluegen:gluegen-rt", version.ref = "jogamp" }
 
 
 [bundles]

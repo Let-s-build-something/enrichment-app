@@ -602,15 +602,8 @@ private fun ContentLayout(
 
             Row(
                 modifier = Modifier
-                    .animateContentSize()
-                    .offset(
-                        x = 0.dp,
-                        y = if (!data.reactions.isNullOrEmpty()) {
-                            with(density) {
-                                -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
-                            }
-                        } else 0.dp
-                    ),
+                    .zIndex(2f)
+                    .animateContentSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (isCurrentUser && (isMyLastMessage || (data.state?.ordinal

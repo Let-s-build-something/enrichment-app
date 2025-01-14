@@ -2,10 +2,13 @@ package ui.conversation.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.GraphicEq
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,14 +33,20 @@ import augmy.composeapp.generated.resources.accessibility_message_file
 import augmy.composeapp.generated.resources.accessibility_message_pdf
 import augmy.composeapp.generated.resources.accessibility_message_presentation
 import augmy.composeapp.generated.resources.accessibility_message_text
+import augmy.composeapp.generated.resources.accessibility_play
 import augmy.composeapp.generated.resources.logo_pdf
 import augmy.composeapp.generated.resources.logo_powerpoint
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.theme.Colors
 import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getMediaType
 import base.utils.getUrlExtension
+import chaintech.videoplayer.model.PlayerConfig
+import chaintech.videoplayer.model.ScreenResize
+import chaintech.videoplayer.ui.preview.VideoPreviewComposable
+import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import components.AsyncSvgImage
 import components.PlatformFileImage
 import io.github.vinceglb.filekit.core.PlatformFile
@@ -52,6 +63,7 @@ import ui.conversation.components.gif.GifImage
 @Composable
 fun MediaElement(
     modifier: Modifier = Modifier,
+    videoPlayerEnabled: Boolean = false,
     url: String? = null,
     media: PlatformFile? = null,
     contentDescription: String? = null,
@@ -105,7 +117,62 @@ fun MediaElement(
                 }
             }
             MediaType.VIDEO -> {
-                // TODO local video
+                if(videoPlayerEnabled) {
+                    val theme = LocalTheme.current
+                    val config = PlayerConfig(
+                        isFullScreenEnabled = true,
+                        isSpeedControlEnabled = false,
+                        isMuteControlEnabled = false,
+                        isSeekBarVisible = true,
+                        seekBarThumbColor = theme.colors.brandMainDark,
+                        seekBarActiveTrackColor = theme.colors.brandMain,
+                        seekBarInactiveTrackColor = theme.colors.tetrial,
+                        durationTextStyle = theme.styles.regular,
+                        iconsTintColor = theme.colors.secondary,
+                        loadingIndicatorColor = theme.colors.secondary,
+                        isDurationVisible = true,
+                        isFastForwardBackwardEnabled = false,
+                        loop = false,
+                        loaderView = {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .zIndex(1f)
+                                    .requiredSize(32.dp),
+                                color = LocalTheme.current.colors.brandMainDark,
+                                trackColor = LocalTheme.current.colors.tetrial
+                            )
+                        },
+                        videoFitMode = ScreenResize.FIT
+                    )
+
+                    VideoPlayerComposable(
+                        modifier = itemModifier,
+                        url = media?.path ?: url ?: "",
+                        playerConfig = config
+                    )
+                }else {
+                    Box(
+                        modifier = itemModifier,
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if(enabled) {
+                            Icon(
+                                modifier = Modifier
+                                    .zIndex(1f)
+                                    .size(36.dp),
+                                imageVector = Icons.Outlined.PlayArrow,
+                                tint = Colors.GrayLight,
+                                contentDescription = stringResource(Res.string.accessibility_play)
+                            )
+                        }
+
+                        VideoPreviewComposable(
+                            url = media?.path ?: url ?: "",
+                            loadingIndicatorColor = LocalTheme.current.colors.secondary,
+                            frameCount = 1
+                        )
+                    }
+                }
             }
             else -> {
                 Column(
