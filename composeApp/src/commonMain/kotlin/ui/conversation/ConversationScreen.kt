@@ -465,7 +465,6 @@ private fun LazyItemScope.MessageContent(
 
                 Column(
                     modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
-                        .wrapContentWidth()
                         .onSizeChanged {
                             if(it.height != 0) {
                                 with(density) {
@@ -494,6 +493,7 @@ private fun LazyItemScope.MessageContent(
                                 .zIndex(1f)
                                 .scalingClickable(
                                     scaleInto = .95f,
+                                    hoverEnabled = false,
                                     onLongPress = {
                                         reactingToMessageId.value = data.id
                                     }
@@ -513,7 +513,7 @@ private fun LazyItemScope.MessageContent(
                                 .clip(RoundedCornerShape(6.dp)),
                             data = data.gifAsset.original ?: "",
                             contentDescription = data.gifAsset.description,
-                            contentScale = ContentScale.FillHeight
+                            contentScale = ContentScale.Fit
                         )
                     }
                     if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
@@ -580,9 +580,7 @@ private fun LazyItemScope.MessageContent(
                 }
                 if(!data?.audioUrl.isNullOrBlank()) {
                     AudioMessageBubble(
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .zIndex(1f),
+                        modifier = Modifier.zIndex(1f),
                         url = data?.audioUrl ?: "",
                         isCurrentUser = isCurrentUser,
                         hasPrevious = isPreviousMessageSameAuthor,
