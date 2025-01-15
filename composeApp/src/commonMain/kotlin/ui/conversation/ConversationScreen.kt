@@ -110,6 +110,7 @@ fun ConversationScreen(
 ) {
     loadKoinModules(conversationModule)
     val viewModel: ConversationViewModel = koinViewModel(
+        key = conversationId,
         parameters = { parametersOf(conversationId ?: "") }
     )
 
@@ -462,6 +463,14 @@ private fun LazyItemScope.MessageContent(
                         max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
                         min = MEDIA_MAX_HEIGHT_DP.dp
                     )
+                    .then(if(data?.content.isNullOrBlank()) {
+                        Modifier.clip(LocalTheme.current.shapes.rectangularActionShape)
+                    }else Modifier.clip(
+                        RoundedCornerShape(
+                            topStart = LocalTheme.current.shapes.rectangularActionRadius,
+                            topEnd = LocalTheme.current.shapes.rectangularActionRadius
+                        )
+                    ))
 
                 Column(
                     modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
@@ -509,8 +518,7 @@ private fun LazyItemScope.MessageContent(
                                             )
                                         )
                                     }
-                                }
-                                .clip(RoundedCornerShape(6.dp)),
+                                },
                             data = data.gifAsset.original ?: "",
                             contentDescription = data.gifAsset.description,
                             contentScale = ContentScale.Fit
@@ -531,11 +539,11 @@ private fun LazyItemScope.MessageContent(
                             modifier = heightModifier
                                 .wrapContentWidth()
                                 .horizontalScroll(state = mediaRowState)
-                                .horizontallyDraggable(state = mediaRowState)
+                                .horizontallyDraggable(state = mediaRowState),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                LocalTheme.current.shapes.betweenItemsSpace
+                            )
                         ) {
-                            if(isCurrentUser) {
-                                Spacer(Modifier.width((screenSize.width * .3f).dp))
-                            }
                             (if(isCurrentUser) {
                                 data.mediaUrls
                             } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
@@ -543,11 +551,7 @@ private fun LazyItemScope.MessageContent(
                                 val type = getMediaType(mediaUrl)
 
                                 MediaElement(
-                                    modifier = heightModifier
-                                        .padding(
-                                            horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
-                                        )
-                                        .clip(LocalTheme.current.shapes.rectangularActionShape),
+                                    modifier = heightModifier,
                                     url = mediaUrl,
                                     media = media,
                                     enabled = (data.state?.ordinal ?: 0) > 0 && type.isVisualized,
@@ -572,20 +576,17 @@ private fun LazyItemScope.MessageContent(
                                     }
                                 )
                             }
-                            if(!isCurrentUser) {
-                                Spacer(Modifier.width((screenSize.width * .3f).dp))
-                            }
                         }
                     }
-                }
-                if(!data?.audioUrl.isNullOrBlank()) {
-                    AudioMessageBubble(
-                        modifier = Modifier.zIndex(1f),
-                        url = data?.audioUrl ?: "",
-                        isCurrentUser = isCurrentUser,
-                        hasPrevious = isPreviousMessageSameAuthor,
-                        hasNext = isNextMessageSameAuthor
-                    )
+                    if(!data?.audioUrl.isNullOrBlank()) {
+                        AudioMessageBubble(
+                            modifier = Modifier.zIndex(1f),
+                            url = data?.audioUrl ?: "",
+                            isCurrentUser = isCurrentUser,
+                            hasPrevious = isPreviousMessageSameAuthor,
+                            hasNext = isNextMessageSameAuthor
+                        )
+                    }
                 }
             }
         )

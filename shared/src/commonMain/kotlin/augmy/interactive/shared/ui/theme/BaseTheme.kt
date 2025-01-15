@@ -50,6 +50,7 @@ private object DefaultValues {
     val defaultThemeShapes = object: ThemeShapes {
         override val circularActionShape: Shape = RectangleShape
         override val rectangularActionShape: Shape = RectangleShape
+        override val rectangularActionRadius: Dp = 0.dp
         override val componentShape: Shape = RectangleShape
         override val chipShape: Shape = RectangleShape
         override val componentCornerRadius: Dp = 0.dp
