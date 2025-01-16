@@ -68,7 +68,9 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.theme.Colors
+import base.utils.openLink
 import base.utils.tagToColor
+import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.MessageState
@@ -165,8 +167,7 @@ private fun ContentLayout(
     val buttonSize = with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
     val hoverInteractionSource = remember { MutableInteractionSource() }
-    val processor = if(data.mediaUrls.isNullOrEmpty()) null
-    else koinViewModel<MediaProcessorModel>(key = data.id)
+    val processor = if(data.mediaUrls?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
 
     val reactions = remember(data.id) {
@@ -384,21 +385,21 @@ private fun ContentLayout(
 
                         val messageShape = if (isCurrentUser) {
                             RoundedCornerShape(
-                                topStart = if(data.mediaUrls.isNullOrEmpty()) 24.dp else 1.dp,
+                                topStart = if(data.mediaUrls?.isEmpty() == false) 1.dp else 24.dp,
                                 topEnd = if(hasPrevious || !data.mediaUrls.isNullOrEmpty()) 1.dp else 24.dp,
                                 bottomStart = 24.dp,
                                 bottomEnd = if (hasNext) 1.dp else 24.dp
                             )
                         } else {
                             RoundedCornerShape(
-                                topEnd = if(data.mediaUrls.isNullOrEmpty()) 24.dp else 1.dp,
+                                topEnd = if(data.mediaUrls?.isEmpty() == false) 1.dp else 24.dp,
                                 topStart = if(hasPrevious || !data.mediaUrls.isNullOrEmpty()) 1.dp else 24.dp,
                                 bottomEnd = 24.dp,
                                 bottomStart = if (hasNext) 1.dp else 24.dp
                             )
                         }
 
-                        Column(modifier = if (data.mediaUrls.isNullOrEmpty()) Modifier else Modifier.width(IntrinsicSize.Min)) {
+                        Column(modifier = if (data.mediaUrls?.isEmpty() == false) Modifier.width(IntrinsicSize.Min) else Modifier) {
                             // GIFs, attachments, etc.
                             additionalContent()
 
@@ -412,12 +413,11 @@ private fun ContentLayout(
 
                             // textual content
                             if (!data.content.isNullOrEmpty()) {
-                                // TODO link support
                                 Text(
                                     modifier = Modifier
                                         .widthIn(max = (screenSize.width * .8f).dp)
                                         .then(
-                                            if(!data.mediaUrls.isNullOrEmpty()) Modifier.fillMaxWidth() else Modifier
+                                            if(data.mediaUrls?.isEmpty() == false) Modifier.fillMaxWidth() else Modifier
                                         )
                                         .then(
                                             if (!data.reactions.isNullOrEmpty()) {
@@ -436,7 +436,10 @@ private fun ContentLayout(
                                             vertical = 10.dp,
                                             horizontal = 14.dp
                                         ),
-                                    text = data.content,
+                                    text = buildAnnotatedLinkString(
+                                        text = data.content,
+                                        onLinkClicked = { openLink(it) }
+                                    ),
                                     style = LocalTheme.current.styles.category.copy(
                                         color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
                                     )
@@ -480,7 +483,7 @@ private fun ContentLayout(
                                         contentDescription = stringResource(Res.string.accessibility_message_forward),
                                         tint = LocalTheme.current.colors.secondary
                                     )*/
-                                    if (!data.mediaUrls.isNullOrEmpty()) {
+                                    if (data.mediaUrls?.isEmpty() == false) {
                                         Icon(
                                             modifier = Modifier
                                                 .scalingClickable { onDownloadRequest() }

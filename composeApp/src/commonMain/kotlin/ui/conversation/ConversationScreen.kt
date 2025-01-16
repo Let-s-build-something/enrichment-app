@@ -431,6 +431,7 @@ private fun LazyItemScope.MessageContent(
             }
         }
 
+
         MessageBubble(
             data = data,
             isReacting = reactingToMessageId.value == data?.id,

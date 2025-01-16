@@ -19,14 +19,14 @@ class AppDatabaseConverter {
 
     /** Converts list of strings to string */
     @TypeConverter
-    fun fromStringList(value: List<String>): String {
-        return value.joinToString(",")
+    fun fromStringList(value: List<String>?): String? {
+        return if(value.isNullOrEmpty()) null else value.joinToString(",")
     }
 
     /** Converts string to list of strings */
     @TypeConverter
-    fun toStringList(value: String): List<String> {
-        return value.split(",")
+    fun toStringList(value: String?): List<String>? {
+        return value?.split(",")
     }
 
     /** Converts object to string */
@@ -43,14 +43,14 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
-    fun fromReactionList(value: List<MessageReactionIO>): String {
-        return json.encodeToString(value)
+    fun fromReactionList(value: List<MessageReactionIO>?): String? {
+        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
     }
 
     /** Converts string to an object */
     @TypeConverter
-    fun toReactionList(value: String): List<MessageReactionIO> {
-        return json.decodeFromString(value)
+    fun toReactionList(value: String?): List<MessageReactionIO>? {
+        return if(value == null) null else json.decodeFromString(value)
     }
 
     /** Converts object to string */
