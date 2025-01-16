@@ -75,6 +75,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.utils.LinkUtils
 import base.utils.getMediaType
 import base.utils.getOrNull
 import components.UserProfileImage
@@ -97,6 +98,7 @@ import ui.conversation.components.TypingIndicator
 import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.gif.GifImage
+import ui.conversation.components.link.LinkPreview
 import kotlin.math.abs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -459,19 +461,18 @@ private fun LazyItemScope.MessageContent(
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
                 }
+                val shape = if(data?.content.isNullOrBlank()) {
+                    LocalTheme.current.shapes.rectangularActionShape
+                }else RoundedCornerShape(
+                    topStart = LocalTheme.current.shapes.rectangularActionRadius,
+                    topEnd = LocalTheme.current.shapes.rectangularActionRadius
+                )
                 val heightModifier = Modifier
                     .heightIn(
                         max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
                         min = MEDIA_MAX_HEIGHT_DP.dp
                     )
-                    .then(if(data?.content.isNullOrBlank()) {
-                        Modifier.clip(LocalTheme.current.shapes.rectangularActionShape)
-                    }else Modifier.clip(
-                        RoundedCornerShape(
-                            topStart = LocalTheme.current.shapes.rectangularActionRadius,
-                            topEnd = LocalTheme.current.shapes.rectangularActionRadius
-                        )
-                    ))
+                    .clip(shape)
 
                 Column(
                     modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
@@ -482,6 +483,8 @@ private fun LazyItemScope.MessageContent(
                                 }
                             }
                         }
+                        ,//.width(IntrinsicSize.Min),
+                    horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     data?.anchorMessage?.let { anchorData ->
                         ReplyIndication(
@@ -587,6 +590,20 @@ private fun LazyItemScope.MessageContent(
                             hasPrevious = isPreviousMessageSameAuthor,
                             hasNext = isNextMessageSameAuthor
                         )
+                    }
+
+                    if(data?.showPreview == true && data.content?.isNotBlank() == true) {
+                        val matches = remember {
+                            LinkUtils.urlRegex.findAll(data.content)
+                        }
+                        if(matches.any()) {
+                            matches.firstOrNull()?.let { firstLink ->
+                                LinkPreview(
+                                    modifier = Modifier.clip(shape = shape),
+                                    url = firstLink.value
+                                )
+                            }
+                        }
                     }
                 }
             }

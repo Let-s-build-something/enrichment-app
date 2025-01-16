@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -173,9 +174,10 @@ private fun ContentLayout(
         }
     }
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
-    val hoverInteractionSource = remember { MutableInteractionSource() }
+    val hoverInteractionSource = remember(data.id) { MutableInteractionSource() }
     val processor = if(data.mediaUrls?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
+    val hasAttachment = remember(data.id) { data.mediaUrls?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
 
     val reactions = remember(data.id) {
@@ -410,21 +412,21 @@ private fun ContentLayout(
 
                         val messageShape = if (isCurrentUser) {
                             RoundedCornerShape(
-                                topStart = if(data.mediaUrls?.isEmpty() == false) 1.dp else 24.dp,
+                                topStart = if(hasAttachment) 1.dp else 24.dp,
                                 topEnd = if(hasPrevious || !data.mediaUrls.isNullOrEmpty()) 1.dp else 24.dp,
                                 bottomStart = 24.dp,
                                 bottomEnd = if (hasNext) 1.dp else 24.dp
                             )
                         } else {
                             RoundedCornerShape(
-                                topEnd = if(data.mediaUrls?.isEmpty() == false) 1.dp else 24.dp,
+                                topEnd = if(hasAttachment) 1.dp else 24.dp,
                                 topStart = if(hasPrevious || !data.mediaUrls.isNullOrEmpty()) 1.dp else 24.dp,
                                 bottomEnd = 24.dp,
                                 bottomStart = if (hasNext) 1.dp else 24.dp
                             )
                         }
 
-                        Column(modifier = if (data.mediaUrls?.isEmpty() == false) Modifier.width(IntrinsicSize.Min) else Modifier) {
+                        Column(modifier = if (hasAttachment) Modifier.width(IntrinsicSize.Min) else Modifier) {
                             // GIFs, attachments, etc.
                             additionalContent()
 
@@ -444,7 +446,7 @@ private fun ContentLayout(
                                             modifier = Modifier
                                                 .widthIn(max = (screenSize.width * .8f).dp)
                                                 .then(
-                                                    if(data.mediaUrls?.isEmpty() == false) Modifier.fillMaxWidth() else Modifier
+                                                    if(hasAttachment) Modifier.fillMaxWidth() else Modifier
                                                 )
                                                 .then(
                                                     if (!data.reactions.isNullOrEmpty()) {
@@ -469,9 +471,12 @@ private fun ContentLayout(
                                             ),
                                             style = LocalTheme.current.styles.category.copy(
                                                 color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
-                                            )
+                                            ),
+                                            maxLines = MaximumTextLines,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
+                                    // TODO read more on overflow: new screen with author's profile picture, reactions, and replies as comments
                                     if(showOptions) {
                                         SelectionContainer {
                                             text()
@@ -751,4 +756,5 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 
 // maximum visible reactions within message bubble
 private const val MaximumReactions = 4
+private const val MaximumTextLines = 10
 private const val DragCancelDelayMillis = 100L

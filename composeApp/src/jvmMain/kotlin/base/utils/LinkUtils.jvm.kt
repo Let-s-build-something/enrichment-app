@@ -4,7 +4,6 @@ import java.awt.Desktop
 import java.io.File
 import java.io.IOException
 import java.net.URI
-import java.net.URISyntaxException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
@@ -22,7 +21,7 @@ actual fun openLink(link: String): Boolean {
         try {
             Desktop.getDesktop().browse(URI(link.replace(" ", "")))
             true
-        }catch (e: URISyntaxException) {
+        }catch (e: Exception) { // Jvm is very sensitive to incorrect links
             println("Error opening URL: ${e.message}")
             false
         }

@@ -7,6 +7,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.onDownload
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -35,6 +36,19 @@ class MediaProcessorRepository(
                     }
                 }
             }catch (e: Exception) { null }
+        }
+    }
+
+    /** Returns the content of a url as a text */
+    suspend fun getUrlContent(url: String): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                HttpClient().config {
+                    install(ContentNegotiation)
+                }.get(urlString = url).bodyAsText()
+            }catch (e: Exception) {
+                null
+            }
         }
     }
 }

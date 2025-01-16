@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import base.utils.LinkUtils
 import data.io.DateTimeAsStringSerializer
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
@@ -44,6 +45,9 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Identification of a message to which this message is anchored to, such as a reply */
     val anchorMessageId: String? = null,
 
+    /** Whether preview should be shown for this message */
+    val showPreview: Boolean? = null,
+
     /**
      * Content of message this message is anchored to.
      * It doesn't contain any [anchorMessage] itself.
@@ -81,4 +85,10 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         gifAsset = gifAsset,
         authorPublicId = authorPublicId
     )
+
+    /** Whether content contains any website url */
+    val containsUrl: Boolean
+        get() = showPreview == true
+                && content != null
+                && LinkUtils.urlRegex.containsMatchIn(content)
 }

@@ -165,6 +165,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
+            implementation(libs.ksoup.korlibs)
+
             implementation(libs.firebase.gitlive.common)
             implementation(libs.firebase.gitlive.auth)
             implementation(libs.firebase.gitlive.messaging)

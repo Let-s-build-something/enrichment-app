@@ -2,12 +2,14 @@ package ui.conversation.components.audio
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fleeksoft.ksoup.Ksoup
 import database.file.FileAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.conversation.components.link.GraphProtocol
 
 internal val audioProcessorModule = module {
     factory { MediaProcessorModel(get()) }
@@ -29,6 +31,7 @@ class MediaProcessorModel(
     private val _resultByteArray = MutableStateFlow<ByteArray?>(null)
     private val _resultData = MutableStateFlow<Map<String, ByteArray>>(mapOf())
     private val _downloadProgress = MutableStateFlow<MediaHttpProgress?>(null)
+    private val _graphProtocol = MutableStateFlow<GraphProtocol?>(null)
 
     /** Result of the downloaded byte array from an url */
     val resultByteArray = _resultByteArray.asStateFlow()
@@ -38,6 +41,9 @@ class MediaProcessorModel(
 
     /** Progress of the current download */
     val downloadProgress = _downloadProgress.asStateFlow()
+
+    /** Resulting graph protocol from a website fetcher */
+    val graphProtocol = _graphProtocol.asStateFlow()
 
     /** Download the remote [ByteArray] by [url] */
     fun downloadAudioByteArray(url: String) {
@@ -88,6 +94,20 @@ class MediaProcessorModel(
                 }
             }.toMap()
             _downloadProgress.value = null
+        }
+    }
+
+    /** Requests open graph protocol data out of an [url] */
+    fun requestGraphProtocol(url: String) {
+        viewModelScope.launch {
+            Ksoup.parseMetaData(html = repository.getUrlContent(url) ?: "").let { metadata ->
+                _graphProtocol.value = GraphProtocol(
+                    title = metadata.ogTitle,
+                    description = metadata.ogDescription,
+                    imageUrl = metadata.ogImage,
+                    iconUrl = metadata.favicon
+                )
+            }
         }
     }
 }
