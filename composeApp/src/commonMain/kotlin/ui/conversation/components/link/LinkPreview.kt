@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -17,9 +17,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.link_preview_error
@@ -34,7 +36,9 @@ import ui.conversation.components.audio.MediaProcessorModel
 @Composable
 fun LinkPreview(
     modifier: Modifier = Modifier,
-    url: String
+    url: String,
+    imageHeight: Dp = 200.dp,
+    textBackground: Color = LocalTheme.current.colors.backgroundDark
 ) {
     val density = LocalDensity.current
     val contentSize = LocalContentSize.current
@@ -52,17 +56,17 @@ fun LinkPreview(
             AsyncSvgImage(
                 modifier = modifier
                     .sizeIn(
-                        maxHeight = 200.dp,
+                        maxHeight = imageHeight,
                         minWidth = 250.dp
                     )
-                    .heightIn((contentSize.height * .3f).dp),
+                    .height((contentSize.height * .3f).dp),
                 model = image,
                 contentScale = ContentScale.Fit
             )
         }
         Row(
             modifier = (if(graphProtocol.value?.imageUrl == null) modifier else Modifier)
-                .background(color = LocalTheme.current.colors.backgroundDark)
+                .background(color = textBackground)
                 .fillMaxWidth()
                 .then(if(graphProtocol.value?.isEmpty == false) Modifier.width(IntrinsicSize.Min) else Modifier)
                 .padding(vertical = 6.dp, horizontal = 6.dp),

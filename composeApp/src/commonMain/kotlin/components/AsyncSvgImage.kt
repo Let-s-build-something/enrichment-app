@@ -49,7 +49,8 @@ fun AsyncSvgImage(
                 state.value = it
             },
             contentDescription = contentDescription,
-            contentScale = contentScale
+            contentScale = contentScale,
+            alignment = Alignment.CenterStart
         )
         AnimatedVisibility(state.value is State.Loading) {
             CircularProgressIndicator(

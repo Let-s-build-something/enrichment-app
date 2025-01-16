@@ -482,8 +482,7 @@ private fun LazyItemScope.MessageContent(
                                     rememberedHeight.value = it.height.toDp().value
                                 }
                             }
-                        }
-                        ,//.width(IntrinsicSize.Min),
+                        },
                     horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     data?.anchorMessage?.let { anchorData ->
