@@ -4,7 +4,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
@@ -27,6 +34,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Add
@@ -49,6 +57,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
@@ -62,9 +71,8 @@ import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalScreenSize
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.theme.Colors
@@ -164,11 +172,11 @@ private fun ContentLayout(
             (-screenSize.width.dp.toPx() / 8f)..(screenSize.width.dp.toPx() / 8f)
         }
     }
-    val buttonSize = with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
     val hoverInteractionSource = remember { MutableInteractionSource() }
     val processor = if(data.mediaUrls?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
+    val isFocused = hoverInteractionSource.collectIsHoveredAsState()
 
     val reactions = remember(data.id) {
         mutableStateOf(listOf<Pair<String?, Pair<List<NetworkItemIO>, Boolean>>>())
@@ -202,6 +210,10 @@ private fun ContentLayout(
         processor?.processFiles(
             *data.mediaUrls.orEmpty().toTypedArray()
         )
+    }
+
+    LaunchedEffect(isFocused.value) {
+        showHistory.value = isFocused.value
     }
 
     LaunchedEffect(Unit, data.reactions) {
@@ -290,9 +302,22 @@ private fun ContentLayout(
             modifier = Modifier.weight(1f, fill = false),
             horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
         ) {
-            // message content + reply function + reactions
-            Box {
-                // message content + reply function
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val showOptions = isReacting && !isReplying
+
+                if(isCurrentUser) {
+                    Options(
+                        modifier = Modifier.padding(end = 8.dp),
+                        visible = !showOptions && isFocused.value,
+                        showOptions = true,
+                        hasMedia = data.mediaUrls?.isEmpty() == false,
+                        onDownloadRequest = onDownloadRequest,
+                        onReplyRequest = onReplyRequest,
+                        onReactionRequest = onReactionRequest
+                    )
+                }
+
+                // message content + reply function + reactions
                 Box(
                     if (isReacting || data.anchorMessage != null) {
                         Modifier.background(
@@ -372,7 +397,7 @@ private fun ContentLayout(
                                 }
                                 Icon(
                                     modifier = Modifier
-                                        .size(buttonSize)
+                                        .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
                                         .scalingClickable {
                                             onAdditionalReactionRequest()
                                         },
@@ -411,121 +436,137 @@ private fun ContentLayout(
                                 )
                             }
 
-                            // textual content
-                            if (!data.content.isNullOrEmpty()) {
-                                Text(
+                            Box {
+                                // textual content
+                                if (!data.content.isNullOrEmpty()) {
+                                    val text = @Composable {
+                                        Text(
+                                            modifier = Modifier
+                                                .widthIn(max = (screenSize.width * .8f).dp)
+                                                .then(
+                                                    if(data.mediaUrls?.isEmpty() == false) Modifier.fillMaxWidth() else Modifier
+                                                )
+                                                .then(
+                                                    if (!data.reactions.isNullOrEmpty()) {
+                                                        Modifier.padding(bottom = with(density) {
+                                                            LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                                        })
+                                                    } else Modifier
+                                                )
+                                                .background(
+                                                    color = tagToColor(data.user?.tag) ?: if (isCurrentUser) {
+                                                        LocalTheme.current.colors.brandMainDark
+                                                    } else LocalTheme.current.colors.backgroundContrast,
+                                                    shape = messageShape
+                                                )
+                                                .padding(
+                                                    vertical = 10.dp,
+                                                    horizontal = 14.dp
+                                                ),
+                                            text = buildAnnotatedLinkString(
+                                                text = data.content,
+                                                onLinkClicked = { openLink(it) }
+                                            ),
+                                            style = LocalTheme.current.styles.category.copy(
+                                                color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
+                                            )
+                                        )
+                                    }
+                                    if(showOptions) {
+                                        SelectionContainer {
+                                            text()
+                                        }
+                                    }else text()
+                                }
+
+                                androidx.compose.animation.AnimatedVisibility(
                                     modifier = Modifier
-                                        .widthIn(max = (screenSize.width * .8f).dp)
-                                        .then(
-                                            if(data.mediaUrls?.isEmpty() == false) Modifier.fillMaxWidth() else Modifier
+                                        .align(
+                                            if (isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
                                         )
-                                        .then(
-                                            if (!data.reactions.isNullOrEmpty()) {
-                                                Modifier.padding(bottom = with(density) {
-                                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                                })
-                                            } else Modifier
-                                        )
-                                        .background(
-                                            color = tagToColor(data.user?.tag) ?: if (isCurrentUser) {
-                                                LocalTheme.current.colors.brandMainDark
-                                            } else LocalTheme.current.colors.backgroundContrast,
-                                            shape = messageShape
-                                        )
-                                        .padding(
-                                            vertical = 10.dp,
-                                            horizontal = 14.dp
-                                        ),
-                                    text = buildAnnotatedLinkString(
-                                        text = data.content,
-                                        onLinkClicked = { openLink(it) }
-                                    ),
-                                    style = LocalTheme.current.styles.category.copy(
-                                        color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
-                                    )
-                                )
+                                        .zIndex(2f),
+                                    visible = !data.reactions.isNullOrEmpty()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(
+                                                start = if (isCurrentUser) 0.dp else 12.dp,
+                                                end = if (isCurrentUser) 12.dp else 0.dp
+                                            )
+                                            .then(
+                                                if (reactions.value.size > 1) {
+                                                    Modifier.offset(x = if (isCurrentUser) (-8).dp else 8.dp)
+                                                } else Modifier
+                                            )
+                                            .offset(
+                                                x = 0.dp,
+                                                y = with(density) {
+                                                    -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
+                                                }
+                                            ),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        reactions.value.take(MaximumReactions).forEach { reaction ->
+                                            Row(
+                                                Modifier
+                                                    .scalingClickable {
+                                                        if ((data.reactions?.size ?: 0) > 1) {
+                                                            showDetailDialogOf.value =
+                                                                data.content to reaction.first
+                                                        }
+                                                    }
+                                                    .width(IntrinsicSize.Min)
+                                                    .background(
+                                                        color = LocalTheme.current.colors.disabledComponent,
+                                                        shape = LocalTheme.current.shapes.componentShape
+                                                    )
+                                                    .padding(4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text(
+                                                        modifier = Modifier.padding(end = 2.dp),
+                                                        text = reaction.first ?: "",
+                                                        style = LocalTheme.current.styles.category.copy(
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                    )
+                                                    if (reaction.second.second) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .height(2.dp)
+                                                                .fillMaxWidth(.6f)
+                                                                .background(
+                                                                    color = LocalTheme.current.colors.brandMain,
+                                                                    shape = RoundedCornerShape(8.dp)
+                                                                )
+                                                        )
+                                                    }
+                                                }
+                                                reaction.second.first.size.takeIf { it > 1 }?.let { count ->
+                                                    Text(
+                                                        text = count.toString(),
+                                                        style = LocalTheme.current.styles.regular
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
 
-                        val isFocused = hoverInteractionSource.collectIsHoveredAsState()
-
-                        LaunchedEffect(isFocused) {
-                            if (isFocused.value) {
-                                showHistory.value = true
-                            }
-                        }
-
-                        AnimatedVisibility(
+                        Options(
                             modifier = Modifier
                                 .align(Alignment.End)
                                 .padding(end = if (isCurrentUser) 16.dp else 0.dp),
-                            visible = (isReacting && !isReplying) || (isFocused.value)
-                        ) {
-                            val showOptions = remember(data.id, isFocused.value) {
-                                mutableStateOf(isFocused.value)
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .horizontalScroll(rememberScrollState())
-                                    .animateContentSize(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                if (showOptions.value) {
-                                    /*Icon(
-                                        modifier = Modifier
-                                            .scalingClickable {
-                                                onForwardRequest()
-                                            }
-                                            .padding(5.dp),
-                                        painter = painterResource(Res.drawable.ic_forward),
-                                        contentDescription = stringResource(Res.string.accessibility_message_forward),
-                                        tint = LocalTheme.current.colors.secondary
-                                    )*/
-                                    if (data.mediaUrls?.isEmpty() == false) {
-                                        Icon(
-                                            modifier = Modifier
-                                                .scalingClickable { onDownloadRequest() }
-                                                .size(buttonSize)
-                                                .padding(2.dp),
-                                            imageVector = Icons.Outlined.Download,
-                                            contentDescription = stringResource(Res.string.accessibility_message_download),
-                                            tint = LocalTheme.current.colors.secondary
-                                        )
-                                    }
-                                    Icon(
-                                        modifier = Modifier
-                                            .scalingClickable { onReplyRequest() }
-                                            .size(buttonSize)
-                                            .padding(2.dp),
-                                        imageVector = Icons.AutoMirrored.Outlined.Reply,
-                                        contentDescription = stringResource(Res.string.accessibility_message_reply),
-                                        tint = LocalTheme.current.colors.secondary
-                                    )
-                                    Icon(
-                                        modifier = Modifier
-                                            .scalingClickable { onReactionRequest(true) }
-                                            .size(buttonSize)
-                                            .padding(2.dp),
-                                        imageVector = Icons.Outlined.Mood,
-                                        contentDescription = stringResource(Res.string.accessibility_action_message_react),
-                                        tint = LocalTheme.current.colors.secondary
-                                    )
-                                }
-                                if(!showOptions.value && currentPlatform != PlatformType.Jvm) {
-                                    Icon(
-                                        modifier = Modifier
-                                            .scalingClickable { showOptions.value = true }
-                                            .size(buttonSize)
-                                            .padding(2.dp),
-                                        imageVector = Icons.Outlined.MoreHoriz,
-                                        contentDescription = stringResource(Res.string.action_settings),
-                                        tint = LocalTheme.current.colors.secondary
-                                    )
-                                }
-                            }
-                        }
+                            visible = showOptions,
+                            showOptions = LocalIsMouseUser.current,
+                            hasMedia = data.mediaUrls?.isEmpty() == false,
+                            onDownloadRequest = onDownloadRequest,
+                            onReplyRequest = onReplyRequest,
+                            onReactionRequest = onReactionRequest
+                        )
 
                         // bottom spacing
                         AnimatedVisibility(isReacting) {
@@ -533,79 +574,18 @@ private fun ContentLayout(
                         }
                     }
                 }
-                androidx.compose.animation.AnimatedVisibility(
-                    modifier = Modifier
-                        .align(
-                            if (isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
-                        )
-                        .zIndex(2f),
-                    visible = !data.reactions.isNullOrEmpty()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(
-                                start = if (isCurrentUser) 0.dp else 12.dp,
-                                end = if (isCurrentUser) 12.dp else 0.dp
-                            )
-                            .then(
-                                if (reactions.value.size > 1) {
-                                    Modifier.offset(x = if (isCurrentUser) (-8).dp else 8.dp)
-                                } else Modifier
-                            )
-                            .offset(
-                                x = 0.dp,
-                                y = with(density) {
-                                    -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
-                                }
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        reactions.value.take(MaximumReactions).forEach { reaction ->
-                            Row(
-                                Modifier
-                                    .scalingClickable {
-                                        if ((data.reactions?.size ?: 0) > 1) {
-                                            showDetailDialogOf.value =
-                                                data.content to reaction.first
-                                        }
-                                    }
-                                    .width(IntrinsicSize.Min)
-                                    .background(
-                                        color = LocalTheme.current.colors.disabledComponent,
-                                        shape = LocalTheme.current.shapes.componentShape
-                                    )
-                                    .padding(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        modifier = Modifier.padding(end = 2.dp),
-                                        text = reaction.first ?: "",
-                                        style = LocalTheme.current.styles.category.copy(
-                                            textAlign = TextAlign.Center
-                                        )
-                                    )
-                                    if (reaction.second.second) {
-                                        Box(
-                                            modifier = Modifier
-                                                .height(2.dp)
-                                                .fillMaxWidth(.6f)
-                                                .background(
-                                                    color = LocalTheme.current.colors.brandMain,
-                                                    shape = RoundedCornerShape(8.dp)
-                                                )
-                                        )
-                                    }
-                                }
-                                reaction.second.first.size.takeIf { it > 1 }?.let { count ->
-                                    Text(
-                                        text = count.toString(),
-                                        style = LocalTheme.current.styles.regular
-                                    )
-                                }
-                            }
-                        }
-                    }
+
+                // desktop options
+                if(!isCurrentUser) {
+                    Options(
+                        modifier = Modifier.padding(start = 8.dp),
+                        visible = !showOptions && isFocused.value,
+                        showOptions = true,
+                        hasMedia = data.mediaUrls?.isEmpty() == false,
+                        onDownloadRequest = onDownloadRequest,
+                        onReplyRequest = onReplyRequest,
+                        onReactionRequest = onReactionRequest
+                    )
                 }
             }
 
@@ -642,6 +622,109 @@ private fun ContentLayout(
                         style = LocalTheme.current.styles.regular
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Options(
+    modifier: Modifier = Modifier,
+    visible: Boolean,
+    showOptions: Boolean = false,
+    hasMedia: Boolean,
+    onDownloadRequest: () -> Unit,
+    onReplyRequest: () -> Unit,
+    onReactionRequest: (Boolean) -> Unit
+) {
+    val density = LocalDensity.current
+    val buttonSize = with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 2.dp
+
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = visible,
+        enter = fadeIn() + expandVertically(
+            animationSpec = if(showOptions) {
+                spring(
+                    stiffness = Spring.StiffnessLow,
+                    visibilityThreshold = IntSize.VisibilityThreshold
+                )
+            }else spring(
+                stiffness = Spring.StiffnessMediumLow,
+                visibilityThreshold = IntSize.VisibilityThreshold
+            ),
+            expandFrom = Alignment.CenterVertically
+        ),
+        exit = fadeOut() + shrinkVertically(
+            animationSpec = spring(
+                stiffness = Spring.StiffnessLow,
+                visibilityThreshold = IntSize.VisibilityThreshold
+            ),
+            shrinkTowards = Alignment.CenterVertically
+        )
+    ) {
+        val showMore = remember(showOptions) {
+            mutableStateOf(showOptions)
+        }
+
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .animateContentSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (showMore.value) {
+                /*Icon(
+                    modifier = Modifier
+                        .scalingClickable {
+                            onForwardRequest()
+                        }
+                        .padding(5.dp),
+                    painter = painterResource(Res.drawable.ic_forward),
+                    contentDescription = stringResource(Res.string.accessibility_message_forward),
+                    tint = LocalTheme.current.colors.secondary
+                )*/
+                if (hasMedia) {
+                    Icon(
+                        modifier = Modifier
+                            .scalingClickable { onDownloadRequest() }
+                            .size(buttonSize)
+                            .padding(2.dp),
+                        imageVector = Icons.Outlined.Download,
+                        contentDescription = stringResource(Res.string.accessibility_message_download),
+                        tint = LocalTheme.current.colors.secondary
+                    )
+                }
+                Icon(
+                    modifier = Modifier
+                        .scalingClickable { onReplyRequest() }
+                        .size(buttonSize)
+                        .padding(2.dp),
+                    imageVector = Icons.AutoMirrored.Outlined.Reply,
+                    contentDescription = stringResource(Res.string.accessibility_message_reply),
+                    tint = LocalTheme.current.colors.secondary
+                )
+                Icon(
+                    modifier = Modifier
+                        .scalingClickable { onReactionRequest(true) }
+                        .size(buttonSize)
+                        .padding(2.dp),
+                    imageVector = Icons.Outlined.Mood,
+                    contentDescription = stringResource(Res.string.accessibility_action_message_react),
+                    tint = LocalTheme.current.colors.secondary
+                )
+            }
+            if(!showMore.value && !LocalIsMouseUser.current) {
+                Icon(
+                    modifier = Modifier
+                        .scalingClickable { showMore.value = true }
+                        .size(buttonSize)
+                        .padding(2.dp),
+                    imageVector = Icons.Outlined.MoreHoriz,
+                    contentDescription = stringResource(Res.string.action_settings),
+                    tint = LocalTheme.current.colors.secondary
+                )
             }
         }
     }

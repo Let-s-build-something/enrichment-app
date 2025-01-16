@@ -11,16 +11,10 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 private val emailRegex = """[a-zA-Z0-9+._%-+]{1,256}@[a-zA-Z0-9][a-zA-Z0-9-]{0,64}(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,25})+""".toRegex()
 
 /** URL pattern, no HTTP or HTTPS needed */
-private val urlRegex = """(?<=^|\s)[^\s@]+\.\S+(?=${'$'}|\s)""".toRegex()
+private val urlRegex = """(?<=^|[^a-z@])[^\s@]+\.[a-z]+(?=${'$'}|[^a-z@])""".toRegex()
 
 /** URL pattern, no HTTP or HTTPS needed */
 private val phoneNumberRegex = """\+?\d{1,4}?[\s-]?\(?(\d{1,4})\)?[\s-]?\d{1,4}[\s-]?\d{1,4}[\s-]?\d{1,9}""".toRegex()
-
-enum class LinkType {
-    Url,
-    PhoneNum,
-    Email
-}
 
 /**
  * Clickable text supporting <a href> HTML tags and can also match email, URL addresses, and phone numbers if needed

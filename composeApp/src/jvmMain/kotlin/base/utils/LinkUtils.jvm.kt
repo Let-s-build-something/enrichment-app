@@ -4,6 +4,7 @@ import java.awt.Desktop
 import java.io.File
 import java.io.IOException
 import java.net.URI
+import java.net.URISyntaxException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
@@ -18,8 +19,13 @@ actual fun shareMessage(media: List<String>, messageContent: String): Boolean {
 
 actual fun openLink(link: String): Boolean {
     return if (Desktop.isDesktopSupported()) {
-        Desktop.getDesktop().browse(URI(link))
-        true
+        try {
+            Desktop.getDesktop().browse(URI(link.replace(" ", "")))
+            true
+        }catch (e: URISyntaxException) {
+            println("Error opening URL: ${e.message}")
+            false
+        }
     }else {
         println("Desktop is not supported. Cannot open URL.")
         false
