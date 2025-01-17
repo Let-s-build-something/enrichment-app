@@ -175,7 +175,8 @@ class ConversationViewModel(
         anchorMessage: ConversationMessageIO?,
         mediaFiles: List<PlatformFile>,
         mediaUrls: List<String>,
-        gifAsset: GifAsset?
+        gifAsset: GifAsset?,
+        showPreview: Boolean
     ) {
         viewModelScope.launch {
             var progressId = ""
@@ -195,7 +196,8 @@ class ConversationViewModel(
                     anchorMessageId = anchorMessage?.id,
                     anchorMessage = anchorMessage?.toAnchorMessage(),
                     gifAsset = gifAsset,
-                    mediaUrls = mediaUrls
+                    mediaUrls = mediaUrls,
+                    showPreview = showPreview
                 )
             )
             _uploadProgress.update { previous ->

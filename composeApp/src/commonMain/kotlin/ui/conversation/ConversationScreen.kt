@@ -75,6 +75,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.utils.LinkUtils
 import base.utils.getMediaType
 import base.utils.getOrNull
 import components.UserProfileImage
@@ -97,6 +98,7 @@ import ui.conversation.components.TypingIndicator
 import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.gif.GifImage
+import ui.conversation.components.link.LinkPreview
 import kotlin.math.abs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -110,6 +112,7 @@ fun ConversationScreen(
 ) {
     loadKoinModules(conversationModule)
     val viewModel: ConversationViewModel = koinViewModel(
+        key = conversationId,
         parameters = { parametersOf(conversationId ?: "") }
     )
 
@@ -430,6 +433,7 @@ private fun LazyItemScope.MessageContent(
             }
         }
 
+
         MessageBubble(
             data = data,
             isReacting = reactingToMessageId.value == data?.id,
@@ -457,22 +461,29 @@ private fun LazyItemScope.MessageContent(
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
                 }
+                val shape = if(data?.content.isNullOrBlank()) {
+                    LocalTheme.current.shapes.rectangularActionShape
+                }else RoundedCornerShape(
+                    topStart = LocalTheme.current.shapes.rectangularActionRadius,
+                    topEnd = LocalTheme.current.shapes.rectangularActionRadius
+                )
                 val heightModifier = Modifier
                     .heightIn(
                         max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
                         min = MEDIA_MAX_HEIGHT_DP.dp
                     )
+                    .clip(shape)
 
                 Column(
                     modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
-                        .wrapContentWidth()
                         .onSizeChanged {
                             if(it.height != 0) {
                                 with(density) {
                                     rememberedHeight.value = it.height.toDp().value
                                 }
                             }
-                        }
+                        },
+                    horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     data?.anchorMessage?.let { anchorData ->
                         ReplyIndication(
@@ -494,6 +505,7 @@ private fun LazyItemScope.MessageContent(
                                 .zIndex(1f)
                                 .scalingClickable(
                                     scaleInto = .95f,
+                                    hoverEnabled = false,
                                     onLongPress = {
                                         reactingToMessageId.value = data.id
                                     }
@@ -509,11 +521,10 @@ private fun LazyItemScope.MessageContent(
                                             )
                                         )
                                     }
-                                }
-                                .clip(RoundedCornerShape(6.dp)),
+                                },
                             data = data.gifAsset.original ?: "",
                             contentDescription = data.gifAsset.description,
-                            contentScale = ContentScale.FillHeight
+                            contentScale = ContentScale.Fit
                         )
                     }
                     if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
@@ -531,11 +542,11 @@ private fun LazyItemScope.MessageContent(
                             modifier = heightModifier
                                 .wrapContentWidth()
                                 .horizontalScroll(state = mediaRowState)
-                                .horizontallyDraggable(state = mediaRowState)
+                                .horizontallyDraggable(state = mediaRowState),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                LocalTheme.current.shapes.betweenItemsSpace
+                            )
                         ) {
-                            if(isCurrentUser) {
-                                Spacer(Modifier.width((screenSize.width * .3f).dp))
-                            }
                             (if(isCurrentUser) {
                                 data.mediaUrls
                             } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
@@ -543,11 +554,7 @@ private fun LazyItemScope.MessageContent(
                                 val type = getMediaType(mediaUrl)
 
                                 MediaElement(
-                                    modifier = heightModifier
-                                        .padding(
-                                            horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
-                                        )
-                                        .clip(LocalTheme.current.shapes.rectangularActionShape),
+                                    modifier = heightModifier,
                                     url = mediaUrl,
                                     media = media,
                                     enabled = (data.state?.ordinal ?: 0) > 0 && type.isVisualized,
@@ -572,22 +579,31 @@ private fun LazyItemScope.MessageContent(
                                     }
                                 )
                             }
-                            if(!isCurrentUser) {
-                                Spacer(Modifier.width((screenSize.width * .3f).dp))
+                        }
+                    }
+                    if(!data?.audioUrl.isNullOrBlank()) {
+                        AudioMessageBubble(
+                            modifier = Modifier.zIndex(1f),
+                            url = data?.audioUrl ?: "",
+                            isCurrentUser = isCurrentUser,
+                            hasPrevious = isPreviousMessageSameAuthor,
+                            hasNext = isNextMessageSameAuthor
+                        )
+                    }
+
+                    if(data?.showPreview == true && data.content?.isNotBlank() == true) {
+                        val matches = remember {
+                            LinkUtils.urlRegex.findAll(data.content)
+                        }
+                        if(matches.any()) {
+                            matches.firstOrNull()?.let { firstLink ->
+                                LinkPreview(
+                                    modifier = Modifier.clip(shape = shape),
+                                    url = firstLink.value
+                                )
                             }
                         }
                     }
-                }
-                if(!data?.audioUrl.isNullOrBlank()) {
-                    AudioMessageBubble(
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .zIndex(1f),
-                        url = data?.audioUrl ?: "",
-                        isCurrentUser = isCurrentUser,
-                        hasPrevious = isPreviousMessageSameAuthor,
-                        hasNext = isNextMessageSameAuthor
-                    )
                 }
             }
         )

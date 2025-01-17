@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.base.BaseResponse
@@ -55,7 +56,9 @@ fun LoadingIndicator(
             }
 
             Image(
-                modifier = Modifier.requiredSize(32.dp),
+                modifier = Modifier
+                    .zIndex(1f)
+                    .requiredSize(32.dp),
                 painter = rememberLottiePainter(
                     reverseOnRepeat = false,
                     composition = comp

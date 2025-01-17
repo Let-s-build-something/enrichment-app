@@ -145,22 +145,24 @@ fun DownloadIndication(
                     )
                     .padding(vertical = 8.dp, horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                LoadingIndicator(
-                    response = state.state.value
-                )
-                Text(
-                    text = when(state.state.value) {
-                        is BaseResponse.Loading -> stringResource(Res.string.download_loading) +
-                                " ${if(state.items.value > 1) state.item.value / state.items.value else ""}" +
-                                " ${bytesAsRelative(state.progress.value.first)}/${bytesAsRelative(state.progress.value.last)}"
-                        is BaseResponse.Success -> stringResource(Res.string.download_success)
-                        is BaseResponse.Error -> stringResource(Res.string.download_failure)
-                        else -> ""
-                    },
-                    style = LocalTheme.current.styles.category.copy(color = textColor)
-                )
+                Row(modifier = Modifier.padding(end = 8.dp)) {
+                    LoadingIndicator(
+                        response = state.state.value
+                    )
+                    Text(
+                        text = when(state.state.value) {
+                            is BaseResponse.Loading -> stringResource(Res.string.download_loading) +
+                                    " ${if(state.items.value > 1) state.item.value / state.items.value else ""}" +
+                                    " ${bytesAsRelative(state.progress.value.first)}/${bytesAsRelative(state.progress.value.last)}"
+                            is BaseResponse.Success -> stringResource(Res.string.download_success)
+                            is BaseResponse.Error -> stringResource(Res.string.download_failure)
+                            else -> ""
+                        },
+                        style = LocalTheme.current.styles.category.copy(color = textColor)
+                    )
+                }
                 if(currentPlatform == PlatformType.Jvm) {
                     Text(
                         modifier = Modifier

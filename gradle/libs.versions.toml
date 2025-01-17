@@ -6,10 +6,11 @@ android-targetSdk = "35"
 version-name = "1.0"
 version-code = "49"
 
-androidx-activityCompose = "1.9.3"
+androidx-activityCompose = "1.10.0"
 kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 ktor = "3.0.1"
+ksoup = "0.2.1"
 navigationCompose = "2.8.0-alpha10"
 compose-plugin = "1.7.3"
 compottie = "2.0.0-rc02"
@@ -32,13 +33,12 @@ kotlinxSerialization = "1.7.3"
 kotlinx-datetime = "0.6.1"
 fileKit = "0.8.7"
 multiplatformSettings = "1.3.0"
-datastore = "1.1.1"
+datastore = "1.1.2"
 workRuntimeKtx = "2.10.0"
 
 # Android
 accompanistPermissions = "0.36.0"
 credentials = "1.3.0"
-activityKtx = "1.9.3"
 androidxSplashscreen = "1.2.0-alpha02"
 androidFirebaseAuth = "23.1.0"
 androidFirebaseCommon = "21.0.0"
@@ -100,6 +100,7 @@ firebase-gitlive-messaging = { group = "dev.gitlive", name = "firebase-messaging
 firebase-gitlive-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebaseGitlive" }
 
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ksoup-korlibs = { module = "com.fleeksoft.ksoup:ksoup-korlibs", version.ref = "ksoup" }
 
 settings-datastore = { group = "com.russhwolf", name = "multiplatform-settings-datastore", version.ref = "multiplatformSettings" }
 settings-no-arg = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
@@ -114,7 +115,7 @@ androidx-credentials-auth = { group = "androidx.credentials", name = "credential
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 google-identity = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
-androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidx-activityCompose" }
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxSplashscreen" }
 android-firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "androidFirebaseMessaging" }
 android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }

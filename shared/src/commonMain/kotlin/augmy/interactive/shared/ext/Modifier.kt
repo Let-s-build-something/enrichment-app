@@ -1,7 +1,5 @@
 package augmy.interactive.shared.ext
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -19,6 +17,7 @@ import androidx.compose.foundation.gestures.calculateCentroidSize
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -26,14 +25,9 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.TabPosition
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.scale
@@ -60,9 +53,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
@@ -129,6 +120,7 @@ fun Modifier.brandShimmerEffect(
 @Composable
 fun Modifier.scalingClickable(
     enabled: Boolean = true,
+    hoverEnabled: Boolean = true,
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
     onPress: ((Offset, isPressed: Boolean) -> Unit)? = null,
@@ -146,7 +138,7 @@ fun Modifier.scalingClickable(
 
         scale(scale.value)
             .hoverable(
-                enabled = enabled,
+                enabled = enabled && hoverEnabled,
                 interactionSource = hoverInteractionSource
             )
             .pointerInput(Unit) {
@@ -173,7 +165,6 @@ fun Modifier.mouseDraggable(
     onChange: (Int) -> Unit
 ): Modifier {
     val coroutineScope = rememberCoroutineScope()
-
     return this.draggable(
         orientation = Orientation.Horizontal,
         state = rememberDraggableState { delta ->
@@ -507,38 +498,6 @@ internal class PressGestureScopeImpl(
         }
         return isReleased
     }
-}
-
-/**
- * [Modifier] that takes up all the available width inside the [TabRow], and then animates
- * the offset of the indicator it is applied to, depending on the [currentTabPosition].
- *
- * @param currentTabPosition [TabPosition] of the currently selected tab. This is used to
- * calculate the offset of the indicator this modifier is applied to, as well as its width.
- */
-fun Modifier.customTabIndicatorOffset(
-    currentTabPosition: TabPosition,
-    horizontalPadding: Dp = 4.dp
-): Modifier = composed(
-    inspectorInfo = debugInspectorInfo {
-        name = "tabIndicatorOffset"
-        value = currentTabPosition
-    }
-) {
-    val currentTabWidth by animateDpAsState(
-        targetValue = currentTabPosition.width,
-        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-        label = "tabWidthAnimation"
-    )
-    val indicatorOffset by animateDpAsState(
-        targetValue = currentTabPosition.left,
-        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-        label = "tabOffsetAnimation"
-    )
-    fillMaxWidth()
-        .wrapContentSize(Alignment.BottomStart)
-        .offset(x = indicatorOffset.plus(horizontalPadding))
-        .width(currentTabWidth.minus(horizontalPadding.times(2)))
 }
 
 expect fun Modifier.contentReceiver(onUriSelected: (uri: String) -> Unit): Modifier

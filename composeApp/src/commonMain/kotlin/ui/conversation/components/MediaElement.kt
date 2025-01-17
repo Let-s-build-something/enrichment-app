@@ -76,6 +76,7 @@ fun MediaElement(
     val itemModifier = modifier.scalingClickable(
         enabled = enabled,
         scaleInto = .95f,
+        hoverEnabled = false,
         onLongPress = {
             onLongPress()
         },

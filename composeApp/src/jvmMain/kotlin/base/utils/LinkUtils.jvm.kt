@@ -18,8 +18,13 @@ actual fun shareMessage(media: List<String>, messageContent: String): Boolean {
 
 actual fun openLink(link: String): Boolean {
     return if (Desktop.isDesktopSupported()) {
-        Desktop.getDesktop().browse(URI(link))
-        true
+        try {
+            Desktop.getDesktop().browse(URI(link.replace(" ", "")))
+            true
+        }catch (e: Exception) { // Jvm is very sensitive to incorrect links
+            println("Error opening URL: ${e.message}")
+            false
+        }
     }else {
         println("Desktop is not supported. Cannot open URL.")
         false

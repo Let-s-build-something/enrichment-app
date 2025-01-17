@@ -98,8 +98,10 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
+import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
+import base.utils.LinkUtils
 import base.utils.MediaType
 import base.utils.getMediaType
 import data.io.social.network.conversation.ConversationMessageIO
@@ -109,12 +111,14 @@ import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
+import ui.conversation.components.link.LinkPreview
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -133,6 +137,7 @@ internal fun BoxScope.SendMessagePanel(
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
+    val cancellableScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
@@ -151,6 +156,9 @@ internal fun BoxScope.SendMessagePanel(
     val urlsAttached = remember {
         mutableStateListOf<String>()
     }
+    val showPreview = remember {
+        mutableStateOf(true)
+    }
     val gifAttached = remember {
         mutableStateOf<GifAsset?>(null)
     }
@@ -159,6 +167,9 @@ internal fun BoxScope.SendMessagePanel(
     }
     val actionYCoordinate = rememberSaveable {
         mutableStateOf(-1f)
+    }
+    val typedUrl = remember {
+        mutableStateOf<String?>(null)
     }
 
     val isContentEmpty = messageState.text.isBlank()
@@ -221,7 +232,8 @@ internal fun BoxScope.SendMessagePanel(
             mediaFiles = mediaAttached.toList(),
             anchorMessage = replyToMessage.value,
             gifAsset = gifAttached.value,
-            mediaUrls = urlsAttached
+            mediaUrls = urlsAttached,
+            showPreview = showPreview.value
         )
         mediaAttached.clear()
         keyboardMode.value = ConversationKeyboardMode.Default.ordinal
@@ -229,6 +241,8 @@ internal fun BoxScope.SendMessagePanel(
         viewModel.saveMessage(null)
         replyToMessage.value = null
         gifAttached.value = null
+        showPreview.value = true
+        typedUrl.value = null
     }
 
 
@@ -267,6 +281,13 @@ internal fun BoxScope.SendMessagePanel(
     LaunchedEffect(messageState.text) {
         if(messageState.text.isNotBlank()) {
             showMoreOptions.value = false
+        }
+        if(showPreview.value) {
+            cancellableScope.coroutineContext.cancelChildren()
+            cancellableScope.launch(Dispatchers.Default) {
+                delay(DELAY_BETWEEN_TYPING_SHORT)
+                typedUrl.value = LinkUtils.urlRegex.findAll(messageState.text).firstOrNull()?.value
+            }
         }
     }
 
@@ -395,6 +416,43 @@ internal fun BoxScope.SendMessagePanel(
                         }
                     }
                     Spacer(Modifier)
+                }
+            }
+        }
+
+        typedUrl.value?.let { url ->
+            val shape = RoundedCornerShape(
+                topStart = LocalTheme.current.shapes.componentCornerRadius,
+                topEnd = LocalTheme.current.shapes.componentCornerRadius
+            )
+
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = shape
+                    )
+                    .padding(6.dp)
+            ) {
+                MinimalisticIcon(
+                    modifier = Modifier
+                        .zIndex(1f)
+                        .align(Alignment.TopEnd),
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        showPreview.value = false
+                        typedUrl.value = null
+                    }
+                )
+                Column {
+                    LinkPreview(
+                        modifier = Modifier.clip(shape),
+                        url = url,
+                        textBackground = Color.Transparent,
+                        imageHeight = 100.dp
+                    )
                 }
             }
         }

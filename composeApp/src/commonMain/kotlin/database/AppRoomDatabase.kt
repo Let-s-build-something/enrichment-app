@@ -21,7 +21,7 @@ import database.dao.PagingMetaDao
         PagingMetaIO::class,
         ConversationMessageIO::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
