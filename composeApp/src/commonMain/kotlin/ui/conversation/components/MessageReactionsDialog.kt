@@ -39,7 +39,7 @@ import augmy.interactive.shared.ui.components.MultiChoiceSwitchMinimalistic
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
-import data.io.social.network.conversation.MessageReactionIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

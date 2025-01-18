@@ -18,15 +18,17 @@ fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else
 fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)
 
 /** Returns a media type of a file */
-fun getMediaType(url: String): MediaType {
-    return when (getUrlExtension(url).lowercase()) {
-        "jpg", "jpeg", "png", "bmp", "svg", "webp", "avif" -> MediaType.IMAGE
-        "gif" -> MediaType.GIF
-        "mp4", "avi", "mkv", "mov", "webm" -> MediaType.VIDEO
-        "mp3", "wav", "aac", "flac", "ogg" -> MediaType.AUDIO
-        "txt", "csv", "log" -> MediaType.TEXT
-        "pdf" -> MediaType.PDF
-        "ppt", "pptx" -> MediaType.PRESENTATION
+fun getMediaType(mimeType: String): MediaType {
+    return when {
+        mimeType.lowercase().contains("gif") -> MediaType.GIF
+        mimeType.lowercase().contains("image") -> MediaType.IMAGE
+        mimeType.lowercase().contains("video") -> MediaType.VIDEO
+        mimeType.lowercase().contains("audio") -> MediaType.AUDIO
+        mimeType.lowercase().contains("text") -> MediaType.TEXT
+        mimeType.lowercase().contains("pdf") -> MediaType.PDF
+        mimeType.lowercase().contains("powerpoint")
+                || mimeType.lowercase().contains("presentation")
+                || mimeType.lowercase().contains("slideshow") -> MediaType.PRESENTATION
         else -> MediaType.UNKNOWN
     }
 }
@@ -44,10 +46,6 @@ enum class MediaType {
     PDF,
     PRESENTATION,
     UNKNOWN;
-
-    /** Whether this media can be or is visualized */
-    val isVisualized: Boolean
-        get() = this == IMAGE || this == VIDEO || this == GIF
 }
 
 /** Returns a bitmap from a given file */

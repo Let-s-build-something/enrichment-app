@@ -1,4 +1,4 @@
-package data.io.social.network.conversation
+package data.io.social.network.conversation.message
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check

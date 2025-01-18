@@ -48,12 +48,6 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.button_confirm
-import augmy.composeapp.generated.resources.button_dismiss
-import augmy.composeapp.generated.resources.network_dialog_message_block
-import augmy.composeapp.generated.resources.network_dialog_message_mute
-import augmy.composeapp.generated.resources.network_dialog_title_block
-import augmy.composeapp.generated.resources.network_dialog_title_mute
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
@@ -61,8 +55,6 @@ import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
-import augmy.interactive.shared.ui.components.dialog.AlertDialog
-import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavIconType
@@ -75,7 +67,6 @@ import components.OptionsLayoutAction
 import components.ScrollChoice
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableScreen
-import data.BlockedProximityValue
 import data.NetworkProximityCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -112,19 +103,10 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val showAddNewModal = rememberSaveable {
         mutableStateOf(false)
     }
-    val showActionDialog = rememberSaveable {
-        mutableStateOf<OptionsLayoutAction?>(null)
-    }
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.Mute -> {
-                showActionDialog.value = OptionsLayoutAction.Mute
-            }
-            OptionsLayoutAction.Block -> {
-                showActionDialog.value = OptionsLayoutAction.Block
-            }
-            OptionsLayoutAction.CircleMove -> {
+            OptionsLayoutAction.Invite -> {
                 // TODO
             }
             OptionsLayoutAction.DeselectAll -> checkedItems.clear()
@@ -138,42 +120,6 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 }
             }
         }
-    }
-
-    showActionDialog.value?.let { action ->
-        AlertDialog(
-            title = stringResource(
-                if(action == OptionsLayoutAction.Mute) {
-                    Res.string.network_dialog_title_mute
-                }else Res.string.network_dialog_title_block
-            ),
-            message = stringResource(
-                if(action == OptionsLayoutAction.Mute) {
-                    Res.string.network_dialog_message_mute
-                }else Res.string.network_dialog_message_block
-            ),
-            icon = action.leadingImageVector,
-            confirmButtonState = ButtonState(
-                text = stringResource(Res.string.button_confirm)
-            ) {
-                viewModel.requestProximityChange(
-                    selectedConnections = checkedItems,
-                    proximity = if(action == OptionsLayoutAction.Mute) {
-                        NetworkProximityCategory.Public.range.start
-                    }else BlockedProximityValue,
-                    onOperationDone = {
-                        networkItems.refresh()
-                    }
-                )
-                checkedItems.clear()
-            },
-            dismissButtonState = ButtonState(
-                text = stringResource(Res.string.button_dismiss)
-            ),
-            onDismissRequest = {
-                showActionDialog.value = null
-            }
-        )
     }
 
     if(showTuner.value) {

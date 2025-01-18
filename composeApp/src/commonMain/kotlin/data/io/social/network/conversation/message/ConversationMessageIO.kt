@@ -1,4 +1,4 @@
-package data.io.social.network.conversation
+package data.io.social.network.conversation.message
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -28,7 +28,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     val content: String? = null,
 
     /** List of Urls of attached media to this message */
-    val mediaUrls: List<String>? = null,
+    val media: List<MediaIO>? = null,
 
     /** Audio url as a content of this message */
     val audioUrl: String? = null,
@@ -42,9 +42,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** List of reactions to this message */
     val reactions: List<MessageReactionIO>? = null,
 
-    /** Identification of a message to which this message is anchored to, such as a reply */
-    val anchorMessageId: String? = null,
-
     /** Whether preview should be shown for this message */
     val showPreview: Boolean? = null,
 
@@ -54,10 +51,10 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
      */
     val anchorMessage: ConversationAnchorMessageIO? = null,
 
-    /** Time of creation */
-    @ColumnInfo(name = "created_at")
+    /** Time of message being sent in ISO format */
+    @ColumnInfo(name = "sent_at")
     @Serializable(with = DateTimeAsStringSerializer::class)
-    val createdAt: LocalDateTime? = null,
+    val sentAt: LocalDateTime? = null,
 
     /**
      * State of this message. Generally, this information is sent only for the last item,
@@ -80,7 +77,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     fun toAnchorMessage() = ConversationAnchorMessageIO(
         id = id,
         content = content,
-        mediaUrls = mediaUrls,
+        mediaUrls = media,
         audioUrl = audioUrl,
         gifAsset = gifAsset,
         authorPublicId = authorPublicId

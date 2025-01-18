@@ -30,6 +30,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -384,6 +385,26 @@ suspend fun AwaitPointerEventScope.waitForUpSwipeOrCancellation(
             return null
         }
     }
+}
+
+fun Modifier.onHover(
+    enabled: Boolean = true,
+    key: Any? = null,
+    callback: (hovered: Boolean) -> Unit
+) = composed {
+    if(enabled) {
+        val hoverInteractionSource = remember(key) { MutableInteractionSource() }
+        val isFocused = hoverInteractionSource.collectIsHoveredAsState()
+
+        LaunchedEffect(isFocused.value) {
+            callback(isFocused.value)
+        }
+
+        this.hoverable(
+            enabled = enabled,
+            interactionSource = hoverInteractionSource
+        )
+    }else this
 }
 
 /**

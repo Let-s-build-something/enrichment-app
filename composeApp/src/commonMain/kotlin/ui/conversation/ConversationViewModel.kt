@@ -7,16 +7,19 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import base.utils.getUrlExtension
 import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
-import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -193,10 +196,14 @@ class ConversationViewModel(
                 },
                 message = ConversationMessageIO(
                     content = content,
-                    anchorMessageId = anchorMessage?.id,
                     anchorMessage = anchorMessage?.toAnchorMessage(),
                     gifAsset = gifAsset,
-                    mediaUrls = mediaUrls,
+                    media = mediaUrls.map { url ->
+                        MediaIO(
+                            url = url,
+                            mimetype = MimeType.getByExtension(getUrlExtension(url)).mime
+                        )
+                    },
                     showPreview = showPreview
                 )
             )

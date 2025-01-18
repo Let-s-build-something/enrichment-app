@@ -24,8 +24,8 @@ import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.utils.getOrNull
 import base.navigation.NavigationArguments
+import base.utils.getOrNull
 import collectResult
 import components.EmptyLayout
 import components.OptionsLayout
@@ -62,13 +62,7 @@ fun NetworkListContent(
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.Mute -> {
-                // TODO
-            }
-            OptionsLayoutAction.Block -> {
-                // TODO
-            }
-            OptionsLayoutAction.CircleMove -> {
+            OptionsLayoutAction.Invite -> {
                 // TODO
             }
             OptionsLayoutAction.DeselectAll -> checkedItems.clear()

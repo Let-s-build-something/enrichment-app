@@ -80,9 +80,9 @@ import base.theme.Colors
 import base.utils.openLink
 import base.utils.tagToColor
 import components.buildAnnotatedLinkString
-import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
-import data.io.social.network.conversation.MessageState
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageState
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
@@ -175,9 +175,9 @@ private fun ContentLayout(
     }
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
     val hoverInteractionSource = remember(data.id) { MutableInteractionSource() }
-    val processor = if(data.mediaUrls?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
+    val processor = if(data.media?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
-    val hasAttachment = remember(data.id) { data.mediaUrls?.isEmpty() == false || data.containsUrl }
+    val hasAttachment = remember(data.id) { data.media?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
 
     val reactions = remember(data.id) {
@@ -210,7 +210,7 @@ private fun ContentLayout(
     )
     val onDownloadRequest: () -> Unit = {
         processor?.processFiles(
-            *data.mediaUrls.orEmpty().toTypedArray()
+            *data.media.orEmpty().toTypedArray()
         )
     }
 
@@ -312,7 +312,7 @@ private fun ContentLayout(
                         modifier = Modifier.padding(end = 8.dp),
                         visible = !showOptions && isFocused.value,
                         showOptions = true,
-                        hasMedia = data.mediaUrls?.isEmpty() == false,
+                        hasMedia = data.media?.isEmpty() == false,
                         onDownloadRequest = onDownloadRequest,
                         onReplyRequest = onReplyRequest,
                         onReactionRequest = onReactionRequest
@@ -413,14 +413,14 @@ private fun ContentLayout(
                         val messageShape = if (isCurrentUser) {
                             RoundedCornerShape(
                                 topStart = if(hasAttachment) 1.dp else 24.dp,
-                                topEnd = if(hasPrevious || !data.mediaUrls.isNullOrEmpty()) 1.dp else 24.dp,
+                                topEnd = if(hasPrevious || !data.media.isNullOrEmpty()) 1.dp else 24.dp,
                                 bottomStart = 24.dp,
                                 bottomEnd = if (hasNext) 1.dp else 24.dp
                             )
                         } else {
                             RoundedCornerShape(
                                 topEnd = if(hasAttachment) 1.dp else 24.dp,
-                                topStart = if(hasPrevious || !data.mediaUrls.isNullOrEmpty()) 1.dp else 24.dp,
+                                topStart = if(hasPrevious || !data.media.isNullOrEmpty()) 1.dp else 24.dp,
                                 bottomEnd = 24.dp,
                                 bottomStart = if (hasNext) 1.dp else 24.dp
                             )
@@ -567,7 +567,7 @@ private fun ContentLayout(
                                 .padding(end = if (isCurrentUser) 16.dp else 0.dp),
                             visible = showOptions,
                             showOptions = LocalIsMouseUser.current,
-                            hasMedia = data.mediaUrls?.isEmpty() == false,
+                            hasMedia = data.media?.isEmpty() == false,
                             onDownloadRequest = onDownloadRequest,
                             onReplyRequest = onReplyRequest,
                             onReactionRequest = onReactionRequest
@@ -586,7 +586,7 @@ private fun ContentLayout(
                         modifier = Modifier.padding(start = 8.dp),
                         visible = !showOptions && isFocused.value,
                         showOptions = true,
-                        hasMedia = data.mediaUrls?.isEmpty() == false,
+                        hasMedia = data.media?.isEmpty() == false,
                         onDownloadRequest = onDownloadRequest,
                         onReplyRequest = onReplyRequest,
                         onReactionRequest = onReactionRequest
@@ -623,7 +623,7 @@ private fun ContentLayout(
                 if (showHistory.value) {
                     Text(
                         modifier = Modifier.padding(start = 4.dp, end = 6.dp),
-                        text = "${data.state?.description?.plus(", ") ?: ""}${data.createdAt?.formatAsRelative() ?: ""}",
+                        text = "${data.state?.description?.plus(", ") ?: ""}${data.sentAt?.formatAsRelative() ?: ""}",
                         style = LocalTheme.current.styles.regular
                     )
                 }

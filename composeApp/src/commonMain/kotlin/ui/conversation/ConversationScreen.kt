@@ -76,11 +76,11 @@ import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
-import base.utils.getMediaType
 import base.utils.getOrNull
 import components.UserProfileImage
-import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -498,7 +498,7 @@ private fun LazyItemScope.MessageContent(
                         )
                     }
                     if(data?.gifAsset != null) {
-                        val date = data.createdAt?.formatAsRelative() ?: ""
+                        val date = data.sentAt?.formatAsRelative() ?: ""
 
                         GifImage(
                             modifier = heightModifier
@@ -513,7 +513,12 @@ private fun LazyItemScope.MessageContent(
                                     coroutineScope.launch {
                                         navController?.navigate(
                                             NavigationNode.MediaDetail(
-                                                urls = listOf(data.gifAsset.original ?: ""),
+                                                media = listOf(
+                                                    MediaIO(
+                                                        url = data.gifAsset.original ?: "",
+                                                        mimetype = "image/gif"
+                                                    )
+                                                ),
                                                 title = if(isCurrentUser) {
                                                     getString(Res.string.conversation_detail_you)
                                                 } else data.user?.displayName,
@@ -527,8 +532,8 @@ private fun LazyItemScope.MessageContent(
                             contentScale = ContentScale.Fit
                         )
                     }
-                    if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
-                        val date = data.createdAt?.formatAsRelative() ?: ""
+                    if(data?.media?.mapNotNull { m -> m.url.takeIf { !it.isNullOrBlank() } }?.isNotEmpty() == true) {
+                        val date = data.sentAt?.formatAsRelative() ?: ""
 
                         LaunchedEffect(mediaRowState) {
                             snapshotFlow { mediaRowState.value }.collect {
@@ -548,25 +553,26 @@ private fun LazyItemScope.MessageContent(
                             )
                         ) {
                             (if(isCurrentUser) {
-                                data.mediaUrls
-                            } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
-                                val media = viewModel.cachedFiles[mediaUrl]
-                                val type = getMediaType(mediaUrl)
+                                data.media
+                            } else data.media.reversed()).forEachIndexed { index, media ->
+                                val cachedMedia = viewModel.cachedFiles[media.url]
+                                val canBeVisualized = media.mimetype?.contains("image") == true
+                                        || media.mimetype?.contains("video") == true
 
                                 MediaElement(
                                     modifier = heightModifier,
-                                    url = mediaUrl,
                                     media = media,
-                                    enabled = (data.state?.ordinal ?: 0) > 0 && type.isVisualized,
+                                    localMedia = cachedMedia,
+                                    enabled = (data.state?.ordinal ?: 0) > 0 && canBeVisualized,
                                     onLongPress = {
                                         reactingToMessageId.value = data.id
                                     },
-                                    onTap = { mediaType ->
-                                        if(mediaType.isVisualized) {
+                                    onTap = {
+                                        if(canBeVisualized) {
                                             coroutineScope.launch {
                                                 navController?.navigate(
                                                     NavigationNode.MediaDetail(
-                                                        urls = data.mediaUrls,
+                                                        media = data.media,
                                                         selectedIndex = index,
                                                         title = if(isCurrentUser) {
                                                             getString(Res.string.conversation_detail_you)

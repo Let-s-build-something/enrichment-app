@@ -19,8 +19,8 @@ import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.composeapp.generated.resources.conversation_reply_prefix_self
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import data.io.social.network.conversation.ConversationAnchorMessageIO
-import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationAnchorMessageIO
+import data.io.social.network.conversation.message.ConversationMessageIO
 import org.jetbrains.compose.resources.stringResource
 
 /**

@@ -58,6 +58,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.shareMessage
+import data.io.social.network.conversation.message.MediaIO
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -69,7 +70,7 @@ import ui.conversation.components.audio.MediaProcessorModel
 
 /**
  * Screen for displaying a list of media
- * @param urls list of remote urls to be displayed
+ * @param media list of remote urls to be displayed
  * @param selectedIndex initially selected index
  */
 @Composable
@@ -77,19 +78,20 @@ fun MediaDetailScreen(
     processor: MediaProcessorModel = koinViewModel(),
     title: String?,
     subtitle: String?,
-    urls: Array<out String?>,
+    media: Array<out MediaIO?>,
     selectedIndex: Int
 ) {
+    println("kostka_test, MediaDetailScreen, media: ${media.toList()}")
     val coroutineScope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
         initialPage = selectedIndex,
-        pageCount = { urls.size }
+        pageCount = { media.size }
     )
-    val currentIndex = rememberSaveable(urls, selectedIndex) {
+    val currentIndex = rememberSaveable(media, selectedIndex) {
         mutableStateOf(selectedIndex)
     }
-    val showOptions = rememberSaveable(urls, selectedIndex) {
+    val showOptions = rememberSaveable(media, selectedIndex) {
         mutableStateOf(false)
     }
     val downloadState = rememberIndicationState(processor)
@@ -101,7 +103,7 @@ fun MediaDetailScreen(
     }
 
     BrandBaseScreen(
-        title = title + if(urls.size > 1) " | ${currentIndex.value + 1}/${urls.size}" else "",
+        title = title + if(media.size > 1) " | ${currentIndex.value + 1}/${media.size}" else "",
         subtitle = subtitle,
         navIconType = NavIconType.CLOSE,
         actionIcons = { isExpanded ->
@@ -138,7 +140,7 @@ fun MediaDetailScreen(
                         text = stringResource(Res.string.action_download_all),
                         imageVector = Icons.Outlined.Download,
                         onClick = {
-                            processor.processFiles(*urls)
+                            processor.processFiles(*media)
                         }
                     )
                     ActionBarIcon(
@@ -146,7 +148,7 @@ fun MediaDetailScreen(
                         imageVector = Icons.Outlined.Share,
                         onClick = {
                             // TODO create new downloadable links, do not re-use
-                            shareMessage(media = urls.filterNotNull())
+                            shareMessage(media = media.filterNotNull())
                         }
                     )
                     ActionBarIcon(
@@ -168,7 +170,7 @@ fun MediaDetailScreen(
                 state = pagerState,
                 beyondViewportPageCount = 1
             ) { index ->
-                urls.getOrNull(index)?.let { url ->
+                media.getOrNull(index)?.let { unit ->
                     val offset = remember(index) {
                         mutableStateOf(Offset(0f, 0f))
                     }
@@ -235,7 +237,7 @@ fun MediaDetailScreen(
                                     )
                                 },
                             contentScale = ContentScale.Fit,
-                            url = url,
+                            media = unit,
                             videoPlayerEnabled = true
                         )
                         Icon(
@@ -244,7 +246,7 @@ fun MediaDetailScreen(
                                 .size(36.dp)
                                 .align(Alignment.BottomEnd)
                                 .scalingClickable {
-                                    processor.processFiles(url)
+                                    processor.processFiles(unit)
                                 },
                             imageVector = Icons.Outlined.Download,
                             contentDescription = stringResource(Res.string.accessibility_message_download),

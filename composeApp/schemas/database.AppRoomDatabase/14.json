@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 12,
-    "identityHash": "df07c64d2aa5a01188f5044e44c153d5",
+    "version": 14,
+    "identityHash": "990f785243b60633d89585ef8d8573b3",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -153,7 +153,7 @@
       },
       {
         "tableName": "room_conversation_message_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `mediaUrls` TEXT, `audioUrl` TEXT, `gifAsset` TEXT, `authorPublicId` TEXT, `reactions` TEXT, `showPreview` INTEGER, `anchorMessage` TEXT, `sent_at` TEXT, `processed_at` TEXT, `state` TEXT, `conversation_id` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `audioUrl` TEXT, `gifAsset` TEXT, `authorPublicId` TEXT, `reactions` TEXT, `showPreview` INTEGER, `anchorMessage` TEXT, `sent_at` TEXT, `state` TEXT, `conversation_id` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -167,8 +167,8 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "mediaUrls",
-            "columnName": "mediaUrls",
+            "fieldPath": "media",
+            "columnName": "media",
             "affinity": "TEXT"
           },
           {
@@ -207,11 +207,6 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "processedAt",
-            "columnName": "processed_at",
-            "affinity": "TEXT"
-          },
-          {
             "fieldPath": "state",
             "columnName": "state",
             "affinity": "TEXT"
@@ -232,7 +227,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'df07c64d2aa5a01188f5044e44c153d5')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '990f785243b60633d89585ef8d8573b3')"
     ]
   }
 }

@@ -104,12 +104,15 @@ import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
 import base.utils.getMediaType
-import data.io.social.network.conversation.ConversationMessageIO
+import base.utils.getUrlExtension
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -310,7 +313,12 @@ internal fun BoxScope.SendMessagePanel(
                         .zIndex(1f)
                         .scalingClickable(scaleInto = .95f) {
                             navController?.navigate(
-                                NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                                NavigationNode.MediaDetail(
+                                    media = listOf(MediaIO(
+                                        url = gifAsset.original ?: "",
+                                        mimetype = "image/gif"
+                                    ))
+                                )
                             )
                         }
                         .height(MEDIA_MAX_HEIGHT_DP.dp)
@@ -404,13 +412,19 @@ internal fun BoxScope.SendMessagePanel(
                                 }
                             )
 
+                            val remoteMedia = urlsAttached.getOrNull(index - mediaAttached.lastIndex)
                             MediaElement(
                                 modifier = Modifier
                                     .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
                                     .wrapContentWidth()
                                     .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                media = media,
-                                url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
+                                localMedia = media,
+                                media = if(remoteMedia != null) {
+                                    MediaIO(
+                                        url = remoteMedia,
+                                        mimetype = MimeType.getByExtension(getUrlExtension(remoteMedia)).mime
+                                    )
+                                }else null,
                                 contentScale = ContentScale.FillHeight
                             )
                         }

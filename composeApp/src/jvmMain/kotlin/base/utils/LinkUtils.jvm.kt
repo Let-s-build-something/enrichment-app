@@ -1,5 +1,6 @@
 package base.utils
 
+import data.io.social.network.conversation.message.MediaIO
 import java.awt.Desktop
 import java.io.File
 import java.io.IOException
@@ -12,7 +13,7 @@ actual fun shareLink(title: String, link: String): Boolean {
     return false
 }
 
-actual fun shareMessage(media: List<String>, messageContent: String): Boolean {
+actual fun shareMessage(media: List<MediaIO>, messageContent: String): Boolean {
     return false
 }
 
@@ -37,14 +38,12 @@ actual fun openFile(path: String?) {
     )
 }
 
-actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
+actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
     var result = true
 
-    data.forEach { (url, data) ->
-        val extension = getUrlExtension(url)
-
+    data.forEach { (media, data) ->
         // Determine file path based on mimeType
-        val fileName = "${sha256(url)}.${extension}"
+        val fileName = "${sha256(media.url)}.${getExtensionFromMimeType(media.mimetype)}"
         val filePath = Paths.get(System.getProperty("user.home"), "Downloads", fileName)
 
         try {

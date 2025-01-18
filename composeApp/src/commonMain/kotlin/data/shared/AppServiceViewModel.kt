@@ -12,6 +12,7 @@ import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.messaging.messaging
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -51,6 +52,29 @@ class AppServiceViewModel(
     fun initApp() {
         CoroutineScope(Dispatchers.IO).launch {
             showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) ?: true
+
+            // add missing mimetypes
+            MimeType.register(
+                MimeType("audio/mpeg", listOf("mp3")),
+                MimeType("audio/ogg", listOf("ogg")),
+                MimeType("audio/wav", listOf("wav")),
+                MimeType("audio/x-aac", listOf("aac")),
+                MimeType("audio/x-flac", listOf("flac")),
+                MimeType("video/mp4", listOf("mp4")),
+                MimeType("video/x-msvideo", listOf("avi")),
+                MimeType("video/x-matroska", listOf("mkv")),
+                MimeType("video/webm", listOf("webm")),
+                MimeType("application/pdf", listOf("pdf")),
+                MimeType("application/vnd.ms-powerpoint", listOf("ppt", "pps")),
+                MimeType("application/vnd.openxmlformats-officedocument.presentationml.presentation", listOf("pptx")),
+                MimeType("application/vnd.openxmlformats-officedocument.presentationml.slideshow", listOf("ppsx")),
+                MimeType("application/zip", listOf("zip")),
+                MimeType("application/x-rar-compressed", listOf("rar")),
+                MimeType("application/x-7z-compressed", listOf("7z")),
+                MimeType("application/gzip", listOf("gz")),
+                MimeType("image/svg+xml", listOf("svg")),
+                MimeType("image/webp", listOf("webp"))
+            )
 
             if (sharedDataManager.localSettings.value == null) {
                 val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)

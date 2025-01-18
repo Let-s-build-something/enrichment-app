@@ -2,9 +2,10 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
-import data.io.social.network.conversation.ConversationAnchorMessageIO
-import data.io.social.network.conversation.MessageReactionIO
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.ConversationAnchorMessageIO
+import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.serialization.encodeToString
@@ -39,6 +40,18 @@ class AppDatabaseConverter {
     @TypeConverter
     fun toGifAsset(value: String): GifAsset {
         return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromMediaList(value: List<MediaIO>?): String? {
+        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toMediaList(value: String?): List<MediaIO>? {
+        return if(value == null) null else json.decodeFromString(value)
     }
 
     /** Converts object to string */

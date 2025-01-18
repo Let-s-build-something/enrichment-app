@@ -6,7 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import data.io.base.PagingMetaIO
-import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.EmojiSelection
 import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
@@ -21,7 +21,7 @@ import database.dao.PagingMetaDao
         PagingMetaIO::class,
         ConversationMessageIO::class
     ],
-    version = 12,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

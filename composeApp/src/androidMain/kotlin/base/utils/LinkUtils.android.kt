@@ -9,8 +9,9 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
+import data.io.social.network.conversation.message.MediaIO
+import korlibs.io.net.MimeType
 import org.koin.mp.KoinPlatform.getKoin
 
 actual fun shareLink(title: String, link: String): Boolean {
@@ -26,14 +27,14 @@ actual fun shareLink(title: String, link: String): Boolean {
     return true
 }
 
-actual fun shareMessage(media: List<String>, messageContent: String): Boolean {
+actual fun shareMessage(media: List<MediaIO>, messageContent: String): Boolean {
     val context: Context = getKoin().get()
 
     val share = Intent.createChooser(Intent().apply {
         action = Intent.ACTION_SEND_MULTIPLE
         putExtra(Intent.EXTRA_TEXT, messageContent)
         type = if(media.isNotEmpty()) {
-            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(media.map { it.toUri() }))
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(media.mapNotNull { it.url?.toUri() }))
             "image/*"
         }else "text/plain"
     }, null)
@@ -53,22 +54,17 @@ actual fun openLink(link: String): Boolean {
     }
 }
 
-actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
+actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
     val resolver = getKoin().get<Context>().contentResolver
 
     var result = true
-    data.forEach { (url, data) ->
-        val extension = getUrlExtension(url)
-        val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: when (extension) {
-            "png" -> "image/png"
-            "svg" -> "image/svg+xml"
-            else -> "application/octet-stream"
-        }
-        val isImage = mimeType.startsWith("image/")
-        val isVideo = mimeType.startsWith("video/")
+    data.forEach { (media, data) ->
+        val isImage = media.mimetype?.startsWith("image/") == true
+        val isVideo = media.mimetype?.startsWith("video/") == true
+        val mimeType = media.mimetype ?: MimeType.getByExtension(getUrlExtension(media.url ?: "")).mime
 
         val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, "${sha256(url)}.${getUrlExtension(url)}")
+            put(MediaStore.Downloads.DISPLAY_NAME, "augmy_${sha256(media.url)}.${getExtensionFromMimeType(mimeType) ?: ""}")
             put(MediaStore.Downloads.MIME_TYPE, mimeType)
             put(
                 MediaStore.Downloads.RELATIVE_PATH,

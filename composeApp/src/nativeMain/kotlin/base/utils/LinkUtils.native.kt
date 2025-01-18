@@ -1,5 +1,6 @@
 package base.utils
 
+import data.io.social.network.conversation.message.MediaIO
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -40,7 +41,7 @@ fun UIViewController.getTopViewController(): UIViewController? {
     return currentController
 }
 
-actual fun shareMessage(media: List<String>, messageContent: String): Boolean {
+actual fun shareMessage(media: List<MediaIO>, messageContent: String): Boolean {
     return false
 }
 
@@ -54,12 +55,10 @@ actual fun openLink(link: String): Boolean {
 }
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
+actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
     var result = true
 
-    data.forEach { (url, data) ->
-        val extension = getUrlExtension(url)
-
+    data.forEach { (media, data) ->
         // Prepare file path
         val fileManager = NSFileManager.defaultManager()
         val documentsDirectoryURL: NSURL? = getDocumentsDirectory()
@@ -70,7 +69,7 @@ actual fun downloadFiles(data: Map<String, ByteArray>): Boolean {
             false,
             null
         )
-        val fileName = "${sha256(url)}.${extension}"
+        val fileName = "${sha256(media.url)}.${getExtensionFromMimeType(media.mimetype)}"
         val fileURL = documentsDirectory?.URLByAppendingPathComponent(fileName)
 
         if (fileURL != null) {

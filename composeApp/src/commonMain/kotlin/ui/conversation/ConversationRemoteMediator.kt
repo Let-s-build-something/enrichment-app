@@ -8,8 +8,8 @@ import coil3.network.HttpException
 import data.io.base.BaseResponse
 import data.io.base.PagingEntityType
 import data.io.base.PagingMetaIO
-import data.io.social.network.conversation.ConversationMessageIO
-import data.io.social.network.conversation.ConversationMessagesResponse
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationMessagesResponse
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
 import kotlinx.coroutines.Dispatchers

@@ -16,8 +16,6 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.request.patch
-import io.ktor.client.request.setBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -26,7 +24,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ui.login.safeRequest
-import ui.network.connection.SocialConnectionUpdate
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -123,20 +120,6 @@ class NetworkListRepository(
                 }
             )
         )
-    }
-
-    /** Updates a network connection */
-    suspend fun patchNetworkConnection(publicId: String, proximity: Float): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<NetworkListResponse> {
-                patch(
-                    urlString = "/api/v1/social/network/users/{$publicId}",
-                    block = {
-                        setBody(SocialConnectionUpdate(proximity = proximity))
-                    }
-                )
-            }
-        }
     }
 
     internal companion object {

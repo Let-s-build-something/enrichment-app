@@ -103,6 +103,7 @@ class HomeViewModel(
     }
 
     /** Filters currently downloaded network items */
+    @OptIn(ExperimentalSettingsApi::class)
     fun filterNetworkItems(filter: List<NetworkProximityCategory>) {
         viewModelScope.launch(Dispatchers.Default) {
             _categories.value = filter
@@ -110,24 +111,6 @@ class HomeViewModel(
                 KEY_NETWORK_CATEGORIES,
                 filter.joinToString(",")
             )
-        }
-    }
-
-    /** Makes a request for changes of proximity related to the [selectedConnections] */
-    fun requestProximityChange(
-        selectedConnections: List<String>,
-        proximity: Float,
-        onOperationDone: () -> Unit = {}
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            selectedConnections.forEach { publicId ->
-                // TODO change locally once the local database is in place
-                repository.patchNetworkConnection(
-                    publicId = publicId,
-                    proximity = proximity
-                )
-            }
-            onOperationDone()
         }
     }
 

@@ -151,7 +151,7 @@
   <string name="button_confirm">Confirm</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
-  <string name="button_add_to">Add to</string>
+  <string name="button_invite">Invite</string>
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Remove</string>
