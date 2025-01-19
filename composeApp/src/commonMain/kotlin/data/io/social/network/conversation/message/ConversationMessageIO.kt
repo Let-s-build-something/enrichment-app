@@ -43,7 +43,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     val reactions: List<MessageReactionIO>? = null,
 
     /** Whether preview should be shown for this message */
-    val showPreview: Boolean? = null,
+    val showPreview: Boolean? = true,
 
     /**
      * Content of message this message is anchored to.

@@ -675,7 +675,8 @@ class ConversationRepository(
                 state = MessageState.Read
             ),
             ConversationMessageIO(
-                content = "I'm great. What about yourself?",
+                content = "I'm great. What about yourself?" +
+                        "\nLook at this! https://github.com/fleeksoft/ksoup",
                 id = Uuid.random().toString(),
                 authorPublicId = "1",
                 sentAt = LocalDateTime.parse(

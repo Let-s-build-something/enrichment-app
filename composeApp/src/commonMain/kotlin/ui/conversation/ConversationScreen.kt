@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -64,8 +66,8 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.DateUtils.formatAsRelative
+import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.horizontallyDraggable
-import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -77,6 +79,7 @@ import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.getOrNull
+import base.utils.openLink
 import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -414,7 +417,7 @@ private fun LazyItemScope.MessageContent(
             )
             .animateItem(),
         horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Bottom
     ) {
         val profileImageSize = with(density) { 38.sp.toDp() }
 
@@ -422,7 +425,14 @@ private fun LazyItemScope.MessageContent(
             if(!isNextMessageSameAuthor) {
                 UserProfileImage(
                     modifier = Modifier
-                        .padding(start = 12.dp, end = 10.dp)
+                        .padding(
+                            start = 12.dp,
+                            end = 10.dp,
+                            // offset if there are reactions (because those offset the message content)
+                            bottom = if(!data?.reactions.isNullOrEmpty()) {
+                                with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 10.dp }
+                            }else 0.dp
+                        )
                         .zIndex(4f)
                         .size(profileImageSize),
                     model = data?.user?.photoUrl,
@@ -457,7 +467,7 @@ private fun LazyItemScope.MessageContent(
                 showEmojiPreferencesId.value = data?.id
             },
             onReplyRequest = onReplyRequest,
-            additionalContent = {
+            additionalContent = { onDragChange, onDrag ->
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
                 }
@@ -476,13 +486,15 @@ private fun LazyItemScope.MessageContent(
 
                 Column(
                     modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                        .wrapContentHeight()
                         .onSizeChanged {
                             if(it.height != 0) {
                                 with(density) {
                                     rememberedHeight.value = it.height.toDp().value
                                 }
                             }
-                        },
+                        }
+                        .align(if(isCurrentUser) Alignment.End else Alignment.Start),
                     horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     data?.anchorMessage?.let { anchorData ->
@@ -503,29 +515,32 @@ private fun LazyItemScope.MessageContent(
                         GifImage(
                             modifier = heightModifier
                                 .zIndex(1f)
-                                .scalingClickable(
-                                    scaleInto = .95f,
-                                    hoverEnabled = false,
-                                    onLongPress = {
-                                        reactingToMessageId.value = data.id
-                                    }
-                                ) {
-                                    coroutineScope.launch {
-                                        navController?.navigate(
-                                            NavigationNode.MediaDetail(
-                                                media = listOf(
-                                                    MediaIO(
-                                                        url = data.gifAsset.original ?: "",
-                                                        mimetype = "image/gif"
+                                .pointerInput(data.id) {
+                                    detectMessageInteraction(
+                                        onTap = {
+                                            coroutineScope.launch {
+                                                navController?.navigate(
+                                                    NavigationNode.MediaDetail(
+                                                        media = listOf(
+                                                            MediaIO(
+                                                                url = data.gifAsset.original ?: "",
+                                                                mimetype = "image/gif"
+                                                            )
+                                                        ),
+                                                        title = if(isCurrentUser) {
+                                                            getString(Res.string.conversation_detail_you)
+                                                        } else data.user?.displayName,
+                                                        subtitle = date
                                                     )
-                                                ),
-                                                title = if(isCurrentUser) {
-                                                    getString(Res.string.conversation_detail_you)
-                                                } else data.user?.displayName,
-                                                subtitle = date
-                                            )
-                                        )
-                                    }
+                                                )
+                                            }
+                                        },
+                                        onLongPress = {
+                                            reactingToMessageId.value = data.id
+                                        },
+                                        onDragChange = onDragChange,
+                                        onDrag = onDrag
+                                    )
                                 },
                             data = data.gifAsset.original ?: "",
                             contentDescription = data.gifAsset.description,
@@ -560,29 +575,34 @@ private fun LazyItemScope.MessageContent(
                                         || media.mimetype?.contains("video") == true
 
                                 MediaElement(
-                                    modifier = heightModifier,
+                                    modifier = if((data.state?.ordinal ?: 0) > 0 && canBeVisualized) {
+                                        heightModifier.pointerInput(data.id, ) {
+                                            detectMessageInteraction(
+                                                onTap = {
+                                                    coroutineScope.launch {
+                                                        navController?.navigate(
+                                                            NavigationNode.MediaDetail(
+                                                                media = data.media,
+                                                                selectedIndex = index,
+                                                                title = if(isCurrentUser) {
+                                                                    getString(Res.string.conversation_detail_you)
+                                                                } else data.user?.displayName,
+                                                                subtitle = date
+                                                            )
+                                                        )
+                                                    }
+                                                },
+                                                onLongPress = {
+                                                    reactingToMessageId.value = data.id
+                                                },
+                                                onDragChange = onDragChange,
+                                                onDrag = onDrag
+                                            )
+                                        }
+                                    }else heightModifier,
                                     media = media,
                                     localMedia = cachedMedia,
-                                    enabled = (data.state?.ordinal ?: 0) > 0 && canBeVisualized,
-                                    onLongPress = {
-                                        reactingToMessageId.value = data.id
-                                    },
-                                    onTap = {
-                                        if(canBeVisualized) {
-                                            coroutineScope.launch {
-                                                navController?.navigate(
-                                                    NavigationNode.MediaDetail(
-                                                        media = data.media,
-                                                        selectedIndex = index,
-                                                        title = if(isCurrentUser) {
-                                                            getString(Res.string.conversation_detail_you)
-                                                        } else data.user?.displayName,
-                                                        subtitle = date
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
+                                    enabled = false
                                 )
                             }
                         }
@@ -604,8 +624,20 @@ private fun LazyItemScope.MessageContent(
                         if(matches.any()) {
                             matches.firstOrNull()?.let { firstLink ->
                                 LinkPreview(
-                                    modifier = Modifier.clip(shape = shape),
-                                    url = firstLink.value
+                                    modifier = Modifier
+                                        .widthIn(max = (screenSize.width * .8f).dp)
+                                        .pointerInput(data.id) {
+                                            detectMessageInteraction(
+                                                onTap = {
+                                                    openLink(firstLink.value)
+                                                },
+                                                onDragChange = onDragChange,
+                                                onDrag = onDrag
+                                            )
+                                        }
+                                        .clip(shape = shape),
+                                    url = firstLink.value,
+                                    alignment = if(isCurrentUser) Alignment.Start else Alignment.End
                                 )
                             }
                         }

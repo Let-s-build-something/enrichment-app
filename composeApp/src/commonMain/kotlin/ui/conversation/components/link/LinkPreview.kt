@@ -37,6 +37,7 @@ import ui.conversation.components.audio.MediaProcessorModel
 fun LinkPreview(
     modifier: Modifier = Modifier,
     url: String,
+    alignment: Alignment.Horizontal,
     imageHeight: Dp = 200.dp,
     textBackground: Color = LocalTheme.current.colors.backgroundDark
 ) {
@@ -52,62 +53,65 @@ fun LinkPreview(
     }
 
     if(graphProtocol.value != null) {
-        graphProtocol.value?.imageUrl?.let { image ->
-            AsyncSvgImage(
-                modifier = modifier
-                    .sizeIn(
-                        maxHeight = imageHeight,
-                        minWidth = 250.dp
-                    )
-                    .height((contentSize.height * .3f).dp),
-                model = image,
-                contentScale = ContentScale.Fit
-            )
-        }
-        Row(
-            modifier = (if(graphProtocol.value?.imageUrl == null) modifier else Modifier)
-                .background(color = textBackground)
-                .fillMaxWidth()
-                .then(if(graphProtocol.value?.isEmpty == false) Modifier.width(IntrinsicSize.Min) else Modifier)
-                .padding(vertical = 6.dp, horizontal = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.Top
+        Column(
+            modifier = modifier.background(color = textBackground),
+            horizontalAlignment = alignment
         ) {
-            graphProtocol.value?.iconUrl?.let { icon ->
-                if(icon != graphProtocol.value?.imageUrl) {
-                    AsyncSvgImage(
-                        modifier = Modifier
-                            .padding(top = 6.dp)
-                            .size(
-                                with(density) { LocalTheme.current.styles.regular.fontSize.toDp() * 3 - 4.dp}
-                            ),
-                        model = icon,
-                        contentScale = ContentScale.Fit
-                    )
-                }
+            graphProtocol.value?.imageUrl?.let { image ->
+                AsyncSvgImage(
+                    modifier = modifier
+                        .sizeIn(
+                            maxHeight = imageHeight,
+                            minWidth = 250.dp
+                        )
+                        .height((contentSize.height * .3f).dp),
+                    model = image,
+                    contentScale = ContentScale.Fit
+                )
             }
-
-            Column(
-                modifier = Modifier.padding(end = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            Row(
+                modifier = (if(graphProtocol.value?.imageUrl == null) modifier else Modifier)
+                    .fillMaxWidth()
+                    .then(if(graphProtocol.value?.isEmpty == false) Modifier.width(IntrinsicSize.Min) else Modifier)
+                    .padding(vertical = 6.dp, horizontal = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                if(graphProtocol.value?.title != null || graphProtocol.value?.isEmpty == true) {
-                    Text(
-                        text = graphProtocol.value?.title ?: stringResource(Res.string.link_preview_error),
-                        style = LocalTheme.current.styles.regular.copy(
-                            color = LocalTheme.current.colors.primary
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                graphProtocol.value?.iconUrl?.let { icon ->
+                    if(icon != graphProtocol.value?.imageUrl) {
+                        AsyncSvgImage(
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .size(
+                                    with(density) { LocalTheme.current.styles.regular.fontSize.toDp() * 3 - 4.dp}
+                                ),
+                            model = icon,
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
-                graphProtocol.value?.description?.let { description ->
-                    Text(
-                        text = description,
-                        style = LocalTheme.current.styles.regular,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+
+                Column(
+                    modifier = Modifier.padding(end = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    if(graphProtocol.value?.title != null || graphProtocol.value?.isEmpty == true) {
+                        Text(
+                            text = graphProtocol.value?.title ?: stringResource(Res.string.link_preview_error),
+                            style = LocalTheme.current.styles.title,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    graphProtocol.value?.description?.let { description ->
+                        Text(
+                            text = description,
+                            style = LocalTheme.current.styles.regular,
+                            maxLines = 5,
+                            minLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

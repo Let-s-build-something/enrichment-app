@@ -303,7 +303,9 @@ internal fun BoxScope.SendMessagePanel(
 
 
     Column(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier.animateContentSize(
+            alignment = Alignment.BottomCenter
+        ),
         verticalArrangement = Arrangement.Top
     ) {
         gifAttached.value?.let { gifAsset ->
@@ -398,7 +400,7 @@ internal fun BoxScope.SendMessagePanel(
                             MinimalisticIcon(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .zIndex(1f)
+                                    .zIndex(4f)
                                     .background(
                                         color = LocalTheme.current.colors.backgroundDark,
                                         shape = LocalTheme.current.shapes.componentShape
@@ -448,6 +450,9 @@ internal fun BoxScope.SendMessagePanel(
                         shape = shape
                     )
                     .padding(6.dp)
+                    .animateContentSize(
+                        alignment = Alignment.BottomCenter
+                    )
             ) {
                 MinimalisticIcon(
                     modifier = Modifier
@@ -465,7 +470,8 @@ internal fun BoxScope.SendMessagePanel(
                         modifier = Modifier.clip(shape),
                         url = url,
                         textBackground = Color.Transparent,
-                        imageHeight = 100.dp
+                        imageHeight = 140.dp,
+                        alignment = Alignment.Start
                     )
                 }
             }
