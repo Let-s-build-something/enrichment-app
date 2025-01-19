@@ -181,7 +181,7 @@ class ConversationViewModel(
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
-        viewModelScope.launch {
+        CoroutineScope(Job()).launch {
             var progressId = ""
             repository.sendMessage(
                 conversationId = conversationId,

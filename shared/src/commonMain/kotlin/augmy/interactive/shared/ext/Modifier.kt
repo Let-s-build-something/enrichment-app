@@ -28,7 +28,6 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,9 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
-import augmy.interactive.shared.ui.base.LocalDeviceType
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
+import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.theme.LocalTheme
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
@@ -258,7 +255,7 @@ suspend fun PointerInputScope.detectMessageInteraction(
     onLongPress: ((Offset) -> Unit)? = null,
     onTap: ((Offset) -> Unit)? = null,
     onDragChange: (change: PointerInputChange, dragAmount: Offset) -> Unit,
-    onDrag: (dragged: Boolean) -> Unit,
+    onDrag: (dragged: Boolean) -> Unit = {}
 ) = coroutineScope {
     // special signal to indicate to the sending side that it shouldn't intercept and consume
     // cancel/up events as we're only require down events
@@ -328,9 +325,9 @@ suspend fun PointerInputScope.detectMessageInteraction(
 
 /** Makes a horizontally scrollable layout draggable for desktop */
 fun Modifier.horizontallyDraggable(state: ScrollState) = composed {
-    val coroutineScope = rememberCoroutineScope()
+    if(LocalIsMouseUser.current) {
+        val coroutineScope = rememberCoroutineScope()
 
-    if(currentPlatform == PlatformType.Jvm || LocalDeviceType.current == WindowWidthSizeClass.Expanded) {
         draggable(
             orientation = Orientation.Horizontal,
             state = rememberDraggableState { delta ->

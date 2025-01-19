@@ -40,7 +40,6 @@ import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Mood
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -64,9 +63,10 @@ import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_message_react
 import augmy.composeapp.generated.resources.accessibility_message_download
+import augmy.composeapp.generated.resources.accessibility_message_forward
 import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
-import augmy.composeapp.generated.resources.action_settings
+import augmy.composeapp.generated.resources.ic_forward
 import augmy.interactive.shared.DateUtils.formatAsRelative
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.detectMessageInteraction
@@ -89,6 +89,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
@@ -311,7 +312,6 @@ private fun ContentLayout(
                     Options(
                         modifier = Modifier.padding(end = 8.dp),
                         visible = !showOptions && isFocused.value,
-                        showOptions = true,
                         hasMedia = data.media?.isEmpty() == false,
                         onDownloadRequest = onDownloadRequest,
                         onReplyRequest = onReplyRequest,
@@ -566,7 +566,6 @@ private fun ContentLayout(
                                 .align(Alignment.End)
                                 .padding(end = if (isCurrentUser) 16.dp else 0.dp),
                             visible = showOptions,
-                            showOptions = LocalIsMouseUser.current,
                             hasMedia = data.media?.isEmpty() == false,
                             onDownloadRequest = onDownloadRequest,
                             onReplyRequest = onReplyRequest,
@@ -585,7 +584,6 @@ private fun ContentLayout(
                     Options(
                         modifier = Modifier.padding(start = 8.dp),
                         visible = !showOptions && isFocused.value,
-                        showOptions = true,
                         hasMedia = data.media?.isEmpty() == false,
                         onDownloadRequest = onDownloadRequest,
                         onReplyRequest = onReplyRequest,
@@ -636,7 +634,6 @@ private fun ContentLayout(
 private fun Options(
     modifier: Modifier = Modifier,
     visible: Boolean,
-    showOptions: Boolean = false,
     hasMedia: Boolean,
     onDownloadRequest: () -> Unit,
     onReplyRequest: () -> Unit,
@@ -649,7 +646,7 @@ private fun Options(
         modifier = modifier,
         visible = visible,
         enter = fadeIn() + expandVertically(
-            animationSpec = if(showOptions) {
+            animationSpec = if(LocalIsMouseUser.current) {
                 spring(
                     stiffness = Spring.StiffnessLow,
                     visibilityThreshold = IntSize.VisibilityThreshold
@@ -668,10 +665,6 @@ private fun Options(
             shrinkTowards = Alignment.CenterVertically
         )
     ) {
-        val showMore = remember(showOptions) {
-            mutableStateOf(showOptions)
-        }
-
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
@@ -679,58 +672,45 @@ private fun Options(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            if (showMore.value) {
-                /*Icon(
-                    modifier = Modifier
-                        .scalingClickable {
-                            onForwardRequest()
-                        }
-                        .padding(5.dp),
-                    painter = painterResource(Res.drawable.ic_forward),
-                    contentDescription = stringResource(Res.string.accessibility_message_forward),
-                    tint = LocalTheme.current.colors.secondary
-                )*/
-                if (hasMedia) {
-                    Icon(
-                        modifier = Modifier
-                            .scalingClickable { onDownloadRequest() }
-                            .size(buttonSize)
-                            .padding(2.dp),
-                        imageVector = Icons.Outlined.Download,
-                        contentDescription = stringResource(Res.string.accessibility_message_download),
-                        tint = LocalTheme.current.colors.secondary
-                    )
-                }
+            Icon(
+                modifier = Modifier
+                    .scalingClickable {
+                        //onForwardRequest()
+                    }
+                    .padding(5.dp),
+                painter = painterResource(Res.drawable.ic_forward),
+                contentDescription = stringResource(Res.string.accessibility_message_forward),
+                tint = LocalTheme.current.colors.secondary
+            )
+            if (hasMedia) {
                 Icon(
                     modifier = Modifier
-                        .scalingClickable { onReplyRequest() }
+                        .scalingClickable { onDownloadRequest() }
                         .size(buttonSize)
                         .padding(2.dp),
-                    imageVector = Icons.AutoMirrored.Outlined.Reply,
-                    contentDescription = stringResource(Res.string.accessibility_message_reply),
-                    tint = LocalTheme.current.colors.secondary
-                )
-                Icon(
-                    modifier = Modifier
-                        .scalingClickable { onReactionRequest(true) }
-                        .size(buttonSize)
-                        .padding(2.dp),
-                    imageVector = Icons.Outlined.Mood,
-                    contentDescription = stringResource(Res.string.accessibility_action_message_react),
+                    imageVector = Icons.Outlined.Download,
+                    contentDescription = stringResource(Res.string.accessibility_message_download),
                     tint = LocalTheme.current.colors.secondary
                 )
             }
-            if(!showMore.value && !LocalIsMouseUser.current) {
-                Icon(
-                    modifier = Modifier
-                        .scalingClickable { showMore.value = true }
-                        .size(buttonSize)
-                        .padding(2.dp),
-                    imageVector = Icons.Outlined.MoreHoriz,
-                    contentDescription = stringResource(Res.string.action_settings),
-                    tint = LocalTheme.current.colors.secondary
-                )
-            }
+            Icon(
+                modifier = Modifier
+                    .scalingClickable { onReplyRequest() }
+                    .size(buttonSize)
+                    .padding(2.dp),
+                imageVector = Icons.AutoMirrored.Outlined.Reply,
+                contentDescription = stringResource(Res.string.accessibility_message_reply),
+                tint = LocalTheme.current.colors.secondary
+            )
+            Icon(
+                modifier = Modifier
+                    .scalingClickable { onReactionRequest(true) }
+                    .size(buttonSize)
+                    .padding(2.dp),
+                imageVector = Icons.Outlined.Mood,
+                contentDescription = stringResource(Res.string.accessibility_action_message_react),
+                tint = LocalTheme.current.colors.secondary
+            )
         }
     }
 }

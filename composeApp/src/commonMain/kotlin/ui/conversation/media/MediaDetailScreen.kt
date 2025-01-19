@@ -81,7 +81,6 @@ fun MediaDetailScreen(
     media: Array<out MediaIO?>,
     selectedIndex: Int
 ) {
-    println("kostka_test, MediaDetailScreen, media: ${media.toList()}")
     val coroutineScope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
