@@ -8,7 +8,16 @@ sealed class MatrixEventContent(
 
 ) {
 
-    @kotlinx.serialization.Serializable
+    @Serializable
+    data class RoomAvatar(
+        /** Required: The URL (typically mxc:// URI) to the image. */
+        val url: String? = null,
+
+        /** Required if the file is unencrypted. The URL (typically mxc:// URI) to the image. */
+        val info: RoomMessageFileInfo? = null,
+    )
+
+    @Serializable
     data class RoomMessageEvent(
         /** Required: The message being sent. */
         val body: String? = null,

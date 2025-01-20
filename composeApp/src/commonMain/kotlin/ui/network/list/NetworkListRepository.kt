@@ -41,7 +41,7 @@ class NetworkListRepository(
             httpClient.safeRequest<NetworkListResponse> {
                 get(
                     urlString = "/api/v1/social/network/users",
-                    block =  {
+                    block = {
                         setPaging(
                             size = size,
                             page = page
@@ -50,8 +50,8 @@ class NetworkListRepository(
                 )
             }
 
-            // demo data TODO remove once it's not needed
-            if(page <= proximityDemoData.size/size) {
+            // TODO remove DEMO data once it's not needed
+            if (page <= proximityDemoData.size / size) {
                 BaseResponse.Success(
                     NetworkListResponse(
                         content = proximityDemoData.subList(
@@ -64,11 +64,11 @@ class NetworkListRepository(
                         pagination = PaginationInfo(
                             page = page,
                             size = size,
-                            totalPages = (proximityDemoData.size/size.toFloat()).roundToInt()
+                            totalPages = (proximityDemoData.size / size.toFloat()).roundToInt()
                         )
                     )
                 )
-            }else BaseResponse.Error()
+            } else BaseResponse.Error()
         }
     }
 

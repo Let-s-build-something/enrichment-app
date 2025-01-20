@@ -5,12 +5,16 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
+import data.io.base.MatrixPagingMetaIO
 import data.io.base.PagingMetaIO
-import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.EmojiSelection
+import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
+import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
+import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 
@@ -19,9 +23,11 @@ import database.dao.PagingMetaDao
         NetworkItemIO::class,
         EmojiSelection::class,
         PagingMetaIO::class,
-        ConversationMessageIO::class
+        MatrixPagingMetaIO::class,
+        ConversationMessageIO::class,
+        ConversationRoomIO::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -33,6 +39,8 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun emojiSelectionDao(): EmojiSelectionDao
     abstract fun pagingMetaDao(): PagingMetaDao
+    abstract fun conversationRoomDao(): ConversationRoomDao
+    abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
 
 
     companion object {
@@ -42,6 +50,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
         /** Identification of table for [NetworkItemIO] */
         const val ROOM_NETWORK_ITEM_TABLE = "room_network_item_table"
 
+        /** Identification of table for [ConversationRoomIO] */
+        const val ROOM_CONVERSATION_ROOM_TABLE = "room_conversation_room_table"
+
         /** Identification of table for [ConversationMessageIO] */
         const val ROOM_CONVERSATION_MESSAGE_TABLE = "room_conversation_message_table"
 
@@ -50,6 +61,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [PagingMetaIO] */
         const val ROOM_PAGING_META_TABLE = "room_paging_meta_table"
+
+        /** Identification of table for [MatrixPagingMetaIO] */
+        const val ROOM_MATRIX_PAGING_META_TABLE = "room_matrix_paging_meta_table"
     }
 }
 

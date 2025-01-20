@@ -19,7 +19,7 @@ data class RoomMessageFileInfo(
     /** Metadata about the image referred to in thumbnail_url. */
     val thumbnailInfo: RoomMessageFileInfo? = null,
 
-    /**  */
+    /** url of the thumbnail image */
     @SerialName("thumbnail_url")
     val thumbnailUrl: String? = null
 )

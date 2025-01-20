@@ -15,7 +15,7 @@ import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
-import data.io.user.NetworkItemIO
+import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -29,18 +29,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.network.list.NetworkListRepository
-import ui.network.received.networkManagementModule
 
 internal val homeModule = module {
-    includes(networkManagementModule)
-    factory { HomeViewModel(get<NetworkListRepository>()) }
+    factory { HomeRepository(get(), get(), get()) }
+    factory { HomeViewModel(get<HomeRepository>()) }
     viewModelOf(::HomeViewModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeViewModel(
-    private val repository: NetworkListRepository
+    repository: HomeRepository
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
@@ -71,7 +69,7 @@ class HomeViewModel(
     }
 
     /** flow of current requests */
-    val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
+    val networkItems: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
         PagingConfig(
             pageSize = 40,
             enablePlaceholders = true,

@@ -12,6 +12,16 @@ sealed class MatrixEvent(
 ) {
 
     @Serializable
+    data class StrippedStateEvent(
+        /** Required: The state_key for the event. */
+        @SerialName("state_key")
+        val stateKey: String? = null,
+
+        /** Required: Contains the fully-qualified ID of the user who sent this event. */
+        val sender: String? = null,
+    )
+
+    @Serializable
     data class RoomClientEvent(
         /** Required: The globally unique event identifier. */
         @SerialName("event_id")
@@ -22,7 +32,7 @@ sealed class MatrixEvent(
         val originServerTs: Long? = null,
 
         /** Required: Contains the fully-qualified ID of the user who sent this event. */
-        val sender: Long? = null,
+        val sender: String? = null,
 
         /** Present if, and only if, this event is a state event.
          *  The key making this piece of state unique in the room. */

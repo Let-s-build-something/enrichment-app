@@ -4,6 +4,6 @@ import kotlinx.serialization.Serializable
 
 /** Typing notification and read receipt events */
 @Serializable
-data class RoomAccountData(
-    val events: List<MatrixEvent>? = null
+data class RoomInviteState(
+    val events: List<MatrixEvent.StrippedStateEvent>? = null
 )

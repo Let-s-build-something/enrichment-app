@@ -144,7 +144,7 @@ class ConversationRepository(
                     currentPagingSource = pagingSource
                 }
             },
-            remoteMediator = ConversationRemoteMediator(
+            remoteMediator = MessagesRemoteMediator(
                 pagingMetaDao = pagingMetaDao,
                 conversationMessageDao = conversationMessageDao,
                 size = config.pageSize,
