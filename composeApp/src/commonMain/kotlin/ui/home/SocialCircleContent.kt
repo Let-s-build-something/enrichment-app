@@ -240,7 +240,7 @@ fun SocialCircleContent(
                                             navController?.navigate(
                                                 NavigationNode.Conversation(
                                                     conversationId = userPublicId,
-                                                    name = data.displayName
+                                                    name = data.name
                                                 )
                                             )
                                         }
@@ -329,7 +329,7 @@ private fun NetworkItemCompact(
                     modifier = Modifier
                         .fillMaxWidth(.8f)
                         .align(Alignment.CenterHorizontally),
-                    text = data.displayName ?: "",
+                    text = data.name ?: "",
                     style = TextStyle(
                         fontFamily = FontFamily(fontQuicksandSemiBold),
                         fontSize = with(density) { (size / 6).toSp() },

@@ -17,6 +17,12 @@ data class PublicUserProfileIO(
     /** url of a photo of the current user, derived from FirebaseUser object */
     val photoUrl: String? = null,
 
+    /**
+     * A decimal range between -1 and 10. -1 means blocked, 1 is muted,
+     *  or just a far social circle, and 10 is the closest
+     */
+    val proximity: Float? = null,
+
     /** Whether the user's configuration is public */
     val isPublic: Boolean? = null,
 

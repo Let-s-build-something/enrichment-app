@@ -329,7 +329,7 @@ fun NetworkAddNewLauncher(
                                         if(selectedCategory.value == category) {
                                             Text(
                                                 modifier = Modifier.weight(1f),
-                                                text = user.displayName ?: "",
+                                                text = user.name ?: "",
                                                 style = LocalTheme.current.styles.category,
                                                 maxLines = 1
                                             )

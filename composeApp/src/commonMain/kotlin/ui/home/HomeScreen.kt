@@ -293,7 +293,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                                     else -> navController?.navigate(
                                                         NavigationNode.Conversation(
                                                             conversationId = data?.userPublicId,
-                                                            name = data?.displayName
+                                                            name = data?.name
                                                         )
                                                     )
                                                 }

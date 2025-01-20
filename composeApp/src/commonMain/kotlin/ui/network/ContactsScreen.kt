@@ -241,7 +241,7 @@ private fun SocialCircleTier(
                 if(showNames) {
                     Text(
                         modifier = Modifier.padding(4.dp),
-                        text = data.displayName ?: "",
+                        text = data.name ?: "",
                         style = LocalTheme.current.styles.category.copy(
                             fontSize = with(density) {
                                 (height / 3).dp.toSp().value.coerceAtMost(14f).sp

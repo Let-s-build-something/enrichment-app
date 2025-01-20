@@ -129,7 +129,7 @@ fun NetworkListContent(
                         isChecked = if(checkedItems.size > 0) {
                             checkedItems.contains(data?.userPublicId)
                         }else null,
-                        data = data,
+                        data = data, 
                         response = response.value[data?.userPublicId],
                         onAction = onAction,
                         color = NetworkProximityCategory.entries.firstOrNull {

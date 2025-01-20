@@ -178,7 +178,7 @@ private fun ContentLayout(
     }
     val contentPadding = PaddingValues(
         bottom = if(!data.reactions.isNullOrEmpty()) {
-            with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 10.dp }
+            with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
         }else 0.dp
     )
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
@@ -316,6 +316,7 @@ private fun ContentLayout(
             horizontalAlignment = alignment
         ) {
             Box {
+                // reply indication
                 if (animatedOffsetX.value.absoluteValue > 0f || isReplying) {
                     val percentageAchieved = (if (isCurrentUser) {
                         animatedOffsetX.value / replyBounds.start
@@ -323,6 +324,7 @@ private fun ContentLayout(
 
                     Box(
                         modifier = Modifier
+                            .padding(contentPadding)
                             .offset(
                                 x = (if (isCurrentUser) replyIndicationSize + 4.dp else -replyIndicationSize - 4.dp).times(
                                     if (isReplying) 1f else percentageAchieved.coerceAtMost(
@@ -618,6 +620,7 @@ private fun ContentLayout(
 
             Row(
                 modifier = Modifier
+                    .offset(y = -contentPadding.calculateBottomPadding())
                     .zIndex(2f)
                     .animateContentSize(),
                 verticalAlignment = Alignment.CenterVertically

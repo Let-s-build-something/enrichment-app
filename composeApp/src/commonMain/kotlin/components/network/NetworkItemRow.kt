@@ -146,7 +146,7 @@ private fun ContentLayout(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = data.displayName ?: "",
+                        text = data.name ?: "",
                         style = LocalTheme.current.styles.category,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

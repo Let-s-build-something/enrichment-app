@@ -197,7 +197,7 @@ fun MessageReactionsDialog(
                                 )
                                 Text(
                                     modifier = Modifier.padding(start = 6.dp),
-                                    text = reaction.second?.displayName ?: "",
+                                    text = reaction.second?.name ?: "",
                                     style = LocalTheme.current.styles.category
                                 )
                             }

@@ -744,12 +744,12 @@ class ConversationRepository(
             users = listOf(
                 NetworkItemIO(
                     publicId = "1",
-                    displayName = "John Doe",
+                    name = "John Doe",
                     photoUrl = "https://picsum.photos/106"
                 ),
                 NetworkItemIO(
                     publicId = "me",
-                    displayName = "Hey! That's me:o",
+                    name = "Hey! That's me:o",
                     photoUrl = "https://picsum.photos/101"
                 ),
             )

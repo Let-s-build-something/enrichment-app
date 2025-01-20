@@ -430,7 +430,7 @@ private fun LazyItemScope.MessageContent(
                             end = 10.dp,
                             // offset if there are reactions (because those offset the message content)
                             bottom = if(!data?.reactions.isNullOrEmpty()) {
-                                with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 10.dp }
+                                with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
                             }else 0.dp
                         )
                         .zIndex(4f)
@@ -529,7 +529,7 @@ private fun LazyItemScope.MessageContent(
                                                         ),
                                                         title = if(isCurrentUser) {
                                                             getString(Res.string.conversation_detail_you)
-                                                        } else data.user?.displayName,
+                                                        } else data.user?.name,
                                                         subtitle = date
                                                     )
                                                 )
@@ -586,7 +586,7 @@ private fun LazyItemScope.MessageContent(
                                                                 selectedIndex = index,
                                                                 title = if(isCurrentUser) {
                                                                     getString(Res.string.conversation_detail_you)
-                                                                } else data.user?.displayName,
+                                                                } else data.user?.name,
                                                                 subtitle = date
                                                             )
                                                         )

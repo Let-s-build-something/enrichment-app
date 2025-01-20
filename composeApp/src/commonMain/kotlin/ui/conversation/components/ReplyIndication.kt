@@ -73,7 +73,7 @@ fun ReplyIndication(
                     //modifier = Modifier.fillMaxWidth(),
                     text = if(isCurrentUser) {
                         stringResource(Res.string.conversation_reply_prefix_self)
-                    }else data.user?.displayName?.plus(":") ?: "",
+                    }else data.user?.name?.plus(":") ?: "",
                     style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
