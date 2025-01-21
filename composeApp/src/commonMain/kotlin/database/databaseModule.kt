@@ -20,4 +20,6 @@ internal val databaseModule = module {
     factory { get<AppRoomDatabase>().emojiSelectionDao() }
     factory { get<AppRoomDatabase>().conversationMessageDao() }
     factory { get<AppRoomDatabase>().pagingMetaDao() }
+    factory { get<AppRoomDatabase>().conversationRoomDao() }
+    factory { get<AppRoomDatabase>().matrixPagingMetaDao() }
 }

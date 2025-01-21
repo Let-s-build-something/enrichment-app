@@ -1,4 +1,4 @@
-package data.io.social.network.conversation
+package data.io.social.network.conversation.message
 
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
@@ -24,7 +24,7 @@ data class ConversationAnchorMessageIO(
     val content: String? = null,
 
     /** List of Urls of attached media to this message */
-    val mediaUrls: List<String>? = null,
+    val mediaUrls: List<MediaIO>? = null,
 
     /** Audio url as a content of this message */
     val audioUrl: String? = null,
@@ -35,7 +35,7 @@ data class ConversationAnchorMessageIO(
     /** Public id of the author of this message */
     val authorPublicId: String? = null,
 
-    /** Index within the whole data set */
+    /** Index within the whole data set ASC */
     val index: Int? = null
 ) {
     /** User attached to this message */

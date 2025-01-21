@@ -8,12 +8,13 @@ import augmy.interactive.shared.DateUtils.now
 import base.utils.sha256
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
-import data.io.social.network.conversation.ConversationMessageIO
-import data.io.social.network.conversation.ConversationMessagesResponse
-import data.io.social.network.conversation.MessageReactionIO
 import data.io.social.network.conversation.MessageReactionRequest
-import data.io.social.network.conversation.MessageState
 import data.io.social.network.conversation.NetworkConversationIO
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationMessagesResponse
+import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageReactionIO
+import data.io.social.network.conversation.message.MessageState
 import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
 import data.shared.setPaging
@@ -21,12 +22,14 @@ import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.core.baseName
 import io.github.vinceglb.filekit.core.extension
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -43,6 +46,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.login.safeRequest
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -89,7 +93,7 @@ class ConversationRepository(
                     ConversationMessagesResponse(
                         content = demoMessages.subList(
                             page * size,
-                            kotlin.math.min(
+                            min(
                                 (page + 1) * size,
                                 page * size + (demoMessages.size - page * size)
                             ).coerceAtMost(demoMessages.size)
@@ -140,7 +144,7 @@ class ConversationRepository(
                     currentPagingSource = pagingSource
                 }
             },
-            remoteMediator = ConversationRemoteMediator(
+            remoteMediator = MessagesRemoteMediator(
                 pagingMetaDao = pagingMetaDao,
                 conversationMessageDao = conversationMessageDao,
                 size = config.pageSize,
@@ -190,14 +194,16 @@ class ConversationRepository(
             // placeholder/loading message preview
             var msg = message.copy(
                 conversationId = conversationId,
-                createdAt = localNow,
+                sentAt = localNow,
                 authorPublicId = dataManager.currentUser.value?.publicId,
-                mediaUrls = mediaFiles.map { media ->
-                    (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                        cachedFiles[uuid] = media
-                        uuids.add(uuid)
-                    }
-                } + message.mediaUrls.orEmpty(),
+                media = mediaFiles.map { media ->
+                    MediaIO(
+                        url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                            cachedFiles[uuid] = media
+                            uuids.add(uuid)
+                        }
+                    )
+                } + message.media.orEmpty(),
                 audioUrl = if(audioByteArray?.isNotEmpty() == true) {
                     MESSAGE_AUDIO_URL_PLACEHOLDER
                 }else null,
@@ -219,14 +225,21 @@ class ConversationRepository(
 
             // real message
             msg = msg.copy(
-                mediaUrls = mediaFiles.mapNotNull { media ->
+                media = mediaFiles.mapNotNull { media ->
                     val bytes = media.readBytes()
                     uploadMedia(
                         mediaByteArray = bytes,
                         fileName = "${Uuid.random()}.${media.extension.lowercase()}",
                         conversationId = conversationId
-                    ).takeIf { !it.isNullOrBlank() }
-                } + message.mediaUrls.orEmpty(),
+                    ).takeIf { !it.isNullOrBlank() }?.let { url ->
+                        MediaIO(
+                            url = url,
+                            size = bytes.size,
+                            name = media.baseName,
+                            mimetype = MimeType.getByExtension(media.extension).mime
+                        )
+                    }
+                } + message.media.orEmpty(),
                 audioUrl = uploadMedia(
                     mediaByteArray = audioByteArray,
                     fileName = "${Uuid.random()}.wav",
@@ -242,7 +255,7 @@ class ConversationRepository(
                 state = if(response is BaseResponse.Success) MessageState.Sent else MessageState.Failed
             )
             uuids.forEachIndexed { index, s ->
-                msg.mediaUrls?.getOrNull(index)?.let {
+                msg.media?.getOrNull(index)?.url?.let {
                     cachedFiles[it] = cachedFiles[s]
                 }
                 cachedFiles.remove(s)
@@ -265,10 +278,12 @@ class ConversationRepository(
 
                 conversationMessageDao.insert(message.copy(
                     reactions = message.reactions.orEmpty().toMutableList().apply {
-                        add(MessageReactionIO(
+                        add(
+                            MessageReactionIO(
                             content = reaction.content,
                             authorPublicId = dataManager.currentUser.value?.publicId
-                        ))
+                        )
+                        )
                     }
                 ))
             }
@@ -313,9 +328,9 @@ class ConversationRepository(
         val demoMessages = mutableListOf(
             ConversationMessageIO(
                 content = "Did you catch the latest episode? 🤔",
-                id = Uuid.random().toString(),
+                id = "0",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -324,12 +339,12 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Yes! It was so intense! 😱",
-                id = Uuid.random().toString(),
+                id = "1",
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(content = "❤️", authorPublicId = "me")
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -338,9 +353,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I couldn't believe the twist at the end! 🤯",
-                id = Uuid.random().toString(),
+                id = "2",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -349,9 +364,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Me neither! Any theories for next week?",
-                id = Uuid.random().toString(),
+                id = "3",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -360,13 +375,13 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I think the protagonist might switch sides... 😮",
-                id = Uuid.random().toString(),
+                id = "3",
                 authorPublicId = "me",
                 reactions = listOf(
                     MessageReactionIO(content = "👍", authorPublicId = "1"),
                     MessageReactionIO(content = "🔥", authorPublicId = "1")
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -375,9 +390,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "That would be wild! I can't wait! 🚀",
-                id = Uuid.random().toString(),
+                id = "4",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -386,9 +401,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "By the way, are we still on for dinner tomorrow? 🍲",
-                id = Uuid.random().toString(),
+                id = "5",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -397,12 +412,12 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Absolutely! Looking forward to it! 😊",
-                id = Uuid.random().toString(),
+                id = "6",
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(content = "❤️", authorPublicId = "me")
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -411,9 +426,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Do you think we should invite more friends? 🤔",
-                id = Uuid.random().toString(),
+                id = "7",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -422,9 +437,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Sure! The more, the merrier! 😄",
-                id = Uuid.random().toString(),
+                id = "8",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -433,9 +448,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I'll check with Sarah and Jake. 🌟",
-                id = Uuid.random().toString(),
+                id = "9",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -444,9 +459,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Sounds great. Let me know what they say! 📞",
-                id = Uuid.random().toString(),
+                id = "10",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -455,9 +470,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Sarah is in, but Jake is busy. 🤷‍♂️",
-                id = Uuid.random().toString(),
+                id = "11",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -466,9 +481,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Got it! I'll plan accordingly. 😊",
-                id = Uuid.random().toString(),
+                id = "12",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -477,9 +492,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Any food preferences for tomorrow? 🍝",
-                id = Uuid.random().toString(),
+                id = "13",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -488,9 +503,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I'm good with anything! Just no peanuts, please. 🥜",
-                id = Uuid.random().toString(),
+                id = "14",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(26, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -499,10 +514,10 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Yoddaaa \uD83D\uDFE2\uD83D\uDFE2",
-                id = Uuid.random().toString(),
+                id = "15",
                 authorPublicId = "me",
                 state = MessageState.Read,
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(25, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -510,9 +525,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Did you catch the latest episode? 🤔",
-                id = Uuid.random().toString(),
+                id = "16",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(24, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -521,12 +536,12 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Yes! It was so intense! 😱",
-                id = Uuid.random().toString(),
+                id = "17",
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(content = "❤️", authorPublicId = "me")
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(23, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -535,9 +550,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I couldn't believe the twist at the end! 🤯",
-                id = Uuid.random().toString(),
+                id = "18",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(22, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -546,9 +561,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Me neither! Any theories for next week?",
-                id = Uuid.random().toString(),
+                id = "19",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(20, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -557,13 +572,13 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I think the protagonist might switch sides... 😮",
-                id = Uuid.random().toString(),
+                id = "20",
                 authorPublicId = "me",
                 reactions = listOf(
                     MessageReactionIO(content = "👍", authorPublicId = "1"),
                     MessageReactionIO(content = "🔥", authorPublicId = "1")
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(18, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -572,9 +587,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "That would be wild! I can't wait! 🚀",
-                id = Uuid.random().toString(),
+                id = "21",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(17, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -583,9 +598,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "By the way, are we still on for dinner tomorrow? 🍲",
-                id = Uuid.random().toString(),
+                id = "22",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(16, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -594,12 +609,12 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Absolutely! Looking forward to it! 😊",
-                id = Uuid.random().toString(),
+                id = "23",
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(content = "❤️", authorPublicId = "me")
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(15, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -608,10 +623,10 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "How are you? \uD83D\uDC40",
-                id = Uuid.random().toString(),
+                id = "24",
                 state = MessageState.Failed,
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(8, DateTimeUnit.HOUR)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -619,14 +634,14 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "You are visibly excited!",
-                id = Uuid.random().toString(),
+                id = "25",
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(
                         content = "\uD83D\uDE2E", authorPublicId = "1"
                     )
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(386, DateTimeUnit.SECOND)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -635,7 +650,7 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "Maybe a success of sorts? ☺",
-                id = Uuid.random().toString(),
+                id = "26",
                 authorPublicId = "1",
                 reactions = listOf(
                     MessageReactionIO(
@@ -652,7 +667,7 @@ class ConversationRepository(
                     MessageReactionIO(content = "\uD83C\uDFC5", authorPublicId = "1"),
                     MessageReactionIO(content = "\uD83E\uDD73", authorPublicId = "1"),
                 ),
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(4, DateTimeUnit.MINUTE)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -660,10 +675,11 @@ class ConversationRepository(
                 state = MessageState.Read
             ),
             ConversationMessageIO(
-                content = "I'm great. What about yourself?",
-                id = Uuid.random().toString(),
+                content = "I'm great. What about yourself?" +
+                        "\nLook at this! https://github.com/fleeksoft/ksoup",
+                id = "28",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(3, DateTimeUnit.MINUTE)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -672,9 +688,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "You bet! We've just won! ⚽⚽\uD83C\uDFC6\uD83C\uDFC5",
-                id = Uuid.random().toString(),
+                id = "29",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(2, DateTimeUnit.MINUTE)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -689,9 +705,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "That's amazing, I'm so excited for you! \uD83E\uDD73",
-                id = Uuid.random().toString(),
+                id = "30",
                 authorPublicId = "1",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     now.minus(1, DateTimeUnit.MINUTE)
                         .toLocalDateTime(TimeZone.currentSystemDefault())
                         .format(LocalDateTime.Formats.ISO)
@@ -700,9 +716,9 @@ class ConversationRepository(
             ),
             ConversationMessageIO(
                 content = "I can tell! Thank you ❤\uFE0F",
-                id = Uuid.random().toString(),
+                id = "31",
                 authorPublicId = "me",
-                createdAt = LocalDateTime.parse(
+                sentAt = LocalDateTime.parse(
                     localNow.format(LocalDateTime.Formats.ISO)
                 ),
                 state = MessageState.Sent
@@ -712,13 +728,13 @@ class ConversationRepository(
                 add(
                     ConversationMessageIO(
                         content = "Yo n.$index",
-                        id = Uuid.random().toString(),
+                        id = "32$index",
                         authorPublicId = "1",
-                        createdAt = LocalDateTime.parse("2023-12-10T22:19:44")
+                        sentAt = LocalDateTime.parse("2023-12-10T22:19:44")
                     )
                 )
             }
-        }.sortedByDescending { it.createdAt }
+        }.sortedByDescending { it.sentAt }
 
         val demoConversationDetail = NetworkConversationIO(
             pictureUrl = "https://picsum.photos/102",
@@ -728,12 +744,12 @@ class ConversationRepository(
             users = listOf(
                 NetworkItemIO(
                     publicId = "1",
-                    displayName = "John Doe",
+                    name = "John Doe",
                     photoUrl = "https://picsum.photos/106"
                 ),
                 NetworkItemIO(
                     publicId = "me",
-                    displayName = "Hey! That's me:o",
+                    name = "Hey! That's me:o",
                     photoUrl = "https://picsum.photos/101"
                 ),
             )

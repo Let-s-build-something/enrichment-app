@@ -15,12 +15,14 @@ import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
-import data.io.user.NetworkItemIO
+import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.shared.SharedViewModel
+import database.dao.NetworkItemDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transform
@@ -29,24 +31,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.network.list.NetworkListRepository
-import ui.network.received.networkManagementModule
 
 internal val homeModule = module {
-    includes(networkManagementModule)
-    factory { HomeViewModel(get<NetworkListRepository>()) }
+    single { HomeDataManager() }
+    factory { HomeRepository(get(), get(), get(), get()) }
+    factory { HomeViewModel(get<HomeDataManager>(), get<HomeRepository>(), get()) }
     viewModelOf(::HomeViewModel)
 }
 
+
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeViewModel(
-    private val repository: NetworkListRepository
+    private val dataManager: HomeDataManager,
+    private val repository: HomeRepository,
+    private val networkItemDao: NetworkItemDao
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
-    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
+    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
+        getNetworkItems()
+    }
 
     private val _categories = MutableStateFlow(listOf<NetworkProximityCategory>())
 
@@ -70,8 +76,11 @@ class HomeViewModel(
         }
     }
 
+    /** List of network items */
+    val networkItems = dataManager.networkItems.asStateFlow()
+
     /** flow of current requests */
-    val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
+    val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
         PagingConfig(
             pageSize = 40,
             enablePlaceholders = true,
@@ -95,14 +104,28 @@ class HomeViewModel(
                 ?.mapNotNull {
                     NetworkProximityCategory.entries.firstOrNull { category -> category.name == it }
                 }
-                ?: listOf(
-                    NetworkProximityCategory.Family,
-                    NetworkProximityCategory.Peers
-                )
+                ?: NetworkProximityCategory.entries
+        }
+        viewModelScope.launch {
+            getNetworkItems()
+        }
+    }
+
+    private suspend fun getNetworkItems() {
+        if(dataManager.networkItems.value == null) {
+            repository.getNetworkItems().success?.data?.content?.let {
+                withContext(Dispatchers.Default) {
+                    dataManager.networkItems.value = it.filter {
+                        _categories.value.any { category -> category.range.contains(it.proximity ?: 1f) }
+                    }
+                    networkItemDao.insertAll(it)
+                }
+            }
         }
     }
 
     /** Filters currently downloaded network items */
+    @OptIn(ExperimentalSettingsApi::class)
     fun filterNetworkItems(filter: List<NetworkProximityCategory>) {
         viewModelScope.launch(Dispatchers.Default) {
             _categories.value = filter
@@ -121,7 +144,6 @@ class HomeViewModel(
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             selectedConnections.forEach { publicId ->
-                // TODO change locally once the local database is in place
                 repository.patchNetworkConnection(
                     publicId = publicId,
                     proximity = proximity

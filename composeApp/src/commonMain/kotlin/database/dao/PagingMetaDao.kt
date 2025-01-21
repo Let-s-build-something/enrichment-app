@@ -17,7 +17,7 @@ interface PagingMetaDao {
 
     /** returns specific paging meta data for a given entity identification [entityId] */
     @Query("SELECT * FROM $ROOM_PAGING_META_TABLE WHERE entity_id = :entityId")
-    suspend fun getPagingMetaByEntityId(entityId: String): PagingMetaIO?
+    suspend fun getByEntityId(entityId: String): PagingMetaIO?
 
     /** deletes all paging meta data */
     @Query("DELETE FROM $ROOM_PAGING_META_TABLE")

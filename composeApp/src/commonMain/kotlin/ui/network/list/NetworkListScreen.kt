@@ -24,8 +24,8 @@ import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.utils.getOrNull
 import base.navigation.NavigationArguments
+import base.utils.getOrNull
 import collectResult
 import components.EmptyLayout
 import components.OptionsLayout
@@ -44,12 +44,11 @@ import kotlin.uuid.Uuid
 /** Screen containing current user's network and offers its management */
 @OptIn(ExperimentalUuidApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun NetworkListContent(
+fun  NetworkListContent(
     openAddNewModal: () -> Unit,
     viewModel: NetworkListViewModel = koinViewModel()
 ) {
     val networkItems = viewModel.requests.collectAsLazyPagingItems()
-    val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
@@ -62,13 +61,7 @@ fun NetworkListContent(
 
     val onAction: (OptionsLayoutAction) -> Unit = { action ->
         when(action) {
-            OptionsLayoutAction.Mute -> {
-                // TODO
-            }
-            OptionsLayoutAction.Block -> {
-                // TODO
-            }
-            OptionsLayoutAction.CircleMove -> {
+            OptionsLayoutAction.Invite -> {
                 // TODO
             }
             OptionsLayoutAction.DeselectAll -> checkedItems.clear()
@@ -81,6 +74,7 @@ fun NetworkListContent(
                     )
                 }
             }
+            else -> {}
         }
     }
 
@@ -136,15 +130,13 @@ fun NetworkListContent(
                             checkedItems.contains(data?.userPublicId)
                         }else null,
                         data = data,
-                        response = response.value[data?.userPublicId],
-                        onAction = onAction,
-                        color = NetworkProximityCategory.entries.firstOrNull {
+                        indicatorColor = NetworkProximityCategory.entries.firstOrNull {
                             it.range.contains(data?.proximity ?: 1f)
                         }.let {
                             customColors.value[it] ?: it?.color
                         },
                         isSelected = selectedItem.value == data?.userPublicId,
-                        onCheckChange = { isLongClick ->
+                        /*onCheckChange = { isLongClick ->
                             when {
                                 checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
                                 isLongClick || checkedItems.size > 0 -> {
@@ -155,7 +147,7 @@ fun NetworkListContent(
                                     selectedItem.value = if(selectedItem.value == data?.userPublicId) null else data?.userPublicId
                                 }
                             }
-                        }
+                        }*/
                     )
                     if(networkItems.itemCount - 1 != index) {
                         Divider(

@@ -1,4 +1,4 @@
-package data.io.social.network.conversation
+package data.io.social.network.conversation.message
 
 import data.io.base.PaginationInfo
 import data.io.base.PaginationPageResponse

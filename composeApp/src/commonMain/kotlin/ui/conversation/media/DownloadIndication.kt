@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -111,7 +112,7 @@ fun rememberIndicationState(
 fun DownloadIndication(
     modifier: Modifier = Modifier,
     state: DownloadIndicationState,
-    shape: Shape = LocalTheme.current.shapes.rectangularActionShape
+    shape: Shape = RectangleShape
 ) {
     Box(
         modifier = modifier
@@ -147,7 +148,10 @@ fun DownloadIndication(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(modifier = Modifier.padding(end = 8.dp)) {
+                Row(
+                    modifier = Modifier.padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     LoadingIndicator(
                         response = state.state.value
                     )

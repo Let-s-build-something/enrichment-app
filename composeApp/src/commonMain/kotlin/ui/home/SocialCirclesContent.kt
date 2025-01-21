@@ -43,8 +43,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.paging.LoadState
-import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalContentSize
@@ -52,7 +50,6 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
-import base.utils.getOrNull
 import components.UserProfileImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
@@ -67,26 +64,21 @@ import kotlin.math.sin
 @Composable
 fun SocialCircleContent(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel,
-    headerHeightDp: Float
+    viewModel: HomeViewModel
 ) {
     val contentSize = LocalContentSize.current
     val density = LocalDensity.current
     val navController = LocalNavController.current
 
-    val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
+    val networkItems = viewModel.networkItems.collectAsState()
     val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
-    val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
-    val contentHeightPx = with(density) {
-        contentSize.height.dp.toPx() - headerHeightDp.dp.toPx()
-    }
     val itemPaddingPx = with(density) { 2.dp.toPx() }
     val layerPadding = 12.dp
     val isVertical = contentSize.width < contentSize.height
-    val largerDimension = (if(isVertical) contentSize.height - headerHeightDp else contentSize.width).toFloat()
-    val smallerDimension = (if(isVertical) contentSize.width else contentSize.height - headerHeightDp).toFloat()
+    val largerDimension = (if(isVertical) contentSize.height else contentSize.width).toFloat()
+    val smallerDimension = (if(isVertical) contentSize.width else contentSize.height).toFloat()
     val coroutineScope = rememberCoroutineScope()
 
     val offset = remember {
@@ -179,13 +171,13 @@ fun SocialCircleContent(
                     val shares = category.share + additionalShares + previousShares
 
                     val zIndex = categories.value.size - categories.value.indexOf(category) + 1f
-                    val endIndex = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount
+                    val endIndex = if(networkItems.value == null) NETWORK_SHIMMER_ITEM_COUNT else (networkItems.value?.size ?: 0)
 
                     val items = mutableListOf<NetworkItemIO?>()
                     var finished = false
                     for(index in startingIndex until endIndex) {
                         if(!finished) {
-                            networkItems.getOrNull(index).let { data ->
+                            networkItems.value?.getOrNull(index).let { data ->
                                 if(data == null || category.range.contains(data.proximity ?: -1f)) {
                                     items.add(data)
                                 }else {
@@ -240,7 +232,7 @@ fun SocialCircleContent(
                                             navController?.navigate(
                                                 NavigationNode.Conversation(
                                                     conversationId = userPublicId,
-                                                    name = data.displayName
+                                                    name = data.name
                                                 )
                                             )
                                         }
@@ -329,7 +321,7 @@ private fun NetworkItemCompact(
                     modifier = Modifier
                         .fillMaxWidth(.8f)
                         .align(Alignment.CenterHorizontally),
-                    text = data.displayName ?: "",
+                    text = data.name ?: "",
                     style = TextStyle(
                         fontFamily = FontFamily(fontQuicksandSemiBold),
                         fontSize = with(density) { (size / 6).toSp() },
@@ -348,11 +340,11 @@ private fun <T> getMappings(
     radius: Float,
     minRadius: Float,
     paddingPx: Float,
-    items: List<T>
-): Pair<Float, HashMap<Int, List<T>>> {
+    items: List<T?>
+): Pair<Float, HashMap<Int, List<T?>>> {
     val itemsLeft = items.toMutableList()
     var circleSize = radius
-    val mappedItems = hashMapOf<Int, List<T>>()
+    val mappedItems = hashMapOf<Int, List<T?>>()
 
     //step 1 -> first circle with the largest value
     //step 2 -> check if the circle fits all the items

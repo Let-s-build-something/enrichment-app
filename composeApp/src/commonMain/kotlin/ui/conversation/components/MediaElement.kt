@@ -41,38 +41,43 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
 import base.utils.MediaType
 import base.utils.PlatformFileShell
+import base.utils.getExtensionFromMimeType
 import base.utils.getMediaType
-import base.utils.getUrlExtension
 import chaintech.videoplayer.model.PlayerConfig
 import chaintech.videoplayer.model.ScreenResize
 import chaintech.videoplayer.ui.preview.VideoPreviewComposable
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import components.AsyncSvgImage
 import components.PlatformFileImage
+import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.core.extension
+import korlibs.io.net.MimeType
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.components.gif.GifImage
 
 /**
  * Media element, which is anything from an image, video, gif, to any type of file
- * @param url full url path to the media
- * @param media reference to a local file containing the media
+ * @param media reference to a remote file containing the media
+ * @param localMedia reference to a local file containing the media
  * @param contentDescription textual description of the content
  */
 @Composable
 fun MediaElement(
     modifier: Modifier = Modifier,
     videoPlayerEnabled: Boolean = false,
-    url: String? = null,
-    media: PlatformFile? = null,
+    media: MediaIO? = null,
+    localMedia: PlatformFile? = null,
     contentDescription: String? = null,
     contentScale: ContentScale = ContentScale.Inside,
     onTap: ((MediaType) -> Unit)? = null,
     enabled: Boolean = onTap != null,
     onLongPress: () -> Unit = {}
 ) {
-    val mediaType = getMediaType(url ?: media?.name ?: "")
+    val mediaType = getMediaType(
+        media?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
+    )
     val itemModifier = modifier.scalingClickable(
         enabled = enabled,
         scaleInto = .95f,
@@ -85,19 +90,19 @@ fun MediaElement(
         }
     )
 
-    if(!url.isNullOrBlank() || media != null) {
+    if(!media?.url.isNullOrBlank() || localMedia != null) {
         when(mediaType) {
             MediaType.IMAGE -> {
-                if (media != null) {
+                if (localMedia != null) {
                     PlatformFileImage(
                         modifier = itemModifier.wrapContentWidth(),
                         contentScale = contentScale,
-                        media = media
+                        media = localMedia
                     )
-                } else if(url != null) {
+                } else if(media?.url != null) {
                     AsyncSvgImage(
                         modifier = itemModifier.wrapContentWidth(),
-                        model = url,
+                        model = media.url,
                         contentScale = contentScale,
                         contentDescription = contentDescription
                     )
@@ -105,7 +110,7 @@ fun MediaElement(
             }
             MediaType.GIF -> {
                 @Suppress("IMPLICIT_CAST_TO_ANY")
-                (if(media != null) PlatformFileShell(media) else url)?.let { data ->
+                (if(localMedia != null) PlatformFileShell(localMedia) else media?.url)?.let { data ->
                     GifImage(
                         modifier = itemModifier
                             .zIndex(1f)
@@ -148,7 +153,7 @@ fun MediaElement(
 
                     VideoPlayerComposable(
                         modifier = itemModifier,
-                        url = media?.path ?: url ?: "",
+                        url = localMedia?.path ?: media?.url ?: "",
                         playerConfig = config
                     )
                 }else {
@@ -168,7 +173,7 @@ fun MediaElement(
                         }
 
                         VideoPreviewComposable(
-                            url = media?.path ?: url ?: "",
+                            url = localMedia?.path ?: media?.url ?: "",
                             loadingIndicatorColor = LocalTheme.current.colors.secondary,
                             frameCount = 1
                         )
@@ -225,7 +230,7 @@ fun MediaElement(
                     }
                     Text(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
-                        text = getUrlExtension(url ?: media?.name ?: ""),
+                        text = "${localMedia?.name ?: media?.name ?: ""}.${localMedia?.extension ?: getExtensionFromMimeType(media?.mimetype)}",
                         style = LocalTheme.current.styles.regular
                     )
                 }

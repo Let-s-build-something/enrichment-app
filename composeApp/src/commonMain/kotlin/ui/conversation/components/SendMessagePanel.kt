@@ -104,12 +104,15 @@ import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
 import base.utils.getMediaType
-import data.io.social.network.conversation.ConversationMessageIO
+import base.utils.getUrlExtension
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -300,7 +303,9 @@ internal fun BoxScope.SendMessagePanel(
 
 
     Column(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier.animateContentSize(
+            alignment = Alignment.BottomCenter
+        ),
         verticalArrangement = Arrangement.Top
     ) {
         gifAttached.value?.let { gifAsset ->
@@ -310,7 +315,12 @@ internal fun BoxScope.SendMessagePanel(
                         .zIndex(1f)
                         .scalingClickable(scaleInto = .95f) {
                             navController?.navigate(
-                                NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                                NavigationNode.MediaDetail(
+                                    media = listOf(MediaIO(
+                                        url = gifAsset.original ?: "",
+                                        mimetype = "image/gif"
+                                    ))
+                                )
                             )
                         }
                         .height(MEDIA_MAX_HEIGHT_DP.dp)
@@ -390,7 +400,7 @@ internal fun BoxScope.SendMessagePanel(
                             MinimalisticIcon(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .zIndex(1f)
+                                    .zIndex(4f)
                                     .background(
                                         color = LocalTheme.current.colors.backgroundDark,
                                         shape = LocalTheme.current.shapes.componentShape
@@ -404,13 +414,19 @@ internal fun BoxScope.SendMessagePanel(
                                 }
                             )
 
+                            val remoteMedia = urlsAttached.getOrNull(index - mediaAttached.lastIndex)
                             MediaElement(
                                 modifier = Modifier
                                     .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
                                     .wrapContentWidth()
                                     .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                media = media,
-                                url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
+                                localMedia = media,
+                                media = if(remoteMedia != null) {
+                                    MediaIO(
+                                        url = remoteMedia,
+                                        mimetype = MimeType.getByExtension(getUrlExtension(remoteMedia)).mime
+                                    )
+                                }else null,
                                 contentScale = ContentScale.FillHeight
                             )
                         }
@@ -434,6 +450,9 @@ internal fun BoxScope.SendMessagePanel(
                         shape = shape
                     )
                     .padding(6.dp)
+                    .animateContentSize(
+                        alignment = Alignment.BottomCenter
+                    )
             ) {
                 MinimalisticIcon(
                     modifier = Modifier
@@ -451,7 +470,8 @@ internal fun BoxScope.SendMessagePanel(
                         modifier = Modifier.clip(shape),
                         url = url,
                         textBackground = Color.Transparent,
-                        imageHeight = 100.dp
+                        imageHeight = 140.dp,
+                        alignment = Alignment.Start
                     )
                 }
             }

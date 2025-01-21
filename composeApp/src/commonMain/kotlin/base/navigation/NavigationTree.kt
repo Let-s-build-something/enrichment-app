@@ -1,6 +1,8 @@
 package base.navigation
 
+import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /** Main holder of all navigation nodes */
 sealed class NavigationNode {
@@ -78,10 +80,12 @@ sealed class NavigationNode {
     /** Full screen media detail */
     @Serializable
     data class MediaDetail(
-        val urls: List<String> = listOf(),
+        @Transient
+        val media: List<MediaIO> = listOf(),
         val title: String? = null,
         val subtitle: String? = null,
-        val selectedIndex: Int = 0
+        val selectedIndex: Int = 0,
+        private val encodedMedia: List<String> = media.map { "${it.name}|||${it.mimetype}|||${it.url}" }
     ): NavigationNode() {
         override val deepLink: String = ""
     }

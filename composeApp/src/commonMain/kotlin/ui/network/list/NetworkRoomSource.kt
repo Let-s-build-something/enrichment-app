@@ -31,14 +31,16 @@ class NetworkRoomSource(
 
             LoadResult.Page(
                 data = data.content,
-                prevKey = if(data.pagination.page > 0) {
-                    data.pagination.page.minus(1)
+                prevKey = if((data.pagination?.page ?: 0) > 0) {
+                    data.pagination?.page?.minus(1)
                 } else null,
                 nextKey = if(data.content.size == size) {
-                    data.pagination.page.plus(1)
+                    data.pagination?.page?.plus(1)
                 } else null,
                 itemsAfter = if(data.content.size == size) {
-                    (data.pagination.totalItems - (data.pagination.page + 1).times(size)).coerceAtLeast(0)
+                    (data.pagination?.totalItems?.minus(
+                        (data.pagination.page + 1).times(size))?.coerceAtLeast(0) ?: 0
+                    )
                 }else COUNT_UNDEFINED
             )
         } catch (exception: IOException) {

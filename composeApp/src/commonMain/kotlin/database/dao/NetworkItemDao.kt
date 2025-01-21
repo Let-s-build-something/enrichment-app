@@ -28,6 +28,17 @@ interface NetworkItemDao {
             "WHERE owner_public_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
+    /** Counts the number of items */
+    @Query("UPDATE ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "SET proximity = :proximity " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND public_id = :publicId ")
+    suspend fun updateProximity(
+        ownerPublicId: String?,
+        proximity: Float,
+        publicId: String?
+    )
+
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<NetworkItemIO>)

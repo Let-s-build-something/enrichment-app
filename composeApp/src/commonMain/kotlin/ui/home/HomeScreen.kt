@@ -1,17 +1,20 @@
 package ui.home
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -21,35 +24,48 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.outlined.FaceRetouchingOff
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.VoiceOverOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_invite
+import augmy.composeapp.generated.resources.button_mute
+import augmy.composeapp.generated.resources.network_action_circle_move
 import augmy.composeapp.generated.resources.network_dialog_message_block
 import augmy.composeapp.generated.resources.network_dialog_message_mute
 import augmy.composeapp.generated.resources.network_dialog_title_block
@@ -58,31 +74,38 @@ import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_search_network
+import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.theme.SharedColors
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.theme.Colors
 import base.utils.getOrNull
 import components.EmptyLayout
 import components.HorizontalScrollChoice
-import components.OptionsLayout
 import components.OptionsLayoutAction
 import components.ScrollChoice
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableScreen
 import data.BlockedProximityValue
 import data.NetworkProximityCategory
+import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
+import ui.network.profile.UserProfileLauncher
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -94,84 +117,33 @@ import kotlin.uuid.Uuid
 fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
-    val density = LocalDensity.current
 
-    val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
+    val conversationRooms = viewModel.conversationRooms.collectAsLazyPagingItems()
     val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
-    val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
-            || (networkItems.itemCount == 0 && !networkItems.loadState.append.endOfPaginationReached)
-    val isEmpty = networkItems.itemCount == 0 && networkItems.loadState.append.endOfPaginationReached
+    val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
+            || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
+    val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
     val listState = rememberLazyGridState()
-    val stickyHeaderHeight = rememberSaveable { mutableStateOf(0f) }
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
-    val checkedItems = remember { mutableStateListOf<String>() }
+    val selectedItem = rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
     val showAddNewModal = rememberSaveable {
         mutableStateOf(false)
     }
-    val showActionDialog = rememberSaveable {
-        mutableStateOf<OptionsLayoutAction?>(null)
+    val selectedUser = remember {
+        mutableStateOf<NetworkItemIO?>(null)
     }
 
-    val onAction: (OptionsLayoutAction) -> Unit = { action ->
-        when(action) {
-            OptionsLayoutAction.Mute -> {
-                showActionDialog.value = OptionsLayoutAction.Mute
-            }
-            OptionsLayoutAction.Block -> {
-                showActionDialog.value = OptionsLayoutAction.Block
-            }
-            OptionsLayoutAction.CircleMove -> {
-                // TODO
-            }
-            OptionsLayoutAction.DeselectAll -> checkedItems.clear()
-            OptionsLayoutAction.SelectAll -> {
-                coroutineScope.launch(Dispatchers.Default) {
-                    checkedItems.addAll(
-                        checkedItems.toMutableSet().apply {
-                            addAll(networkItems.itemSnapshotList.items.mapNotNull { it.userPublicId })
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-    showActionDialog.value?.let { action ->
-        AlertDialog(
-            title = stringResource(
-                if(action == OptionsLayoutAction.Mute) {
-                    Res.string.network_dialog_title_mute
-                }else Res.string.network_dialog_title_block
-            ),
-            message = stringResource(
-                if(action == OptionsLayoutAction.Mute) {
-                    Res.string.network_dialog_message_mute
-                }else Res.string.network_dialog_message_block
-            ),
-            icon = action.leadingImageVector,
-            confirmButtonState = ButtonState(
-                text = stringResource(Res.string.button_confirm)
-            ) {
-                viewModel.requestProximityChange(
-                    selectedConnections = checkedItems,
-                    proximity = if(action == OptionsLayoutAction.Mute) {
-                        NetworkProximityCategory.Public.range.start
-                    }else BlockedProximityValue,
-                    onOperationDone = {
-                        networkItems.refresh()
-                    }
-                )
-                checkedItems.clear()
-            },
-            dismissButtonState = ButtonState(
-                text = stringResource(Res.string.button_dismiss)
-            ),
+    if(selectedUser.value != null) {
+        UserProfileLauncher(
+            userProfile = selectedUser.value,
             onDismissRequest = {
-                showActionDialog.value = null
+                selectedUser.value = null
             }
         )
     }
@@ -189,6 +161,10 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         })
     }
 
+    OnBackHandler(enabled = selectedItem.value != null) {
+        selectedItem.value = null
+    }
+
     RefreshableScreen(
         title = stringResource(Res.string.screen_home),
         navIconType = NavIconType.TUNE,
@@ -196,7 +172,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
             showTuner.value = true
         },
         onRefresh = {
-            networkItems.refresh()
+            conversationRooms.refresh()
             coroutineScope.launch {
                 listState.animateScrollToItem(0)
             }
@@ -225,7 +201,6 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     )
                 },
                 onSelectionChange = { item, isSelected ->
-                    checkedItems.clear()
                     val newList = categories.value.toMutableList()
                     if(isSelected) {
                         newList.add(item)
@@ -246,40 +221,31 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     .fillMaxWidth()
                     .weight(1f, fill = true)
             ) {
-                OptionsLayout(
+                Crossfade(
                     modifier = Modifier
-                        .zIndex(1f)
-                        .onSizeChanged {
-                            stickyHeaderHeight.value = with(density) {
-                                it.height.toFloat().toDp().value
-                            }
-                        },
-                    show = checkedItems.size > 0,
-                    onClick = onAction
-                )
-                androidx.compose.animation.AnimatedVisibility(
-                    modifier = Modifier.align(Alignment.TopEnd).zIndex(1f),
-                    visible = checkedItems.size == 0 && !isEmpty
-                ) {
-                    Crossfade(
-                        modifier = Modifier.zIndex(1f),
-                        targetState = isCompactView.value
-                    ) { isList ->
-                        MinimalisticFilledIcon(
-                            modifier = Modifier
-                                .padding(top = 2.dp)
-                                .zIndex(1f),
-                            imageVector = if(isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
-                            onTap = {
-                                isCompactView.value = !isCompactView.value
-                            }
-                        )
-                    }
+                        .align(Alignment.TopEnd)
+                        .zIndex(1f),
+                    targetState = isCompactView.value
+                ) { isList ->
+                    MinimalisticFilledIcon(
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .zIndex(1f),
+                        imageVector = if(isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
+                        onTap = {
+                            isCompactView.value = !isCompactView.value
+                        }
+                    )
                 }
                 Crossfade(isCompactView.value) { isList ->
                     if(isList) {
                         LazyVerticalGrid(
                             modifier = Modifier
+                                .pointerInput(Unit) {
+                                    detectTapGestures(onTap = {
+                                        selectedItem.value = null
+                                    })
+                                }
                                 .draggable(
                                     orientation = Orientation.Vertical,
                                     state = rememberDraggableState { delta ->
@@ -295,19 +261,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             state = listState,
                             verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
                         ) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Column {
-                                    Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
-                                    AnimatedVisibility(checkedItems.size > 0) {
-                                        Spacer(
-                                            Modifier
-                                                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                                                .height(stickyHeaderHeight.value.dp - LocalTheme.current.shapes.betweenItemsSpace)
-                                                .animateContentSize()
-                                        )
-                                    }
-                                }
-                            }
+                            item(span = { GridItemSpan(maxLineSpan) }) {}
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 androidx.compose.animation.AnimatedVisibility(
                                     enter = expandVertically() + fadeIn(),
@@ -323,37 +277,81 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 }
                             }
                             items(
-                                count = if(networkItems.itemCount == 0 && isLoadingInitialPage) NETWORK_SHIMMER_ITEM_COUNT else networkItems.itemCount,
-                                key = { index -> networkItems.getOrNull(index)?.userPublicId ?: Uuid.random().toString() }
+                                count = if(conversationRooms.itemCount == 0 && isLoadingInitialPage) {
+                                    NETWORK_SHIMMER_ITEM_COUNT
+                                }else conversationRooms.itemCount,
+                                key = { index -> conversationRooms.getOrNull(index)?.id ?: Uuid.random().toString() }
                             ) { index ->
-                                networkItems.getOrNull(index).let { data ->
-                                    Column(modifier = Modifier.animateItem()) {
+                                conversationRooms.getOrNull(index).let { data ->
+                                    Column(
+                                        modifier = Modifier.animateItem()
+                                    ) {
                                         NetworkItemRow(
-                                            data = data,
-                                            isChecked = if(checkedItems.size > 0) checkedItems.contains(data?.userPublicId) else null,
-                                            color = NetworkProximityCategory.entries.firstOrNull {
+                                            modifier = Modifier
+                                                .scalingClickable(
+                                                    hoverEnabled = selectedItem.value != data?.id,
+                                                    scaleInto = .9f,
+                                                    onTap = {
+                                                        if(selectedItem.value == data?.id) {
+                                                            selectedItem.value = null
+                                                        }else navController?.navigate(
+                                                            NavigationNode.Conversation(
+                                                                conversationId = data?.id,
+                                                                name = data?.summary?.alias
+                                                            )
+                                                        )
+                                                    },
+                                                    onLongPress = {
+                                                        selectedItem.value = data?.id
+                                                    }
+                                                )
+                                                .then(
+                                                    (if(selectedItem.value != null && selectedItem.value == data?.id) {
+                                                        Modifier
+                                                            .background(
+                                                                color = LocalTheme.current.colors.backgroundLight,
+                                                                shape = LocalTheme.current.shapes.rectangularActionShape
+                                                            )
+                                                            .border(
+                                                                width = 2.dp,
+                                                                color = LocalTheme.current.colors.backgroundDark,
+                                                                shape = LocalTheme.current.shapes.rectangularActionShape
+                                                            )
+                                                    }else Modifier)
+                                                ),
+                                            data = if(data == null) null else {
+                                                NetworkItemIO(
+                                                    name = data.summary?.alias,
+                                                    tag = data.summary?.tag,
+                                                    lastMessage = data.summary?.lastMessage?.body
+                                                )
+                                            },
+                                            isSelected = selectedItem.value == data?.id,
+                                            indicatorColor = NetworkProximityCategory.entries.firstOrNull {
                                                 it.range.contains(data?.proximity ?: 1f)
                                             }.let {
                                                 customColors.value[it] ?: it?.color
                                             },
-                                            onCheckChange = { isLongClick ->
-                                                when {
-                                                    checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
-                                                    isLongClick || checkedItems.size > 0 -> {
-                                                        data?.userPublicId?.let { publicId ->
-                                                            checkedItems.add(publicId)
+                                            onAvatarClick = {
+                                                if(data?.summary?.joinedMemberCount == 2) {
+                                                    coroutineScope.launch(Dispatchers.Default) {
+                                                        selectedUser.value = viewModel.networkItems.value?.find {
+                                                            it.userMatrixId == data.summary.heroes?.firstOrNull()
                                                         }
                                                     }
-                                                    else -> navController?.navigate(
-                                                        NavigationNode.Conversation(
-                                                            conversationId = data?.userPublicId,
-                                                            name = data?.displayName
-                                                        )
-                                                    )
                                                 }
+                                            },
+                                            actions = {
+                                                RoomActions(
+                                                    data = data,
+                                                    viewModel = viewModel,
+                                                    refreshRequest = {
+                                                        conversationRooms.refresh()
+                                                    }
+                                                )
                                             }
                                         )
-                                        if(index != networkItems.itemCount - 1) {
+                                        if(index != conversationRooms.itemCount - 1) {
                                             Divider(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 color = LocalTheme.current.colors.disabledComponent,
@@ -374,12 +372,166 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     }else {
                         SocialCircleContent(
                             modifier = Modifier.fillMaxSize(),
-                            viewModel = viewModel,
-                            headerHeightDp = stickyHeaderHeight.value
+                            viewModel = viewModel
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RoomActions(
+    data: ConversationRoomIO?,
+    viewModel: HomeViewModel,
+    refreshRequest: () -> Unit
+) {
+    val showActionDialog = remember(data?.id) {
+        mutableStateOf<OptionsLayoutAction?>(null)
+    }
+    val showMoveCircleDialog = remember(data?.id) {
+        mutableStateOf(false)
+    }
+    val showInviteDialog = remember(data?.id) {
+        mutableStateOf(false)
+    }
+
+    showActionDialog.value?.let { action ->
+        AlertDialog(
+            title = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_title_mute
+                }else Res.string.network_dialog_title_block
+            ),
+            message = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_message_mute
+                }else Res.string.network_dialog_message_block
+            ),
+            icon = action.leadingImageVector,
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_confirm)
+            ) {
+                viewModel.requestProximityChange(
+                    selectedConnections = listOf(data?.id ?: ""),
+                    proximity = if(action == OptionsLayoutAction.Mute) {
+                        NetworkProximityCategory.Public.range.start
+                    }else BlockedProximityValue,
+                    onOperationDone = {
+                        refreshRequest()
+                    }
+                )
+            },
+            dismissButtonState = ButtonState(
+                text = stringResource(Res.string.button_dismiss)
+            ),
+            onDismissRequest = {
+                showActionDialog.value = null
+            }
+        )
+    }
+
+    val actionsState = rememberScrollState()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = LocalTheme.current.colors.backgroundDark,
+                shape = RoundedCornerShape(
+                    bottomEnd = LocalTheme.current.shapes.rectangularActionRadius,
+                    bottomStart = LocalTheme.current.shapes.rectangularActionRadius,
+                )
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .horizontalScroll(actionsState)
+                .horizontallyDraggable(actionsState)
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+        ) {
+            ScalingIcon(
+                color = SharedColors.RED_ERROR.copy(.6f),
+                imageVector = Icons.Outlined.FaceRetouchingOff,
+                contentDescription = stringResource(Res.string.button_block),
+                onClick = {
+                    showActionDialog.value = OptionsLayoutAction.Block
+                }
+            )
+            ScalingIcon(
+                color = Colors.Coffee,
+                imageVector = Icons.Outlined.VoiceOverOff,
+                contentDescription = stringResource(Res.string.button_mute),
+                onClick = {
+                    showActionDialog.value = OptionsLayoutAction.Mute
+                }
+            )
+            ScalingIcon(
+                color = NetworkProximityCategory.Family.color,
+                imageVector = Icons.Outlined.TrackChanges,
+                contentDescription = stringResource(Res.string.network_action_circle_move),
+                onClick = {
+                    showMoveCircleDialog.value = true
+                }
+            )
+            ScalingIcon(
+                color = LocalTheme.current.colors.brandMain,
+                imageVector = Icons.Outlined.GroupAdd,
+                contentDescription = stringResource(Res.string.button_invite),
+                onClick = {
+                    showInviteDialog.value = true
+                }
+            )
+            Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
+        }
+    }
+}
+
+@Composable
+private fun ScalingIcon(
+    color: Color,
+    imageVector: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        Modifier.background(
+            color = color,
+            shape = LocalTheme.current.shapes.componentShape
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .scalingClickable {
+                    onClick()
+                }
+                .background(
+                    color = LocalTheme.current.colors.backgroundDark,
+                    shape = LocalTheme.current.shapes.rectangularActionShape
+                )
+                .border(
+                    width = 1.dp,
+                    color = color,
+                    shape = LocalTheme.current.shapes.rectangularActionShape
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                modifier = Modifier.padding(start = 8.dp, end = 2.dp),
+                text = contentDescription,
+                style = LocalTheme.current.styles.regular
+            )
+            Icon(
+                modifier = Modifier
+                    .size(38.dp)
+                    .padding(6.dp),
+                imageVector = imageVector,
+                contentDescription = null,
+                tint = LocalTheme.current.colors.secondary
+            )
         }
     }
 }

@@ -39,6 +39,7 @@ data class PagingMetaIO(
 )
 
 enum class PagingEntityType {
-    NETWORK_ITEM,
-    CONVERSATION_MESSAGE
+    NetworkItem,
+    ConversationMessage,
+    ConversationRoom
 }

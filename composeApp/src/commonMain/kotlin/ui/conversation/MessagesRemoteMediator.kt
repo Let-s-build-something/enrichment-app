@@ -8,8 +8,8 @@ import coil3.network.HttpException
 import data.io.base.BaseResponse
 import data.io.base.PagingEntityType
 import data.io.base.PagingMetaIO
-import data.io.social.network.conversation.ConversationMessageIO
-import data.io.social.network.conversation.ConversationMessagesResponse
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationMessagesResponse
 import database.dao.ConversationMessageDao
 import database.dao.PagingMetaDao
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +22,7 @@ import kotlinx.io.IOException
  * Mediator for reusing locally loaded data and fetching new data from the network if necessary
  */
 @OptIn(ExperimentalPagingApi::class)
-class ConversationRemoteMediator (
+class MessagesRemoteMediator (
     private val conversationMessageDao: ConversationMessageDao,
     private val pagingMetaDao: PagingMetaDao,
     private val conversationId: String,
@@ -35,7 +35,7 @@ class ConversationRemoteMediator (
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
-            pagingMetaDao.getCreationTime(PagingEntityType.CONVERSATION_MESSAGE.name) ?: 0
+            pagingMetaDao.getCreationTime(PagingEntityType.ConversationMessage.name) ?: 0
         )
 
         return if (timeElapsed < cacheTimeoutMillis) {
@@ -82,7 +82,7 @@ class ConversationRemoteMediator (
                     PagingMetaIO(
                         entityId = conversationId,
                         previousPage = prevKey,
-                        entityType = PagingEntityType.CONVERSATION_MESSAGE,
+                        entityType = PagingEntityType.ConversationMessage,
                         currentPage = page,
                         nextPage = nextKey
                     )
@@ -106,7 +106,7 @@ class ConversationRemoteMediator (
     private suspend fun getPagingMetaClosestToCurrentPosition(state: PagingState<Int, ConversationMessageIO>): PagingMetaIO? {
         return state.anchorPosition?.let { position ->
             state.closestItemToPosition(position)?.conversationId?.let { id ->
-                pagingMetaDao.getPagingMetaByEntityId(id)
+                pagingMetaDao.getByEntityId(id)
             }
         }
     }
@@ -116,7 +116,7 @@ class ConversationRemoteMediator (
         return state.pages.firstOrNull {
             it.data.isNotEmpty()
         }?.data?.firstOrNull()?.conversationId?.let { id ->
-            pagingMetaDao.getPagingMetaByEntityId(id)
+            pagingMetaDao.getByEntityId(id)
         }
     }
 
@@ -125,7 +125,7 @@ class ConversationRemoteMediator (
         return state.pages.lastOrNull {
             it.data.isNotEmpty()
         }?.data?.lastOrNull()?.conversationId?.let { id ->
-            pagingMetaDao.getPagingMetaByEntityId(id)
+            pagingMetaDao.getByEntityId(id)
         }
     }
 }

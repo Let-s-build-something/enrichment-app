@@ -39,7 +39,7 @@ class NetworkRemoteMediator (
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
-            pagingMetaDao.getCreationTime(PagingEntityType.NETWORK_ITEM.name) ?: 0
+            pagingMetaDao.getCreationTime(PagingEntityType.NetworkItem.name) ?: 0
         )
 
         return if (timeElapsed < cacheTimeoutMillis) {
@@ -112,7 +112,7 @@ class NetworkRemoteMediator (
     private suspend fun getPagingMetaClosestToCurrentPosition(state: PagingState<Int, NetworkItemIO>): PagingMetaIO? {
         return state.anchorPosition?.let { position ->
             state.closestItemToPosition(position)?.userPublicId?.let { id ->
-                pagingMetaDao.getPagingMetaByEntityId("${currentUserUid}_$id")
+                pagingMetaDao.getByEntityId("${currentUserUid}_$id")
             }
         }
     }
@@ -122,7 +122,7 @@ class NetworkRemoteMediator (
         return state.pages.firstOrNull {
             it.data.isNotEmpty()
         }?.data?.firstOrNull()?.userPublicId?.let { id ->
-            pagingMetaDao.getPagingMetaByEntityId("${currentUserUid}_$id")
+            pagingMetaDao.getByEntityId("${currentUserUid}_$id")
         }
     }
 
@@ -131,7 +131,7 @@ class NetworkRemoteMediator (
         return state.pages.lastOrNull {
             it.data.isNotEmpty()
         }?.data?.lastOrNull()?.userPublicId?.let { id ->
-            pagingMetaDao.getPagingMetaByEntityId("${currentUserUid}_$id")
+            pagingMetaDao.getByEntityId("${currentUserUid}_$id")
         }
     }
 }

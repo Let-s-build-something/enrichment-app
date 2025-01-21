@@ -109,7 +109,7 @@
 
   <string name="network_dialog_title_mute">Mute</string>
   <string name="network_dialog_message_mute">This will deprioritize the selected network connections, so that you don't see them as much. Please, confirm that that is what you want to do.</string>
-  <string name="network_dialog_title_block">Block</string>
+  <string name="network_dialog_title_block">Remove</string>
   <string name="network_dialog_message_block">This will remove the selected network connections, you won't see them anymore. Please, confirm that that is what you want to do.</string>
 
   <string name="category_family">Family</string>
@@ -151,7 +151,7 @@
   <string name="button_confirm">Confirm</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
-  <string name="button_add_to">Add to</string>
+  <string name="button_invite">Invite</string>
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Remove</string>
