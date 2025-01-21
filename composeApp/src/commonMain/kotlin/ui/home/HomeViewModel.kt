@@ -34,7 +34,7 @@ import org.koin.dsl.module
 
 internal val homeModule = module {
     single { HomeDataManager() }
-    factory { HomeRepository(get(), get(), get()) }
+    factory { HomeRepository(get(), get(), get(), get()) }
     factory { HomeViewModel(get<HomeDataManager>(), get<HomeRepository>(), get()) }
     viewModelOf(::HomeViewModel)
 }
