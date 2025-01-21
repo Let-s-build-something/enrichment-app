@@ -20,6 +20,13 @@ interface ConversationRoomDao {
         batch: String?
     ): List<ConversationRoomIO>
 
+    /** Returns all network items */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId ")
+    suspend fun getNonFiltered(
+        ownerPublicId: String?
+    ): List<ConversationRoomIO>
+
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId")

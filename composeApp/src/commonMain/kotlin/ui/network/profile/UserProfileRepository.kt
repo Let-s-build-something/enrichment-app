@@ -4,7 +4,7 @@ import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
 import data.io.social.network.request.NetworkListResponse
-import data.io.user.PublicUserProfileIO
+import data.io.user.NetworkItemIO
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
@@ -20,9 +20,9 @@ import ui.network.connection.SocialConnectionUpdate
 class UserProfileRepository(private val httpClient: HttpClient) {
 
     /** Makes a request to get a user */
-    suspend fun getUserProfile(publicId: String): BaseResponse<PublicUserProfileIO> {
+    suspend fun getUserProfile(publicId: String): BaseResponse<NetworkItemIO> {
         return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<PublicUserProfileIO> {
+            httpClient.safeRequest<NetworkItemIO> {
                 get(urlString = "/api/v1/users/${publicId}")
             }
         }

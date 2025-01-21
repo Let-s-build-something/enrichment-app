@@ -128,7 +128,7 @@ fun NetworkPreferencesLauncher(
                                 tag = "E7D37F",
                                 photoUrl = "https://augmy.org/storage/img/imjustafish.jpg"
                             ),
-                            color = selectedColor.value
+                            indicatorColor = selectedColor.value
                         )
                         LazyRow(
                             modifier = Modifier

@@ -12,11 +12,14 @@ import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.io.user.matrix.SyncResponse
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.io.IOException
+import ui.home.HomeRepository.Companion.INITIAL_BATCH
 
 /**
  * Mediator for reusing locally loaded data and fetching new data from the network if necessary
@@ -29,6 +32,9 @@ class RoomsRemoteMediator(
     private val getItems: suspend (batch: String?) -> BaseResponse<SyncResponse>,
     private val cacheTimeoutMillis: Int = 24 * 60 * 60 * 1000
 ): RemoteMediator<String, ConversationRoomIO>() {
+
+    private val currentUserUid: String?
+        get() = Firebase.auth.currentUser?.uid
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
@@ -82,20 +88,19 @@ class RoomsRemoteMediator(
                     pagingMetaDao.removeAll()
                     conversationRoomDao.removeAll()
                 }
-                items?.mapNotNull { item ->
-                    item.id?.let { identifier ->
-                        MatrixPagingMetaIO(
-                            entityId = identifier,
-                            nextBatch = apiResponse.success?.data?.nextBatch,
-                            entityType = PagingEntityType.ConversationMessage,
-                            batch = batch
-                        )
-                    }
+                items?.map { item ->
+                    MatrixPagingMetaIO(
+                        entityId = item.id,
+                        nextBatch = apiResponse.success?.data?.nextBatch,
+                        entityType = PagingEntityType.ConversationMessage,
+                        batch = batch ?: INITIAL_BATCH
+                    )
                 }?.let {
                     pagingMetaDao.insertAll(it)
                     conversationRoomDao.insertAll(items.onEach { room ->
-                        room.batch = batch
+                        room.batch = batch ?: INITIAL_BATCH
                         room.nextBatch = apiResponse.success?.data?.nextBatch
+                        room.ownerPublicId = currentUserUid
                     })
                     invalidatePagingSource()
                 }

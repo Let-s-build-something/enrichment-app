@@ -44,12 +44,11 @@ import kotlin.uuid.Uuid
 /** Screen containing current user's network and offers its management */
 @OptIn(ExperimentalUuidApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun NetworkListContent(
+fun  NetworkListContent(
     openAddNewModal: () -> Unit,
     viewModel: NetworkListViewModel = koinViewModel()
 ) {
     val networkItems = viewModel.requests.collectAsLazyPagingItems()
-    val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
@@ -75,6 +74,7 @@ fun NetworkListContent(
                     )
                 }
             }
+            else -> {}
         }
     }
 
@@ -129,16 +129,14 @@ fun NetworkListContent(
                         isChecked = if(checkedItems.size > 0) {
                             checkedItems.contains(data?.userPublicId)
                         }else null,
-                        data = data, 
-                        response = response.value[data?.userPublicId],
-                        onAction = onAction,
-                        color = NetworkProximityCategory.entries.firstOrNull {
+                        data = data,
+                        indicatorColor = NetworkProximityCategory.entries.firstOrNull {
                             it.range.contains(data?.proximity ?: 1f)
                         }.let {
                             customColors.value[it] ?: it?.color
                         },
                         isSelected = selectedItem.value == data?.userPublicId,
-                        onCheckChange = { isLongClick ->
+                        /*onCheckChange = { isLongClick ->
                             when {
                                 checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
                                 isLongClick || checkedItems.size > 0 -> {
@@ -149,7 +147,7 @@ fun NetworkListContent(
                                     selectedItem.value = if(selectedItem.value == data?.userPublicId) null else data?.userPublicId
                                 }
                             }
-                        }
+                        }*/
                     )
                     if(networkItems.itemCount - 1 != index) {
                         Divider(

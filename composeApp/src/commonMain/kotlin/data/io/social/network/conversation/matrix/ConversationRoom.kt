@@ -1,18 +1,23 @@
 package data.io.social.network.conversation.matrix
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /** Matrix conversation room object */
 @Entity(tableName = AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE)
 @Serializable
-data class ConversationRoomIO(
+data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Unique identifier of this room, in the format of "!opaque_id:domain" */
     @PrimaryKey
-    val id: String? = null,
+    val id: String = Uuid.random().toString(),
 
     /** Information about the room */
     val summary: RoomSummary? = null,
@@ -48,6 +53,10 @@ data class ConversationRoomIO(
      */
     val proximity: Float? = null
 ) {
+
+    /** Database flag: an identifier of the owner of this item */
+    @ColumnInfo("owner_public_id")
+    var ownerPublicId: String? = Firebase.auth.currentUser?.uid
 
     /** To which batch this data object belongs to */
     var batch: String? = null

@@ -433,14 +433,14 @@ private fun ContentLayout(
                             val messageShape = if (isCurrentUser) {
                                 RoundedCornerShape(
                                     topStart = if(hasAttachment) 1.dp else 24.dp,
-                                    topEnd = if(hasPrevious || !data.media.isNullOrEmpty()) 1.dp else 24.dp,
+                                    topEnd = if(hasPrevious || !data.media.isNullOrEmpty() || hasAttachment) 1.dp else 24.dp,
                                     bottomStart = 24.dp,
                                     bottomEnd = if (hasNext) 1.dp else 24.dp
                                 )
                             } else {
                                 RoundedCornerShape(
                                     topEnd = if(hasAttachment) 1.dp else 24.dp,
-                                    topStart = if(hasPrevious || !data.media.isNullOrEmpty()) 1.dp else 24.dp,
+                                    topStart = if(hasPrevious || !data.media.isNullOrEmpty() || hasAttachment) 1.dp else 24.dp,
                                     bottomEnd = 24.dp,
                                     bottomStart = if (hasNext) 1.dp else 24.dp
                                 )
@@ -620,7 +620,7 @@ private fun ContentLayout(
 
             Row(
                 modifier = Modifier
-                    .offset(y = -contentPadding.calculateBottomPadding())
+                    .offset(y = if(isReacting) 0.dp else -contentPadding.calculateBottomPadding())
                     .zIndex(2f)
                     .animateContentSize(),
                 verticalAlignment = Alignment.CenterVertically

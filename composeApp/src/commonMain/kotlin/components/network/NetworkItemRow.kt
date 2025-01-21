@@ -3,6 +3,11 @@ package components.network
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,53 +33,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.LoadingIndicator
-import components.OptionsLayout
-import components.OptionsLayoutAction
 import components.UserProfileImage
-import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
 
 /**
  * Horizontal layout visualizing a user with ability for actions and checked state
  * @param isSelected whether additional information should be displayed about this user
  * @param isChecked whether this user is checked and it should be indicated
- * @param onAction callback for actions from a selected state
- * @param response currently pending response to any action relevant to this user
  */
 @Composable
 fun NetworkItemRow(
     modifier: Modifier = Modifier,
     isChecked: Boolean? = null,
-    isSelected: Boolean = false,
     data: NetworkItemIO?,
-    color: Color? = null,
-    onAction: (OptionsLayoutAction) -> Unit = {},
-    onCheckChange: (Boolean) -> Unit = {},
-    response: BaseResponse<*>? = null
+    isSelected: Boolean = false,
+    indicatorColor: Color? = null,
+    onAvatarClick: () -> Unit = {},
+    actions: @Composable () -> Unit = {}
 ) {
     Crossfade(targetState = data != null) { isData ->
-        if(isData && data != null) {
+        if(isData) {
             ContentLayout(
-                modifier = modifier
-                    .scalingClickable(
-                        scaleInto = .9f,
-                        onTap = {
-                            onCheckChange(isChecked == false)
-                        },
-                        onLongPress = {
-                            onCheckChange(true)
-                        }
-                    ),
-                color = color,
+                modifier = modifier,
+                indicatorColor = indicatorColor,
                 isChecked = isChecked,
                 isSelected = isSelected,
-                data = data,
-                onAction = onAction,
-                response = response
+                actions = actions,
+                onAvatarClick = onAvatarClick,
+                data = data
             )
         }else {
             ShimmerLayout(modifier = modifier)
@@ -85,12 +76,12 @@ fun NetworkItemRow(
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
-    data: NetworkItemIO,
-    color: Color?,
+    indicatorColor: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
-    onAction: (OptionsLayoutAction) -> Unit,
-    response: BaseResponse<*>?
+    data: NetworkItemIO?,
+    onAvatarClick: () -> Unit,
+    actions: @Composable () -> Unit = {}
 ) {
     Column(
         modifier
@@ -100,7 +91,6 @@ private fun ContentLayout(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = LocalTheme.current.colors.backgroundLight)
                 .padding(top = 8.dp, bottom = 8.dp, end = 4.dp)
                 .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically,
@@ -110,11 +100,11 @@ private fun ContentLayout(
                 modifier = Modifier
                     .animateContentSize()
                     .weight(1f),
-                verticalAlignment = if(data.lastMessage.isNullOrBlank()) {
+                verticalAlignment = if(data?.lastMessage.isNullOrBlank()) {
                     Alignment.CenterVertically
                 }else Alignment.Top
             ) {
-                color?.let { color ->
+                indicatorColor?.let { color ->
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
@@ -132,10 +122,13 @@ private fun ContentLayout(
                 }
                 UserProfileImage(
                     modifier = Modifier
+                        .scalingClickable {
+                            onAvatarClick()
+                        }
                         .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                         .size(48.dp),
-                    model = data.photoUrl,
-                    tag = data.tag,
+                    model = data?.photoUrl,
+                    tag = data?.tag,
                     contentDescription = null
                 )
                 Column(
@@ -146,17 +139,19 @@ private fun ContentLayout(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = data.name ?: "",
+                        text = data?.name ?: "",
                         style = LocalTheme.current.styles.category,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = data.lastMessage ?: "",
-                        style = LocalTheme.current.styles.regular,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    if(data?.lastMessage != null) {
+                        Text(
+                            text = data.lastMessage,
+                            style = LocalTheme.current.styles.regular,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 AnimatedVisibility(isChecked == true) {
                     Icon(
@@ -169,15 +164,21 @@ private fun ContentLayout(
                     )
                 }
             }
-            if(response != null) {
-                LoadingIndicator(response = response)
-            }
         }
-        OptionsLayout(
-            show = isSelected && isChecked == null && response == null,
-            onClick = onAction,
-            zIndex = -1f
-        )
+        AnimatedVisibility(
+            modifier = Modifier.zIndex(-1f),
+            visible = isSelected,
+            enter = slideInVertically (
+                initialOffsetY = { -it },
+                animationSpec = tween(DEFAULT_ANIMATION_LENGTH_SHORT)
+            ) + fadeIn(),
+            exit = slideOutVertically (
+                targetOffsetY = { -it },
+                animationSpec = tween(DEFAULT_ANIMATION_LENGTH_SHORT)
+            ) + fadeOut()
+        ) {
+            actions()
+        }
     }
 }
 

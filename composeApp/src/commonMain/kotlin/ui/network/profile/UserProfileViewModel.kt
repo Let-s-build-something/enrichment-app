@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
-import data.io.user.PublicUserProfileIO
+import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -25,7 +25,7 @@ class UserProfileViewModel(
     private val repository: UserProfileRepository
 ): SharedViewModel() {
 
-    private val _responseProfile = MutableStateFlow<BaseResponse<PublicUserProfileIO>>(BaseResponse.Idle)
+    private val _responseProfile = MutableStateFlow<BaseResponse<NetworkItemIO>>(BaseResponse.Idle)
 
     /** Result of the requested user profile */
     val responseProfile = _responseProfile.asStateFlow()

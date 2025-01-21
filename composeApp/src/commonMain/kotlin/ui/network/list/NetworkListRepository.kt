@@ -124,9 +124,10 @@ class NetworkListRepository(
 
     internal companion object {
 
+        @OptIn(ExperimentalUuidApi::class)
         private val family = listOf(
-            NetworkItemIO(proximity = 10.9f, name = "Sister", photoUrl = "https://picsum.photos/102", tag = "2098d6", userPublicId = Uuid.random().toString()),
-            NetworkItemIO(proximity = 10.8f, name = "Son", photoUrl = "https://picsum.photos/104", tag = "2098d6", userPublicId = Uuid.random().toString()),
+            NetworkItemIO(proximity = 10.9f, name = "Sister", photoUrl = "https://picsum.photos/102", tag = "2098d6", userPublicId = Uuid.random().toString(), userMatrixId = "1"),
+            NetworkItemIO(proximity = 10.8f, name = "Son", photoUrl = "https://picsum.photos/104", tag = "2098d6", userPublicId = Uuid.random().toString(), userMatrixId = "2"),
             NetworkItemIO(proximity = 10.7f, name = "Mom", photoUrl = "https://picsum.photos/101", tag = "2098d6", userPublicId = Uuid.random().toString()),
             NetworkItemIO(proximity = 10.4f, name = "Brother", photoUrl = "https://picsum.photos/103", tag = "2098d6", userPublicId = Uuid.random().toString()),
             NetworkItemIO(proximity = 10.2f, name = "Grandma", photoUrl = "https://picsum.photos/105", tag = "2098d6", userPublicId = Uuid.random().toString()),

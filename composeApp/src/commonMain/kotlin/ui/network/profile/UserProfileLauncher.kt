@@ -48,7 +48,7 @@ import base.navigation.NavigationNode
 import components.OptionsLayoutAction
 import components.UserProfileImage
 import data.io.base.BaseResponse
-import data.io.user.PublicUserProfileIO
+import data.io.user.NetworkItemIO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -72,7 +72,7 @@ fun UserProfileLauncher(
         skipHiddenState = false
     ),
     publicId: String? = null,
-    userProfile: PublicUserProfileIO? = null
+    userProfile: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
     val viewModel: UserProfileViewModel = koinViewModel()
@@ -154,7 +154,7 @@ fun UserProfileLauncher(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = it.data.targetPublicId,
-                                name = responseProfile.value.success?.data?.displayName
+                                name = responseProfile.value.success?.data?.name
                             )
                         )
                     }
@@ -240,7 +240,7 @@ private fun ShimmerContent(pictureSize: Dp) {
 
 @Composable
 private fun DataContent(
-    userProfile: PublicUserProfileIO,
+    userProfile: NetworkItemIO,
     pictureSize: Dp,
     viewModel: UserProfileViewModel,
     onDismissRequest: () -> Unit
@@ -268,7 +268,7 @@ private fun DataContent(
         }
         Text(
             modifier = Modifier.padding(start = 16.dp),
-            text = userProfile.displayName ?: "",
+            text = userProfile.name ?: "",
             style = LocalTheme.current.styles.subheading
         )
     }
@@ -288,7 +288,7 @@ private fun DataContent(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = userProfile.publicId,
-                                name = userProfile.displayName
+                                name = userProfile.name
                             )
                         )
                     }
@@ -301,7 +301,7 @@ private fun DataContent(
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
                         viewModel.includeNewUser(
-                            displayName = userProfile.displayName ?: "",
+                            displayName = userProfile.name ?: "",
                             tag = userProfile.tag ?: ""
                         )
                     }
