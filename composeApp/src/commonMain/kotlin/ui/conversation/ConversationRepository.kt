@@ -97,7 +97,10 @@ class ConversationRepository(
                                 (page + 1) * size,
                                 page * size + (demoMessages.size - page * size)
                             ).coerceAtMost(demoMessages.size)
-                        ).map { it.copy(authorPublicId = if(it.authorPublicId == "me") dataManager.currentUser.value?.publicId else it.authorPublicId) },
+                        ).map { it.copy(
+                            authorPublicId = if(it.authorPublicId == "me") dataManager.currentUser.value?.publicId else it.authorPublicId,
+                            id = "${it.id}_$conversationId"
+                        ) },
                         pagination = PaginationInfo(
                             page = page,
                             size = size,
