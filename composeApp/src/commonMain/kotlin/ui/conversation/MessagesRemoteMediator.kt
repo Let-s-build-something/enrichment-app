@@ -35,7 +35,7 @@ class MessagesRemoteMediator (
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
-            pagingMetaDao.getCreationTime(PagingEntityType.ConversationMessage.name) ?: 0
+            pagingMetaDao.getCreationTime(PagingEntityType.ConversationMessage.name + conversationId) ?: 0
         )
 
         return if (timeElapsed < cacheTimeoutMillis) {
@@ -74,7 +74,7 @@ class MessagesRemoteMediator (
                 if (loadType == LoadType.REFRESH) {
                     page = initialPage
                     pagingMetaDao.removeAll()
-                    conversationMessageDao.removeAll()
+                    //conversationMessageDao.removeAll(conversationId)
                 }
                 val prevKey = if (page > 1) page - 1 else null
                 val nextKey = if (endOfPaginationReached) null else page + 1
@@ -82,7 +82,7 @@ class MessagesRemoteMediator (
                     PagingMetaIO(
                         entityId = conversationId,
                         previousPage = prevKey,
-                        entityType = PagingEntityType.ConversationMessage,
+                        entityType = PagingEntityType.ConversationMessage.name + conversationId,
                         currentPage = page,
                         nextPage = nextKey
                     )

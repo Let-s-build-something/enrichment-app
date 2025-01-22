@@ -20,7 +20,7 @@ data class PagingMetaIO(
 
     /** Type of paginated entity */
     @ColumnInfo("entity_type")
-    val entityType: PagingEntityType? = null,
+    val entityType: String? = null,
 
     /** Index of this page */
     @SerialName("current_page")

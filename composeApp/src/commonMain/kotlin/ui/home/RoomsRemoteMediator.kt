@@ -92,7 +92,7 @@ class RoomsRemoteMediator(
                     MatrixPagingMetaIO(
                         entityId = item.id,
                         nextBatch = apiResponse.success?.data?.nextBatch,
-                        entityType = PagingEntityType.ConversationMessage,
+                        entityType = PagingEntityType.ConversationRoom,
                         batch = batch ?: INITIAL_BATCH
                     )
                 }?.let {
