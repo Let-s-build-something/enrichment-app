@@ -81,7 +81,7 @@ class NetworkRemoteMediator (
                 if (loadType == LoadType.REFRESH) {
                     page = initialPage
                     pagingMetaDao.removeAll()
-                    networkItemDao.removeAll()
+                    //networkItemDao.removeAll()
                 }
                 val prevKey = if (page > 1) page - 1 else null
                 val nextKey = if (endOfPaginationReached) null else page + 1

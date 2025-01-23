@@ -51,20 +51,15 @@ class NetworkAddNewViewModel(
     /** Recommended users from all of social circle categories */
     val recommendedUsers = _recommendedUsers.asStateFlow()
 
-    init {
-        requestRecommendedUsers()
-    }
-
     /** Makes a request for user recommendations from the local database */
-    private fun requestRecommendedUsers() {
+    fun requestRecommendedUsers(excludeId: String?) {
         viewModelScope.launch {
-            // TODO top network users
-            /*val demoData = proximityDemoData.sortedByDescending { it.proximity }
-            repository.getUserRecommendations().success?.data.let { data ->
-                _recommendedUsers.value = data ?: NetworkProximityCategory.entries.associateWith { c ->
-                    demoData.filter { c.range.contains(it.proximity ?: -1f) }.take(2)
-                }
-            }*/
+            repository.getUserRecommendations(
+                takeCount = TOP_ITEMS,
+                excludeId = excludeId
+            ).success?.data.let { data ->
+                _recommendedUsers.value = data
+            }
         }
     }
 
@@ -89,9 +84,13 @@ class NetworkAddNewViewModel(
             _isLoading.emit(false)
         }
     }
+
+    companion object {
+        private const val TOP_ITEMS = 4
+    }
 }
 
 internal val networkAddNewModule = module {
-    factory { NetworkAddNewRepository(get()) }
+    factory { NetworkAddNewRepository(get(), get(), get()) }
     viewModelOf(::NetworkAddNewViewModel)
 }

@@ -1,19 +1,11 @@
 package ui.network.add_new
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,13 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.account_username_error_format
@@ -52,11 +41,9 @@ import augmy.composeapp.generated.resources.network_inclusion_error_non_existent
 import augmy.composeapp.generated.resources.network_inclusion_error_non_format
 import augmy.composeapp.generated.resources.network_inclusion_format_tag
 import augmy.composeapp.generated.resources.network_inclusion_hint_tag
-import augmy.composeapp.generated.resources.network_inclusion_proximity_title
 import augmy.composeapp.generated.resources.network_inclusion_success
 import augmy.composeapp.generated.resources.network_inclusion_success_action
 import augmy.composeapp.generated.resources.screen_network_new
-import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.BrandHeaderButton
@@ -65,9 +52,9 @@ import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
-import components.AsyncSvgImage
 import data.NetworkProximityCategory
 import data.io.ApiErrorCode
+import data.io.user.NetworkItemIO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -79,6 +66,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import ui.account.profile.USERNAME_MAX_LENGTH
 import ui.account.profile.USERNAME_MIN_LENGTH
+import ui.network.components.ProximityPicker
 
 private const val REGEX_USER_TAG = """^[a-fA-F0-9]+${'$'}"""
 
@@ -261,7 +249,12 @@ fun NetworkAddNewLauncher(
                 selectedCategory = selectedCategory.value,
                 onSelectionChange = {
                     selectedCategory.value = it
-                }
+                },
+                newItem = NetworkItemIO(
+                    name = inputDisplayName.value,
+                    tag = inputTag.value,
+                    photoUrl = "https://augmy.org/storage/img/imjustafish.jpg"
+                )
             )
         }
 
@@ -278,100 +271,5 @@ fun NetworkAddNewLauncher(
                 )
             }
         )
-    }
-}
-
-@Composable
-fun ProximityPicker(
-    modifier: Modifier = Modifier,
-    viewModel: NetworkAddNewViewModel,
-    selectedCategory: NetworkProximityCategory,
-    onSelectionChange: (NetworkProximityCategory) -> Unit
-) {
-    val customColors = viewModel.customColors.collectAsState(initial = hashMapOf())
-    val recommendedUsers = viewModel.recommendedUsers.collectAsState(initial = hashMapOf())
-
-    Column(modifier = modifier) {
-        Text(
-            modifier = Modifier
-                .padding(top = 12.dp)
-                .fillMaxWidth(),
-            text = stringResource(Res.string.network_inclusion_proximity_title),
-            style = LocalTheme.current.styles.subheading
-        )
-        Row(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .fillMaxWidth(),
-        ) {
-            val corner = LocalTheme.current.shapes.componentCornerRadius
-            NetworkProximityCategory.entries.forEachIndexed { index, category ->
-                val weight = animateFloatAsState(
-                    targetValue = if(selectedCategory == category) 3f else 1f,
-                    label = "weightChange"
-                )
-                val colorAlpha = animateFloatAsState(
-                    targetValue = if(selectedCategory == category) 1f else .7f,
-                    label = "alphaChange"
-                )
-
-                Column(
-                    modifier = Modifier
-                        .background(
-                            color = (customColors.value[category] ?: category.color).copy(colorAlpha.value),
-                            shape = RoundedCornerShape(
-                                bottomStart = if(index == 0) corner else 0.dp,
-                                topStart= if(index == 0) corner else 0.dp,
-                                bottomEnd = if(index == NetworkProximityCategory.entries.lastIndex) corner else 0.dp,
-                                topEnd = if(index == NetworkProximityCategory.entries.lastIndex) corner else 0.dp
-                            )
-                        )
-                        .weight(weight.value)
-                        .fillMaxHeight()
-                        .animateContentSize()
-                        .scalingClickable(scaleInto = .95f) {
-                            onSelectionChange(category)
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-                        text = stringResource(category.res),
-                        style = LocalTheme.current.styles.category.copy(
-                            color = Color.White.copy(colorAlpha.value),
-                            textAlign = TextAlign.Center
-                        ),
-                        maxLines = 1
-                    )
-                    recommendedUsers.value?.get(category)?.let { users ->
-                        users.forEach { user ->
-                            Row(
-                                modifier = Modifier.padding(LocalTheme.current.shapes.betweenItemsSpace / 2),
-                                horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AsyncSvgImage(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .size(42.dp),
-                                    model = user.photoUrl,
-                                    contentDescription = null
-                                )
-                                if(selectedCategory == category) {
-                                    Text(
-                                        modifier = Modifier.weight(1f),
-                                        text = user.name ?: "",
-                                        style = LocalTheme.current.styles.category,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }

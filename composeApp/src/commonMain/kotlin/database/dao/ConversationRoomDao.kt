@@ -11,7 +11,7 @@ import database.AppRoomDatabase
 @Dao
 interface ConversationRoomDao {
 
-    /** Returns all network items */
+    /** Returns paginated conversation based on the owner as defined by [ownerPublicId] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND batch = :batch ")
@@ -20,11 +20,25 @@ interface ConversationRoomDao {
         batch: String?
     ): List<ConversationRoomIO>
 
-    /** Returns all network items */
+    /** Returns all conversations related to an owner as defined by [ownerPublicId] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId ")
     suspend fun getNonFiltered(
         ownerPublicId: String?
+    ): List<ConversationRoomIO>
+
+    /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND id != :excludeId " +
+            "AND proximity BETWEEN :proximityMin AND :proximityMax " +
+            "LIMIT :count")
+    suspend fun getByProximity(
+        count: Int,
+        ownerPublicId: String?,
+        proximityMin: Float,
+        proximityMax: Float,
+        excludeId: String?
     ): List<ConversationRoomIO>
 
     /** Counts the number of items */

@@ -5,6 +5,7 @@ import data.io.user.RequestGetUser
 import data.io.user.UserIO
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
+import database.dao.NetworkItemDao
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
@@ -44,6 +45,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
         withContext(Dispatchers.IO) {
             val conversationRoomDao: ConversationRoomDao = getKoin().get()
             val conversationMessageDao: ConversationMessageDao = getKoin().get()
+            val networkItemDao: NetworkItemDao = getKoin().get()
 
             if(conversationRoomDao.getCount(publicId) == 0) {
                 conversationRoomDao.insertAll(DemoData.demoRooms.onEach { room ->
@@ -55,6 +57,9 @@ open class SharedRepository(private val httpClient: HttpClient) {
                 })
                 conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
                     it.conversationId = DemoData.demoRooms.getOrNull(1)?.id
+                })
+                networkItemDao.insertAll(DemoData.proximityDemoData.onEach {
+                    it.ownerPublicId = publicId
                 })
             }
         }

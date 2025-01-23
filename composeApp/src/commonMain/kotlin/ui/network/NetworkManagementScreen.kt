@@ -8,9 +8,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
@@ -24,6 +26,7 @@ import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import base.BrandBaseScreen
+import components.pull_refresh.LocalRefreshCallback
 import data.io.social.UserPrivacy
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -34,6 +37,19 @@ import ui.network.list.NetworkListContent
 import ui.network.received.NetworkReceivedContent
 import ui.network.received.NetworkReceivedViewModel
 
+interface RefreshHandler {
+    val callbackListeners: MutableList<() -> Unit>
+
+    fun addListener(listener: () -> Unit) {
+        callbackListeners.add(listener)
+    }
+    fun onRefresh() {
+        callbackListeners.onEach {
+            it.invoke()
+        }
+    }
+}
+
 /** Screen for user managing their social network */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +59,12 @@ fun NetworkManagementScreen(
     viewModel: NetworkReceivedViewModel = koinViewModel()
 ) {
     val currentUser = viewModel.currentUser.collectAsState()
+    val refreshHandler = remember {
+        object: RefreshHandler {
+            override val callbackListeners = mutableListOf<() -> Unit>()
+
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -88,38 +110,43 @@ fun NetworkManagementScreen(
         )
     }
 
-    BrandBaseScreen(
-        title = stringResource(Res.string.screen_network_management),
-        actionIcons = { isExpanded ->
-            ActionBarIcon(
-                text = if(isExpanded) stringResource(Res.string.screen_network_new) else null,
-                imageVector = Icons.AutoMirrored.Outlined.Send,
-                onClick = {
-                    showAddNewModal.value = true
-                }
-            )
-        }
+    CompositionLocalProvider(
+        LocalRefreshCallback provides { refreshHandler.onRefresh() }
     ) {
-        Column {
-            if(pagerState.pageCount > 1) {
-                MultiChoiceSwitch(
-                    modifier = Modifier.fillMaxWidth(),
-                    state = switchThemeState
+        BrandBaseScreen(
+            title = stringResource(Res.string.screen_network_management),
+            actionIcons = { isExpanded ->
+                ActionBarIcon(
+                    text = if(isExpanded) stringResource(Res.string.screen_network_new) else null,
+                    imageVector = Icons.AutoMirrored.Outlined.Send,
+                    onClick = {
+                        showAddNewModal.value = true
+                    }
                 )
             }
-            HorizontalPager(
-                modifier = Modifier.weight(1f),
-                state = pagerState,
-                beyondViewportPageCount = 1
-            ) { index ->
-                if(index == 0) {
-                    NetworkListContent(
-                        openAddNewModal = {
-                            showAddNewModal.value = true
-                        }
+        ) {
+            Column {
+                if(pagerState.pageCount > 1) {
+                    MultiChoiceSwitch(
+                        modifier = Modifier.fillMaxWidth(),
+                        state = switchThemeState
                     )
-                }else {
-                    NetworkReceivedContent()
+                }
+                HorizontalPager(
+                    modifier = Modifier.weight(1f),
+                    state = pagerState,
+                    beyondViewportPageCount = 1
+                ) { index ->
+                    if(index == 0) {
+                        NetworkListContent(
+                            refreshHandler = refreshHandler,
+                            openAddNewModal = {
+                                showAddNewModal.value = true
+                            }
+                        )
+                    }else {
+                        NetworkReceivedContent(refreshHandler = refreshHandler)
+                    }
                 }
             }
         }

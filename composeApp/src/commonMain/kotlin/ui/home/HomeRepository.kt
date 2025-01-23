@@ -27,7 +27,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ui.login.safeRequest
 import ui.network.connection.SocialConnectionUpdate
-import ui.network.list.NetworkListRepository.Companion.proximityDemoData
 
 class HomeRepository(
     private val httpClient: HttpClient,
@@ -39,7 +38,7 @@ class HomeRepository(
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<NetworkListResponse> {
                 get(urlString = "/api/v1/social/network/users")
-            }.takeIf { it.success != null } ?: BaseResponse.Success(NetworkListResponse(content = proximityDemoData))
+            }
         }
     }
 
