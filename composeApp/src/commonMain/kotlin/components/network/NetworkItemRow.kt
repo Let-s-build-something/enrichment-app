@@ -53,7 +53,7 @@ fun NetworkItemRow(
     data: NetworkItemIO?,
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
-    onAvatarClick: () -> Unit = {},
+    onAvatarClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {}
 ) {
     Crossfade(targetState = data != null) { isData ->
@@ -80,7 +80,7 @@ private fun ContentLayout(
     isChecked: Boolean?,
     isSelected: Boolean = false,
     data: NetworkItemIO?,
-    onAvatarClick: () -> Unit,
+    onAvatarClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {}
 ) {
     Column(
@@ -122,8 +122,8 @@ private fun ContentLayout(
                 }
                 UserProfileImage(
                     modifier = Modifier
-                        .scalingClickable {
-                            onAvatarClick()
+                        .scalingClickable(enabled = onAvatarClick != null) {
+                            onAvatarClick?.invoke()
                         }
                         .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                         .size(48.dp),

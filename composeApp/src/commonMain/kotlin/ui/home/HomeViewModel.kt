@@ -17,7 +17,6 @@ import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
 import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.shared.SharedViewModel
-import database.dao.NetworkItemDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -34,8 +33,8 @@ import org.koin.dsl.module
 
 internal val homeModule = module {
     single { HomeDataManager() }
-    factory { HomeRepository(get(), get(), get()) }
-    factory { HomeViewModel(get<HomeDataManager>(), get<HomeRepository>(), get()) }
+    factory { HomeRepository(get(), get(), get(), get()) }
+    factory { HomeViewModel(get<HomeDataManager>(), get<HomeRepository>()) }
     viewModelOf(::HomeViewModel)
 }
 
@@ -43,8 +42,7 @@ internal val homeModule = module {
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeViewModel(
     private val dataManager: HomeDataManager,
-    private val repository: HomeRepository,
-    private val networkItemDao: NetworkItemDao
+    private val repository: HomeRepository
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
@@ -113,12 +111,11 @@ class HomeViewModel(
 
     private suspend fun getNetworkItems() {
         if(dataManager.networkItems.value == null) {
-            repository.getNetworkItems().success?.data?.content?.let {
+            repository.getNetworkItems().let { res ->
                 withContext(Dispatchers.Default) {
-                    dataManager.networkItems.value = it.filter {
+                    dataManager.networkItems.value = res.filter {
                         _categories.value.any { category -> category.range.contains(it.proximity ?: 1f) }
                     }
-                    networkItemDao.insertAll(it)
                 }
             }
         }
@@ -168,6 +165,22 @@ class HomeViewModel(
             settings.putString(
                 KEY_NETWORK_COLORS,
                 sharedDataManager.localSettings.value?.networkColors?.joinToString(",") ?: ""
+            )
+        }
+    }
+
+    /** Creates a new invitation */
+    fun inviteToConversation(
+        conversationId: String?,
+        userPublicIds: List<String>,
+        message: String?
+    ) {
+        if(conversationId == null) return
+        viewModelScope.launch {
+            repository.inviteToConversation(
+                conversationId = conversationId,
+                userPublicIds = userPublicIds,
+                message = message
             )
         }
     }

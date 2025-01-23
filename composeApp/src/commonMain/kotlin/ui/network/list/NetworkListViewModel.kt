@@ -8,12 +8,14 @@ import androidx.paging.cachedIn
 import base.utils.tagToColor
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
+import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 
@@ -27,6 +29,8 @@ class NetworkListViewModel(
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
+    private val _conversations = MutableStateFlow<List<ConversationRoomIO>?>(null)
+
     /** flow of current requests */
     val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
         PagingConfig(
@@ -35,6 +39,9 @@ class NetworkListViewModel(
             initialLoadSize = 20
         )
     ).flow.cachedIn(viewModelScope)
+
+    /** List of all conversations on this device  */
+    val conversations = _conversations.asStateFlow()
 
     /** Customized colors */
     val customColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.transform { settings ->
@@ -58,6 +65,29 @@ class NetworkListViewModel(
                 proximity = proximity
             )
             onOperationDone()
+        }
+    }
+
+    /** Makes a request to retrieve all the conversations */
+    fun requestConversations() {
+        viewModelScope.launch {
+            _conversations.value = repository.getConversations()
+        }
+    }
+
+    /** Creates a new invitation */
+    fun inviteToConversation(
+        conversationId: String?,
+        userPublicId: String?,
+        message: String?
+    ) {
+        if(conversationId == null || userPublicId == null) return
+        viewModelScope.launch {
+            repository.inviteToConversation(
+                conversationId = conversationId,
+                userPublicId = userPublicId,
+                message = message
+            )
         }
     }
 }

@@ -1,8 +1,13 @@
 package ui.home
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
@@ -13,6 +18,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,19 +28,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Divider
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,11 +59,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.button_invite
+import augmy.composeapp.generated.resources.invite_message_explanation
+import augmy.composeapp.generated.resources.invite_message_hint
+import augmy.composeapp.generated.resources.invite_network_items_heading
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
@@ -56,7 +79,11 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.components.BrandHeaderButton
+import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavIconType
@@ -257,6 +284,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 conversationRooms.getOrNull(index).let { room ->
                                     ConversationRoomItem(
                                         modifier = Modifier.fillMaxWidth(),
+                                        viewModel = viewModel,
                                         room = room,
                                         selectedItem = selectedItem.value,
                                         requestProximityChange = { proximity ->
@@ -325,9 +353,11 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun ConversationRoomItem(
     modifier: Modifier = Modifier,
+    viewModel: HomeViewModel,
     selectedItem: String?,
     room: ConversationRoomIO?,
     customColors: Map<NetworkProximityCategory, Color>,
@@ -337,6 +367,143 @@ private fun ConversationRoomItem(
     onLongPress: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val showAddMembers = remember(room?.id) {
+        mutableStateOf(false)
+    }
+
+    if(showAddMembers.value) {
+        val networkItems = viewModel.networkItems.collectAsState()
+        val checkedItems = remember {
+            mutableStateListOf<String>()
+        }
+
+        SimpleModalBottomSheet(
+            scrollEnabled = false,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+            onDismissRequest = {
+                showAddMembers.value = false
+            }
+        ) {
+            Text(
+                modifier = Modifier.padding(horizontal = 6.dp),
+                text = stringResource(Res.string.invite_network_items_heading),
+                style = LocalTheme.current.styles.title
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .animateContentSize()
+                    .fillMaxWidth()
+            ) {
+                stickyHeader {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = checkedItems.size > 0,
+                        enter = slideInVertically (
+                            initialOffsetY = { -it },
+                            animationSpec = tween(DEFAULT_ANIMATION_LENGTH_SHORT)
+                        ),
+                        exit = slideOutVertically (
+                            targetOffsetY = { -it },
+                            animationSpec = tween(DEFAULT_ANIMATION_LENGTH_SHORT)
+                        )
+                    ) {
+                        val messageState = remember(room?.id) {
+                            val default = room?.summary?.invitationMessage ?: ""
+                            TextFieldState(
+                                initialText = default,
+                                initialSelection = TextRange(default.length)
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CustomTextField(
+                                modifier = Modifier
+                                    .padding(
+                                        horizontal = 8.dp,
+                                        vertical = 6.dp
+                                    )
+                                    .background(
+                                        LocalTheme.current.colors.backgroundLight,
+                                        shape = LocalTheme.current.shapes.componentShape
+                                    )
+                                    .requiredHeight(44.dp)
+                                    .weight(1f),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Send
+                                ),
+                                suggestText = stringResource(Res.string.invite_message_explanation),
+                                hint = stringResource(Res.string.invite_message_hint),
+                                state = messageState,
+                                onKeyboardAction = {
+                                    viewModel.inviteToConversation(
+                                        conversationId = room?.id,
+                                        userPublicIds = checkedItems.toList(),
+                                        message = messageState.text.toString()
+                                    )
+                                    showAddMembers.value = false
+                                },
+                                lineLimits = TextFieldLineLimits.SingleLine,
+                                shape = LocalTheme.current.shapes.componentShape
+                            )
+                            BrandHeaderButton(
+                                text = stringResource(Res.string.button_invite)
+                            ) {
+                                viewModel.inviteToConversation(
+                                    conversationId = room?.id,
+                                    userPublicIds = checkedItems.toList(),
+                                    message = messageState.text.toString()
+                                )
+                                showAddMembers.value = false
+                            }
+                        }
+                    }
+                }
+                items(
+                    items = networkItems.value.orEmpty(),
+                    key = { it.publicId }
+                ) { data ->
+                    Row(
+                        modifier = Modifier.padding(end = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        NetworkItemRow(
+                            modifier = Modifier
+                                .scalingClickable(
+                                    scaleInto = .95f,
+                                    onTap = {
+                                        if(checkedItems.contains(data.publicId)) {
+                                            checkedItems.remove(data.publicId)
+                                        }else {
+                                            checkedItems.add(data.publicId)
+                                        }
+                                    }
+                                )
+                                .weight(1f),
+                            data = data
+                        )
+                        Checkbox(
+                            checked = checkedItems.contains(data.publicId),
+                            onCheckedChange = {
+                                if(checkedItems.contains(data.publicId)) {
+                                    checkedItems.remove(data.publicId)
+                                }else {
+                                    checkedItems.add(data.publicId)
+                                }
+                            },
+                            colors = LocalTheme.current.styles.checkBoxColorsDefault
+                        )
+                    }
+                }
+                item {
+                    Spacer(Modifier.height(50.dp))
+                }
+            }
+        }
+    }
+
     Column(modifier = modifier) {
         NetworkItemRow(
             modifier = Modifier
@@ -383,7 +550,9 @@ private fun ConversationRoomItem(
                 SocialItemActions(
                     key = room?.id,
                     requestProximityChange = requestProximityChange,
-                    onInvite = {},
+                    onInvite = {
+                        showAddMembers.value = true
+                    },
                     newItem = NetworkItemIO(
                         name = room?.summary?.alias,
                         tag = room?.summary?.tag,

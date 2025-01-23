@@ -29,6 +29,9 @@ data class RoomSummary(
     /** Last message that happened in this room. */
     val lastMessage: MatrixEventContent.RoomMessageEvent? = null,
 
+    /** Message sent out to invited people by default if not changed. */
+    val invitationMessage: String? = null,
+
     /** The number of users with membership of invite. */
     @SerialName("invited_member_count")
     val invitedMembersCount: Int? = null,

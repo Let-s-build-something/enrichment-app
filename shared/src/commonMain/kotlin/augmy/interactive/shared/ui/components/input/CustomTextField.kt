@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -61,6 +62,7 @@ fun CustomTextField(
     lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
+    hint: String? = null,
     suggestText: String? = null,
     isCorrect: Boolean = false,
     enabled: Boolean = true
@@ -97,21 +99,36 @@ fun CustomTextField(
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BasicTextField(
+            Box(
                 modifier = Modifier
-                    .focusRequester(focusRequester)
                     .weight(1f, fill = true)
-                    .onFocusChanged {
-                        isFocused.value = it.isFocused
-                    }
                     .padding(paddingValues),
-                state = state,
-                cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
-                textStyle = textStyle,
-                lineLimits = lineLimits,
-                keyboardOptions = keyboardOptions,
-                onKeyboardAction = onKeyboardAction
-            )
+                contentAlignment = Alignment.CenterStart
+            ) {
+                BasicTextField(
+                    modifier = Modifier
+                        .focusRequester(focusRequester)
+                        .onFocusChanged {
+                            isFocused.value = it.isFocused
+                        },
+                    state = state,
+                    cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
+                    textStyle = textStyle,
+                    lineLimits = lineLimits,
+                    keyboardOptions = keyboardOptions,
+                    onKeyboardAction = onKeyboardAction
+                )
+                if(hint != null) {
+                    androidx.compose.animation.AnimatedVisibility(state.text.isEmpty()) {
+                        Text(
+                            text = hint,
+                            style = textStyle.copy(
+                                color = colors.disabledTextColor
+                            )
+                        )
+                    }
+                }
+            }
             trailingIcon?.invoke()
             Spacer(Modifier.width(16.dp))
         }
