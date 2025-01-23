@@ -20,6 +20,9 @@ data class RoomSummary(
     /** Tag - non-unique identification of the room. */
     val tag: String? = null,
 
+    /** Avatar photo url. */
+    val avatarUrl: String? = null,
+
     /** The room’s canonical alias. */
     val proximity: Float? = null,
 

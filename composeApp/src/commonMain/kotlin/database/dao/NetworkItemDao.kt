@@ -23,6 +23,20 @@ interface NetworkItemDao {
         offset: Int
     ): List<NetworkItemIO>
 
+    /** Returns all network items specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND user_public_id != :excludeId " +
+            "AND proximity BETWEEN :proximityMin AND :proximityMax " +
+            "LIMIT :count")
+    suspend fun getByProximity(
+        count: Int,
+        ownerPublicId: String?,
+        proximityMin: Float,
+        proximityMax: Float,
+        excludeId: String?
+    ): List<NetworkItemIO>
+
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId")

@@ -34,7 +34,7 @@ import org.koin.dsl.module
 
 internal val homeModule = module {
     single { HomeDataManager() }
-    factory { HomeRepository(get(), get(), get(), get()) }
+    factory { HomeRepository(get(), get(), get()) }
     factory { HomeViewModel(get<HomeDataManager>(), get<HomeRepository>(), get()) }
     viewModelOf(::HomeViewModel)
 }
@@ -136,19 +136,18 @@ class HomeViewModel(
         }
     }
 
-    /** Makes a request for changes of proximity related to the [selectedConnections] */
+    /** Makes a request for a change of proximity of a conversation */
     fun requestProximityChange(
-        selectedConnections: List<String>,
+        conversationId: String?,
         proximity: Float,
         onOperationDone: () -> Unit = {}
     ) {
+        if(conversationId == null) return
         viewModelScope.launch(Dispatchers.IO) {
-            selectedConnections.forEach { publicId ->
-                repository.patchNetworkConnection(
-                    publicId = publicId,
-                    proximity = proximity
-                )
-            }
+            repository.patchConversationProximity(
+                id = conversationId,
+                proximity = proximity
+            )
             onOperationDone()
         }
     }

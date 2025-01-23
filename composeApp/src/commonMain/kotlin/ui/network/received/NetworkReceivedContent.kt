@@ -35,20 +35,24 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.account.shareProfile
+import ui.network.RefreshHandler
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Layout displaying currently pending requests for inclusion to social circles */
 @OptIn(ExperimentalUuidApi::class)
 @Composable
-fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()) {
+fun NetworkReceivedContent(
+    viewModel: NetworkReceivedViewModel = koinViewModel(),
+    refreshHandler: RefreshHandler
+) {
     val requests = viewModel.requests.collectAsLazyPagingItems()
     val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
 
+    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHost.current
     val clipboardManager = LocalClipboardManager.current
-    val coroutineScope = rememberCoroutineScope()
     val isLoadingInitialPage = requests.loadState.refresh is LoadState.Loading
 
     LaunchedEffect(Unit) {
@@ -59,6 +63,13 @@ fun NetworkReceivedContent(viewModel: NetworkReceivedViewModel = koinViewModel()
                     message = getString(Res.string.network_request_accepted)
                 )
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshHandler.addListener {
+            viewModel.requestData(isSpecial = true, isPullRefresh = true)
+            requests.refresh()
         }
     }
 
