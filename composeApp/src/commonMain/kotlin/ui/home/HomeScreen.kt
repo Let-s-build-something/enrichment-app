@@ -60,6 +60,8 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_cancel
+import augmy.composeapp.generated.resources.accessibility_save
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
@@ -80,6 +82,8 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.OutlinedButton
+import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
@@ -103,7 +107,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.context.loadKoinModules
 import ui.network.add_new.NetworkAddNewLauncher
+import ui.network.add_new.ProximityPicker
+import ui.network.add_new.networkAddNewModule
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
 import ui.network.profile.UserProfileLauncher
 import kotlin.uuid.ExperimentalUuidApi
@@ -381,6 +388,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoomActions(
     data: ConversationRoomIO?,
@@ -396,6 +404,10 @@ private fun RoomActions(
     val showInviteDialog = remember(data?.id) {
         mutableStateOf(false)
     }
+    val selectedCategory = remember {
+        mutableStateOf(NetworkProximityCategory.Public)
+    }
+    val actionsState = rememberScrollState()
 
     showActionDialog.value?.let { action ->
         AlertDialog(
@@ -414,7 +426,7 @@ private fun RoomActions(
                 text = stringResource(Res.string.button_confirm)
             ) {
                 viewModel.requestProximityChange(
-                    selectedConnections = listOf(data?.id ?: ""),
+                    conversationId = data?.id,
                     proximity = if(action == OptionsLayoutAction.Mute) {
                         NetworkProximityCategory.Public.range.start
                     }else BlockedProximityValue,
@@ -432,7 +444,52 @@ private fun RoomActions(
         )
     }
 
-    val actionsState = rememberScrollState()
+    if(showMoveCircleDialog.value) {
+        loadKoinModules(networkAddNewModule)
+
+        SimpleModalBottomSheet(
+            onDismissRequest = {
+                showMoveCircleDialog.value = false
+            },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ProximityPicker(
+                viewModel = koinViewModel(),
+                selectedCategory = selectedCategory.value,
+                onSelectionChange = {
+                    selectedCategory.value = it
+                }
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, alignment = Alignment.End)
+            ) {
+                OutlinedButton(
+                    text = stringResource(Res.string.accessibility_cancel),
+                    onClick = {
+                        showMoveCircleDialog.value = false
+                    },
+                    activeColor = SharedColors.RED_ERROR_50
+                )
+                OutlinedButton(
+                    text = stringResource(Res.string.accessibility_save),
+                    onClick = {
+                        viewModel.requestProximityChange(
+                            conversationId = data?.id,
+                            proximity = selectedCategory.value.range.start,
+                            onOperationDone = {
+                                refreshRequest()
+                            }
+                        )
+                    },
+                    activeColor = LocalTheme.current.colors.brandMain
+                )
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -453,6 +510,7 @@ private fun RoomActions(
                 .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
         ) {
+            Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
             ScalingIcon(
                 color = SharedColors.RED_ERROR.copy(.6f),
                 imageVector = Icons.Outlined.FaceRetouchingOff,

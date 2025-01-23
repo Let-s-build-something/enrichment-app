@@ -17,6 +17,7 @@ import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.shared.DemoData.demoConversationDetail
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import korlibs.io.net.MimeType
@@ -33,7 +34,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.conversation.ConversationRepository.Companion.demoConversationDetail
 import ui.conversation.components.KeyboardViewModel
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.audioProcessorModule

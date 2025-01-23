@@ -38,7 +38,7 @@ class RoomsRemoteMediator(
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
-            pagingMetaDao.getCreationTime(PagingEntityType.ConversationMessage.name) ?: 0
+            pagingMetaDao.getCreationTime(PagingEntityType.ConversationRoom.name) ?: 0
         )
 
         return if (timeElapsed < cacheTimeoutMillis) {
@@ -86,7 +86,7 @@ class RoomsRemoteMediator(
                 if (loadType == LoadType.REFRESH) {
                     batch = null
                     pagingMetaDao.removeAll()
-                    conversationRoomDao.removeAll()
+                    //conversationRoomDao.removeAll()
                 }
                 items?.map { item ->
                     MatrixPagingMetaIO(

@@ -1,9 +1,10 @@
 package data.shared
 
-import augmy.interactive.shared.ui.base.currentPlatform
 import data.io.app.LocalSettings
 import data.io.user.RequestGetUser
 import data.io.user.UserIO
+import database.dao.ConversationMessageDao
+import database.dao.ConversationRoomDao
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
@@ -15,6 +16,8 @@ import io.ktor.http.parameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import org.koin.mp.KoinPlatform.getKoin
+import ui.home.HomeRepository.Companion.INITIAL_BATCH
 import ui.login.safeRequest
 
 open class SharedRepository(private val httpClient: HttpClient) {
@@ -29,8 +32,31 @@ open class SharedRepository(private val httpClient: HttpClient) {
                             RequestGetUser(fcmToken = localSettings?.fcmToken)
                         )
                     }
-                }.success?.data ?: UserIO()
+                }.success?.data?.also {
+                    injectDemoData(Firebase.auth.currentUser?.uid)
+                } ?: UserIO()
             }else null
+        }
+    }
+
+    //TODO remove DEMO data once not needed
+    private suspend fun injectDemoData(publicId: String?) {
+        withContext(Dispatchers.IO) {
+            val conversationRoomDao: ConversationRoomDao = getKoin().get()
+            val conversationMessageDao: ConversationMessageDao = getKoin().get()
+
+            if(conversationRoomDao.getCount(publicId) == 0) {
+                conversationRoomDao.insertAll(DemoData.demoRooms.onEach { room ->
+                    room.batch = INITIAL_BATCH
+                    room.ownerPublicId = publicId
+                })
+                conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
+                    it.conversationId = DemoData.demoRooms.getOrNull(0)?.id
+                })
+                conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
+                    it.conversationId = DemoData.demoRooms.getOrNull(1)?.id
+                })
+            }
         }
     }
 }

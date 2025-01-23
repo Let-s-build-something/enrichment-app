@@ -28,6 +28,15 @@ interface ConversationRoomDao {
     ): List<ConversationRoomIO>
 
     /** Counts the number of items */
+    @Query("UPDATE ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+            "SET proximity = :proximity " +
+            "WHERE id = :id ")
+    suspend fun updateProximity(
+        id: String?,
+        proximity: Float
+    )
+
+    /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int

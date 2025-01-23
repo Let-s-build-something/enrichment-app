@@ -56,6 +56,7 @@ import augmy.composeapp.generated.resources.network_inclusion_proximity_title
 import augmy.composeapp.generated.resources.network_inclusion_success
 import augmy.composeapp.generated.resources.network_inclusion_success_action
 import augmy.composeapp.generated.resources.screen_network_new
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.BrandHeaderButton
@@ -67,7 +68,6 @@ import base.navigation.NavigationNode
 import components.AsyncSvgImage
 import data.NetworkProximityCategory
 import data.io.ApiErrorCode
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -98,8 +98,6 @@ fun NetworkAddNewLauncher(
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
     val isLoading = viewModel.isLoading.collectAsState()
-    val customColors = viewModel.customColors.collectAsState(initial = hashMapOf())
-    val recommendedUsers = viewModel.recommendedUsers.collectAsState(initial = hashMapOf())
 
     val inputDisplayName = rememberSaveable {
         mutableStateOf(displayName ?: "")
@@ -258,89 +256,13 @@ fun NetworkAddNewLauncher(
             visible = showProximityChoice.value,
             enter = expandVertically() + fadeIn()
         ) {
-            Column {
-                Text(
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .fillMaxWidth(),
-                    text = stringResource(Res.string.network_inclusion_proximity_title),
-                    style = LocalTheme.current.styles.category
-                )
-                Row(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .fillMaxWidth(),
-                ) {
-                    val corner = LocalTheme.current.shapes.componentCornerRadius
-                    NetworkProximityCategory.entries.forEachIndexed { index, category ->
-                        val weight = animateFloatAsState(
-                            targetValue = if(selectedCategory.value == category) 3f else 1f,
-                            label = "weightChange"
-                        )
-                        val colorAlpha = animateFloatAsState(
-                            targetValue = if(selectedCategory.value == category) 1f else .7f,
-                            label = "alphaChange"
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .background(
-                                    color = (customColors.value[category] ?: category.color).copy(colorAlpha.value),
-                                    shape = RoundedCornerShape(
-                                        bottomStart = if(index == 0) corner else 0.dp,
-                                        topStart= if(index == 0) corner else 0.dp,
-                                        bottomEnd = if(index == NetworkProximityCategory.entries.lastIndex) corner else 0.dp,
-                                        topEnd = if(index == NetworkProximityCategory.entries.lastIndex) corner else 0.dp
-                                    )
-                                )
-                                .weight(weight.value)
-                                .fillMaxHeight()
-                                .animateContentSize()
-                                .scalingClickable(scaleInto = .95f) {
-                                    selectedCategory.value = category
-                                },
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                                text = stringResource(category.res),
-                                style = LocalTheme.current.styles.category.copy(
-                                    color = Color.White.copy(colorAlpha.value),
-                                    textAlign = TextAlign.Center
-                                ),
-                                maxLines = 1
-                            )
-                            recommendedUsers.value?.get(category)?.let { users ->
-                                users.forEach { user ->
-                                    Row(
-                                        modifier = Modifier.padding(LocalTheme.current.shapes.betweenItemsSpace / 2),
-                                        horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AsyncSvgImage(
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .size(42.dp),
-                                            model = user.photoUrl,
-                                            contentDescription = null
-                                        )
-                                        if(selectedCategory.value == category) {
-                                            Text(
-                                                modifier = Modifier.weight(1f),
-                                                text = user.name ?: "",
-                                                style = LocalTheme.current.styles.category,
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+            ProximityPicker(
+                viewModel = viewModel,
+                selectedCategory = selectedCategory.value,
+                onSelectionChange = {
+                    selectedCategory.value = it
                 }
-            }
+            )
         }
 
         BrandHeaderButton(
@@ -356,5 +278,100 @@ fun NetworkAddNewLauncher(
                 )
             }
         )
+    }
+}
+
+@Composable
+fun ProximityPicker(
+    modifier: Modifier = Modifier,
+    viewModel: NetworkAddNewViewModel,
+    selectedCategory: NetworkProximityCategory,
+    onSelectionChange: (NetworkProximityCategory) -> Unit
+) {
+    val customColors = viewModel.customColors.collectAsState(initial = hashMapOf())
+    val recommendedUsers = viewModel.recommendedUsers.collectAsState(initial = hashMapOf())
+
+    Column(modifier = modifier) {
+        Text(
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .fillMaxWidth(),
+            text = stringResource(Res.string.network_inclusion_proximity_title),
+            style = LocalTheme.current.styles.subheading
+        )
+        Row(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .fillMaxWidth(),
+        ) {
+            val corner = LocalTheme.current.shapes.componentCornerRadius
+            NetworkProximityCategory.entries.forEachIndexed { index, category ->
+                val weight = animateFloatAsState(
+                    targetValue = if(selectedCategory == category) 3f else 1f,
+                    label = "weightChange"
+                )
+                val colorAlpha = animateFloatAsState(
+                    targetValue = if(selectedCategory == category) 1f else .7f,
+                    label = "alphaChange"
+                )
+
+                Column(
+                    modifier = Modifier
+                        .background(
+                            color = (customColors.value[category] ?: category.color).copy(colorAlpha.value),
+                            shape = RoundedCornerShape(
+                                bottomStart = if(index == 0) corner else 0.dp,
+                                topStart= if(index == 0) corner else 0.dp,
+                                bottomEnd = if(index == NetworkProximityCategory.entries.lastIndex) corner else 0.dp,
+                                topEnd = if(index == NetworkProximityCategory.entries.lastIndex) corner else 0.dp
+                            )
+                        )
+                        .weight(weight.value)
+                        .fillMaxHeight()
+                        .animateContentSize()
+                        .scalingClickable(scaleInto = .95f) {
+                            onSelectionChange(category)
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        text = stringResource(category.res),
+                        style = LocalTheme.current.styles.category.copy(
+                            color = Color.White.copy(colorAlpha.value),
+                            textAlign = TextAlign.Center
+                        ),
+                        maxLines = 1
+                    )
+                    recommendedUsers.value?.get(category)?.let { users ->
+                        users.forEach { user ->
+                            Row(
+                                modifier = Modifier.padding(LocalTheme.current.shapes.betweenItemsSpace / 2),
+                                horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncSvgImage(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .size(42.dp),
+                                    model = user.photoUrl,
+                                    contentDescription = null
+                                )
+                                if(selectedCategory == category) {
+                                    Text(
+                                        modifier = Modifier.weight(1f),
+                                        text = user.name ?: "",
+                                        style = LocalTheme.current.styles.category,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
