@@ -78,6 +78,8 @@
   <string name="account_settings_title_offline">You're offline :-(</string>
   <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
 
+  <string name="invite_new_item_conversation">Name of the conversation</string>
+  <string name="invite_new_item_button">Create new</string>
   <string name="invite_network_items_heading">There's only one way to figure out whether they'll fit in. Select people who should be invited.</string>
   <string name="invite_conversation_heading">How funny it'd be to drop %1$s into a conversation with someone completely different?</string>
   <string name="invite_message_explanation">Message sent along with the invitation</string>

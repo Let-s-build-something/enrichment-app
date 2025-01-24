@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.home.utils.networkItemModule
 import ui.network.list.NetworkListRepository
 import ui.network.list.NetworkListViewModel
 
@@ -92,6 +93,7 @@ internal val networkManagementModule = module {
     factory { NetworkReceivedRepository(get()) }
     viewModelOf(::NetworkReceivedViewModel)
 
-    factory { NetworkListRepository(get(), get(), get(), get()) }
+    includes(networkItemModule)
+    factory { NetworkListRepository(get(), get(), get()) }
     viewModelOf(::NetworkListViewModel)
 }

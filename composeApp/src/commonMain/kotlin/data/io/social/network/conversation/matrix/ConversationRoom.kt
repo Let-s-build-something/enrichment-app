@@ -3,6 +3,7 @@ package data.io.social.network.conversation.matrix
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -72,4 +73,13 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             state != null -> RoomType.Left
             else -> RoomType.Joined
         }
+
+    /** Converts this item to a network item representation */
+    fun toNetworkItem() = NetworkItemIO(
+        publicId = id,
+        name = summary?.alias,
+        tag = summary?.tag,
+        photoUrl = summary?.avatarUrl,
+        lastMessage = summary?.lastMessage?.body
+    )
 }

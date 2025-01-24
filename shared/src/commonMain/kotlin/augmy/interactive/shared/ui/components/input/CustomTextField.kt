@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -55,6 +54,7 @@ fun CustomTextField(
         top = 8.dp,
         bottom = 8.dp
     ),
+    showBorders: Boolean = true,
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
@@ -69,16 +69,18 @@ fun CustomTextField(
 ) {
     val focusRequester = remember(state) { FocusRequester() }
     val isFocused = remember(state.text) { mutableStateOf(false) }
-    val controlColor by animateColorAsState(
-        when {
-            errorText != null -> colors.errorTextColor
-            isCorrect -> SharedColors.GREEN_CORRECT
-            isFocused.value -> colors.focusedTextColor
-            !enabled -> colors.disabledTextColor
-            else -> colors.unfocusedTextColor
-        },
-        label = "controlColorChange"
-    )
+    val controlColor = if(showBorders) {
+        animateColorAsState(
+            when {
+                errorText != null -> colors.errorTextColor
+                isCorrect -> SharedColors.GREEN_CORRECT
+                isFocused.value -> colors.focusedTextColor
+                !enabled -> colors.disabledTextColor
+                else -> colors.unfocusedTextColor
+            },
+            label = "controlColorChange"
+        )
+    }else null
 
     Column(
         modifier = modifier
@@ -89,10 +91,14 @@ fun CustomTextField(
         Row(
             Modifier
                 .fillMaxSize()
-                .border(
-                    width = if (isFocused.value) 1.dp else 0.25.dp,
-                    color = controlColor,
-                    shape = shape
+                .then(
+                    controlColor?.value?.let {
+                        Modifier.border(
+                            width = if (isFocused.value) 1.dp else 0.25.dp,
+                            color = it,
+                            shape = shape
+                        )
+                    } ?: Modifier
                 )
                 .clickable(indication = null, interactionSource = null) {
                     focusRequester.requestFocus()

@@ -7,21 +7,15 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
-import data.io.social.network.conversation.RoomInvitationRequest
-import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
-import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -30,35 +24,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ui.login.safeRequest
-import ui.network.connection.SocialConnectionUpdate
 import kotlin.uuid.ExperimentalUuidApi
 
 /** Class for calling APIs and remote work in general */
 class NetworkListRepository(
     private val httpClient: HttpClient,
     private val networkItemDao: NetworkItemDao,
-    private val pagingMetaDao: PagingMetaDao,
-    private val conversationRoomDao: ConversationRoomDao
+    private val pagingMetaDao: PagingMetaDao
 ) {
-
-    /** Updates a network item's proximity */
-    suspend fun patchNetworkProximity(publicId: String, proximity: Float): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            networkItemDao.updateProximity(
-                publicId = publicId,
-                proximity = proximity
-            )
-
-            httpClient.safeRequest<NetworkListResponse> {
-                patch(
-                    urlString = "/api/v1/social/network/$publicId",
-                    block = {
-                        setBody(SocialConnectionUpdate(proximity = proximity))
-                    }
-                )
-            }
-        }
-    }
 
     /** returns a list of network list */
     private suspend fun getNetworkList(page: Int, size: Int): BaseResponse<NetworkListResponse> {
@@ -125,36 +98,5 @@ class NetworkListRepository(
                 }
             )
         )
-    }
-
-    /** Retrieves all the conversations */
-    suspend fun getConversations(): List<ConversationRoomIO> {
-        return withContext(Dispatchers.IO) {
-            conversationRoomDao.getNonFiltered()
-        }
-    }
-
-    /** Creates a new invitation */
-    suspend fun inviteToConversation(
-        conversationId: String,
-        userPublicId: String,
-        message: String?
-    ): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/conversation/invite",
-                    block = {
-                        setBody(
-                            RoomInvitationRequest(
-                                conversationId = conversationId,
-                                userPublicIds = listOf(userPublicId),
-                                message = message
-                            )
-                        )
-                    }
-                )
-            }
-        }
     }
 }

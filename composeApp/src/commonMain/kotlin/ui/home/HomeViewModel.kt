@@ -21,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transform
@@ -30,29 +29,29 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.home.utils.NetworkItemUseCase
+import ui.home.utils.networkItemModule
 
 internal val homeModule = module {
-    single { HomeDataManager() }
-    factory { HomeRepository(get(), get(), get(), get()) }
-    factory { HomeViewModel(get<HomeDataManager>(), get<HomeRepository>()) }
+    includes(networkItemModule)
+    factory { HomeRepository(get(), get(), get()) }
+    factory { HomeViewModel(get<HomeRepository>(), get()) }
     viewModelOf(::HomeViewModel)
 }
 
 
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeViewModel(
-    private val dataManager: HomeDataManager,
-    private val repository: HomeRepository
+    repository: HomeRepository,
+    private val networkItemUseCase: NetworkItemUseCase
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
-    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
-        getNetworkItems()
-    }
+    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
-    private val _categories = MutableStateFlow(listOf<NetworkProximityCategory>())
+    private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -74,8 +73,10 @@ class HomeViewModel(
         }
     }
 
-    /** List of network items */
-    val networkItems = dataManager.networkItems.asStateFlow()
+    val networkItems = networkItemUseCase.networkItems
+    val openConversations = networkItemUseCase.openConversations
+    val isLoading = networkItemUseCase.isLoading
+    val response = networkItemUseCase.invitationResponse
 
     /** flow of current requests */
     val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
@@ -105,19 +106,7 @@ class HomeViewModel(
                 ?: NetworkProximityCategory.entries
         }
         viewModelScope.launch {
-            getNetworkItems()
-        }
-    }
-
-    private suspend fun getNetworkItems() {
-        if(dataManager.networkItems.value == null) {
-            repository.getNetworkItems().let { res ->
-                withContext(Dispatchers.Default) {
-                    dataManager.networkItems.value = res.filter {
-                        _categories.value.any { category -> category.range.contains(it.proximity ?: 1f) }
-                    }
-                }
-            }
+            networkItemUseCase.getNetworkItems()
         }
     }
 
@@ -130,22 +119,6 @@ class HomeViewModel(
                 KEY_NETWORK_CATEGORIES,
                 filter.joinToString(",")
             )
-        }
-    }
-
-    /** Makes a request for a change of proximity of a conversation */
-    fun requestProximityChange(
-        conversationId: String?,
-        proximity: Float,
-        onOperationDone: () -> Unit = {}
-    ) {
-        if(conversationId == null) return
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.patchConversationProximity(
-                id = conversationId,
-                proximity = proximity
-            )
-            onOperationDone()
         }
     }
 
@@ -169,18 +142,44 @@ class HomeViewModel(
         }
     }
 
-    /** Creates a new invitation */
-    fun inviteToConversation(
+    /** Makes a request for all open rooms */
+    fun requestOpenRooms() {
+        viewModelScope.launch {
+            networkItemUseCase.requestOpenRooms()
+        }
+    }
+
+    /** Makes a request for a change of proximity of a conversation */
+    fun requestProximityChange(
         conversationId: String?,
-        userPublicIds: List<String>,
-        message: String?
+        publicId: String?,
+        proximity: Float,
+        onOperationDone: () -> Unit = {}
     ) {
         if(conversationId == null) return
         viewModelScope.launch {
-            repository.inviteToConversation(
+            networkItemUseCase.requestProximityChange(
+                conversationId = conversationId,
+                publicId = publicId,
+                proximity = proximity
+            )
+            onOperationDone()
+        }
+    }
+
+    /** Creates a new invitation to a conversation room */
+    fun inviteToConversation(
+        conversationId: String?,
+        userPublicIds: List<String>?,
+        message: String?,
+        newName: String? = null
+    ) {
+        viewModelScope.launch {
+            networkItemUseCase.inviteToConversation(
                 conversationId = conversationId,
                 userPublicIds = userPublicIds,
-                message = message
+                message = message,
+                newName = newName
             )
         }
     }

@@ -39,6 +39,7 @@ import augmy.composeapp.generated.resources.network_preferences_circle_colors
 import augmy.composeapp.generated.resources.network_preferences_default_message
 import augmy.composeapp.generated.resources.network_preferences_default_name
 import augmy.composeapp.generated.resources.network_preferences_title
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -47,7 +48,6 @@ import base.theme.Colors
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
-import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -120,6 +120,7 @@ fun NetworkPreferencesLauncher(
                     ) {
                         NetworkItemRow(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
                             data = NetworkItemIO(

@@ -8,28 +8,24 @@ import androidx.paging.cachedIn
 import base.utils.tagToColor
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
-import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
+import ui.home.utils.NetworkItemUseCase
 
 /** Communication between the UI, the control layers, and control and data layers */
 class NetworkListViewModel(
-    private val repository: NetworkListRepository
+    repository: NetworkListRepository,
+    private val networkItemUseCase: NetworkItemUseCase
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
-
-    private val _conversations = MutableStateFlow<List<ConversationRoomIO>?>(null)
 
     /** flow of current requests */
     val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
@@ -40,9 +36,6 @@ class NetworkListViewModel(
         )
     ).flow.cachedIn(viewModelScope)
 
-    /** List of all conversations on this device  */
-    val conversations = _conversations.asStateFlow()
-
     /** Customized colors */
     val customColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.transform { settings ->
         settings?.networkColors?.mapIndexedNotNull { index, s ->
@@ -52,15 +45,28 @@ class NetworkListViewModel(
         }.orEmpty().toMap()
     }
 
+    val openConversations = networkItemUseCase.openConversations
+    val isLoading = networkItemUseCase.isLoading
+    val response = networkItemUseCase.invitationResponse
+
+    /** Makes a request for all open rooms */
+    fun requestOpenConversations() {
+        viewModelScope.launch {
+            networkItemUseCase.requestOpenRooms()
+        }
+    }
+
     /** Makes a request for a change of proximity of a conversation */
     fun requestProximityChange(
+        conversationId: String? = null,
         publicId: String?,
         proximity: Float,
         onOperationDone: () -> Unit = {}
     ) {
-        if(publicId == null) return
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.patchNetworkProximity(
+        if(conversationId == null) return
+        viewModelScope.launch {
+            networkItemUseCase.requestProximityChange(
+                conversationId = conversationId,
                 publicId = publicId,
                 proximity = proximity
             )
@@ -68,25 +74,19 @@ class NetworkListViewModel(
         }
     }
 
-    /** Makes a request to retrieve all the conversations */
-    fun requestConversations() {
-        viewModelScope.launch {
-            _conversations.value = repository.getConversations()
-        }
-    }
-
-    /** Creates a new invitation */
+    /** Creates a new invitation to a conversation room */
     fun inviteToConversation(
         conversationId: String?,
-        userPublicId: String?,
-        message: String?
+        userPublicIds: List<String>?,
+        message: String?,
+        newName: String? = null
     ) {
-        if(conversationId == null || userPublicId == null) return
         viewModelScope.launch {
-            repository.inviteToConversation(
+            networkItemUseCase.inviteToConversation(
                 conversationId = conversationId,
-                userPublicId = userPublicId,
-                message = message
+                userPublicIds = userPublicIds,
+                message = message,
+                newName = newName
             )
         }
     }

@@ -1,5 +1,6 @@
 package data.io.social.network.conversation.matrix
 
+import data.io.user.NetworkItemIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -13,6 +14,9 @@ data class RoomSummary(
     /** This should be the first 5 members of the room, ordered by stream ordering, which are joined or invited.
      *  The list must never include the client’s own user ID. */
     val heroes: List<String>? = null,
+
+    /** List of members */
+    val members: List<NetworkItemIO>? = null,
 
     /** Name of the room. */
     val canonicalAlias: String? = null,
@@ -28,6 +32,9 @@ data class RoomSummary(
 
     /** Last message that happened in this room. */
     val lastMessage: MatrixEventContent.RoomMessageEvent? = null,
+
+    /** Whether this room is just one on one. */
+    val isDirect: Boolean? = null,
 
     /** Message sent out to invited people by default if not changed. */
     val invitationMessage: String? = null,

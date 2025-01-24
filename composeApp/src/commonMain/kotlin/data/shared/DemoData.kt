@@ -21,14 +21,20 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal object DemoData {
+    @OptIn(ExperimentalUuidApi::class)
+    val newRoomId: String
+        get() = Uuid.random().toString()
+
     val demoRooms = listOf(
         ConversationRoomIO(
             id = "1",
             summary = RoomSummary(
                 heroes = listOf("1"),
+                canonicalAlias = "Jack'omygod",
                 lastMessage = MatrixEventContent.RoomMessageEvent(body = "Hey, what's up?"),
                 joinedMemberCount = 2,
-                avatarUrl = "https://wallpapers.com/images/hd/cool-xbox-profile-pictures-9dtcc745il694rjs.jpg"
+                avatarUrl = "https://wallpapers.com/images/hd/cool-xbox-profile-pictures-9dtcc745il694rjs.jpg",
+                isDirect = true
             ),
             proximity = 5f
         ),
@@ -40,7 +46,8 @@ internal object DemoData {
                 canonicalAlias = "Gamer's room",
                 lastMessage = MatrixEventContent.RoomMessageEvent(body = "That's terrible:D"),
                 joinedMemberCount = 2,
-                avatarUrl = "https://sguru.org/wp-content/uploads/2017/06/cool-gaming-profile-pictures-youtube_profile.jpg"
+                avatarUrl = "https://sguru.org/wp-content/uploads/2017/06/cool-gaming-profile-pictures-youtube_profile.jpg",
+                isDirect = false
             ),
             proximity = 2f
         )
