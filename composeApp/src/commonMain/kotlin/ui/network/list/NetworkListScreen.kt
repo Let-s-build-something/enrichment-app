@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -23,16 +24,18 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.invite_conversation_heading
+import augmy.composeapp.generated.resources.invite_new_item_conversation
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ext.scalingClickable
@@ -40,6 +43,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
+import base.navigation.NavigationNode
 import base.utils.getOrNull
 import collectResult
 import components.EmptyLayout
@@ -49,10 +53,12 @@ import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.network.RefreshHandler
+import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
 import ui.network.profile.UserProfileLauncher
 import kotlin.uuid.ExperimentalUuidApi
@@ -75,7 +81,6 @@ fun NetworkListContent(
     val navController = LocalNavController.current
     val isLoadingInitialPage = networkItems.loadState.refresh is LoadState.Loading
 
-    val checkedItems = remember { mutableStateListOf<String?>() }
     val selectedItem = remember { mutableStateOf<String?>(null) }
     val selectedUser = remember {
         mutableStateOf<NetworkItemIO?>(null)
@@ -151,95 +156,185 @@ fun NetworkListContent(
                 key = { index -> networkItems.getOrNull(index)?.userPublicId ?: Uuid.random().toString() }
             ) { index ->
                 networkItems.getOrNull(index).let { data ->
-                    NetworkItemRow(
-                        modifier = Modifier
-                            .scalingClickable(
-                                hoverEnabled = selectedItem.value != data?.userPublicId,
-                                scaleInto = .9f,
-                                onTap = {
-                                    selectedItem.value = if(selectedItem.value != data?.userPublicId) {
-                                        data?.userPublicId
-                                    }else null
-                                },
-                                onLongPress = {
-                                    selectedItem.value = data?.userPublicId
+                    NetworkItem(
+                        modifier = Modifier.animateItem(),
+                        viewModel = viewModel,
+                        selectedItem = selectedItem.value,
+                        data = data,
+                        customColors = customColors.value,
+                        requestProximityChange = { proximity ->
+                            viewModel.requestProximityChange(
+                                publicId = data?.publicId,
+                                proximity = proximity,
+                                onOperationDone = {
+                                    if(selectedItem.value == data?.userPublicId) {
+                                        selectedItem.value = null
+                                    }
+                                    networkItems.refresh()
                                 }
                             )
-                            .then(
-                                (if(selectedItem.value != null && selectedItem.value == data?.userPublicId) {
-                                    Modifier
-                                        .background(
-                                            color = LocalTheme.current.colors.backgroundLight,
-                                            shape = LocalTheme.current.shapes.rectangularActionShape
-                                        )
-                                        .border(
-                                            width = 2.dp,
-                                            color = LocalTheme.current.colors.backgroundDark,
-                                            shape = LocalTheme.current.shapes.rectangularActionShape
-                                        )
-                                }else Modifier)
-                            )
-                            .fillMaxWidth()
-                            .animateItem(),
-                        isChecked = if(checkedItems.size > 0) {
-                            checkedItems.contains(data?.userPublicId)
-                        }else null,
-                        data = data,
-                        indicatorColor = NetworkProximityCategory.entries.firstOrNull {
-                            it.range.contains(data?.proximity ?: 1f)
-                        }.let {
-                            customColors.value[it] ?: it?.color
                         },
                         onAvatarClick = {
                             coroutineScope.launch(Dispatchers.Default) {
                                 selectedUser.value = data
                             }
                         },
-                        isSelected = selectedItem.value == data?.userPublicId,
-                        actions = {
-                            if(data != null) {
-                                SocialItemActions(
-                                    key = data.userPublicId,
-                                    requestProximityChange = { proximity ->
-                                        viewModel.requestProximityChange(
-                                            publicId = data.publicId,
-                                            proximity = proximity,
-                                            onOperationDone = {
-                                                if(selectedItem.value == data.userPublicId) {
-                                                    selectedItem.value = null
-                                                }
-                                                networkItems.refresh()
-                                            }
-                                        )
-                                    },
-                                    onInvite = {},
-                                    newItem = data
-                                )
-                            }
+                        onTap = {
+                            selectedItem.value = if(selectedItem.value != data?.userPublicId) {
+                                data?.userPublicId
+                            }else null
+                        },
+                        onLongPress = {
+                            selectedItem.value = data?.userPublicId
                         }
-                        /*onCheckChange = { isLongClick ->
-                            when {
-                                checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
-                                isLongClick || checkedItems.size > 0 -> {
-                                    selectedItem.value = null
-                                    checkedItems.add(data?.userPublicId)
-                                }
-                                else -> {
-                                    selectedItem.value = if(selectedItem.value == data?.userPublicId) null else data?.userPublicId
-                                }
-                            }
-                        }*/
-                    )
-                    if(networkItems.itemCount - 1 != index) {
-                        Divider(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = LocalTheme.current.colors.disabledComponent,
-                            thickness = .3.dp
-                        )
+                    ) {
+                        if(networkItems.itemCount - 1 != index) {
+                            Divider(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = LocalTheme.current.colors.disabledComponent,
+                                thickness = .3.dp
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+
+
+@Composable
+private fun NetworkItem(
+    modifier: Modifier = Modifier,
+    viewModel: NetworkListViewModel,
+    selectedItem: String?,
+    data: NetworkItemIO?,
+    customColors: Map<NetworkProximityCategory, Color>,
+    requestProximityChange: (proximity: Float) -> Unit,
+    onAvatarClick: () -> Unit,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val navController = LocalNavController.current
+    val showAddMembers = remember(data?.publicId) {
+        mutableStateOf(false)
+    }
+
+    // preload the conversations
+    LaunchedEffect(Unit) {
+        viewModel.requestOpenConversations()
+    }
+
+    if(showAddMembers.value) {
+        val isLoading = viewModel.isLoading.collectAsState()
+        val conversations = viewModel.openConversations.collectAsState()
+
+        LaunchedEffect(Unit) {
+            viewModel.response.collectLatest {
+                if(!it?.conversationId.isNullOrBlank()) {
+                    navController?.navigate(
+                        NavigationNode.Conversation(
+                            conversationId = it?.conversationId,
+                            name = it?.alias
+                        )
+                    )
+                }
+            }
+        }
+
+        AddToLauncher(
+            key = data?.publicId,
+            items = conversations.value,
+            heading = stringResource(
+                Res.string.invite_conversation_heading,
+                data?.name ?: ""
+            ),
+            newItemHint = stringResource(Res.string.invite_new_item_conversation),
+            multiSelect = false,
+            isLoading = isLoading.value,
+            onInvite = { checkedItems, message, newName ->
+                viewModel.inviteToConversation(
+                    conversationId = checkedItems.firstOrNull()?.id,
+                    userPublicIds = data?.userPublicId?.let { listOf(it) },
+                    message = message,
+                    newName = newName
+                )
+            },
+            mapToNetworkItem = {
+                NetworkItemIO(
+                    name = it.summary?.alias,
+                    proximity = it.summary?.proximity,
+                    publicId = it.id,
+                    photoUrl = it.summary?.avatarUrl
+                )
+            },
+            onDismissRequest = {
+                showAddMembers.value = false
+            }
+        )
+    }
+
+    Column(modifier = modifier) {
+        NetworkItemRow(
+            modifier = Modifier
+                .scalingClickable(
+                    hoverEnabled = selectedItem != data?.userPublicId,
+                    scaleInto = .9f,
+                    onTap = { onTap() },
+                    onLongPress = { onLongPress() }
+                )
+                .fillMaxWidth()
+                .then(
+                    (if(selectedItem != null && selectedItem == data?.userPublicId) {
+                        Modifier
+                            .background(
+                                color = LocalTheme.current.colors.backgroundLight,
+                                shape = LocalTheme.current.shapes.rectangularActionShape
+                            )
+                            .border(
+                                width = 2.dp,
+                                color = LocalTheme.current.colors.backgroundDark,
+                                shape = LocalTheme.current.shapes.rectangularActionShape
+                            )
+                    }else Modifier)
+                )
+                .fillMaxWidth(),
+            data = data,
+            indicatorColor = NetworkProximityCategory.entries.firstOrNull {
+                it.range.contains(data?.proximity ?: 1f)
+            }.let {
+                customColors[it] ?: it?.color
+            },
+            onAvatarClick = onAvatarClick,
+            isSelected = selectedItem == data?.userPublicId,
+            actions = {
+                if(data != null) {
+                    SocialItemActions(
+                        key = data.userPublicId,
+                        requestProximityChange = requestProximityChange,
+                        onInvite = {
+                            showAddMembers.value = true
+                        },
+                        newItem = data
+                    )
+                }
+            }
+            /*onCheckChange = { isLongClick ->
+                when {
+                    checkedItems.contains(data?.userPublicId) -> checkedItems.remove(data?.userPublicId)
+                    isLongClick || checkedItems.size > 0 -> {
+                        selectedItem.value = null
+                        checkedItems.add(data?.userPublicId)
+                    }
+                    else -> {
+                        selectedItem.value = if(selectedItem.value == data?.userPublicId) null else data?.userPublicId
+                    }
+                }
+            }*/
+        )
+        content()
     }
 }
 

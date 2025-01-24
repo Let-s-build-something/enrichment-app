@@ -44,6 +44,18 @@ sealed class NavigationNode {
         override val deepLink: String = "messages?conversation=$conversationId&name=$name"
     }
 
+    /** Conversation detail screen */
+    @Serializable
+    data class ConversationInformation(
+        /** unique identifier of the conversation */
+        val conversationId: String? = null,
+
+        /** Name of the conversation */
+        val name: String? = null
+    ): NavigationNode() {
+        override val deepLink: String = "conversation?conversation=$conversationId&name=$name"
+    }
+
     /** dashboard screen for user information and general user-related actions */
     @Serializable
     data object AccountDashboard: NavigationNode() {

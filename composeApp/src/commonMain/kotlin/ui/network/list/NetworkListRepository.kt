@@ -16,8 +16,6 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.request.patch
-import io.ktor.client.request.setBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -26,7 +24,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ui.login.safeRequest
-import ui.network.connection.SocialConnectionUpdate
 import kotlin.uuid.ExperimentalUuidApi
 
 /** Class for calling APIs and remote work in general */
@@ -35,26 +32,6 @@ class NetworkListRepository(
     private val networkItemDao: NetworkItemDao,
     private val pagingMetaDao: PagingMetaDao
 ) {
-
-    /** Updates a network item's proximity */
-    suspend fun patchNetworkProximity(publicId: String, proximity: Float): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            networkItemDao.updateProximity(
-                publicId = publicId,
-                ownerPublicId = Firebase.auth.currentUser?.uid,
-                proximity = proximity
-            )
-
-            httpClient.safeRequest<NetworkListResponse> {
-                patch(
-                    urlString = "/api/v1/social/network/$publicId",
-                    block = {
-                        setBody(SocialConnectionUpdate(proximity = proximity))
-                    }
-                )
-            }
-        }
-    }
 
     /** returns a list of network list */
     private suspend fun getNetworkList(page: Int, size: Int): BaseResponse<NetworkListResponse> {

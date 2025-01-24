@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,7 +23,6 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,6 +54,7 @@ fun CustomTextField(
         top = 8.dp,
         bottom = 8.dp
     ),
+    showBorders: Boolean = true,
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
@@ -61,22 +62,25 @@ fun CustomTextField(
     lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
+    hint: String? = null,
     suggestText: String? = null,
     isCorrect: Boolean = false,
     enabled: Boolean = true
 ) {
     val focusRequester = remember(state) { FocusRequester() }
     val isFocused = remember(state.text) { mutableStateOf(false) }
-    val controlColor by animateColorAsState(
-        when {
-            errorText != null -> colors.errorTextColor
-            isCorrect -> SharedColors.GREEN_CORRECT
-            isFocused.value -> colors.focusedTextColor
-            !enabled -> colors.disabledTextColor
-            else -> colors.unfocusedTextColor
-        },
-        label = "controlColorChange"
-    )
+    val controlColor = if(showBorders) {
+        animateColorAsState(
+            when {
+                errorText != null -> colors.errorTextColor
+                isCorrect -> SharedColors.GREEN_CORRECT
+                isFocused.value -> colors.focusedTextColor
+                !enabled -> colors.disabledTextColor
+                else -> colors.unfocusedTextColor
+            },
+            label = "controlColorChange"
+        )
+    }else null
 
     Column(
         modifier = modifier
@@ -87,31 +91,50 @@ fun CustomTextField(
         Row(
             Modifier
                 .fillMaxSize()
-                .border(
-                    width = if (isFocused.value) 1.dp else 0.25.dp,
-                    color = controlColor,
-                    shape = shape
+                .then(
+                    controlColor?.value?.let {
+                        Modifier.border(
+                            width = if (isFocused.value) 1.dp else 0.25.dp,
+                            color = it,
+                            shape = shape
+                        )
+                    } ?: Modifier
                 )
                 .clickable(indication = null, interactionSource = null) {
                     focusRequester.requestFocus()
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BasicTextField(
+            Box(
                 modifier = Modifier
-                    .focusRequester(focusRequester)
                     .weight(1f, fill = true)
-                    .onFocusChanged {
-                        isFocused.value = it.isFocused
-                    }
                     .padding(paddingValues),
-                state = state,
-                cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
-                textStyle = textStyle,
-                lineLimits = lineLimits,
-                keyboardOptions = keyboardOptions,
-                onKeyboardAction = onKeyboardAction
-            )
+                contentAlignment = Alignment.CenterStart
+            ) {
+                BasicTextField(
+                    modifier = Modifier
+                        .focusRequester(focusRequester)
+                        .onFocusChanged {
+                            isFocused.value = it.isFocused
+                        },
+                    state = state,
+                    cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
+                    textStyle = textStyle,
+                    lineLimits = lineLimits,
+                    keyboardOptions = keyboardOptions,
+                    onKeyboardAction = onKeyboardAction
+                )
+                if(hint != null) {
+                    androidx.compose.animation.AnimatedVisibility(state.text.isEmpty()) {
+                        Text(
+                            text = hint,
+                            style = textStyle.copy(
+                                color = colors.disabledTextColor
+                            )
+                        )
+                    }
+                }
+            }
             trailingIcon?.invoke()
             Spacer(Modifier.width(16.dp))
         }

@@ -53,13 +53,15 @@ fun NetworkItemRow(
     data: NetworkItemIO?,
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
-    onAvatarClick: () -> Unit = {},
+    onAvatarClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {}
 ) {
-    Crossfade(targetState = data != null) { isData ->
+    Crossfade(
+        modifier = modifier,
+        targetState = data != null
+    ) { isData ->
         if(isData) {
             ContentLayout(
-                modifier = modifier,
                 indicatorColor = indicatorColor,
                 isChecked = isChecked,
                 isSelected = isSelected,
@@ -68,101 +70,89 @@ fun NetworkItemRow(
                 data = data
             )
         }else {
-            ShimmerLayout(modifier = modifier)
+            ShimmerLayout()
         }
     }
 }
 
 @Composable
 private fun ContentLayout(
-    modifier: Modifier = Modifier,
     indicatorColor: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
     data: NetworkItemIO?,
-    onAvatarClick: () -> Unit,
+    onAvatarClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {}
 ) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .animateContentSize()
-    ) {
+    Column(Modifier.animateContentSize()) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .animateContentSize()
                 .padding(top = 8.dp, bottom = 8.dp, end = 4.dp)
                 .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = if(data?.lastMessage.isNullOrBlank()) {
+                Alignment.CenterVertically
+            }else Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .animateContentSize()
-                    .weight(1f),
-                verticalAlignment = if(data?.lastMessage.isNullOrBlank()) {
-                    Alignment.CenterVertically
-                }else Alignment.Top
-            ) {
-                indicatorColor?.let { color ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(8.dp)
-                            .background(
-                                color = color,
-                                shape = RoundedCornerShape(
-                                    bottomEnd = LocalTheme.current.shapes.screenCornerRadius,
-                                    topEnd = LocalTheme.current.shapes.screenCornerRadius,
-                                    bottomStart = 0.dp,
-                                    topStart = 0.dp
-                                )
+            indicatorColor?.let { color ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(8.dp)
+                        .background(
+                            color = color,
+                            shape = RoundedCornerShape(
+                                bottomEnd = LocalTheme.current.shapes.screenCornerRadius,
+                                topEnd = LocalTheme.current.shapes.screenCornerRadius,
+                                bottomStart = 0.dp,
+                                topStart = 0.dp
                             )
-                    )
-                }
-                UserProfileImage(
-                    modifier = Modifier
-                        .scalingClickable {
-                            onAvatarClick()
-                        }
-                        .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
-                        .size(48.dp),
-                    model = data?.photoUrl,
-                    tag = data?.tag,
-                    contentDescription = null
+                        )
                 )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
-                        .padding(vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
+            }
+            UserProfileImage(
+                modifier = Modifier
+                    .scalingClickable(enabled = onAvatarClick != null) {
+                        onAvatarClick?.invoke()
+                    }
+                    .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
+                    .size(48.dp),
+                model = data?.photoUrl,
+                tag = data?.tag,
+                contentDescription = null
+            )
+            Column(
+                modifier = Modifier
+                    .width(IntrinsicSize.Max)
+                    .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = data?.name ?: "",
+                    style = LocalTheme.current.styles.category,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if(data?.lastMessage != null) {
                     Text(
-                        text = data?.name ?: "",
-                        style = LocalTheme.current.styles.category,
-                        maxLines = 1,
+                        text = data.lastMessage,
+                        style = LocalTheme.current.styles.regular,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if(data?.lastMessage != null) {
-                        Text(
-                            text = data.lastMessage,
-                            style = LocalTheme.current.styles.regular,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
                 }
-                AnimatedVisibility(isChecked == true) {
-                    Icon(
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(32.dp),
-                        imageVector = Icons.Filled.Check,
-                        tint = LocalTheme.current.colors.secondary,
-                        contentDescription = null
-                    )
-                }
+            }
+            AnimatedVisibility(isChecked == true) {
+                Icon(
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(32.dp),
+                    imageVector = Icons.Filled.Check,
+                    tint = LocalTheme.current.colors.secondary,
+                    contentDescription = null
+                )
             }
         }
         AnimatedVisibility(
@@ -186,7 +176,6 @@ private fun ContentLayout(
 private fun ShimmerLayout(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .fillMaxWidth()
             .padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

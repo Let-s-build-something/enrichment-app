@@ -74,9 +74,6 @@ fun SocialItemActions(
     val showMoveCircleDialog = remember(key) {
         mutableStateOf(false)
     }
-    val showInviteDialog = remember(key) {
-        mutableStateOf(false)
-    }
     val selectedCategory = remember {
         mutableStateOf(NetworkProximityCategory.entries.find {
             it.range.contains(newItem.proximity ?: -1f)
@@ -208,9 +205,7 @@ fun SocialItemActions(
                 color = LocalTheme.current.colors.brandMain,
                 imageVector = Icons.Outlined.GroupAdd,
                 contentDescription = stringResource(Res.string.button_invite),
-                onClick = {
-                    showInviteDialog.value = true
-                }
+                onClick = onInvite
             )
             Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
         }

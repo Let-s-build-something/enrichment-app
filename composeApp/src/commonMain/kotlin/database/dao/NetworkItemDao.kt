@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 
 /** Interface for communication with local Room database */
 @Dao
@@ -22,6 +24,22 @@ interface NetworkItemDao {
         limit: Int,
         offset: Int
     ): List<NetworkItemIO>
+
+    /** Returns all network items related to an owner as defined by [ownerPublicId] */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId ")
+    suspend fun getNonFiltered(
+        ownerPublicId: String? = Firebase.auth.currentUser?.uid
+    ): List<NetworkItemIO>?
+
+    /** Returns all network items within the list [userPublicIds] */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND user_public_id IN (:userPublicIds)")
+    suspend fun getItems(
+        userPublicIds: List<String>?,
+        ownerPublicId: String? = Firebase.auth.currentUser?.uid
+    ): List<NetworkItemIO>?
 
     /** Returns all network items specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
@@ -48,7 +66,7 @@ interface NetworkItemDao {
             "WHERE owner_public_id = :ownerPublicId " +
             "AND public_id = :publicId ")
     suspend fun updateProximity(
-        ownerPublicId: String?,
+        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
         proximity: Float,
         publicId: String?
     )

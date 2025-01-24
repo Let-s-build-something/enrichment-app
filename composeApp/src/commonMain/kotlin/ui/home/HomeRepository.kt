@@ -7,7 +7,6 @@ import data.io.base.BaseResponse
 import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.io.social.network.conversation.matrix.RoomType
 import data.io.social.network.conversation.matrix.RoomsResponseIO
-import data.io.social.network.request.NetworkListResponse
 import data.io.user.matrix.SyncResponse
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
@@ -15,8 +14,6 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
-import io.ktor.client.request.patch
-import io.ktor.client.request.setBody
 import io.ktor.http.parameters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,22 +23,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ui.login.safeRequest
-import ui.network.connection.SocialConnectionUpdate
 
 class HomeRepository(
     private val httpClient: HttpClient,
     private val conversationRoomDao: ConversationRoomDao,
     private val pagingMetaDao: MatrixPagingMetaDao
 ) {
-    /** returns a list of network list */
-    suspend fun getNetworkItems(): BaseResponse<NetworkListResponse> {
-        return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<NetworkListResponse> {
-                get(urlString = "/api/v1/social/network/users")
-            }
-        }
-    }
-
     /** returns a list of network list */
     private suspend fun getSyncData(batch: String?): BaseResponse<SyncResponse> {
         return withContext(Dispatchers.IO) {
@@ -117,25 +104,6 @@ class HomeRepository(
                 }
             )
         )
-    }
-
-    /** Updates a conversation's proximity */
-    suspend fun patchConversationProximity(id: String, proximity: Float): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            conversationRoomDao.updateProximity(
-                id = id,
-                proximity = proximity
-            )
-
-            httpClient.safeRequest<NetworkListResponse> {
-                patch(
-                    urlString = "/api/v1/social/conversation/$id",
-                    block = {
-                        setBody(SocialConnectionUpdate(proximity = proximity))
-                    }
-                )
-            }
-        }
     }
 
     companion object {

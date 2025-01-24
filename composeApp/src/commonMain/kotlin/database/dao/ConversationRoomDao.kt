@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.social.network.conversation.matrix.ConversationRoomIO
 import database.AppRoomDatabase
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 
 /** Interface for communication with local Room database */
 @Dao
@@ -16,7 +18,7 @@ interface ConversationRoomDao {
             "WHERE owner_public_id = :ownerPublicId " +
             "AND batch = :batch ")
     suspend fun getPaginated(
-        ownerPublicId: String?,
+        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
         batch: String?
     ): List<ConversationRoomIO>
 
@@ -24,8 +26,8 @@ interface ConversationRoomDao {
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId ")
     suspend fun getNonFiltered(
-        ownerPublicId: String?
-    ): List<ConversationRoomIO>
+        ownerPublicId: String? = Firebase.auth.currentUser?.uid
+    ): List<ConversationRoomIO>?
 
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
@@ -35,7 +37,7 @@ interface ConversationRoomDao {
             "LIMIT :count")
     suspend fun getByProximity(
         count: Int,
-        ownerPublicId: String?,
+        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
         proximityMin: Float,
         proximityMax: Float,
         excludeId: String?
@@ -53,7 +55,7 @@ interface ConversationRoomDao {
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId")
-    suspend fun getCount(ownerPublicId: String?): Int
+    suspend fun getCount(ownerPublicId: String? = Firebase.auth.currentUser?.uid): Int
 
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
