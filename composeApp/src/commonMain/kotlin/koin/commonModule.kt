@@ -38,6 +38,7 @@ internal val commonModule = module {
             useArrayPolymorphism = true
 
             encodeDefaults = true
+            explicitNulls = false
             allowSpecialFloatingPointValues = true
             allowStructuredMapKeys = true
             prettyPrint = true

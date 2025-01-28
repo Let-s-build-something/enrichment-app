@@ -106,3 +106,18 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
 
 actual fun openFile(path: String?) {
 }
+
+actual fun openEmail(address: String?): Boolean {
+    val context = getKoin().get<Context>()
+
+    return try {
+        context.startActivity(
+            Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_APP_EMAIL)
+            }
+        )
+        true
+    }catch (e: Exception) {
+        false
+    }
+}

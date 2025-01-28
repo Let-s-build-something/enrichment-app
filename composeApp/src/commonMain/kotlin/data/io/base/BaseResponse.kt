@@ -4,6 +4,7 @@ import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 sealed class BaseResponse<out T> {
@@ -18,6 +19,18 @@ sealed class BaseResponse<out T> {
     data class Error(
         /** list of error objects */
         val errors: List<String> = listOf(),
+
+        /** User friendly message */
+        @SerialName("error")
+        val message: String? = null,
+
+        /** The request block in milliseconds */
+        @SerialName("retry_after_ms")
+        val retryAfter: Int? = null,
+
+        /** BE error code */
+        @SerialName("errcode")
+        val code: String? = null
     ): BaseResponse<Nothing>() {
         var httpCode: Int = -1
     }

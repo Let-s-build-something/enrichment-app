@@ -76,6 +76,10 @@ internal fun httpClientFactory(
                 sharedViewModel.currentUser.value?.idToken?.let { idToken ->
                     request.headers.append(HttpHeaders.IdToken, idToken)
                 }
+                // assign current accessToken
+                sharedViewModel.currentUser.value?.accessToken?.let { idToken ->
+                    request.headers.append(HttpHeaders.AccessToken, idToken)
+                }
             }
 
             developerViewModel?.appendHttpLog(
@@ -89,6 +93,10 @@ internal fun httpClientFactory(
 /** Authorization type header with Firebase identification token */
 val HttpHeaders.IdToken: String
     get() = "Id-Token"
+
+/** Authorization type header with Firebase identification token */
+val HttpHeaders.AccessToken: String
+    get() = "Access-Token"
 
 /** http response code indicating expired token */
 internal val EXPIRED_TOKEN_CODE = HttpStatusCode.Unauthorized

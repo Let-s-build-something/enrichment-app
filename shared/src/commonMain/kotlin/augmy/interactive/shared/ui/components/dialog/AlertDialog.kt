@@ -2,13 +2,18 @@ package augmy.interactive.shared.ui.components.dialog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,7 +31,7 @@ val dismissibleDialogProperties = DialogProperties(dismissOnBackPress = true, di
 @Composable
 fun AlertDialog(
     title: String? = null,
-    message: String? = null,
+    message: AnnotatedString? = null,
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
     additionalContent: @Composable (() -> Unit)? = null,
@@ -64,7 +69,11 @@ fun AlertDialog(
         },
         text = if(message != null || additionalContent != null) {
             {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .height(IntrinsicSize.Max)
+                        .width(IntrinsicSize.Max)
+                ) {
                     if(message != null) {
                         Text(
                             text = message,

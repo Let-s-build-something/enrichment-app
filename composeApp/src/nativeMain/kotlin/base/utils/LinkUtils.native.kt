@@ -102,3 +102,12 @@ private fun getDocumentsDirectory(): NSURL? {
 
 actual fun openFile(path: String?) {
 }
+
+actual fun openEmail(address: String?): Boolean {
+    val url = NSURL(string = "message://")
+
+    return if (UIApplication.sharedApplication.canOpenURL(url)) {
+        UIApplication.sharedApplication.openURL(url)
+        true
+    }else false
+}

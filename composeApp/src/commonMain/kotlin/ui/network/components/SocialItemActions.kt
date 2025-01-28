@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
@@ -88,11 +89,11 @@ fun SocialItemActions(
                     Res.string.network_dialog_title_mute
                 }else Res.string.network_dialog_title_block
             ),
-            message = stringResource(
+            message = AnnotatedString(stringResource(
                 if(action == OptionsLayoutAction.Mute) {
                     Res.string.network_dialog_message_mute
                 }else Res.string.network_dialog_message_block
-            ),
+            )),
             icon = action.leadingImageVector,
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_confirm)

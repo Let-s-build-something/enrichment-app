@@ -9,5 +9,11 @@ data class ResponseDisplayNameChange(
     val tag: String? = null,
 
     /** the new username */
-    val displayName: String? = null
+    val displayName: String? = null,
+
+    /** User id for the Matrix protocol */
+    val matrixUserId: String? = null,
+
+    /** Authorization token */
+    val accessToken: String? = null
 )

@@ -15,6 +15,8 @@ object LinkUtils {
 
 expect fun shareLink(title: String, link: String): Boolean
 
+expect fun openEmail(address: String? = null): Boolean
+
 expect fun shareMessage(media: List<MediaIO>, messageContent: String = ""): Boolean
 
 expect fun openLink(link: String): Boolean

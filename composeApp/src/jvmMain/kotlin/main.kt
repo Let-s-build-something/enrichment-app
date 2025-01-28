@@ -1,7 +1,9 @@
 
 import android.app.Application
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -30,7 +32,9 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.coroutines.SuspendSettings
 import com.russhwolf.settings.coroutines.toBlockingSettings
+import data.io.app.ThemeChoice
 import data.shared.AppServiceViewModel
+import dev.datlag.kcef.KCEF
 import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
 import io.kamel.image.config.Default
@@ -38,8 +42,12 @@ import io.kamel.image.config.LocalKamelConfig
 import koin.commonModule
 import koin.settingsModule
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.cef.CefSettings
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
@@ -68,6 +76,8 @@ private var isAppInitialized = false
 fun main(args: Array<String>) = application {
     var arguments: Array<String>? = args
     val coroutineScope = rememberCoroutineScope()
+    val systemDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = remember { mutableStateOf(systemDarkTheme) }
 
     if(isAppInitialized.not()) {
         startKoin {
@@ -77,6 +87,15 @@ fun main(args: Array<String>) = application {
                 scope = coroutineScope
             )
             modules(commonModule)
+            coroutineScope.launch {
+                KoinPlatform.getKoin().get<AppServiceViewModel>().localSettings.collectLatest {
+                    isDarkTheme.value = when(it?.theme) {
+                        ThemeChoice.DARK -> true
+                        ThemeChoice.LIGHT -> false
+                        else -> isDarkTheme.value
+                    }
+                }
+            }
         }
         isAppInitialized = true
     }
@@ -132,10 +151,30 @@ fun main(args: Array<String>) = application {
                 listeners.firstOrNull()?.invoke()
             }
             override fun executeSystemBackPress() {
+                KCEF.disposeBlocking()
                 unloadKoinModules(commonModule)
                 stopKoin()
                 exitApplication()
             }
+        }
+    }
+
+    LaunchedEffect(isDarkTheme.value) {
+        withContext(Dispatchers.IO) {
+            KCEF.disposeBlocking()
+            KCEF.init(builder = {
+                settings {
+                    backgroundColor = if(isDarkTheme.value) {
+                        CefSettings().ColorType(255, 34, 31, 28)
+                    }else CefSettings().ColorType(255, 236, 241, 231)
+                    cachePath = File("cache").absolutePath
+                }
+                installDir(File("kcef-bundle"))
+            }, onError = {
+                it?.printStackTrace()
+            }, onRestartRequired = {
+                // should we restart the app?
+            })
         }
     }
 
@@ -228,7 +267,7 @@ private fun initWindowsRegistry() {
         )
 
         for (cmd in commands) {
-            val process = Runtime.getRuntime().exec(cmd)
+            val process = Runtime.getRuntime().exec(arrayOf(cmd))
             process.waitFor()
             if (process.exitValue() != 0) {
                 println("Command failed: $cmd")

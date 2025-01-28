@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -116,7 +117,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 
     if(showSignOutDialog.value) {
         AlertDialog(
-            message = stringResource(Res.string.account_sign_out_message),
+            message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),
                 onClick = {
@@ -178,7 +179,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 }
 
 @Composable
-private fun ColumnScope.SettingsSection(viewModel: AccountDashboardViewModel) {
+private fun SettingsSection(viewModel: AccountDashboardViewModel) {
     val localSettings = viewModel.localSettings.collectAsState()
     val currentUser = viewModel.currentUser.collectAsState()
     val privacyResponse = viewModel.privacyResponse.collectAsState()

@@ -15,6 +15,9 @@ enum class LoginResultType {
     /** email already exists */
     EMAIL_EXISTS,
 
+    /** username already exists */
+    USERNAME_EXISTS,
+
     /** the UI is missing window, iOS specific */
     NO_WINDOW,
 

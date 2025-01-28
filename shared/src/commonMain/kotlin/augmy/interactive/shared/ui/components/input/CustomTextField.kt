@@ -1,6 +1,5 @@
 package augmy.interactive.shared.ui.components.input
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
@@ -15,11 +14,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
@@ -32,7 +35,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -58,6 +63,9 @@ fun CustomTextField(
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
+    textObfuscationMode: TextObfuscationMode = TextObfuscationMode.RevealLastTyped,
+    inputTransformation: InputTransformation? = null,
+    prefixIcon: ImageVector? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
@@ -84,12 +92,13 @@ fun CustomTextField(
 
     Column(
         modifier = modifier
+            .animateContentSize()
             .width(IntrinsicSize.Min)
             .height(IntrinsicSize.Min)
-            .animateContentSize()
     ) {
         Row(
             Modifier
+                .height(44.dp)
                 .fillMaxSize()
                 .then(
                     controlColor?.value?.let {
@@ -105,25 +114,50 @@ fun CustomTextField(
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
+            prefixIcon?.let { vector ->
+                Icon(
+                    modifier = Modifier.padding(start = 6.dp),
+                    imageVector = vector,
+                    contentDescription = null,
+                    tint = LocalTheme.current.colors.disabled
+                )
+            }
             Box(
                 modifier = Modifier
                     .weight(1f, fill = true)
                     .padding(paddingValues),
                 contentAlignment = Alignment.CenterStart
             ) {
-                BasicTextField(
-                    modifier = Modifier
-                        .focusRequester(focusRequester)
-                        .onFocusChanged {
-                            isFocused.value = it.isFocused
-                        },
-                    state = state,
-                    cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
-                    textStyle = textStyle,
-                    lineLimits = lineLimits,
-                    keyboardOptions = keyboardOptions,
-                    onKeyboardAction = onKeyboardAction
-                )
+                if(keyboardOptions.keyboardType == KeyboardType.Password) {
+                    BasicSecureTextField(
+                        modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .onFocusChanged {
+                                isFocused.value = it.isFocused
+                            },
+                        state = state,
+                        cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
+                        textObfuscationMode = textObfuscationMode,
+                        textStyle = textStyle,
+                        keyboardOptions = keyboardOptions,
+                        onKeyboardAction = onKeyboardAction
+                    )
+                }else {
+                    BasicTextField(
+                        modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .onFocusChanged {
+                                isFocused.value = it.isFocused
+                            },
+                        inputTransformation = inputTransformation,
+                        state = state,
+                        cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
+                        textStyle = textStyle,
+                        lineLimits = lineLimits,
+                        keyboardOptions = keyboardOptions,
+                        onKeyboardAction = onKeyboardAction
+                    )
+                }
                 if(hint != null) {
                     androidx.compose.animation.AnimatedVisibility(state.text.isEmpty()) {
                         Text(
@@ -139,7 +173,7 @@ fun CustomTextField(
             Spacer(Modifier.width(16.dp))
         }
 
-        AnimatedVisibility(suggestText.isNullOrBlank().not()) {
+        if(suggestText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier.padding(
                     start = 8.dp,
@@ -150,7 +184,7 @@ fun CustomTextField(
                 style = LocalTheme.current.styles.regular
             )
         }
-        AnimatedVisibility(errorText.isNullOrBlank().not()) {
+        if(errorText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier.padding(
                     start = 8.dp,
