@@ -1,6 +1,7 @@
 package ui.login
 
 import augmy.interactive.shared.ui.base.currentPlatform
+import base.utils.Matrix
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.getResponse
 import data.io.matrix.auth.AuthenticationData
@@ -118,21 +119,18 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     /** Matrix login via email and username */
     suspend fun loginWithUsername(
         address: String,
-        username: String,
-        password: String
+        identifier: MatrixIdentifierData,
+        password: String?,
     ): BaseResponse<MatrixAuthenticationResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
                 httpClient.post(url = Url("https://${address}/_matrix/client/v3/login")) {
                     setBody(
                         EmailLoginRequest(
-                            identifier = MatrixIdentifierData(
-                                type = "m.id.user",
-                                user = username
-                            ),
+                            identifier = identifier,
                             initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform",
                             password = password,
-                            type = "m.login.password"
+                            type = Matrix.LOGIN_PASSWORD
                         )
                     )
                 }

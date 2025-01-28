@@ -11,6 +11,13 @@ data class MatrixIdentifierData(
     m.id.phone
      */
     val type: String,
+
     /** Matrix user_id or user localpart */
-    val user: String
+    val user: String? = null,
+
+    /** the medium of login */
+    val medium: String? = null,
+
+    /** email address */
+    val address: String? = null
 )

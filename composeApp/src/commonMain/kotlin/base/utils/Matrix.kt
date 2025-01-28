@@ -15,4 +15,13 @@ object Matrix {
         const val CREDENTIALS_IN_USE = "M_THREEPID_IN_USE"
         const val CREDENTIALS_DENIED = "M_THREEPID_DENIED"
     }
+
+    object Id {
+        const val USER = "m.id.user"
+        const val THIRD_PARTY = "m.id.thirdparty"
+    }
+
+    object Medium {
+        const val EMAIL = "email"
+    }
 }

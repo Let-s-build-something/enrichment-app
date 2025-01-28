@@ -296,6 +296,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 }
                 else -> getString(Res.string.error_general)
             }
+            viewModel.setLoading(false)
         }
     }
 
@@ -379,6 +380,7 @@ private fun ColumnScope.LoginScreenContent(
     isMatrixMode: MutableState<Boolean>
 ) {
     val isLoading = viewModel.isLoading.collectAsState()
+    val homeServerResponse = viewModel.homeServerResponse.collectAsState()
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
     val emailState = remember { TextFieldState() }
@@ -394,14 +396,15 @@ private fun ColumnScope.LoginScreenContent(
     } != false*/
 
     val sendRequest = {
+        viewModel.setLoading(true)
         viewModel.signUpWithPassword(
             email = emailState.text.toString(),
             password = passwordState.text.toString(),
             screenType = screenType,
-            username = if(isMatrixMode.value) usernameState.text.toString() else null
+            username = if(isMatrixMode.value) usernameState.text.toString() else null,
+            isMatrix = isMatrixMode.value
         )
     }
-
 
     if(showHomeServerPicker.value) {
         MatrixHomeserverPicker(
@@ -430,7 +433,7 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    AnimatedVisibility(isMatrixMode.value) {
+    AnimatedVisibility(isMatrixMode.value && homeServerResponse.value?.supportsEmail != true) {
         val cancellableScope = rememberCoroutineScope()
         val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
 
@@ -651,7 +654,7 @@ private fun ColumnScope.LoginScreenContent(
                 Text(
                     modifier = Modifier
                         .padding(start = 16.dp)
-                        .scalingClickable {
+                        .scalingClickable(enabled = !isLoading.value) {
                             showHomeServerPicker.value = true
                         }
                         .padding(4.dp)

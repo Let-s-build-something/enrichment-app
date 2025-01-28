@@ -14,6 +14,7 @@ import data.io.matrix.auth.AuthenticationCredentials
 import data.io.matrix.auth.AuthenticationData
 import data.io.matrix.auth.MatrixAuthenticationPlan
 import data.io.matrix.auth.MatrixAuthenticationResponse
+import data.io.matrix.auth.MatrixIdentifierData
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO
 import data.shared.SharedViewModel
@@ -45,8 +46,18 @@ class LoginViewModel(
     data class HomeServerResponse(
         val state: HomeServerState,
         val plan: MatrixAuthenticationPlan? = null,
-        val address: String
-    )
+        val address: String,
+        val supportsEmail: Boolean = false
+    ) {
+        override fun toString(): String {
+            return "{" +
+                    "state: $state, " +
+                    "plan: $plan," +
+                    "address: $address," +
+                    "supportsEmail: $supportsEmail" +
+                    "}"
+        }
+    }
     enum class HomeServerState {
         Valid,
         Invalid
@@ -92,7 +103,6 @@ class LoginViewModel(
     /** Clears current Matrix progress and cached information */
     fun clearMatrixProgress() {
         _matrixProgress.value = null
-        _isLoading.value = false
     }
 
     /** Validates Matrix username availability */
@@ -113,35 +123,42 @@ class LoginViewModel(
         }
     }
 
+    private val homeserverAbilityCache = hashMapOf<String, Boolean>()
+
     /** Clears home server information */
     fun selectHomeServer(
         screenType: LoginScreenType,
         address: String
     ) {
-        _isLoading.value = true
         viewModelScope.launch {
-            val versions = repository.getMatrixVersions(address = address)
-
-            _homeServerResponse.value = if(!versions?.versions.isNullOrEmpty()) {
-                (if(screenType == LoginScreenType.SIGN_UP) {
-                    repository.dummyMatrixRegister(address = address)
-                }else repository.dummyMatrixLogin(address = address))?.let {
-                    session = it.session ?: session
-                    HomeServerResponse(
-                        state = if(it.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
-                        plan = it,
-                        address = address
-                    )
-                } ?: HomeServerResponse(
-                    state = HomeServerState.Invalid,
-                    address = address
+            _isLoading.value = true
+            _homeServerResponse.value = (if(screenType == LoginScreenType.SIGN_UP) {
+                repository.dummyMatrixRegister(address = address)
+            }else repository.dummyMatrixLogin(address = address))?.let {
+                session = it.session ?: session
+                HomeServerResponse(
+                    state = if(it.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
+                    plan = it,
+                    address = address,
+                    supportsEmail = screenType == LoginScreenType.SIGN_UP
+                            || (homeserverAbilityCache[address] ?: (repository.loginWithUsername(
+                        address = address,
+                        identifier = MatrixIdentifierData(
+                            type = Matrix.Id.THIRD_PARTY,
+                            medium = Matrix.Medium.EMAIL,
+                            address = "email@email.com"
+                        ),
+                        password = "-"
+                    ).error?.message?.contains("Bad login type") == false)).also { answer ->
+                        homeserverAbilityCache[address] = answer
+                    }
                 )
-            }else HomeServerResponse(
+            } ?: HomeServerResponse(
                 state = HomeServerState.Invalid,
                 address = address
             )
+            _isLoading.value = false
         }
-        _isLoading.value = false
     }
 
     data class MatrixProgress(
@@ -184,7 +201,6 @@ class LoginViewModel(
         recaptchaJson: String? = null,
         agreements: List<String>? = null
     ) {
-        _isLoading.value = true
         viewModelScope.launch(Dispatchers.Default) {
             val recaptcha = if(recaptchaJson != null) {
                 KoinPlatform.getKoin().get<Json>().decodeFromString<RecaptchaParams>(
@@ -220,13 +236,13 @@ class LoginViewModel(
                             email = progress.email ?: "",
                             password = progress.password,
                             screenType = LoginScreenType.SIGN_UP,
-                            response = response
+                            response = response,
+                            isMatrix = true
                         )
                     }
                 }
             }
         }
-        _isLoading.value = false
     }
 
     /** Requests signup with an email and a password */
@@ -235,12 +251,12 @@ class LoginViewModel(
         username: String?,
         email: String,
         password: String,
+        isMatrix: Boolean,
         screenType: LoginScreenType,
         response: MatrixAuthenticationResponse? = null
     ) {
-        _isLoading.value = true
         viewModelScope.launch {
-            val res = if(username != null && screenType == LoginScreenType.SIGN_UP && response == null) {
+            val res = if(isMatrix && screenType == LoginScreenType.SIGN_UP && response == null) {
                 val secret = Uuid.random().toString()
 
                 // we check for single EP registration first
@@ -298,7 +314,6 @@ class LoginViewModel(
                             }else _loginResult.emit(LoginResultType.EMAIL_EXISTS)
                         }
                     }
-                    _isLoading.value = false
                     return@launch
                 }
             }else null ?: response
@@ -315,7 +330,8 @@ class LoginViewModel(
                                 signInWithPassword(
                                     username = username,
                                     email = email,
-                                    password = password
+                                    password = password,
+                                    isMatrix = isMatrix
                                 )
                             }
                             IdentityMessageType.EMAIL_EXISTS -> _loginResult.emit(LoginResultType.EMAIL_EXISTS)
@@ -331,8 +347,7 @@ class LoginViewModel(
                         _loginResult.emit(LoginResultType.FAILURE)
                     }
                 }else _loginResult.emit(LoginResultType.FAILURE)
-            }else signInWithPassword(username, email, password)
-            _isLoading.value = false
+            }else signInWithPassword(username, email, password, isMatrix = isMatrix)
         }
     }
 
@@ -360,47 +375,47 @@ class LoginViewModel(
     }
 
     /** Requests a sign-in with an email and a password */
-    private fun signInWithPassword(
+    private suspend fun signInWithPassword(
         username: String?,
         email: String,
-        password: String
+        password: String,
+        isMatrix: Boolean
     ) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            val res = if(username != null && _matrixAuthResponse.value?.userId == null) {
-                repository.loginWithUsername(
-                    address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
-                    username = username,
-                    password = password
-                ).let {
-                    if(it.error?.code == Matrix.ErrorCode.FORBIDDEN) {
-                        _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-                        return@launch
-                    }else if(it.error != null) {
-                        _loginResult.emit(LoginResultType.FAILURE)
-                        return@launch
-                    }
-
-                    it.success?.data
-                }
-            }else _matrixAuthResponse.value
-
-            if(res?.userId != null || username == null) {
-                _matrixAuthResponse.value = res
-                clearMatrixProgress()
-                try {
-                    Firebase.auth.signInWithEmailAndPassword(email, password)
-                    authenticateUser(email)
-                }catch (e: FirebaseAuthInvalidCredentialsException) {
+        val res = if(isMatrix && _matrixAuthResponse.value?.userId == null) {
+            repository.loginWithUsername(
+                address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                identifier = MatrixIdentifierData(
+                    type = Matrix.Id.THIRD_PARTY,
+                    medium = Matrix.Medium.EMAIL,
+                    address = email
+                ),
+                password = password
+            ).let {
+                if(it.error?.code == Matrix.ErrorCode.FORBIDDEN) {
                     _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-                }catch (e: FirebaseAuthEmailException) {
-                    _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-                }catch (e: Exception) {
+                    return
+                }else if(it.error != null) {
                     _loginResult.emit(LoginResultType.FAILURE)
+                    return
                 }
-            }else _loginResult.emit(LoginResultType.FAILURE)
-        }
-        _isLoading.value = false
+                it.success?.data
+            }
+        }else _matrixAuthResponse.value
+
+        if(res?.userId != null || username == null) {
+            _matrixAuthResponse.value = res
+            clearMatrixProgress()
+            try {
+                Firebase.auth.signInWithEmailAndPassword(email, password)
+                authenticateUser(email)
+            }catch (e: FirebaseAuthInvalidCredentialsException) {
+                _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
+            }catch (e: FirebaseAuthEmailException) {
+                _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
+            }catch (e: Exception) {
+                _loginResult.emit(LoginResultType.FAILURE)
+            }
+        }else _loginResult.emit(LoginResultType.FAILURE)
     }
 
     /** Requests sign in or sign up via Google account */
