@@ -140,17 +140,18 @@ class LoginViewModel(
                     state = if(it.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
                     plan = it,
                     address = address,
-                    supportsEmail = screenType == LoginScreenType.SIGN_UP
-                            || (homeserverAbilityCache[address] ?: (repository.loginWithUsername(
-                        address = address,
-                        identifier = MatrixIdentifierData(
-                            type = Matrix.Id.THIRD_PARTY,
-                            medium = Matrix.Medium.EMAIL,
-                            address = "email@email.com"
-                        ),
-                        password = "-"
-                    ).error?.message?.contains("Bad login type") == false)).also { answer ->
-                        homeserverAbilityCache[address] = answer
+                    supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
+                        (homeserverAbilityCache[address] ?: (repository.loginWithUsername(
+                            address = address,
+                            identifier = MatrixIdentifierData(
+                                type = Matrix.Id.THIRD_PARTY,
+                                medium = Matrix.Medium.EMAIL,
+                                address = "email@email.com"
+                            ),
+                            password = "-"
+                        ).error?.message?.contains("Bad login type") == false)).also { answer ->
+                            homeserverAbilityCache[address] = answer
+                        }
                     }
                 )
             } ?: HomeServerResponse(
