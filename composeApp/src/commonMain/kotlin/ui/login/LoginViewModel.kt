@@ -162,18 +162,6 @@ class LoginViewModel(
         }
     }
 
-    data class MatrixProgress(
-        val username: String?,
-        val email: String?,
-        val secret: String?,
-        val password: String,
-        val recaptcha: String? = null,
-        val sid: String? = null,
-        val agreements: List<String>? = null,
-        val response: MatrixAuthenticationPlan?,
-        val index: Int = 0,
-        val retryAfter: Int? = null
-    )
     private val _matrixProgress = MutableStateFlow<MatrixProgress?>(null)
     val matrixProgress = _matrixProgress.asStateFlow()
 
@@ -444,9 +432,13 @@ class LoginViewModel(
         withContext(Dispatchers.IO) {
             firebaseUser.firstOrNull()?.getIdToken(false)?.let { idToken ->
                 sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                sharedDataManager.currentUser.value = repository.authenticateUser(
+                val res = repository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
-                )?.copy(idToken = idToken)
+                )
+                sharedDataManager.currentUser.value = res?.copy(
+                    idToken = idToken,
+                    accessToken = res.accessToken ?: _matrixAuthResponse.value?.accessToken
+                )
             }
             finalizeSignIn(email)
         }
@@ -465,7 +457,9 @@ class LoginViewModel(
                             clientId = clientId,
                             fcmToken = localSettings.value?.fcmToken,
                             matrixUserId = _matrixAuthResponse.value?.userId,
-                            homeServer = _matrixAuthResponse.value?.homeServer
+                            homeServer = _matrixAuthResponse.value?.homeServer,
+                            accessToken = _matrixAuthResponse.value?.accessToken,
+                            refreshToken = _matrixAuthResponse.value?.refreshToken
                         )
                     )?.publicId
                 )
@@ -519,3 +513,16 @@ expect class UserOperationService {
         deleteRightAfter: Boolean = false
     ): IdentityMessageType?
 }
+
+data class MatrixProgress(
+    val username: String?,
+    val email: String?,
+    val secret: String?,
+    val password: String,
+    val recaptcha: String? = null,
+    val sid: String? = null,
+    val agreements: List<String>? = null,
+    val response: MatrixAuthenticationPlan?,
+    val index: Int = 0,
+    val retryAfter: Int? = null
+)
