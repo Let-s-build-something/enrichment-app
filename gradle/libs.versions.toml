@@ -5,7 +5,7 @@ android-minSdk = "24"
 android-targetSdk = "35"
 composeWebviewMultiplatform = "1.9.40"
 version-name = "1.0"
-version-code = "49"
+version-code = "50"
 
 androidx-activityCompose = "1.10.0"
 kotlin = "2.1.0"
