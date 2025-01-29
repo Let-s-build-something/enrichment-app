@@ -230,22 +230,28 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     val sendMessage = {
-        viewModel.sendMessage(
-            content = messageState.text.toString(),
-            mediaFiles = mediaAttached.toList(),
-            anchorMessage = replyToMessage.value,
-            gifAsset = gifAttached.value,
-            mediaUrls = urlsAttached,
-            showPreview = showPreview.value
-        )
-        mediaAttached.clear()
-        keyboardMode.value = ConversationKeyboardMode.Default.ordinal
-        messageState.clearText()
-        viewModel.saveMessage(null)
-        replyToMessage.value = null
-        gifAttached.value = null
-        showPreview.value = true
-        typedUrl.value = null
+        if(messageState.text.toString().isNotBlank()
+            || mediaAttached.isNotEmpty()
+            || gifAttached.value != null
+            || urlsAttached.isNotEmpty()
+        ) {
+            viewModel.sendMessage(
+                content = messageState.text.toString(),
+                mediaFiles = mediaAttached.toList(),
+                anchorMessage = replyToMessage.value,
+                gifAsset = gifAttached.value,
+                mediaUrls = urlsAttached,
+                showPreview = showPreview.value
+            )
+            mediaAttached.clear()
+            keyboardMode.value = ConversationKeyboardMode.Default.ordinal
+            messageState.clearText()
+            viewModel.saveMessage(null)
+            replyToMessage.value = null
+            gifAttached.value = null
+            showPreview.value = true
+            typedUrl.value = null
+        }
     }
 
 

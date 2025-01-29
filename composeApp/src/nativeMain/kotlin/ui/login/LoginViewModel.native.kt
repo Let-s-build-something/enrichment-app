@@ -1,5 +1,6 @@
 package ui.login
 
+import cocoapods.GoogleSignIn.GIDSignIn
 import data.io.identity_platform.IdentityMessageType
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthException
