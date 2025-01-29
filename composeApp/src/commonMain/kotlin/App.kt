@@ -1,4 +1,7 @@
 
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
@@ -38,6 +43,7 @@ import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalHeyIamScreen
+import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
@@ -71,6 +77,21 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
         }
     }
 
+    // we attempt to detect mouse events
+    val mouseUser = rememberSaveable {
+        mutableStateOf(false)
+    }
+    val hoverInteractionSource = if(!mouseUser.value) {
+        remember { MutableInteractionSource() }
+    }else null
+    val isHovered = hoverInteractionSource?.collectIsHoveredAsState()
+
+    LaunchedEffect(isHovered?.value) {
+        if(isHovered?.value == true) {
+            mouseUser.value = true
+        }
+    }
+
     AugmyTheme(
         isDarkTheme = when(localSettings.value?.theme) {
             ThemeChoice.DARK -> true
@@ -79,6 +100,17 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
         }
     ) {
         Scaffold(
+            modifier = Modifier
+                .pointerInput(Unit) {
+                }
+                .then(
+                    if(hoverInteractionSource != null) {
+                        Modifier.hoverable(
+                            enabled = !mouseUser.value,
+                            interactionSource = hoverInteractionSource
+                        )
+                    }else Modifier
+                ),
             snackbarHost = {
                 BaseSnackbarHost(hostState = snackbarHostState)
             },
@@ -90,7 +122,8 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
             CompositionLocalProvider(
                 LocalNavController provides navController,
                 LocalSnackbarHost provides snackbarHostState,
-                LocalDeviceType provides windowSizeClass.widthSizeClass
+                LocalDeviceType provides windowSizeClass.widthSizeClass,
+                LocalIsMouseUser provides mouseUser.value
             ) {
                 AppContent(viewModel, navController)
             }
@@ -155,7 +188,7 @@ private fun AppContent(
     if(showDialogLeave.value) {
         AlertDialog(
             title = stringResource(Res.string.leave_app_dialog_title),
-            message = stringResource(Res.string.leave_app_dialog_message),
+            message = AnnotatedString(stringResource(Res.string.leave_app_dialog_message)),
             icon = Icons.Outlined.DoorBack,
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_confirm),

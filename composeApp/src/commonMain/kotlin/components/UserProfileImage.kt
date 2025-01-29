@@ -27,9 +27,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.tagToColor
-import augmy.interactive.shared.ext.brandShimmerEffect
 
 @Composable
 fun UserProfileImage(
@@ -39,17 +39,19 @@ fun UserProfileImage(
     animate: Boolean = false,
     contentDescription: String? = null
 ) {
-    Crossfade(targetState = model != null) { hasImage ->
+    Crossfade(
+        modifier = modifier,
+        targetState = model != null
+    ) { hasImage ->
         if(hasImage) {
             ContentLayout(
-                modifier = modifier,
                 model = model,
                 tag = tag,
                 animate = animate,
                 contentDescription = contentDescription
             )
         }else {
-            ShimmerLayout(modifier = modifier)
+            ShimmerLayout()
         }
     }
 }

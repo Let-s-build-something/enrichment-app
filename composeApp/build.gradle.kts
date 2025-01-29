@@ -54,7 +54,7 @@ kotlin {
 
     cocoapods {
         version = libs.versions.version.name.get()
-        summary = "Communicate meaningfully"
+        summary = "Expressive messenger"
         homepage = "https://augmy.org"
 
         // Optional properties
@@ -162,6 +162,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
+            implementation(libs.ksoup.korlibs)
+
             implementation(libs.firebase.gitlive.common)
             implementation(libs.firebase.gitlive.auth)
             implementation(libs.firebase.gitlive.messaging)
@@ -172,7 +174,8 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
-            //implementation(libs.media.player.chaintech)
+            api(libs.compose.webview.multiplatform)
+            implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
@@ -281,6 +284,13 @@ compose.desktop {
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
         jvmArgs.add("-Djava.version=17")
+        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED") // recommended but not necessary
+
+        if (System.getProperty("os.name").contains("Mac")) {
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

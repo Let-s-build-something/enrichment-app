@@ -49,6 +49,7 @@ internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
         val json = Json {
             encodeDefaults = true
             ignoreUnknownKeys = true
+            explicitNulls = false
         }
 
         (ProcessedMessageData.fromNotification(

@@ -32,6 +32,8 @@
 -keep class kotlinx.coroutines.** { *; }
 -keep class androidx.compose.foundation.** { *; }
 -keep class java.net.http.** { *; }
+-keep class org.cef.** { *; }
+-keep class kotlinx.coroutines.swing.SwingDispatcherFactory
 
 # Keep Coil classes
 -keep class coil3.** { *; }

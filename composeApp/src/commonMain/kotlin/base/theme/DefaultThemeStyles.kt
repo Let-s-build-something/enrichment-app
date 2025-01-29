@@ -3,6 +3,8 @@ package base.theme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.RadioButtonColors
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
@@ -116,6 +118,14 @@ open class DefaultThemeStyles: ThemeStyle {
             uncheckedBorderColor = LocalTheme.current.colors.secondary,
             uncheckedThumbColor = LocalTheme.current.colors.secondary,
             uncheckedTrackColor = LocalTheme.current.colors.backgroundLight
+        )
+
+    override val radioButtonColors: RadioButtonColors
+        @Composable get() = RadioButtonDefaults.colors(
+            selectedColor = LocalTheme.current.colors.brandMain,
+            unselectedColor = LocalTheme.current.colors.secondary,
+            disabledSelectedColor = LocalTheme.current.colors.disabled,
+            disabledUnselectedColor = LocalTheme.current.colors.disabled
         )
 
     override val componentElevation: Dp = 6.dp

@@ -39,9 +39,27 @@
   <string name="login_password_condition_0">Minimum 8 characters long.</string>
   <string name="login_password_condition_1">At least one algebra character.</string>
   <string name="login_password_condition_2">At least one very special character.</string>
+  <string name="login_username_condition_0">Has to be lower case. We all smoll here, join us.</string>
+  <string name="login_username_condition_1">Can only contain special characters -, _, ., =, /</string>
+  <string name="login_homeserver_heading">Choose where your account is hosted</string>
+  <string name="login_homeserver_description">Homeserver is a remote service, that hosts your account and communicates with other homeservers in order to serve your needs.</string>
+  <string name="login_homeserver_address">Homeserver address</string>
+  <string name="login_matrix_homeserver">Hosted on %1$s</string>
+  <string name="login_username_hint">Unique username</string>
+  <string name="login_username_error">The username is not valid, try a different one.</string>
+  <string name="login_homeserver_address_error">Incorrect address, you can always select existing ones.</string>
+  <string name="login_error_duplicate_username">Restroom occupied, try a different one.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
   <string name="login_password_action_go">Here I go!</string>
+  <string name="login_agreement">By creating an account, you agree to our Terms of Use and Privacy Policy.</string>
+  <string name="login_terms_of_use">Terms of Use</string>
+  <string name="login_privacy_policy">Privacy Policy</string>
+  <string name="login_email_verification_heading">Email verification</string>
+  <string name="login_email_verification_message">The homeserver allows only verified emails. So, an email was tossed your way, to </string>
+  <string name="login_email_verification_action">Closest post office</string>
+  <string name="login_email_verification_repeat">Try again</string>
+  <string name="no_email_client_error">We failed opening an email client. Please, open your preferred client and check for the verification email:-).</string>
 
 
   <string name="account_dashboard_theme">Mr. Theme</string>
@@ -75,13 +93,19 @@
   <string name="account_settings_title_offline">You're offline :-(</string>
   <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
 
-  <string name="network_request_accepted">A human being considers you being part of their social network. That's awesome!</string>
+  <string name="invite_new_item_conversation">Name of the conversation</string>
+  <string name="invite_new_item_button">Create new</string>
+  <string name="invite_network_items_heading">There's only one way to figure out whether they'll fit in. Select people who should be invited.</string>
+  <string name="invite_conversation_heading">How funny it'd be to drop %1$s into a conversation with someone completely different?</string>
+  <string name="invite_message_explanation">Message sent along with the invitation</string>
+  <string name="invite_message_hint">Invitation message</string>
+  <string name="network_request_accepted">Great news! Someone considers you being part of their social network.</string>
   <string name="network_received">Requests</string>
   <string name="network_list">Manage network</string>
-  <string name="network_list_empty_title">Your social circle doesn't seem to reflect your real social circle, let's change that together.</string>
+  <string name="network_list_empty_title">Your social circle doesn't seem to reflect your real social circle, let's change that.</string>
   <string name="network_list_empty_action">Add a new person</string>
   <string name="network_received_empty_title">There are no requests yet.</string>
-  <string name="network_received_empty-description">Seems like you are expecting someone, you can share your uniqueness with them.</string>
+  <string name="network_received_empty-description">Seems like you are expecting someone, let's share your uniqueness with them.</string>
   <string name="network_received_empty_action">Honey, I'm home</string>
   <string name="network_inclusion_hint_tag">Tag</string>
   <string name="network_inclusion_format_tag">Tag is a 6 characters long hexadecimal number.</string>
@@ -106,8 +130,12 @@
 
   <string name="network_dialog_title_mute">Mute</string>
   <string name="network_dialog_message_mute">This will deprioritize the selected network connections, so that you don't see them as much. Please, confirm that that is what you want to do.</string>
-  <string name="network_dialog_title_block">Block</string>
+  <string name="network_dialog_title_block">Remove</string>
   <string name="network_dialog_message_block">This will remove the selected network connections, you won't see them anymore. Please, confirm that that is what you want to do.</string>
+
+  <string name="dialog_recaptcha_title">Beep boop, beep boop?</string>
+  <string name="dialog_terms_title">Terms agreement</string>
+  <string name="dialog_terms_message">The homeserver you have selected requires %1$s agreement. Do you agree with its contents?</string>
 
   <string name="category_family">Family</string>
   <string name="category_peers">Peers</string>
@@ -148,7 +176,7 @@
   <string name="button_confirm">Confirm</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
-  <string name="button_add_to">Add to</string>
+  <string name="button_invite">Invite</string>
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Remove</string>
@@ -157,8 +185,16 @@
   <string name="button_tune">Tune</string>
 
   <string name="action_settings">Options</string>
+  <string name="action_download_all">Download all</string>
+  <string name="action_share">Share</string>
   <string name="action_link_copied">Link successfully copied!</string>
   <string name="action_general_copied">Information copied!</string>
+
+  <string name="download_loading">Loading:</string>
+  <string name="download_success">Successfully downloaded</string>
+  <string name="download_failure">There was an error, try again later.</string>
+  <string name="download_open_file">Open file location</string>
+  <string name="link_preview_error">No Preview for the mentioned url:-(.</string>
 
   <string name="work_in_progress">We are actively working on this, hang on tight!</string>
   <string name="function_unavailable">This functionality is not supported on your device yet. But you can use Android, iOS, or macOS device to complete your action.</string>
@@ -180,6 +216,8 @@
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>
+  <string name="accessibility_message_forward">Forward</string>
+  <string name="accessibility_message_download">Download</string>
   <string name="accessibility_message_pdf">A pdf file attached to your message</string>
   <string name="accessibility_message_image">An image attached to your message</string>
   <string name="accessibility_message_file">Any file attached to your message</string>

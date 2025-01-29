@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import data.io.social.network.conversation.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationMessageIO
 import database.AppRoomDatabase
 
 /** Interface for communication with local Room database */
@@ -14,7 +14,7 @@ interface ConversationMessageDao {
     /** Returns all items */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
             "WHERE conversation_id = :conversationId " +
-            "ORDER BY created_at DESC " +
+            "ORDER BY sent_at DESC " +
             "LIMIT :limit " +
             "OFFSET :offset")
     suspend fun getPaginated(
@@ -43,6 +43,7 @@ interface ConversationMessageDao {
     suspend fun insert(item: ConversationMessageIO)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE}")
-    suspend fun removeAll()
+    @Query("DELETE FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+            "WHERE conversation_id = :conversationId")
+    suspend fun removeAll(conversationId: String?)
 }

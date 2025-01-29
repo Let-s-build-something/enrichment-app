@@ -16,7 +16,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -29,6 +28,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -65,8 +66,8 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.DateUtils.formatAsRelative
+import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.horizontallyDraggable
-import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -76,10 +77,13 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.utils.LinkUtils
 import base.utils.getOrNull
+import base.utils.openLink
 import components.UserProfileImage
-import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.EmojiData
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -97,6 +101,7 @@ import ui.conversation.components.TypingIndicator
 import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.gif.GifImage
+import ui.conversation.components.link.LinkPreview
 import kotlin.math.abs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -110,6 +115,7 @@ fun ConversationScreen(
 ) {
     loadKoinModules(conversationModule)
     val viewModel: ConversationViewModel = koinViewModel(
+        key = conversationId,
         parameters = { parametersOf(conversationId ?: "") }
     )
 
@@ -411,30 +417,35 @@ private fun LazyItemScope.MessageContent(
             )
             .animateItem(),
         horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Bottom
     ) {
         val profileImageSize = with(density) { 38.sp.toDp() }
-        val isLastOfStack = !isCurrentUser && !isNextMessageSameAuthor
-        if(isLastOfStack) {
-            UserProfileImage(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .zIndex(4f)
-                    .size(profileImageSize),
-                model = data?.user?.photoUrl,
-                tag = data?.user?.tag
-            )
+
+        if(!isCurrentUser) {
+            if(!isNextMessageSameAuthor) {
+                UserProfileImage(
+                    modifier = Modifier
+                        .padding(
+                            start = 12.dp,
+                            end = 10.dp,
+                            // offset if there are reactions (because those offset the message content)
+                            bottom = if(!data?.reactions.isNullOrEmpty()) {
+                                with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
+                            }else 0.dp
+                        )
+                        .zIndex(4f)
+                        .size(profileImageSize),
+                    model = data?.user?.photoUrl,
+                    tag = data?.user?.tag
+                )
+            }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
+                Spacer(Modifier.width(profileImageSize + 22.dp))
+            }
         }
+
 
         MessageBubble(
             data = data,
-            contentPadding = PaddingValues(
-                start = LocalTheme.current.shapes.betweenItemsSpace.plus(
-                    if (!isLastOfStack && (isPreviousMessageSameAuthor || isNextMessageSameAuthor)) {
-                        12.dp + profileImageSize
-                    } else 0.dp
-                ) + if (isCurrentUser) 16.dp else 0.dp
-            ),
             isReacting = reactingToMessageId.value == data?.id,
             currentUserPublicId = viewModel.currentUser.value?.publicId ?: "",
             hasPrevious = isPreviousMessageSameAuthor,
@@ -456,126 +467,181 @@ private fun LazyItemScope.MessageContent(
                 showEmojiPreferencesId.value = data?.id
             },
             onReplyRequest = onReplyRequest,
-            additionalContent = {
-                val heightModifier = Modifier.heightIn(
-                    max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
-                    min = MEDIA_MAX_HEIGHT_DP.dp
+            additionalContent = { onDragChange, onDrag ->
+                val rememberedHeight = rememberSaveable(data?.id) {
+                    mutableStateOf(0f)
+                }
+                val shape = if(data?.content.isNullOrBlank()) {
+                    LocalTheme.current.shapes.rectangularActionShape
+                }else RoundedCornerShape(
+                    topStart = LocalTheme.current.shapes.rectangularActionRadius,
+                    topEnd = LocalTheme.current.shapes.rectangularActionRadius
                 )
-
-                data?.anchorMessage?.let { anchorData ->
-                    ReplyIndication(
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .padding(start = 12.dp),
-                        data = anchorData,
-                        onClick = {
-                            scrollToMessage(anchorData.id, anchorData.index)
-                        },
-                        isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
+                val heightModifier = Modifier
+                    .heightIn(
+                        max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
+                        min = MEDIA_MAX_HEIGHT_DP.dp
                     )
-                }
-                if(data?.gifAsset != null) {
-                    val date = data.createdAt?.formatAsRelative() ?: ""
+                    .clip(shape)
 
-                    GifImage(
-                        modifier = heightModifier
-                            .align(Alignment.End)
-                            .zIndex(1f)
-                            .scalingClickable(
-                                scaleInto = .95f,
-                                onLongPress = {
-                                    reactingToMessageId.value = data.id
+                Column(
+                    modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                        .wrapContentHeight()
+                        .onSizeChanged {
+                            if(it.height != 0) {
+                                with(density) {
+                                    rememberedHeight.value = it.height.toDp().value
                                 }
-                            ) {
-                                coroutineScope.launch {
-                                    navController?.navigate(
-                                        NavigationNode.MediaDetail(
-                                            urls = listOf(data.gifAsset.original ?: ""),
-                                            title = if(isCurrentUser) {
-                                                getString(Res.string.conversation_detail_you)
-                                            } else data.user?.displayName,
-                                            subtitle = date
-                                        )
-                                    )
-                                }
-                            }
-                            .clip(RoundedCornerShape(6.dp)),
-                        data = data.gifAsset.original ?: "",
-                        contentDescription = data.gifAsset.description,
-                        contentScale = ContentScale.FillHeight
-                    )
-                }
-                if(data?.mediaUrls?.mapNotNull { m -> m.takeIf { it.isNotBlank() } }?.isNotEmpty() == true) {
-                    val date = data.createdAt?.formatAsRelative() ?: ""
-
-                    LaunchedEffect(mediaRowState) {
-                        snapshotFlow { mediaRowState.value }.collect {
-                            if(abs(scrollPosition.value - it) < 300) {
-                                scrollPosition.value = it
                             }
                         }
+                        .align(if(isCurrentUser) Alignment.End else Alignment.Start),
+                    horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
+                ) {
+                    data?.anchorMessage?.let { anchorData ->
+                        ReplyIndication(
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .padding(start = 12.dp),
+                            data = anchorData,
+                            onClick = {
+                                scrollToMessage(anchorData.id, anchorData.index)
+                            },
+                            isCurrentUser = anchorData.authorPublicId == viewModel.currentUser.value?.publicId
+                        )
                     }
+                    if(data?.gifAsset != null) {
+                        val date = data.sentAt?.formatAsRelative() ?: ""
 
-                    Row(
-                        modifier = heightModifier
-                            .wrapContentWidth()
-                            .horizontalScroll(state = mediaRowState)
-                            .horizontallyDraggable(state = mediaRowState)
-                    ) {
-                        if(isCurrentUser) {
-                            Spacer(Modifier.width((screenSize.width * .3f).dp))
-                        }
-                        (if(isCurrentUser) {
-                            data.mediaUrls
-                        } else data.mediaUrls.reversed()).forEachIndexed { index, mediaUrl ->
-                            val media = viewModel.cachedFiles[mediaUrl]
-
-                            MediaElement(
-                                modifier = heightModifier
-                                    .padding(
-                                        horizontal = LocalTheme.current.shapes.betweenItemsSpace / 2
-                                    )
-                                    .scalingClickable(
-                                        enabled = (data.state?.ordinal ?: 0) > 0,
-                                        scaleInto = .95f,
+                        GifImage(
+                            modifier = heightModifier
+                                .zIndex(1f)
+                                .pointerInput(data.id) {
+                                    detectMessageInteraction(
+                                        onTap = {
+                                            coroutineScope.launch {
+                                                navController?.navigate(
+                                                    NavigationNode.MediaDetail(
+                                                        media = listOf(
+                                                            MediaIO(
+                                                                url = data.gifAsset.original ?: "",
+                                                                mimetype = "image/gif"
+                                                            )
+                                                        ),
+                                                        title = if(isCurrentUser) {
+                                                            getString(Res.string.conversation_detail_you)
+                                                        } else data.user?.name,
+                                                        subtitle = date
+                                                    )
+                                                )
+                                            }
+                                        },
                                         onLongPress = {
                                             reactingToMessageId.value = data.id
-                                        }
-                                    ) {
-                                        coroutineScope.launch {
-                                            navController?.navigate(
-                                                NavigationNode.MediaDetail(
-                                                    urls = data.mediaUrls,
-                                                    selectedIndex = index,
-                                                    title = if(isCurrentUser) {
-                                                        getString(Res.string.conversation_detail_you)
-                                                    } else data.user?.displayName,
-                                                    subtitle = date
-                                                )
+                                        },
+                                        onDragChange = onDragChange,
+                                        onDrag = onDrag
+                                    )
+                                },
+                            data = data.gifAsset.original ?: "",
+                            contentDescription = data.gifAsset.description,
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    if(data?.media?.mapNotNull { m -> m.url.takeIf { !it.isNullOrBlank() } }?.isNotEmpty() == true) {
+                        val date = data.sentAt?.formatAsRelative() ?: ""
+
+                        LaunchedEffect(mediaRowState) {
+                            snapshotFlow { mediaRowState.value }.collect {
+                                if(abs(scrollPosition.value - it) < 300) {
+                                    scrollPosition.value = it
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = heightModifier
+                                .wrapContentWidth()
+                                .horizontalScroll(state = mediaRowState)
+                                .horizontallyDraggable(state = mediaRowState),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                LocalTheme.current.shapes.betweenItemsSpace
+                            )
+                        ) {
+                            (if(isCurrentUser) {
+                                data.media
+                            } else data.media.reversed()).forEachIndexed { index, media ->
+                                val cachedMedia = viewModel.cachedFiles[media.url]
+                                val canBeVisualized = media.mimetype?.contains("image") == true
+                                        || media.mimetype?.contains("video") == true
+
+                                MediaElement(
+                                    modifier = if((data.state?.ordinal ?: 0) > 0 && canBeVisualized) {
+                                        heightModifier.pointerInput(data.id, ) {
+                                            detectMessageInteraction(
+                                                onTap = {
+                                                    coroutineScope.launch {
+                                                        navController?.navigate(
+                                                            NavigationNode.MediaDetail(
+                                                                media = data.media,
+                                                                selectedIndex = index,
+                                                                title = if(isCurrentUser) {
+                                                                    getString(Res.string.conversation_detail_you)
+                                                                } else data.user?.name,
+                                                                subtitle = date
+                                                            )
+                                                        )
+                                                    }
+                                                },
+                                                onLongPress = {
+                                                    reactingToMessageId.value = data.id
+                                                },
+                                                onDragChange = onDragChange,
+                                                onDrag = onDrag
                                             )
                                         }
-                                    }
-                                    .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                url = mediaUrl,
-                                media = media
-                            )
-                        }
-                        if(!isCurrentUser) {
-                            Spacer(Modifier.width((screenSize.width * .3f).dp))
+                                    }else heightModifier,
+                                    media = media,
+                                    localMedia = cachedMedia,
+                                    enabled = false
+                                )
+                            }
                         }
                     }
-                }
-                if(!data?.audioUrl.isNullOrBlank()) {
-                    AudioMessageBubble(
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .align(Alignment.End)
-                            .zIndex(1f),
-                        url = data?.audioUrl ?: "",
-                        isCurrentUser = isCurrentUser,
-                        hasPrevious = isPreviousMessageSameAuthor,
-                        hasNext = isNextMessageSameAuthor
-                    )
+                    if(!data?.audioUrl.isNullOrBlank()) {
+                        AudioMessageBubble(
+                            modifier = Modifier.zIndex(1f),
+                            url = data?.audioUrl ?: "",
+                            isCurrentUser = isCurrentUser,
+                            hasPrevious = isPreviousMessageSameAuthor,
+                            hasNext = isNextMessageSameAuthor
+                        )
+                    }
+
+                    if(data?.showPreview == true && data.content?.isNotBlank() == true) {
+                        val matches = remember {
+                            LinkUtils.urlRegex.findAll(data.content)
+                        }
+                        if(matches.any()) {
+                            matches.firstOrNull()?.let { firstLink ->
+                                LinkPreview(
+                                    modifier = Modifier
+                                        .widthIn(max = (screenSize.width * .8f).dp)
+                                        .pointerInput(data.id) {
+                                            detectMessageInteraction(
+                                                onTap = {
+                                                    openLink(firstLink.value)
+                                                },
+                                                onDragChange = onDragChange,
+                                                onDrag = onDrag
+                                            )
+                                        }
+                                        .clip(shape = shape),
+                                    url = firstLink.value,
+                                    alignment = if(isCurrentUser) Alignment.Start else Alignment.End
+                                )
+                            }
+                        }
+                    }
                 }
             }
         )

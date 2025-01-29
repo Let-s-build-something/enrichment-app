@@ -6,15 +6,10 @@ import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.utils.LinkUtils.emailRegex
+import base.utils.LinkUtils.phoneNumberRegex
+import base.utils.LinkUtils.urlRegex
 
-/** Email address pattern, same as [android.util.Patterns.EMAIL_ADDRESS] */
-private val emailRegex = """[a-zA-Z0-9+._%-+]{1,256}@[a-zA-Z0-9][a-zA-Z0-9-]{0,64}(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,25})+""".toRegex()
-
-/** URL pattern, no HTTP or HTTPS needed */
-private val urlRegex = """(?<=^|\s)[^\s@]+\.\S+(?=${'$'}|\s)""".toRegex()
-
-/** URL pattern, no HTTP or HTTPS needed */
-private val phoneNumberRegex = """\+?\d{1,4}?[\s-]?\(?(\d{1,4})\)?[\s-]?\d{1,4}[\s-]?\d{1,4}[\s-]?\d{1,9}""".toRegex()
 
 /**
  * Clickable text supporting <a href> HTML tags and can also match email, URL addresses, and phone numbers if needed
@@ -104,4 +99,45 @@ fun buildAnnotatedLinkString(
         }
     }
     append(appendableText)
+}
+
+/** Builds text with a single link represented by a text */
+@Composable
+fun buildAnnotatedLink(
+    text: String,
+    linkTexts: List<String>,
+    onLinkClicked: (link: String, index: Int) -> Unit
+) = buildAnnotatedString {
+    append(text.substring(
+        startIndex = 0,
+        endIndex = linkTexts.firstOrNull()?.let { text.indexOf(it) } ?: text.length
+    ))
+    linkTexts.forEachIndexed { index, linkTextWithin ->
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "ACTION",
+                styles = LocalTheme.current.styles.link,
+                linkInteractionListener = {
+                    onLinkClicked(linkTextWithin, index)
+                },
+            ),
+        ) {
+            append(linkTextWithin)
+        }
+        // space between this and next link
+        if(linkTexts.size > 1 && index != linkTexts.lastIndex) {
+            append(
+                text.substring(
+                    startIndex = text.indexOf(linkTextWithin) + linkTextWithin.length,
+                    endIndex = linkTexts.getOrNull(index + 1)?.let { text.indexOf(it) } ?: text.length
+                )
+            )
+        }
+    }
+    if(linkTexts.isNotEmpty()) {
+        append(text.substring(
+            startIndex = text.indexOf(linkTexts.last()) + linkTexts.last().length,
+            endIndex = text.length
+        ))
+    }
 }

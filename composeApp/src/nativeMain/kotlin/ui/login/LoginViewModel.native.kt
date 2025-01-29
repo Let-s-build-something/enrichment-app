@@ -1,6 +1,5 @@
 package ui.login
 
-import cocoapods.GoogleSignIn.GIDSignIn
 import data.io.identity_platform.IdentityMessageType
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthException
@@ -49,7 +48,8 @@ actual fun signInServiceModule() = module {
 actual class UserOperationService {
     actual val availableOptions: List<SingInServiceOption> = listOf(
         SingInServiceOption.GOOGLE,
-        SingInServiceOption.APPLE
+        SingInServiceOption.APPLE,
+        SingInServiceOption.MATRIX
     )
 
     @OptIn(ExperimentalForeignApi::class)
@@ -169,7 +169,11 @@ actual class UserOperationService {
         }
     }
 
-    actual suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType? = null
+    actual suspend fun signUpWithPassword(
+        email: String,
+        password: String,
+        deleteRightAfter: Boolean
+    ): IdentityMessageType? = null
 
     @OptIn(BetaInteropApi::class)
     private fun NSData.string(): String? = NSString.create(

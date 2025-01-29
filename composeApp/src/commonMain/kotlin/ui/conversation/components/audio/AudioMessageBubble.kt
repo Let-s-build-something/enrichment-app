@@ -53,7 +53,7 @@ fun AudioMessageBubble(
     hasPrevious: Boolean,
     hasNext: Boolean
 ) {
-    val processorModel: AudioProcessorModel = koinViewModel(key = url)
+    val processorModel: MediaProcessorModel = koinViewModel(key = url)
 
     val tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
     val cancellableCoroutineScope = rememberCoroutineScope()
@@ -100,7 +100,7 @@ fun AudioMessageBubble(
     }
 
     LaunchedEffect(url) {
-        processorModel.downloadByteArray(url)
+        processorModel.downloadAudioByteArray(url)
     }
     LaunchedEffect(isPlaying.value) {
         if (isPlaying.value) {

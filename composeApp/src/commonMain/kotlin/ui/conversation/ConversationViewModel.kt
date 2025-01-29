@@ -7,16 +7,20 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import base.utils.getUrlExtension
 import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
-import data.io.social.network.conversation.ConversationMessageIO
 import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
+import data.shared.DemoData.demoConversationDetail
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -30,8 +34,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.conversation.ConversationRepository.Companion.demoConversationDetail
 import ui.conversation.components.KeyboardViewModel
+import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.audioProcessorModule
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
@@ -71,14 +75,18 @@ class ConversationViewModel(
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
-
     private val _typingIndicators = MutableStateFlow<Pair<Int, List<ConversationTypingIndicator>>>(-1 to listOf())
+    private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
+
 
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
 
     /** Current typing indicators, indicating typing statuses of other users */
     val typingIndicators = _typingIndicators.asStateFlow()
+
+    /** Progress of the current upload */
+    val uploadProgress = _uploadProgress.asStateFlow()
 
     /** currently locally cached byte arrays */
     val cachedFiles
@@ -170,20 +178,40 @@ class ConversationViewModel(
         anchorMessage: ConversationMessageIO?,
         mediaFiles: List<PlatformFile>,
         mediaUrls: List<String>,
-        gifAsset: GifAsset?
+        gifAsset: GifAsset?,
+        showPreview: Boolean
     ) {
-        viewModelScope.launch {
+        CoroutineScope(Job()).launch {
+            var progressId = ""
             repository.sendMessage(
                 conversationId = conversationId,
                 mediaFiles = mediaFiles,
+                onProgressChange = { progress ->
+                    _uploadProgress.update {
+                        it.toMutableList().apply {
+                            add(progress)
+                            progressId = progress.id
+                        }
+                    }
+                },
                 message = ConversationMessageIO(
                     content = content,
-                    anchorMessageId = anchorMessage?.id,
                     anchorMessage = anchorMessage?.toAnchorMessage(),
                     gifAsset = gifAsset,
-                    mediaUrls = mediaUrls
+                    media = mediaUrls.map { url ->
+                        MediaIO(
+                            url = url,
+                            mimetype = MimeType.getByExtension(getUrlExtension(url)).mime
+                        )
+                    },
+                    showPreview = showPreview
                 )
             )
+            _uploadProgress.update { previous ->
+                previous.toMutableList().apply {
+                    removeAll { it.id == progressId }
+                }
+            }
         }
     }
 

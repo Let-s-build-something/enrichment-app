@@ -104,3 +104,13 @@ actual fun rememberAudioPlayer(
         }
     }
 }
+
+actual fun getMinBufferSize(
+    sampleRate: Int,
+    channels: Int,
+    encoding: Int
+): Int = AudioTrack.getMinBufferSize(
+    sampleRate,
+    AudioFormat.CHANNEL_OUT_MONO,
+    AudioFormat.ENCODING_PCM_16BIT
+)

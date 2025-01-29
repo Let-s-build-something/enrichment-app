@@ -5,7 +5,7 @@ Pod::Spec.new do |spec|
     spec.source                   = { :http=> ''}
     spec.authors                  = ''
     spec.license                  = ''
-    spec.summary                  = 'Communicate meaningfully'
+    spec.summary                  = 'Expressive messenger'
     spec.vendored_frameworks      = 'build/cocoapods/framework/ComposeApp.framework'
     spec.libraries                = 'c++'
     spec.ios.deployment_target    = '15.3'

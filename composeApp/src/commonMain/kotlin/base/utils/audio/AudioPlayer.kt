@@ -52,5 +52,11 @@ expect fun rememberAudioPlayer(
     barsCount: Int,
     sampleRate: Int = 44100,
     secondsPerBar: Double = 0.1,
-    bufferSize: Int = sampleRate / 20
+    bufferSize: Int = getMinBufferSize(
+        sampleRate = sampleRate,
+        channels = 1,
+        encoding = 16
+    )
 ): AudioPlayer
+
+expect fun getMinBufferSize(sampleRate: Int, channels: Int, encoding: Int): Int

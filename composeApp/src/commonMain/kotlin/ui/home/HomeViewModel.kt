@@ -15,7 +15,7 @@ import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
-import data.io.user.NetworkItemIO
+import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -29,18 +29,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.network.list.NetworkListRepository
-import ui.network.received.networkManagementModule
+import ui.home.utils.NetworkItemUseCase
+import ui.home.utils.networkItemModule
 
 internal val homeModule = module {
-    includes(networkManagementModule)
-    factory { HomeViewModel(get<NetworkListRepository>()) }
+    includes(networkItemModule)
+    factory { HomeRepository(get(), get(), get()) }
+    factory { HomeViewModel(get<HomeRepository>(), get()) }
     viewModelOf(::HomeViewModel)
 }
 
+
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeViewModel(
-    private val repository: NetworkListRepository
+    repository: HomeRepository,
+    private val networkItemUseCase: NetworkItemUseCase
 ): SharedViewModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
@@ -48,7 +51,7 @@ class HomeViewModel(
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
-    private val _categories = MutableStateFlow(listOf<NetworkProximityCategory>())
+    private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -70,8 +73,19 @@ class HomeViewModel(
         }
     }
 
+    val openConversations = networkItemUseCase.openConversations
+    val isLoading = networkItemUseCase.isLoading
+    val response = networkItemUseCase.invitationResponse
+    val networkItems = networkItemUseCase.networkItems.combine(_categories) { networkItems, categories ->
+        withContext(Dispatchers.Default) {
+            networkItems?.filter { item ->
+                categories.any { it.range.contains(item.proximity ?: 1f) }
+            }
+        }
+    }
+
     /** flow of current requests */
-    val networkItems: Flow<PagingData<NetworkItemIO>> = repository.getNetworkListFlow(
+    val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
         PagingConfig(
             pageSize = 40,
             enablePlaceholders = true,
@@ -95,14 +109,15 @@ class HomeViewModel(
                 ?.mapNotNull {
                     NetworkProximityCategory.entries.firstOrNull { category -> category.name == it }
                 }
-                ?: listOf(
-                    NetworkProximityCategory.Family,
-                    NetworkProximityCategory.Peers
-                )
+                ?: NetworkProximityCategory.entries
+        }
+        viewModelScope.launch {
+            networkItemUseCase.getNetworkItems()
         }
     }
 
     /** Filters currently downloaded network items */
+    @OptIn(ExperimentalSettingsApi::class)
     fun filterNetworkItems(filter: List<NetworkProximityCategory>) {
         viewModelScope.launch(Dispatchers.Default) {
             _categories.value = filter
@@ -113,25 +128,8 @@ class HomeViewModel(
         }
     }
 
-    /** Makes a request for changes of proximity related to the [selectedConnections] */
-    fun requestProximityChange(
-        selectedConnections: List<String>,
-        proximity: Float,
-        onOperationDone: () -> Unit = {}
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            selectedConnections.forEach { publicId ->
-                // TODO change locally once the local database is in place
-                repository.patchNetworkConnection(
-                    publicId = publicId,
-                    proximity = proximity
-                )
-            }
-            onOperationDone()
-        }
-    }
-
     /** Updates color preference */
+    @OptIn(ExperimentalSettingsApi::class)
     fun updateColorPreference(
         category: NetworkProximityCategory,
         color: Color
@@ -147,6 +145,48 @@ class HomeViewModel(
             settings.putString(
                 KEY_NETWORK_COLORS,
                 sharedDataManager.localSettings.value?.networkColors?.joinToString(",") ?: ""
+            )
+        }
+    }
+
+    /** Makes a request for all open rooms */
+    fun requestOpenRooms() {
+        viewModelScope.launch {
+            networkItemUseCase.requestOpenRooms()
+        }
+    }
+
+    /** Makes a request for a change of proximity of a conversation */
+    fun requestProximityChange(
+        conversationId: String?,
+        publicId: String?,
+        proximity: Float,
+        onOperationDone: () -> Unit = {}
+    ) {
+        if(conversationId == null) return
+        viewModelScope.launch {
+            networkItemUseCase.requestProximityChange(
+                conversationId = conversationId,
+                publicId = publicId,
+                proximity = proximity
+            )
+            onOperationDone()
+        }
+    }
+
+    /** Creates a new invitation to a conversation room */
+    fun inviteToConversation(
+        conversationId: String?,
+        userPublicIds: List<String>?,
+        message: String?,
+        newName: String? = null
+    ) {
+        viewModelScope.launch {
+            networkItemUseCase.inviteToConversation(
+                conversationId = conversationId,
+                userPublicIds = userPublicIds,
+                message = message,
+                newName = newName
             )
         }
     }

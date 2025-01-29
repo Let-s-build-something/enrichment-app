@@ -39,6 +39,7 @@ import augmy.composeapp.generated.resources.network_preferences_circle_colors
 import augmy.composeapp.generated.resources.network_preferences_default_message
 import augmy.composeapp.generated.resources.network_preferences_default_name
 import augmy.composeapp.generated.resources.network_preferences_title
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -47,7 +48,6 @@ import base.theme.Colors
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
-import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -120,15 +120,16 @@ fun NetworkPreferencesLauncher(
                     ) {
                         NetworkItemRow(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
                             data = NetworkItemIO(
-                                displayName = stringResource(Res.string.network_preferences_default_name),
+                                name = stringResource(Res.string.network_preferences_default_name),
                                 lastMessage = stringResource(Res.string.network_preferences_default_message),
                                 tag = "E7D37F",
                                 photoUrl = "https://augmy.org/storage/img/imjustafish.jpg"
                             ),
-                            color = selectedColor.value
+                            indicatorColor = selectedColor.value
                         )
                         LazyRow(
                             modifier = Modifier

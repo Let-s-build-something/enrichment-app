@@ -2,9 +2,16 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
-import data.io.social.network.conversation.ConversationAnchorMessageIO
-import data.io.social.network.conversation.MessageReactionIO
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.matrix.RoomAccountData
+import data.io.social.network.conversation.matrix.RoomEphemeral
+import data.io.social.network.conversation.matrix.RoomInviteState
+import data.io.social.network.conversation.matrix.RoomNotificationsCount
+import data.io.social.network.conversation.matrix.RoomSummary
+import data.io.social.network.conversation.matrix.RoomTimeline
+import data.io.social.network.conversation.message.ConversationAnchorMessageIO
+import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.serialization.encodeToString
@@ -17,16 +24,76 @@ class AppDatabaseConverter {
 
     private val json: Json by KoinPlatform.getKoin().inject()
 
-    /** Converts list of strings to string */
+    /** Converts object to string */
     @TypeConverter
-    fun fromStringList(value: List<String>): String {
-        return value.joinToString(",")
+    fun fromRoomSummary(value: RoomSummary): String {
+        return json.encodeToString(value)
     }
 
-    /** Converts string to list of strings */
+    /** Converts string to an object */
     @TypeConverter
-    fun toStringList(value: String): List<String> {
-        return value.split(",")
+    fun toRoomSummary(value: String): RoomSummary {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromRoomNotificationsCount(value: RoomNotificationsCount): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toRoomNotificationsCount(value: String): RoomNotificationsCount {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromRoomEphemeral(value: RoomEphemeral): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toRoomEphemeral(value: String): RoomEphemeral {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromRoomAccountData(value: RoomAccountData): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toRoomAccountData(value: String): RoomAccountData {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromRoomTimeline(value: RoomTimeline): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toRoomTimeline(value: String): RoomTimeline {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromRoomInviteState(value: RoomInviteState): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toRoomInviteState(value: String): RoomInviteState {
+        return json.decodeFromString(value)
     }
 
     /** Converts object to string */
@@ -43,14 +110,26 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
-    fun fromReactionList(value: List<MessageReactionIO>): String {
-        return json.encodeToString(value)
+    fun fromMediaList(value: List<MediaIO>?): String? {
+        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
     }
 
     /** Converts string to an object */
     @TypeConverter
-    fun toReactionList(value: String): List<MessageReactionIO> {
-        return json.decodeFromString(value)
+    fun toMediaList(value: String?): List<MediaIO>? {
+        return if(value == null) null else json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromReactionList(value: List<MessageReactionIO>?): String? {
+        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toReactionList(value: String?): List<MessageReactionIO>? {
+        return if(value == null) null else json.decodeFromString(value)
     }
 
     /** Converts object to string */

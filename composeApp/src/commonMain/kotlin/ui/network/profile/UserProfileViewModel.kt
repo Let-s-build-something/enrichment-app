@@ -4,8 +4,10 @@ import androidx.lifecycle.viewModelScope
 import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
-import data.io.user.PublicUserProfileIO
+import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +25,7 @@ class UserProfileViewModel(
     private val repository: UserProfileRepository
 ): SharedViewModel() {
 
-    private val _responseProfile = MutableStateFlow<BaseResponse<PublicUserProfileIO>>(BaseResponse.Idle)
+    private val _responseProfile = MutableStateFlow<BaseResponse<NetworkItemIO>>(BaseResponse.Idle)
 
     /** Result of the requested user profile */
     val responseProfile = _responseProfile.asStateFlow()
@@ -52,6 +54,24 @@ class UserProfileViewModel(
                     CirclingRequest(displayName = displayName, tag = tag)
                 )
             )
+        }
+    }
+
+    /** Makes a request for changes of proximity related to the [selectedConnections] */
+    fun requestProximityChange(
+        selectedConnections: List<String>,
+        proximity: Float,
+        onOperationDone: () -> Unit = {}
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            selectedConnections.forEach { publicId ->
+                // TODO change locally once the local database is in place
+                repository.patchNetworkConnection(
+                    publicId = publicId,
+                    proximity = proximity
+                )
+            }
+            onOperationDone()
         }
     }
 }

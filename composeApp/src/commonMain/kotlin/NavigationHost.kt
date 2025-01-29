@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import base.navigation.NavigationNode
+import data.io.social.network.conversation.message.MediaIO
 import koin.loginModule
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.core.context.loadKoinModules
@@ -58,12 +59,20 @@ fun NavigationHost(
             loadKoinModules(networkManagementModule)
             NetworkManagementScreen()
         }
-        composable<NavigationNode.MediaDetail> {
+        composable<NavigationNode.MediaDetail> { args ->
             MediaDetailScreen(
-                urls = it.arguments?.getStringArray("urls").orEmpty(),
-                selectedIndex = it.arguments?.getInt("selectedIndex") ?: 0,
-                title = it.arguments?.getString("title") ?: "",
-                subtitle = it.arguments?.getString("subtitle") ?: ""
+                media = args.arguments?.getStringArray("encodedMedia").orEmpty().mapNotNull { media ->
+                    media?.split("|||").let {
+                        MediaIO(
+                            name = it?.get(0),
+                            mimetype = it?.get(1),
+                            url = it?.get(2)
+                        )
+                    }
+                }.toTypedArray(),
+                selectedIndex = args.arguments?.getInt("selectedIndex") ?: 0,
+                title = args.arguments?.getString("title") ?: "",
+                subtitle = args.arguments?.getString("subtitle") ?: ""
             )
         }
         composable<NavigationNode.Conversation> {

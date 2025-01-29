@@ -23,6 +23,8 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -33,6 +35,7 @@ import augmy.composeapp.generated.resources.error_general
 import augmy.composeapp.generated.resources.network_inclusion_action_2
 import augmy.composeapp.generated.resources.network_inclusion_success
 import augmy.composeapp.generated.resources.network_inclusion_success_action
+import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -42,10 +45,10 @@ import augmy.interactive.shared.ui.components.ContrastHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
+import components.OptionsLayoutAction
 import components.UserProfileImage
 import data.io.base.BaseResponse
-import data.io.user.PublicUserProfileIO
-import augmy.interactive.shared.ext.brandShimmerEffect
+import data.io.user.NetworkItemIO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -69,7 +72,7 @@ fun UserProfileLauncher(
         skipHiddenState = false
     ),
     publicId: String? = null,
-    userProfile: PublicUserProfileIO? = null
+    userProfile: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
     val viewModel: UserProfileViewModel = koinViewModel()
@@ -81,8 +84,59 @@ fun UserProfileLauncher(
         maximumValue = 150
     ).dp
 
+
     val responseProfile = viewModel.responseProfile.collectAsState()
     val responseInclusion = viewModel.responseInclusion.collectAsState()
+
+    val showActionDialog = rememberSaveable {
+        mutableStateOf<OptionsLayoutAction?>(null)
+    }
+    /*showActionDialog.value?.let { action ->
+        AlertDialog(
+            title = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_title_mute
+                }else Res.string.network_dialog_title_block
+            ),
+            message = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_message_mute
+                }else Res.string.network_dialog_message_block
+            ),
+            icon = action.leadingImageVector,
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_confirm)
+            ) {
+                viewModel.requestProximityChange(
+                    selectedConnections = checkedItems,
+                    proximity = if(action == OptionsLayoutAction.Mute) {
+                        NetworkProximityCategory.Public.range.start
+                    }else BlockedProximityValue,
+                    onOperationDone = {
+                        networkItems.refresh()
+                    }
+                )
+                checkedItems.clear()
+            },
+            dismissButtonState = ButtonState(
+                text = stringResource(Res.string.button_dismiss)
+            ),
+            onDismissRequest = {
+                showActionDialog.value = null
+            }
+        )
+    }*/
+    /*data object Mute: OptionsLayoutAction(
+        textRes = Res.string.button_mute,
+        leadingImageVector = Icons.Outlined.VoiceOverOff,
+        containerColor = SharedColors.RED_ERROR
+    )
+    data object Block: OptionsLayoutAction(
+        textRes = Res.string.button_block,
+        leadingImageVector = Icons.Outlined.FaceRetouchingOff,
+        containerColor = SharedColors.RED_ERROR.copy(alpha = 0.6f)
+    )
+    Icons.Outlined.TrackChanges*/
 
     LaunchedEffect(Unit) {
         viewModel.responseInclusion.collectLatest {
@@ -100,7 +154,7 @@ fun UserProfileLauncher(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = it.data.targetPublicId,
-                                name = responseProfile.value.success?.data?.displayName
+                                name = responseProfile.value.success?.data?.name
                             )
                         )
                     }
@@ -186,7 +240,7 @@ private fun ShimmerContent(pictureSize: Dp) {
 
 @Composable
 private fun DataContent(
-    userProfile: PublicUserProfileIO,
+    userProfile: NetworkItemIO,
     pictureSize: Dp,
     viewModel: UserProfileViewModel,
     onDismissRequest: () -> Unit
@@ -214,7 +268,7 @@ private fun DataContent(
         }
         Text(
             modifier = Modifier.padding(start = 16.dp),
-            text = userProfile.displayName ?: "",
+            text = userProfile.name ?: "",
             style = LocalTheme.current.styles.subheading
         )
     }
@@ -234,7 +288,7 @@ private fun DataContent(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = userProfile.publicId,
-                                name = userProfile.displayName
+                                name = userProfile.name
                             )
                         )
                     }
@@ -247,7 +301,7 @@ private fun DataContent(
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
                         viewModel.includeNewUser(
-                            displayName = userProfile.displayName ?: "",
+                            displayName = userProfile.name ?: "",
                             tag = userProfile.tag ?: ""
                         )
                     }

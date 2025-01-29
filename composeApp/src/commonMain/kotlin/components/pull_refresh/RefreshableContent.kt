@@ -2,8 +2,6 @@ package components.pull_refresh
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -19,6 +17,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.components.getDefaultPullRefreshSize
 import augmy.interactive.shared.ui.components.navigation.AppBarHeightDp
 
@@ -69,7 +68,10 @@ fun RefreshableContent(
                         .toFloat()
                     indicatorWidth.value = size.width
                 }
-                .pullRefresh(pullRefreshState),
+                .then(
+                    if(LocalIsMouseUser.current) Modifier
+                    else Modifier.pullRefresh(pullRefreshState)
+                ),
             content = content,
             contentAlignment = contentAlignment
         )

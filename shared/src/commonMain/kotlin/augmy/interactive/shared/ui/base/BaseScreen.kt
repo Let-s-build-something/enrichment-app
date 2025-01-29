@@ -402,6 +402,9 @@ val LocalHeyIamScreen = staticCompositionLocalOf { false }
 /** Current device frame type */
 val LocalDeviceType = staticCompositionLocalOf { WindowWidthSizeClass.Compact }
 
+/** Whether current user uses a mouse */
+val LocalIsMouseUser = staticCompositionLocalOf { false }
+
 /** current snackbar host for showing snackbars */
 val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
 

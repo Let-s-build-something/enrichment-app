@@ -38,13 +38,9 @@ actual fun rememberAudioRecorder(
             // bar creation
             private var barBuffer: ByteArrayOutputStream? = null
 
-            init {
-                if (!AudioSystem.isLineSupported(lineInfo)) {
-                    throw UnsupportedOperationException("Line not supported")
-                }
-            }
-
             override fun startRecording() {
+                if (!AudioSystem.isLineSupported(lineInfo)) return
+
                 if(line == null) {
                     stopRecording()
 

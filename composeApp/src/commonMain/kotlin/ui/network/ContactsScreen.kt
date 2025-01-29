@@ -52,6 +52,7 @@ import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.screen_home
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -59,8 +60,6 @@ import base.BrandBaseScreen
 import base.navigation.NavIconType
 import components.UserProfileImage
 import data.io.user.NetworkItemIO
-import data.io.user.PublicUserProfileIO
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ui.network.profile.UserProfileLauncher
@@ -94,7 +93,7 @@ fun ContactsScreen() {
         mutableStateOf(screenHeight)
     }
     val selectedProfile = remember {
-        mutableStateOf<PublicUserProfileIO?>(null)
+        mutableStateOf<NetworkItemIO?>(null)
     }
 
     if(selectedProfile.value != null) {
@@ -185,7 +184,7 @@ private fun SocialCircleTier(
     gridState: LazyGridState,
     showNames: Boolean,
     rows: Int = 1,
-    onClick: (PublicUserProfileIO) -> Unit
+    onClick: (NetworkItemIO) -> Unit
 ) {
     val maxOffsetY = height * 2.5
     val width = gridState.layoutInfo.viewportSize.width.toFloat()
@@ -241,7 +240,7 @@ private fun SocialCircleTier(
                 if(showNames) {
                     Text(
                         modifier = Modifier.padding(4.dp),
-                        text = data.displayName ?: "",
+                        text = data.name ?: "",
                         style = LocalTheme.current.styles.category.copy(
                             fontSize = with(density) {
                                 (height / 3).dp.toSp().value.coerceAtMost(14f).sp

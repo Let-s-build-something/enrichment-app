@@ -3,6 +3,7 @@ package base.utils
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import app.cash.paging.compose.LazyPagingItems
+import coil3.toUri
 import io.github.vinceglb.filekit.core.PlatformFile
 
 /** Returns item at a specific index and handles indexOutOfBounds exception */
@@ -17,18 +18,23 @@ fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else
 fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)
 
 /** Returns a media type of a file */
-fun getMediaType(extension: String): MediaType {
-    return when (extension.lowercase()) {
-        "jpg", "jpeg", "png", "bmp", "svg", "webp", "avif" -> MediaType.IMAGE
-        "gif" -> MediaType.GIF
-        "mp4", "avi", "mkv", "mov", "webm" -> MediaType.VIDEO
-        "mp3", "wav", "aac", "flac", "ogg" -> MediaType.AUDIO
-        "txt", "csv", "log" -> MediaType.TEXT
-        "pdf" -> MediaType.PDF
-        "ppt", "pptx" -> MediaType.PRESENTATION
+fun getMediaType(mimeType: String): MediaType {
+    return when {
+        mimeType.lowercase().contains("gif") -> MediaType.GIF
+        mimeType.lowercase().contains("image") -> MediaType.IMAGE
+        mimeType.lowercase().contains("video") -> MediaType.VIDEO
+        mimeType.lowercase().contains("audio") -> MediaType.AUDIO
+        mimeType.lowercase().contains("text") -> MediaType.TEXT
+        mimeType.lowercase().contains("pdf") -> MediaType.PDF
+        mimeType.lowercase().contains("powerpoint")
+                || mimeType.lowercase().contains("presentation")
+                || mimeType.lowercase().contains("slideshow") -> MediaType.PRESENTATION
         else -> MediaType.UNKNOWN
     }
 }
+
+/** Returns the extension of an url */
+fun getUrlExtension(url: String): String = (url.toUri().path ?: url).substringAfterLast(".").lowercase()
 
 /** Type of a media file */
 enum class MediaType {
@@ -39,7 +45,7 @@ enum class MediaType {
     TEXT,
     PDF,
     PRESENTATION,
-    UNKNOWN
+    UNKNOWN;
 }
 
 /** Returns a bitmap from a given file */

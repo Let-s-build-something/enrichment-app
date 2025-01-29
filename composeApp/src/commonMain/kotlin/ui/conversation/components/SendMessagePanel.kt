@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -97,24 +98,30 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
+import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
+import base.utils.LinkUtils
 import base.utils.MediaType
 import base.utils.getMediaType
-import coil3.toUri
-import data.io.social.network.conversation.ConversationMessageIO
+import base.utils.getUrlExtension
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
+import ui.conversation.components.link.LinkPreview
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -133,6 +140,7 @@ internal fun BoxScope.SendMessagePanel(
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
+    val cancellableScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
@@ -151,6 +159,9 @@ internal fun BoxScope.SendMessagePanel(
     val urlsAttached = remember {
         mutableStateListOf<String>()
     }
+    val showPreview = remember {
+        mutableStateOf(true)
+    }
     val gifAttached = remember {
         mutableStateOf<GifAsset?>(null)
     }
@@ -159,6 +170,9 @@ internal fun BoxScope.SendMessagePanel(
     }
     val actionYCoordinate = rememberSaveable {
         mutableStateOf(-1f)
+    }
+    val typedUrl = remember {
+        mutableStateOf<String?>(null)
     }
 
     val isContentEmpty = messageState.text.isBlank()
@@ -221,7 +235,8 @@ internal fun BoxScope.SendMessagePanel(
             mediaFiles = mediaAttached.toList(),
             anchorMessage = replyToMessage.value,
             gifAsset = gifAttached.value,
-            mediaUrls = urlsAttached
+            mediaUrls = urlsAttached,
+            showPreview = showPreview.value
         )
         mediaAttached.clear()
         keyboardMode.value = ConversationKeyboardMode.Default.ordinal
@@ -229,6 +244,8 @@ internal fun BoxScope.SendMessagePanel(
         viewModel.saveMessage(null)
         replyToMessage.value = null
         gifAttached.value = null
+        showPreview.value = true
+        typedUrl.value = null
     }
 
 
@@ -268,6 +285,13 @@ internal fun BoxScope.SendMessagePanel(
         if(messageState.text.isNotBlank()) {
             showMoreOptions.value = false
         }
+        if(showPreview.value) {
+            cancellableScope.coroutineContext.cancelChildren()
+            cancellableScope.launch(Dispatchers.Default) {
+                delay(DELAY_BETWEEN_TYPING_SHORT)
+                typedUrl.value = LinkUtils.urlRegex.findAll(messageState.text).firstOrNull()?.value
+            }
+        }
     }
 
     OnBackHandler(enabled = imeHeightPadding > 0 || !isDefaultMode) {
@@ -279,7 +303,9 @@ internal fun BoxScope.SendMessagePanel(
 
 
     Column(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier.animateContentSize(
+            alignment = Alignment.BottomCenter
+        ),
         verticalArrangement = Arrangement.Top
     ) {
         gifAttached.value?.let { gifAsset ->
@@ -289,7 +315,12 @@ internal fun BoxScope.SendMessagePanel(
                         .zIndex(1f)
                         .scalingClickable(scaleInto = .95f) {
                             navController?.navigate(
-                                NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                                NavigationNode.MediaDetail(
+                                    media = listOf(MediaIO(
+                                        url = gifAsset.original ?: "",
+                                        mimetype = "image/gif"
+                                    ))
+                                )
                             )
                         }
                         .height(MEDIA_MAX_HEIGHT_DP.dp)
@@ -355,7 +386,7 @@ internal fun BoxScope.SendMessagePanel(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
-                        .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                        .heightIn(max = MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
                         .horizontallyDraggable(state = mediaListState),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
@@ -369,7 +400,7 @@ internal fun BoxScope.SendMessagePanel(
                             MinimalisticIcon(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .zIndex(1f)
+                                    .zIndex(4f)
                                     .background(
                                         color = LocalTheme.current.colors.backgroundDark,
                                         shape = LocalTheme.current.shapes.componentShape
@@ -383,18 +414,65 @@ internal fun BoxScope.SendMessagePanel(
                                 }
                             )
 
+                            val remoteMedia = urlsAttached.getOrNull(index - mediaAttached.lastIndex)
                             MediaElement(
                                 modifier = Modifier
                                     .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
                                     .wrapContentWidth()
                                     .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                media = media,
-                                url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
+                                localMedia = media,
+                                media = if(remoteMedia != null) {
+                                    MediaIO(
+                                        url = remoteMedia,
+                                        mimetype = MimeType.getByExtension(getUrlExtension(remoteMedia)).mime
+                                    )
+                                }else null,
                                 contentScale = ContentScale.FillHeight
                             )
                         }
                     }
                     Spacer(Modifier)
+                }
+            }
+        }
+
+        typedUrl.value?.let { url ->
+            val shape = RoundedCornerShape(
+                topStart = LocalTheme.current.shapes.componentCornerRadius,
+                topEnd = LocalTheme.current.shapes.componentCornerRadius
+            )
+
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = shape
+                    )
+                    .padding(6.dp)
+                    .animateContentSize(
+                        alignment = Alignment.BottomCenter
+                    )
+            ) {
+                MinimalisticIcon(
+                    modifier = Modifier
+                        .zIndex(1f)
+                        .align(Alignment.TopEnd),
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        showPreview.value = false
+                        typedUrl.value = null
+                    }
+                )
+                Column {
+                    LinkPreview(
+                        modifier = Modifier.clip(shape),
+                        url = url,
+                        textBackground = Color.Transparent,
+                        imageHeight = 140.dp,
+                        alignment = Alignment.Start
+                    )
                 }
             }
         }
@@ -410,14 +488,13 @@ internal fun BoxScope.SendMessagePanel(
         ) {
             CustomTextField(
                 modifier = Modifier
-                    .requiredHeight(44.dp)
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionOnScreen().y
                     }
                     .contentReceiver { uri ->
-                        when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
+                        when(getMediaType(uri)) {
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
                             else -> urlsAttached.add(uri)
                         }
