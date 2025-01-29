@@ -21,13 +21,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,16 +39,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
-import augmy.interactive.shared.ui.base.LocalContentSize
+import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
@@ -66,7 +72,6 @@ fun SocialCircleContent(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel
 ) {
-    val contentSize = LocalContentSize.current
     val density = LocalDensity.current
     val navController = LocalNavController.current
 
@@ -75,10 +80,14 @@ fun SocialCircleContent(
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
     val itemPaddingPx = with(density) { 2.dp.toPx() }
+    var contentSize by remember {
+        mutableStateOf(IntSize(0, 0))
+    }
     val layerPadding = 12.dp
     val isVertical = contentSize.width < contentSize.height
     val largerDimension = (if(isVertical) contentSize.height else contentSize.width).toFloat()
     val smallerDimension = (if(isVertical) contentSize.width else contentSize.height).toFloat()
+    val maxZoom = if(LocalDeviceType.current == WindowWidthSizeClass.Expanded) 5f else 3.5f
     val coroutineScope = rememberCoroutineScope()
 
     val offset = remember {
@@ -99,6 +108,22 @@ fun SocialCircleContent(
         }
     }
 
+    LaunchedEffect(scale.value) {
+        val maxOffsetX = (largerDimension * (scale.value - 1)) / 2
+        val maxOffsetY = (largerDimension * (scale.value - 1)) / 2
+
+        offset.value = Offset(
+            x = offset.value.x.coerceIn(
+                minimumValue = -maxOffsetX,
+                maximumValue = maxOffsetX
+            ),
+            y = offset.value.y.coerceIn(
+                minimumValue = -maxOffsetY,
+                maximumValue = maxOffsetY
+            )
+        )
+    }
+
     LaunchedEffect(Unit) {
         viewModel.onDataRequest(true)
     }
@@ -106,6 +131,9 @@ fun SocialCircleContent(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .onSizeChanged {
+                contentSize = IntSize(it.width, it.height)
+            }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = { tapCenter ->
@@ -125,28 +153,38 @@ fun SocialCircleContent(
                     }
                 )
             }
+            .onMouseScroll { direction, amount ->
+                coroutineScope.launch {
+                    scale.animateTo(
+                        (scale.value + amount / 2 * direction).coerceIn(
+                            minimumValue = 1f,
+                            maximumValue = maxZoom
+                        )
+                    )
+                }
+            }
             .transformable(
                 rememberTransformableState { zoomChange, panChange, _ ->
-                    val maxCoordinate = largerDimension * scale.value
-
                     coroutineScope.launch {
-                        scale.animateTo(
-                            (scale.value * zoomChange * zoomChange).coerceIn(
-                                minimumValue = smallerDimension / largerDimension,
-                                maximumValue = initialScale * 3.5f
+                        val maxOffsetX = (largerDimension * (scale.value)) / 2
+                        val maxOffsetY = (largerDimension * (scale.value)) / 2
+                        val newScale = (scale.value * zoomChange * zoomChange).coerceIn(
+                            minimumValue = smallerDimension / largerDimension,
+                            maximumValue = initialScale * maxZoom
+                        )
+                        scale.animateTo(newScale)
+
+                        offset.value = Offset(
+                            x = (offset.value.x + panChange.x * scale.value).coerceIn(
+                                minimumValue = -maxOffsetX,
+                                maximumValue = maxOffsetX
+                            ),
+                            y = (offset.value.y + panChange.y * scale.value).coerceIn(
+                                minimumValue = -maxOffsetY,
+                                maximumValue = maxOffsetY
                             )
                         )
                     }
-                    offset.value = Offset(
-                        x = (offset.value.x + panChange.x).coerceIn(
-                            minimumValue = -maxCoordinate,
-                            maximumValue = maxCoordinate
-                        ),
-                        y = (offset.value.y + panChange.y).coerceIn(
-                            minimumValue = -maxCoordinate,
-                            maximumValue = maxCoordinate
-                        )
-                    )
                 }
             ),
         contentAlignment = Alignment.Center

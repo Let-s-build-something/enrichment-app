@@ -13,7 +13,6 @@ import data.io.matrix.auth.MatrixIdentifierData
 import data.io.matrix.auth.MatrixRegistrationRequest
 import data.io.matrix.auth.MatrixTokenRequest
 import data.io.matrix.auth.MatrixTokenResponse
-import data.io.matrix.auth.MatrixVersions
 import data.io.matrix.auth.UsernameValidationResponse
 import data.io.user.RequestCreateUser
 import data.io.user.ResponseCreateUser
@@ -44,15 +43,6 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
                     }
                 )
             }.success?.data
-        }
-    }
-
-    /** Retrieves versions of the given Matrix homeserver address */
-    suspend fun getMatrixVersions(address: String): MatrixVersions? {
-        return withContext(Dispatchers.IO) {
-            httpClient.safeRequestError<MatrixVersions> {
-                httpClient.get(url = Url("https://${address}/_matrix/client/versions"))
-            }
         }
     }
 

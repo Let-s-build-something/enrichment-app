@@ -27,10 +27,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
@@ -50,8 +54,8 @@ import augmy.composeapp.generated.resources.ic_forward
 import augmy.composeapp.generated.resources.navigate_close
 import augmy.interactive.shared.ext.detectTransformTwoDown
 import augmy.interactive.shared.ext.mouseDraggable
+import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
-import augmy.interactive.shared.ui.base.LocalContentSize
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -94,6 +98,7 @@ fun MediaDetailScreen(
         mutableStateOf(false)
     }
     val downloadState = rememberIndicationState(processor)
+    val maxZoom = if(LocalDeviceType.current == WindowWidthSizeClass.Expanded) 5f else 3.5f
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collectLatest {
@@ -119,8 +124,6 @@ fun MediaDetailScreen(
             }
         }
     ) {
-        val contentSize = LocalContentSize.current
-
         Column(modifier = Modifier.navigationBarsPadding()) {
             AnimatedVisibility(
                 modifier = Modifier.zIndex(1f),
@@ -176,16 +179,48 @@ fun MediaDetailScreen(
                     val scale = remember(index) {
                         Animatable(initialValue = 1f)
                     }
+                    var contentSize by remember(index) {
+                        mutableStateOf(IntSize(0, 0))
+                    }
+
+                    LaunchedEffect(scale.value) {
+                        val maxOffsetX = (contentSize.width * (scale.value - 1)) / 2
+                        val maxOffsetY = (contentSize.height * (scale.value - 1)) / 2
+
+                        offset.value = Offset(
+                            x = offset.value.x.coerceIn(
+                                minimumValue = -maxOffsetX,
+                                maximumValue = maxOffsetX
+                            ),
+                            y = offset.value.y.coerceIn(
+                                minimumValue = -maxOffsetY,
+                                maximumValue = maxOffsetY
+                            )
+                        )
+                    }
 
                     Box {
                         MediaElement(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .onSizeChanged {
+                                    contentSize = IntSize(it.width, it.height)
+                                }
                                 .graphicsLayer {
                                     scaleX = scale.value
                                     scaleY = scale.value
                                     translationX = offset.value.x
                                     translationY = offset.value.y
+                                }
+                                .onMouseScroll { direction, amount ->
+                                    coroutineScope.launch {
+                                        scale.animateTo(
+                                            (scale.value + amount / 2 * direction).coerceIn(
+                                                minimumValue = 1f,
+                                                maximumValue = maxZoom
+                                            )
+                                        )
+                                    }
                                 }
                                 .pointerInput(Unit) {
                                     detectTapGestures(
@@ -213,22 +248,22 @@ fun MediaDetailScreen(
                                         },
                                         onGesture = { _, panChange, zoomChange ->
                                             coroutineScope.launch {
-                                                scale.animateTo(
-                                                    (scale.value * zoomChange * zoomChange).coerceIn(
-                                                        minimumValue = 1f,
-                                                        maximumValue = 3.5f
-                                                    )
+                                                val maxOffsetX = (contentSize.width * (scale.value - 1)) / 2
+                                                val maxOffsetY = (contentSize.height * (scale.value - 1)) / 2
+                                                val newScale = (scale.value * zoomChange * zoomChange).coerceIn(
+                                                    minimumValue = 1f,
+                                                    maximumValue = maxZoom
                                                 )
-                                            }
-                                            if(scale.value > 1f) {
+
+                                                scale.animateTo(newScale)
                                                 offset.value = Offset(
                                                     x = (offset.value.x + panChange.x * scale.value).coerceIn(
-                                                        minimumValue = -contentSize.width * scale.value.minus(1),
-                                                        maximumValue = contentSize.width * scale.value.minus(1)
+                                                        minimumValue = -maxOffsetX,
+                                                        maximumValue = maxOffsetX
                                                     ),
                                                     y = (offset.value.y + panChange.y * scale.value).coerceIn(
-                                                        minimumValue = -contentSize.height.plus(60) * scale.value.minus(1),
-                                                        maximumValue = contentSize.height.plus(60) * scale.value.minus(1)
+                                                        minimumValue = -maxOffsetY,
+                                                        maximumValue = maxOffsetY
                                                     )
                                                 )
                                             }

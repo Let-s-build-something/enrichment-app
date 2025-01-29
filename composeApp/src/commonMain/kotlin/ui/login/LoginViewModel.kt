@@ -449,6 +449,10 @@ class LoginViewModel(
         if(sharedDataManager.currentUser.value?.publicId == null) {
             Firebase.auth.currentUser?.uid?.let { clientId ->
                 sharedDataManager.currentUser.value = UserIO(
+                    accessToken = _matrixAuthResponse.value?.accessToken,
+                    refreshToken = _matrixAuthResponse.value?.refreshToken
+                )
+                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                     publicId = repository.createUser(
                         RequestCreateUser(
                             email = email ?: try {
@@ -457,9 +461,7 @@ class LoginViewModel(
                             clientId = clientId,
                             fcmToken = localSettings.value?.fcmToken,
                             matrixUserId = _matrixAuthResponse.value?.userId,
-                            homeServer = _matrixAuthResponse.value?.homeServer,
-                            accessToken = _matrixAuthResponse.value?.accessToken,
-                            refreshToken = _matrixAuthResponse.value?.refreshToken
+                            homeServer = _matrixAuthResponse.value?.homeServer
                         )
                     )?.publicId
                 )

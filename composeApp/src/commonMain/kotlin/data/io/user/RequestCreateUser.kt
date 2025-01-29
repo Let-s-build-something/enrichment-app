@@ -28,14 +28,6 @@ data class RequestCreateUser(
     @SerialName("home_server")
     val homeServer: String?,
 
-    /** Session token for Matrix login */
-    @SerialName("access_token")
-    val accessToken: String?,
-
-    /** Matrix refresh token for revalidating [accessToken] */
-    @SerialName("refresh_token")
-    val refreshToken: String?,
-
     /** Currently used platform */
     val platform: PlatformType = currentPlatform
 )
