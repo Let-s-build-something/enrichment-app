@@ -127,9 +127,6 @@ kotlin {
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
-
-            implementation(libs.java.jogamp.jogl)
-            implementation(libs.java.jogamp.gluegen)
         }
 
         commonMain.dependencies {
@@ -177,10 +174,8 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
-            implementation("network.chaintech:compose-multiplatform-media-player:1.0.29") {
-                exclude(group = "org.jogamp.gluegen", module = "gluegen-rt")
-                exclude(group = "org.jogamp.jogl", module = "jogl-all")
-            }
+            api(libs.compose.webview.multiplatform)
+            implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
@@ -289,6 +284,13 @@ compose.desktop {
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
         jvmArgs.add("-Djava.version=17")
+        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED") // recommended but not necessary
+
+        if (System.getProperty("os.name").contains("Mac")) {
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

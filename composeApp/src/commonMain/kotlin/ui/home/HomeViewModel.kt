@@ -73,10 +73,16 @@ class HomeViewModel(
         }
     }
 
-    val networkItems = networkItemUseCase.networkItems
     val openConversations = networkItemUseCase.openConversations
     val isLoading = networkItemUseCase.isLoading
     val response = networkItemUseCase.invitationResponse
+    val networkItems = networkItemUseCase.networkItems.combine(_categories) { networkItems, categories ->
+        withContext(Dispatchers.Default) {
+            networkItems?.filter { item ->
+                categories.any { it.range.contains(item.proximity ?: 1f) }
+            }
+        }
+    }
 
     /** flow of current requests */
     val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
@@ -123,6 +129,7 @@ class HomeViewModel(
     }
 
     /** Updates color preference */
+    @OptIn(ExperimentalSettingsApi::class)
     fun updateColorPreference(
         category: NetworkProximityCategory,
         color: Color

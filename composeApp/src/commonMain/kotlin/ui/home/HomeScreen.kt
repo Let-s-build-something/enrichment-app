@@ -217,6 +217,8 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 }
                 Crossfade(isCompactView.value) { isList ->
                     if(isList) {
+                        val networkItems = viewModel.networkItems.collectAsState(null)
+
                         LazyVerticalGrid(
                             modifier = Modifier
                                 .pointerInput(Unit) {
@@ -300,7 +302,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                         onAvatarClick = {
                                             if(room?.summary?.isDirect == true) {
                                                 coroutineScope.launch(Dispatchers.Default) {
-                                                    selectedUser.value = viewModel.networkItems.value?.find {
+                                                    selectedUser.value = networkItems.value?.find {
                                                         it.userMatrixId == room.summary.heroes?.firstOrNull()
                                                     }
                                                 }
@@ -409,7 +411,7 @@ private fun ConversationRoomItem(
                 }
             )
         }else {
-            val networkItems = viewModel.networkItems.collectAsState()
+            val networkItems = viewModel.networkItems.collectAsState(null)
 
             AddToLauncher(
                 key = room?.id,

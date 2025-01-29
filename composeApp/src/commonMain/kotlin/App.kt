@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
@@ -187,7 +188,7 @@ private fun AppContent(
     if(showDialogLeave.value) {
         AlertDialog(
             title = stringResource(Res.string.leave_app_dialog_title),
-            message = stringResource(Res.string.leave_app_dialog_message),
+            message = AnnotatedString(stringResource(Res.string.leave_app_dialog_message)),
             icon = Icons.Outlined.DoorBack,
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_confirm),

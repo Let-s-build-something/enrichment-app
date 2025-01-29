@@ -488,7 +488,6 @@ internal fun BoxScope.SendMessagePanel(
         ) {
             CustomTextField(
                 modifier = Modifier
-                    .requiredHeight(44.dp)
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
                     .onGloballyPositioned {

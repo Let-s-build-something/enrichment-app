@@ -57,3 +57,19 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
 
     return result
 }
+
+actual fun openEmail(address: String?): Boolean {
+    return openLink("ms-outlook://")
+            || openLink("googlegmail://")
+            || openLink("thunderbird://")
+            || (address != null && openLink(
+                when(val domain = address.substringAfterLast("@")) {
+                    "gmail.com" -> "https://mail.google.com"
+                    "outlook.com", "hotmail.com" -> "https://outlook.live.com"
+                    "yahoo.com" -> "https://mail.yahoo.com"
+                    "icloud.com" -> "https://www.icloud.com/mail"
+                    "protonmail.com" -> "https://mail.proton.me"
+                    else -> "https://$domain"
+                }
+            ))
+}

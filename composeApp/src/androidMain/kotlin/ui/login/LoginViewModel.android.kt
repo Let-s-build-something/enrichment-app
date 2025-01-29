@@ -48,7 +48,10 @@ actual class UserOperationService(
 
     private var lastNonce: String? = null
 
-    actual val availableOptions = listOf(SingInServiceOption.GOOGLE)
+    actual val availableOptions = listOf(
+        SingInServiceOption.GOOGLE,
+        SingInServiceOption.MATRIX
+    )
 
     actual suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType {
         val pendingResult = checkForPendingResult()
@@ -103,7 +106,11 @@ actual class UserOperationService(
         return LoginResultType.FAILURE
     }
 
-    actual suspend fun signUpWithPassword(email: String, password: String): IdentityMessageType? = null
+    actual suspend fun signUpWithPassword(
+        email: String,
+        password: String,
+        deleteRightAfter: Boolean
+    ): IdentityMessageType? = null
 
 
     /**

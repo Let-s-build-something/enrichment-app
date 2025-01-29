@@ -70,7 +70,7 @@ fun SocialCircleContent(
     val density = LocalDensity.current
     val navController = LocalNavController.current
 
-    val networkItems = viewModel.networkItems.collectAsState()
+    val networkItems = viewModel.networkItems.collectAsState(null)
     val categories = viewModel.categories.collectAsState(initial = listOf())
     val customColors = viewModel.customColors.collectAsState(initial = mapOf())
 
@@ -97,6 +97,10 @@ fun SocialCircleContent(
             // this only means that it's scaled to be 1:1 ratio for the lowest size, but enlarged to the larger size
             scale.animateTo(targetValue = initialScale)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.onDataRequest(true)
     }
 
     Box(
@@ -285,13 +289,13 @@ private fun NetworkItemCompact(
     val density = LocalDensity.current
 
     Crossfade(data == null) { isShimmer ->
-        Column(
-            modifier = modifier
-                .requiredSize(size)
-                .width(IntrinsicSize.Min),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if(isShimmer) {
+        if(isShimmer) {
+            Column(
+                modifier = modifier
+                    .requiredSize(size)
+                    .width(IntrinsicSize.Min),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Box(
                     modifier = Modifier
                         .aspectRatio(1f)
@@ -306,7 +310,14 @@ private fun NetworkItemCompact(
                     text = "",
                     style = LocalTheme.current.styles.category
                 )
-            }else if(data != null) {
+            }
+        }else if(data != null) {
+            Column(
+                modifier = modifier
+                    .requiredSize(size)
+                    .width(IntrinsicSize.Min),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 UserProfileImage(
                     modifier = Modifier
                         .aspectRatio(1f)
