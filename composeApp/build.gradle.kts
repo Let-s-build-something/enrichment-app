@@ -299,7 +299,7 @@ compose.desktop {
 
             macOS {
                 appStore = true
-                iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
+                iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/AppIcon.icns"))
             }
             windows {
                 modules(
