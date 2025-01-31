@@ -161,20 +161,25 @@ fun main(args: Array<String>) = application {
 
     LaunchedEffect(isDarkTheme.value) {
         withContext(Dispatchers.IO) {
-            KCEF.disposeBlocking()
-            KCEF.init(builder = {
-                settings {
-                    backgroundColor = if(isDarkTheme.value) {
-                        CefSettings().ColorType(255, 34, 31, 28)
-                    }else CefSettings().ColorType(255, 236, 241, 231)
-                    cachePath = File("cache").absolutePath
-                }
-                installDir(File("kcef-bundle"))
-            }, onError = {
-                it?.printStackTrace()
-            }, onRestartRequired = {
-                // should we restart the app?
-            })
+            try {
+                KCEF.init(builder = {
+                    settings {
+                        backgroundColor = if(isDarkTheme.value) {
+                            CefSettings().ColorType(255, 34, 31, 28)
+                        }else CefSettings().ColorType(255, 236, 241, 231)
+                        cachePath = File("cache").absolutePath
+                    }
+                    installDir(File("kcef-bundle"))
+                }, onError = {
+                    it?.printStackTrace()
+                }, onRestartRequired = {
+                    // should we restart the app?
+                })
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                KCEF.dispose()
+            }
         }
     }
 

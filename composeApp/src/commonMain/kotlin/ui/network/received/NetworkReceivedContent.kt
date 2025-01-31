@@ -106,7 +106,7 @@ fun NetworkReceivedContent(
             }
             items(
                 count = if(requests.itemCount == 0 && isLoadingInitialPage) SHIMMER_ITEM_COUNT else requests.itemCount,
-                key = { index -> requests.getOrNull(index)?.uid ?: Uuid.random().toString() }
+                key = { index -> requests.getOrNull(index)?.publicId ?: Uuid.random().toString() }
             ) { index ->
                 requests.getOrNull(index).let { data ->
                     CircleRequestRow(
@@ -114,9 +114,11 @@ fun NetworkReceivedContent(
                             .fillMaxWidth()
                             .animateItem(),
                         data = data,
-                        response = response.value[data?.uid],
+                        response = response.value[data?.publicId],
                         onResponse = { accept ->
-                            if(data?.uid != null) viewModel.acceptRequest(uid = data.uid, accept = accept)
+                            if(data?.publicId != null) {
+                                viewModel.acceptRequest(publicId = data.publicId, proximity = if(accept) 1f else null)
+                            }
                         }
                     )
                     if(requests.itemCount - 1 != index) {

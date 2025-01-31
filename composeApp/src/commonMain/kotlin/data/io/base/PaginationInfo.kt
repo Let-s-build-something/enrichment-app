@@ -1,5 +1,6 @@
 package data.io.base
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Information about current pagination */
@@ -12,8 +13,10 @@ data class PaginationInfo(
     val size: Int,
 
     /** total number of pages */
+    @SerialName("total_pages")
     val totalPages: Int = 0,
 
     /** total number of items */
+    @SerialName("total_items")
     val totalItems: Int = totalPages * size
 )

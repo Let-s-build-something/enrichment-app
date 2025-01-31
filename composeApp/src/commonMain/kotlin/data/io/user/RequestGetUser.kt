@@ -11,5 +11,9 @@ data class RequestGetUser(
     val platform: PlatformType = currentPlatform,
 
     /** FCM token for push notifications to be refreshed */
-    val fcmToken: String? = null
+    val fcmToken: String? = null,
+
+    val deviceName: String? = null,
+    val refreshToken: String? = null,
+    val expiresInMs: Long? = null
 )

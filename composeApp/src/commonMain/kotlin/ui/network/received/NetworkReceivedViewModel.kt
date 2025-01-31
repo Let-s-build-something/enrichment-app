@@ -51,17 +51,18 @@ class NetworkReceivedViewModel(
     ).flow.cachedIn(viewModelScope)
 
     /** Makes a request to accept the circle request */
-    fun acceptRequest(uid: String, accept: Boolean) {
-        if(_response.value[uid] != null) return
+    fun acceptRequest(publicId: String, proximity: Float?) {
+        if(_response.value[publicId] != null) return
 
         viewModelScope.launch {
             _response.update {
-                hashMapOf(*it.toList().toTypedArray(), uid to BaseResponse.Loading)
+                hashMapOf(*it.toList().toTypedArray(), publicId to BaseResponse.Loading)
             }
             val startTime = Clock.System.now().toEpochMilliseconds()
 
             val response = repository.acceptRequest(
-                CirclingActionRequest(uid = uid, accept = accept)
+                publicId = publicId,
+                proximity = proximity
             )
 
             delay(kotlin.math.max(
@@ -71,7 +72,7 @@ class NetworkReceivedViewModel(
             _response.update {
                 hashMapOf(*it.toList().toTypedArray()).apply {
                     set(
-                        uid,
+                        publicId,
                         response
                     )
                 }
@@ -81,7 +82,7 @@ class NetworkReceivedViewModel(
                 delay(MINIMUM_REFRESH_DELAY)
                 _response.update {
                     hashMapOf(*it.toList().toTypedArray()).apply {
-                        remove(uid)
+                        remove(publicId)
                     }
                 }
             }
