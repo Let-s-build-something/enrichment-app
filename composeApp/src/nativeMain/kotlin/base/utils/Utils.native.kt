@@ -10,6 +10,7 @@ import kotlinx.cinterop.usePinned
 import org.jetbrains.skia.Image
 import platform.CoreCrypto.CC_SHA256
 import platform.CoreCrypto.CC_SHA256_DIGEST_LENGTH
+import platform.UIKit.UIDevice
 
 
 /** Returns a bitmap from a given file */
@@ -40,4 +41,9 @@ actual fun sha256(value: Any?): String {
             it.toString(16).padStart(2, '0')
         }
     }
+}
+
+/** Retrieves the current device name */
+actual fun deviceName(): String? {
+    return UIDevice.currentDevice.name
 }

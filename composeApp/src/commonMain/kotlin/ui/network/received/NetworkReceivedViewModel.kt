@@ -8,8 +8,8 @@ import components.pull_refresh.RefreshableViewModel
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_RESPONSE_DELAY
 import data.io.base.BaseResponse
-import data.io.social.network.request.CirclingActionRequest
 import data.io.social.network.request.CirclingRequest
+import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -51,7 +51,11 @@ class NetworkReceivedViewModel(
     ).flow.cachedIn(viewModelScope)
 
     /** Makes a request to accept the circle request */
-    fun acceptRequest(publicId: String, proximity: Float?) {
+    fun acceptRequest(
+        publicId: String,
+        networkItem: NetworkItemIO? = null,
+        proximity: Float?,
+    ) {
         if(_response.value[publicId] != null) return
 
         viewModelScope.launch {
@@ -62,7 +66,8 @@ class NetworkReceivedViewModel(
 
             val response = repository.acceptRequest(
                 publicId = publicId,
-                proximity = proximity
+                proximity = proximity,
+                networkItem = networkItem
             )
 
             delay(kotlin.math.max(
@@ -91,7 +96,7 @@ class NetworkReceivedViewModel(
 }
 
 internal val networkManagementModule = module {
-    factory { NetworkReceivedRepository(get()) }
+    factory { NetworkReceivedRepository(get(), get()) }
     viewModelOf(::NetworkReceivedViewModel)
 
     includes(networkItemModule)

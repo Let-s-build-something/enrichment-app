@@ -1,12 +1,12 @@
 package ui.account
 
+import augmy.interactive.shared.ui.base.currentPlatform
+import base.utils.deviceName
 import data.io.base.BaseResponse
-import data.io.base.BaseResponse.Companion.getResponse
 import data.io.social.UserConfiguration
 import data.shared.SharedRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.patch
-import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -45,9 +45,9 @@ class AccountDashboardRepository(private val httpClient: HttpClient): SharedRepo
                 patch(
                     urlString = "/api/v1/users/logout",
                     block =  {
-                        setBody(LogoutRequestBody(
-                            deviceName = TODO()
-                        ))
+                        setBody(
+                            LogoutRequestBody(deviceName = deviceName() ?: currentPlatform.name)
+                        )
                     }
                 )
             }

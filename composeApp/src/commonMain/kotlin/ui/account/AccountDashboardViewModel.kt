@@ -112,6 +112,7 @@ class AccountDashboardViewModel(
     /** Logs out the currently signed in user */
     override fun logoutCurrentUser() {
         viewModelScope.launch {
+            repository.logout()
             super.logoutCurrentUser()
             _signOutResponse.emit(Firebase.auth.currentUser == null)
         }

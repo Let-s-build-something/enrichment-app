@@ -56,3 +56,6 @@ expect suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap?
  * @return the generated SHA-256 hash
  */
 expect fun sha256(value: Any?): String
+
+/** Retrieves the current device name */
+expect fun deviceName(): String?
