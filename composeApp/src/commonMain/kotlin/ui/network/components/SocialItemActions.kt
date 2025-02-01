@@ -149,7 +149,7 @@ fun SocialItemActions(
                     text = stringResource(Res.string.accessibility_save),
                     onClick = {
                         requestProximityChange(
-                            selectedCategory.value?.range?.endInclusive ?: newItem.proximity ?: 1f
+                            selectedCategory.value?.range?.start ?: newItem.proximity ?: 1f
                         )
                     },
                     activeColor = LocalTheme.current.colors.brandMain

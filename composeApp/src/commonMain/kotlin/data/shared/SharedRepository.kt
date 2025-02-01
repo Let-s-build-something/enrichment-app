@@ -1,5 +1,7 @@
 package data.shared
 
+import augmy.interactive.shared.ui.base.currentPlatform
+import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.user.RequestGetUser
 import data.io.user.UserIO
@@ -24,13 +26,22 @@ import ui.login.safeRequest
 open class SharedRepository(private val httpClient: HttpClient) {
 
     /** Makes a request to create a user */
-    suspend fun authenticateUser(localSettings: LocalSettings?): UserIO? {
+    suspend fun authenticateUser(
+        localSettings: LocalSettings?,
+        refreshToken: String? = null,
+        expiresInMs: Long? = null
+    ): UserIO? {
         return withContext(Dispatchers.IO) {
             if(Firebase.auth.currentUser != null) {
                 httpClient.safeRequest<UserIO> {
                     post(urlString = "/api/v1/auth/init-app") {
                         setBody(
-                            RequestGetUser(fcmToken = localSettings?.fcmToken)
+                            RequestGetUser(
+                                fcmToken = localSettings?.fcmToken,
+                                deviceName = deviceName() ?: currentPlatform.name,
+                                refreshToken = refreshToken,
+                                expiresInMs = expiresInMs
+                            )
                         )
                     }
                 }.success?.data?.also {

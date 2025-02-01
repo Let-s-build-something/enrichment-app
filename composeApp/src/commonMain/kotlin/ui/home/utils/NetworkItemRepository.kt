@@ -59,10 +59,10 @@ class NetworkItemRepository(
                 )
             }
 
-            httpClient.safeRequest<NetworkListResponse> {
+            httpClient.safeRequest<Any> {
                 patch(
                     urlString = if(publicId != null) {
-                        "/api/v1/social/user/$publicId"
+                        "/api/v1/social/network/users/$publicId"
                     }else "/api/v1/social/conversation/$conversationId",
                     block = {
                         setBody(SocialConnectionUpdate(

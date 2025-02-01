@@ -69,10 +69,10 @@ private fun ContentLayout(
     onResponse: (accept: Boolean) -> Unit,
     response: BaseResponse<*>?
 ) {
-    val confirmReject = rememberSaveable(data.uid) {
+    val confirmReject = rememberSaveable(data.publicId) {
         mutableStateOf(false)
     }
-    val confirmAccept = rememberSaveable(data.uid) {
+    val confirmAccept = rememberSaveable(data.publicId) {
         mutableStateOf(false)
     }
 

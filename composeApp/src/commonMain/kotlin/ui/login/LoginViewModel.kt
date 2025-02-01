@@ -433,7 +433,9 @@ class LoginViewModel(
             firebaseUser.firstOrNull()?.getIdToken(false)?.let { idToken ->
                 sharedDataManager.currentUser.value = UserIO(idToken = idToken)
                 val res = repository.authenticateUser(
-                    localSettings = sharedDataManager.localSettings.value
+                    localSettings = sharedDataManager.localSettings.value,
+                    refreshToken = _matrixAuthResponse.value?.refreshToken,
+                    expiresInMs = _matrixAuthResponse.value?.expiresInMs
                 )
                 sharedDataManager.currentUser.value = res?.copy(
                     idToken = idToken,

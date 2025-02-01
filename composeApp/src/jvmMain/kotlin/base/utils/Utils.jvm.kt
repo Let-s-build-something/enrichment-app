@@ -19,3 +19,11 @@ actual fun sha256(value: Any?): String {
     val bytes = MessageDigest.getInstance("SHA-256").digest(value.toString().toByteArray())
     return bytes.joinToString("") { "%02x".format(it) }
 }
+
+/** Retrieves the current device name */
+actual fun deviceName(): String? {
+    val env = System.getenv()
+    return if (env.containsKey("COMPUTERNAME")) env["COMPUTERNAME"]
+    else if (env.containsKey("HOSTNAME")) env["HOSTNAME"]
+    else "Unknown Computer"
+}

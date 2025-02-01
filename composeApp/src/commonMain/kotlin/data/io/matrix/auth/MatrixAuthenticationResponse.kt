@@ -13,5 +13,7 @@ data class MatrixAuthenticationResponse(
     @SerialName("user_id")
     val userId: String? = null,
     @SerialName("refresh_token")
-    val refreshToken: String? = null
+    val refreshToken: String? = null,
+    @SerialName("expires_in_ms")
+    val expiresInMs: Long? = null
 ): MatrixAuthenticationPlan()

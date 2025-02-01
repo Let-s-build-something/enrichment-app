@@ -8,8 +8,8 @@ import components.pull_refresh.RefreshableViewModel
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_RESPONSE_DELAY
 import data.io.base.BaseResponse
-import data.io.social.network.request.CirclingActionRequest
 import data.io.social.network.request.CirclingRequest
+import data.io.user.NetworkItemIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -51,17 +51,23 @@ class NetworkReceivedViewModel(
     ).flow.cachedIn(viewModelScope)
 
     /** Makes a request to accept the circle request */
-    fun acceptRequest(uid: String, accept: Boolean) {
-        if(_response.value[uid] != null) return
+    fun acceptRequest(
+        publicId: String,
+        networkItem: NetworkItemIO? = null,
+        proximity: Float?,
+    ) {
+        if(_response.value[publicId] != null) return
 
         viewModelScope.launch {
             _response.update {
-                hashMapOf(*it.toList().toTypedArray(), uid to BaseResponse.Loading)
+                hashMapOf(*it.toList().toTypedArray(), publicId to BaseResponse.Loading)
             }
             val startTime = Clock.System.now().toEpochMilliseconds()
 
             val response = repository.acceptRequest(
-                CirclingActionRequest(uid = uid, accept = accept)
+                publicId = publicId,
+                proximity = proximity,
+                networkItem = networkItem
             )
 
             delay(kotlin.math.max(
@@ -71,7 +77,7 @@ class NetworkReceivedViewModel(
             _response.update {
                 hashMapOf(*it.toList().toTypedArray()).apply {
                     set(
-                        uid,
+                        publicId,
                         response
                     )
                 }
@@ -81,7 +87,7 @@ class NetworkReceivedViewModel(
                 delay(MINIMUM_REFRESH_DELAY)
                 _response.update {
                     hashMapOf(*it.toList().toTypedArray()).apply {
-                        remove(uid)
+                        remove(publicId)
                     }
                 }
             }
@@ -90,7 +96,7 @@ class NetworkReceivedViewModel(
 }
 
 internal val networkManagementModule = module {
-    factory { NetworkReceivedRepository(get()) }
+    factory { NetworkReceivedRepository(get(), get()) }
     viewModelOf(::NetworkReceivedViewModel)
 
     includes(networkItemModule)
