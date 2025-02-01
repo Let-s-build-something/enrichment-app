@@ -100,7 +100,6 @@ import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.utils.StopwatchCounter
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
@@ -123,56 +122,6 @@ import ui.conversation.ConversationViewModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
-
-/** Each keystroke has */
-class TimingSensor(
-    val timings: MutableList<Long> = mutableListOf(),
-    initialText: CharSequence = ""
-) {
-    private val counter = StopwatchCounter(tickMillis = 10)
-    private var previousValue = initialText
-
-    /** Flushes all variables */
-    fun flush() {
-        counter.flush()
-        previousValue = ""
-        timings.clear()
-    }
-
-    /** Pauses the counter */
-    fun pause() {
-        counter.stop()
-    }
-
-    /**
-     * Sets the timing of newly added grapheme
-     * Must be called on each key stroke to update timings.
-     */
-    fun onNewText(value: CharSequence) {
-        val newLength = REGEX_GRAPHEME.toRegex().findAll(value).toList().size
-        val previousLength = REGEX_GRAPHEME.toRegex().findAll(previousValue).toList().size
-
-        println("kostka_test, onNewText, newLength: $newLength, previousLength: $previousLength")
-        if(newLength > previousLength) {
-            val timing = counter.reset()
-
-            val length = newLength - previousLength
-            timings.add(timing)
-            // copy pasting
-            if(length > 1) {
-                repeat(length - 1) {
-                    timings.add(0L)
-                }
-            }
-        }else if (newLength < previousLength) {
-            for(i in 0 until previousLength - newLength) {
-                timings.removeLastOrNull()
-            }
-        }
-        previousValue = value
-        println("kostka_test, new timing: $timings")
-    }
-}
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable

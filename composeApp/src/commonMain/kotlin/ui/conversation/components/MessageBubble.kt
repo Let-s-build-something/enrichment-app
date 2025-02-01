@@ -111,7 +111,9 @@ fun MessageBubble(
     hasNext: Boolean,
     isMyLastMessage: Boolean,
     isReplying: Boolean,
+    transcribe: Boolean,
     currentUserPublicId: String,
+    onTranscribed: () -> Unit,
     onReactionRequest: (Boolean) -> Unit,
     onReactionChange: (String) -> Unit,
     onAdditionalReactionRequest: () -> Unit,
@@ -135,12 +137,14 @@ fun MessageBubble(
                 currentUserPublicId = currentUserPublicId,
                 isReacting = isReacting,
                 isReplying = isReplying,
+                transcribe = transcribe,
                 isMyLastMessage = isMyLastMessage,
                 additionalContent = additionalContent,
                 onReactionRequest = onReactionRequest,
                 onReactionChange = onReactionChange,
                 onAdditionalReactionRequest = onAdditionalReactionRequest,
-                onReplyRequest = onReplyRequest
+                onReplyRequest = onReplyRequest,
+                onTranscribed = onTranscribed
             )
         }
     }
@@ -155,9 +159,11 @@ private fun ContentLayout(
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
     hasNext: Boolean,
+    transcribe: Boolean,
     isReplying: Boolean,
     currentUserPublicId: String,
     isReacting: Boolean,
+    onTranscribed: () -> Unit,
     onReactionRequest: (Boolean) -> Unit,
     onReactionChange: (String) -> Unit,
     onAdditionalReactionRequest: () -> Unit,
@@ -467,6 +473,12 @@ private fun ContentLayout(
                                     // textual content
                                     if (!data.content.isNullOrEmpty()) {
                                         val text = @Composable {
+                                            val isTranscribed = remember(data.id) { mutableStateOf(false) }
+                                            val awaitingTranscription = !transcribe
+                                                    && !isTranscribed.value
+                                                    && !data.timings.isNullOrEmpty()
+                                                    // TODO just temporary && !isCurrentUser
+
                                             TempoText(
                                                 modifier = Modifier
                                                     .widthIn(max = (screenSize.width * .8f).dp)
@@ -496,12 +508,19 @@ private fun ContentLayout(
                                                     onLinkClicked = { openLink(it) }
                                                 ),
                                                 style = LocalTheme.current.styles.title.copy(
-                                                    color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary,
+                                                    color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+                                                        .copy(
+                                                            alpha = if(awaitingTranscription) .4f else 1f
+                                                        ),
                                                     fontFamily = FontFamily(fontQuicksandMedium)
                                                 ),
                                                 maxLines = MaximumTextLines,
                                                 overflow = TextOverflow.Ellipsis,
-                                                timings = data.timings
+                                                timings = if(transcribe) data.timings else emptyList(),
+                                                onFinish = {
+                                                    isTranscribed.value = true
+                                                    onTranscribed()
+                                                }
                                             )
                                         }
                                         // TODO read more on overflow: new screen with author's profile picture, reactions, and replies as comments

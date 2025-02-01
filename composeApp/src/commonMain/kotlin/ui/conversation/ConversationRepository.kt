@@ -83,7 +83,7 @@ class ConversationRepository(
     @OptIn(ExperimentalPagingApi::class)
     fun getMessagesListFlow(
         config: PagingConfig,
-        conversationId: String? = null
+        conversationId: String? = null,
     ): Pager<Int, ConversationMessageIO> {
         val scope = CoroutineScope(Dispatchers.Default)
 

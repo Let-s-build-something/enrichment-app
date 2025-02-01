@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -152,6 +153,9 @@ fun ConversationScreen(
     }
     val replyToMessage = remember {
         mutableStateOf<ConversationMessageIO?>(null)
+    }
+    val transcribedIndex = remember {
+        mutableStateOf<Int?>(null)
     }
 
     val scrollToMessage: (String?, Int?) -> Unit = { id, fallBackIndex ->
@@ -323,6 +327,18 @@ fun ConversationScreen(
                         lastCurrentUserMessage.value = index
                     }
 
+                    LaunchedEffect(Unit) {
+                        if(data?.transcribed != true && (transcribedIndex.value ?: -1) < index) {
+                            transcribedIndex.value = index
+                        }
+                    }
+
+                    DisposableEffect(null) {
+                        onDispose {
+                            if(transcribedIndex.value == index) transcribedIndex.value = null
+                        }
+                    }
+
                     MessageContent(
                         data = data,
                         isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
@@ -335,6 +351,10 @@ fun ConversationScreen(
                         scrollToMessage = scrollToMessage,
                         preferredEmojis = preferredEmojis.value,
                         isMyLastMessage = lastCurrentUserMessage.value == index,
+                        transcribe = /*!isCurrentUser &&*/ transcribedIndex.value == index,
+                        onTranscribed = {
+                            transcribedIndex.value = transcribedIndex.value?.minus(1)
+                        },
                         onReplyRequest = {
                             coroutineScope.launch {
                                 listState.animateScrollToItem(index = 0)
@@ -383,6 +403,8 @@ private fun LazyItemScope.MessageContent(
     isNextMessageSameAuthor: Boolean,
     currentUser: Boolean,
     isMyLastMessage: Boolean,
+    transcribe: Boolean,
+    onTranscribed: () -> Unit,
     reactingToMessageId: MutableState<String?>,
     showEmojiPreferencesId: MutableState<String?>,
     replyToMessage: MutableState<ConversationMessageIO?>,
@@ -444,7 +466,6 @@ private fun LazyItemScope.MessageContent(
             }
         }
 
-
         MessageBubble(
             data = data,
             isReacting = reactingToMessageId.value == data?.id,
@@ -466,7 +487,10 @@ private fun LazyItemScope.MessageContent(
             },
             onAdditionalReactionRequest = {
                 showEmojiPreferencesId.value = data?.id
+                // TODO save in DB
             },
+            transcribe = transcribe,
+            onTranscribed = onTranscribed,
             onReplyRequest = onReplyRequest,
             additionalContent = { onDragChange, onDrag ->
                 val rememberedHeight = rememberSaveable(data?.id) {

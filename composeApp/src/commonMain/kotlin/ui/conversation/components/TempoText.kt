@@ -37,6 +37,7 @@ fun TempoText(
     timings: List<Long>?,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    onFinish: () -> Unit
 ) {
     if(timings.isNullOrEmpty()) {
         Text(
@@ -125,6 +126,7 @@ fun TempoText(
                         delay(timing)
                     }
                 }
+                onFinish()
             }
         }
 
