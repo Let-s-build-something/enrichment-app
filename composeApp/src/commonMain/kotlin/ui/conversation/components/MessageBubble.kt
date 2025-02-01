@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,6 @@ import augmy.composeapp.generated.resources.accessibility_message_forward
 import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
 import augmy.composeapp.generated.resources.ic_forward
-import augmy.interactive.shared.DateUtils.formatAsRelative
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.scalingClickable
@@ -72,7 +72,9 @@ import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.theme.Colors
+import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.utils.openLink
 import base.utils.tagToColor
 import components.buildAnnotatedLinkString
@@ -465,7 +467,7 @@ private fun ContentLayout(
                                     // textual content
                                     if (!data.content.isNullOrEmpty()) {
                                         val text = @Composable {
-                                            Text(
+                                            TempoText(
                                                 modifier = Modifier
                                                     .widthIn(max = (screenSize.width * .8f).dp)
                                                     .then(
@@ -488,15 +490,18 @@ private fun ContentLayout(
                                                         vertical = 10.dp,
                                                         horizontal = 14.dp
                                                     ),
+                                                key = data.id,
                                                 text = buildAnnotatedLinkString(
                                                     text = data.content,
                                                     onLinkClicked = { openLink(it) }
                                                 ),
-                                                style = LocalTheme.current.styles.category.copy(
-                                                    color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
+                                                style = LocalTheme.current.styles.title.copy(
+                                                    color = if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary,
+                                                    fontFamily = FontFamily(fontQuicksandMedium)
                                                 ),
                                                 maxLines = MaximumTextLines,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
+                                                timings = data.timings
                                             )
                                         }
                                         // TODO read more on overflow: new screen with author's profile picture, reactions, and replies as comments

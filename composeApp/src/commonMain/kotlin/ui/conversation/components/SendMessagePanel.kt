@@ -62,7 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -100,6 +100,7 @@ import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.StopwatchCounter
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
@@ -122,6 +123,56 @@ import ui.conversation.ConversationViewModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
+
+/** Each keystroke has */
+class TimingSensor(
+    val timings: MutableList<Long> = mutableListOf(),
+    initialText: CharSequence = ""
+) {
+    private val counter = StopwatchCounter(tickMillis = 10)
+    private var previousValue = initialText
+
+    /** Flushes all variables */
+    fun flush() {
+        counter.flush()
+        previousValue = ""
+        timings.clear()
+    }
+
+    /** Pauses the counter */
+    fun pause() {
+        counter.stop()
+    }
+
+    /**
+     * Sets the timing of newly added grapheme
+     * Must be called on each key stroke to update timings.
+     */
+    fun onNewText(value: CharSequence) {
+        val newLength = REGEX_GRAPHEME.toRegex().findAll(value).toList().size
+        val previousLength = REGEX_GRAPHEME.toRegex().findAll(previousValue).toList().size
+
+        println("kostka_test, onNewText, newLength: $newLength, previousLength: $previousLength")
+        if(newLength > previousLength) {
+            val timing = counter.reset()
+
+            val length = newLength - previousLength
+            timings.add(timing)
+            // copy pasting
+            if(length > 1) {
+                repeat(length - 1) {
+                    timings.add(0L)
+                }
+            }
+        }else if (newLength < previousLength) {
+            for(i in 0 until previousLength - newLength) {
+                timings.removeLastOrNull()
+            }
+        }
+        previousValue = value
+        println("kostka_test, new timing: $timings")
+    }
+}
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -146,10 +197,17 @@ internal fun BoxScope.SendMessagePanel(
 
     val keyboardHeight = viewModel.keyboardHeight.collectAsState()
     val savedMessage = viewModel.savedMessage.collectAsState()
+    val savedTimings = viewModel.savedTimings.collectAsState()
     val messageState = remember(savedMessage.value) {
         TextFieldState(
             initialText = savedMessage.value,
             initialSelection = TextRange(savedMessage.value.length)
+        )
+    }
+    val timingSensor = remember {
+        TimingSensor(
+            initialText = savedMessage.value,
+            timings = savedTimings.value.toMutableList()
         )
     }
     val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
@@ -241,8 +299,10 @@ internal fun BoxScope.SendMessagePanel(
                 anchorMessage = replyToMessage.value,
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
-                showPreview = showPreview.value
+                showPreview = showPreview.value,
+                timings = timingSensor.timings.toList()
             )
+            timingSensor.flush()
             mediaAttached.clear()
             keyboardMode.value = ConversationKeyboardMode.Default.ordinal
             messageState.clearText()
@@ -257,7 +317,10 @@ internal fun BoxScope.SendMessagePanel(
 
     DisposableEffect(null) {
         onDispose {
-            viewModel.saveMessage(messageState.text.toString())
+            viewModel.saveMessage(
+                content = messageState.text.toString(),
+                timings = timingSensor.timings
+            )
         }
     }
 
@@ -291,6 +354,7 @@ internal fun BoxScope.SendMessagePanel(
         if(messageState.text.isNotBlank()) {
             showMoreOptions.value = false
         }
+        timingSensor.onNewText(messageState.text)
         if(showPreview.value) {
             cancellableScope.coroutineContext.cancelChildren()
             cancellableScope.launch(Dispatchers.Default) {
@@ -505,11 +569,14 @@ internal fun BoxScope.SendMessagePanel(
                             else -> urlsAttached.add(uri)
                         }
                     }
-                    .focusRequester(focusRequester),
+                    .onFocusChanged {
+                        if(!it.isFocused) timingSensor.pause()
+                    },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send
                 ),
+                focusRequester = focusRequester,
                 state = messageState,
                 onKeyboardAction = {
                     sendMessage()
@@ -736,7 +803,8 @@ const val MEDIA_MAX_HEIGHT_DP = 250
 
 // IOS does not support unicode special classes, must be done manually
 private val REGEX_GRAPHEME_IOS = """
-    (?:[\uD800-\uDBFF][\uDC00-\uDFFF][\uFE0F\u200D\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*|[\u0020-\u007E]|[\u00A0-\uFFFF]|\s|.)[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*
+    (?:\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*|\p{L}\p{M}*)
 """.trimIndent()
 
-private val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""
+/** regular expression for a singular grapheme */
+val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""

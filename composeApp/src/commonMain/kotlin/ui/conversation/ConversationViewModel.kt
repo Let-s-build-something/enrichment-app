@@ -116,6 +116,9 @@ class ConversationViewModel(
     /** Last saved message relevant to this conversation */
     val savedMessage = MutableStateFlow("")
 
+    /** Last saved message timings relevant to this conversation */
+    val savedTimings = MutableStateFlow(listOf<Long>())
+
     init {
         if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
             viewModelScope.launch {
@@ -126,6 +129,11 @@ class ConversationViewModel(
         }
         viewModelScope.launch(Dispatchers.IO) {
             savedMessage.value = settings.getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId") ?: ""
+            savedTimings.value = settings
+                .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId")
+                ?.split(",")
+                ?.mapNotNull { it.toLongOrNull() }
+                .orEmpty()
         }
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
@@ -138,12 +146,20 @@ class ConversationViewModel(
     // ==================== functions ===========================
 
     /** Saves content of a message */
-    fun saveMessage(content: String?) {
+    fun saveMessage(
+        content: String?,
+        timings: List<Long> = listOf()
+    ) {
         CoroutineScope(Job() + Dispatchers.IO).launch {
             val key = "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
             if(content != null) {
                 settings.putString(key, content)
             }else settings.remove(key)
+
+            val keyTimings = "${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId"
+            if(timings.isNotEmpty()) {
+                settings.putString(keyTimings, timings.joinToString(","))
+            }else settings.remove(keyTimings)
         }
     }
 
@@ -178,6 +194,7 @@ class ConversationViewModel(
         anchorMessage: ConversationMessageIO?,
         mediaFiles: List<PlatformFile>,
         mediaUrls: List<String>,
+        timings: List<Long>,
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
@@ -204,7 +221,8 @@ class ConversationViewModel(
                             mimetype = MimeType.getByExtension(getUrlExtension(url)).mime
                         )
                     },
-                    showPreview = showPreview
+                    showPreview = showPreview,
+                    timings = timings
                 )
             )
             _uploadProgress.update { previous ->

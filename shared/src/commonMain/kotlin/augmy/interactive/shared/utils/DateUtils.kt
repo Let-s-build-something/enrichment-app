@@ -1,4 +1,4 @@
-package augmy.interactive.shared
+package augmy.interactive.shared.utils
 
 import androidx.compose.runtime.Composable
 import augmy.shared.generated.resources.Res

@@ -3,7 +3,7 @@ package ui.conversation
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import augmy.interactive.shared.DateUtils.localNow
+import augmy.interactive.shared.utils.DateUtils.localNow
 import base.utils.sha256
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
@@ -182,7 +182,7 @@ class ConversationRepository(
             conversationMessageDao.insert(msg)
             invalidateLocalSource()
 
-            // upload the real message
+            // upload the final message
             val response = httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/send",

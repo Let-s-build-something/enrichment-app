@@ -65,7 +65,6 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.composeapp.generated.resources.conversation_detail_you
-import augmy.interactive.shared.DateUtils.formatAsRelative
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -74,6 +73,7 @@ import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
@@ -279,7 +279,8 @@ fun ConversationScreen(
                         })
                     }
                     .align(Alignment.BottomCenter)
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .wrapContentHeight()
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->

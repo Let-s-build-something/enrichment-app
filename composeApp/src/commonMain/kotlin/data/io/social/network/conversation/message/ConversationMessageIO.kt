@@ -62,6 +62,9 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
      */
     val state: MessageState? = null,
 
+    /** List of timings of each keystroke in this message */
+    val timings: List<Long>? = null,
+
     /** Local database use only, we don't need this information from API */
     @ColumnInfo(name = "conversation_id")
     var conversationId: String? = null

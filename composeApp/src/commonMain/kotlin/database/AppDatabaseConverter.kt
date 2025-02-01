@@ -24,6 +24,18 @@ class AppDatabaseConverter {
 
     private val json: Json by KoinPlatform.getKoin().inject()
 
+    /** Converts long to a string */
+    @TypeConverter
+    fun fromLongList(value: List<Long>?): String? {
+        return value?.joinToString(",")
+    }
+
+    /** Converts string to an integer long */
+    @TypeConverter
+    fun toLongList(value: String?): List<Long>? {
+        return value?.split(",")?.mapNotNull { it.toLongOrNull() }
+    }
+
     /** Converts object to string */
     @TypeConverter
     fun fromRoomSummary(value: RoomSummary): String {

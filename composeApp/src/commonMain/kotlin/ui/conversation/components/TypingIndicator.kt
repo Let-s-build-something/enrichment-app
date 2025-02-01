@@ -39,7 +39,8 @@ fun TypingIndicator(
     key: Int,
     data: ConversationTypingIndicator,
     hasPrevious: Boolean,
-    hasNext: Boolean
+    hasNext: Boolean,
+    onFinish: () -> Unit = {}
 ) {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
@@ -77,6 +78,7 @@ fun TypingIndicator(
                 isTicked.value = !isTicked.value
                 delay(400L)
             }
+            onFinish()
         }
     }
 
