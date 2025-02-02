@@ -363,12 +363,14 @@ fun ConversationScreen(
                         scrollToMessage = scrollToMessage,
                         preferredEmojis = preferredEmojis.value,
                         isMyLastMessage = lastCurrentUserMessage.value == index,
-                        transcribe = /*!isCurrentUser &&*/ transcribedItem.value?.second == data?.id
+                        transcribe = !isCurrentUser && transcribedItem.value?.second == data?.id
                                 && !isTranscribed.value,
                         onTranscribed = {
                             isTranscribed.value = true
                             viewModel.markMessageAsTranscribed(id = data?.id)
-                            transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
+                            transcribedItem.value = if(index > 0) {
+                                index + 1 to nextItem?.id.orEmpty()
+                            }else null
                         },
                         onReplyRequest = {
                             coroutineScope.launch {

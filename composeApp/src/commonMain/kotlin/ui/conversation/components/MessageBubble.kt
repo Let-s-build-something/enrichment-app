@@ -477,7 +477,7 @@ private fun ContentLayout(
                                                     && !transcribe
                                                     && data.transcribed != true
                                                     && !data.timings.isNullOrEmpty()
-                                                    // TODO just temporary && !isCurrentUser
+                                                    && !isCurrentUser
 
                                             TempoText(
                                                 modifier = Modifier
@@ -561,8 +561,7 @@ private fun ContentLayout(
                                                     Modifier
                                                         .scalingClickable {
                                                             if ((data.reactions?.size ?: 0) > 1) {
-                                                                showDetailDialogOf.value =
-                                                                    data.content to reaction.first
+                                                                showDetailDialogOf.value = data.content to reaction.first
                                                             }
                                                         }
                                                         .width(IntrinsicSize.Min)
