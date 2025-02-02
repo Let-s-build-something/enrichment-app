@@ -1,7 +1,7 @@
 package data.shared
 
-import augmy.interactive.shared.DateUtils.localNow
-import augmy.interactive.shared.DateUtils.now
+import augmy.interactive.shared.utils.DateUtils.localNow
+import augmy.interactive.shared.utils.DateUtils.now
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.matrix.ConversationRoomIO
 import data.io.social.network.conversation.matrix.MatrixEventContent

@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_play
-import augmy.interactive.shared.DateUtils
+import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
@@ -154,7 +154,8 @@ fun AudioMessageBubble(
                 modifier = Modifier
                     .padding(end = 16.dp)
                     .animateContentSize(),
-                text = "${DateUtils.formatTime(millisecondsElapsed.longValue).takeIf {
+                text = "${
+                    DateUtils.formatTime(millisecondsElapsed.longValue).takeIf {
                     it != "00:00"
                 }?.plus("/") ?: ""}${DateUtils.formatTime(totalLengthMs)}",
                 style = LocalTheme.current.styles.regular.copy(color = tintColor)

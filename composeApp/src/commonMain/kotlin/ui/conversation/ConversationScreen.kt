@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -65,7 +66,6 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.composeapp.generated.resources.conversation_detail_you
-import augmy.interactive.shared.DateUtils.formatAsRelative
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -74,6 +74,7 @@ import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
@@ -152,6 +153,9 @@ fun ConversationScreen(
     }
     val replyToMessage = remember {
         mutableStateOf<ConversationMessageIO?>(null)
+    }
+    val transcribedItem = remember {
+        mutableStateOf<Pair<Int, String>?>(null) // index to id
     }
 
     val scrollToMessage: (String?, Int?) -> Unit = { id, fallBackIndex ->
@@ -279,7 +283,8 @@ fun ConversationScreen(
                         })
                     }
                     .align(Alignment.BottomCenter)
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .wrapContentHeight()
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
@@ -316,14 +321,38 @@ fun ConversationScreen(
 
                     val isCurrentUser = data?.authorPublicId == viewModel.currentUser.value?.publicId
                     val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
-                    val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
+                    val nextItem = messages.getOrNull(index - 1)
+                    val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
 
                     if(isCurrentUser && !isNextMessageSameAuthor && lastCurrentUserMessage.value > index) {
                         lastCurrentUserMessage.value = index
                     }
+                    val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.transcribed == true) }
+
+                    if(data?.id != null) {
+                        LaunchedEffect(Unit) {
+                            if(data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
+                                transcribedItem.value = index to data.id
+                            }else if ((transcribedItem.value?.first ?: -1) == index
+                                && data.id != transcribedItem.value?.second
+                            ) {
+                                transcribedItem.value = null
+                            }
+
+                            if(data.transcribed == true && transcribedItem.value?.second == data.id) {
+                                transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
+                            }
+                        }
+                    }
+
+                    DisposableEffect(null) {
+                        onDispose {
+                            if(transcribedItem.value?.second == data?.id) transcribedItem.value = null
+                        }
+                    }
 
                     MessageContent(
-                        data = data,
+                        data = data?.copy(transcribed = data.transcribed == true || isTranscribed.value),
                         isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
                         isNextMessageSameAuthor = isNextMessageSameAuthor,
                         currentUser = isCurrentUser,
@@ -334,6 +363,15 @@ fun ConversationScreen(
                         scrollToMessage = scrollToMessage,
                         preferredEmojis = preferredEmojis.value,
                         isMyLastMessage = lastCurrentUserMessage.value == index,
+                        transcribe = !isCurrentUser && transcribedItem.value?.second == data?.id
+                                && !isTranscribed.value,
+                        onTranscribed = {
+                            isTranscribed.value = true
+                            viewModel.markMessageAsTranscribed(id = data?.id)
+                            transcribedItem.value = if(index > 0) {
+                                index + 1 to nextItem?.id.orEmpty()
+                            }else null
+                        },
                         onReplyRequest = {
                             coroutineScope.launch {
                                 listState.animateScrollToItem(index = 0)
@@ -382,6 +420,8 @@ private fun LazyItemScope.MessageContent(
     isNextMessageSameAuthor: Boolean,
     currentUser: Boolean,
     isMyLastMessage: Boolean,
+    transcribe: Boolean,
+    onTranscribed: () -> Unit,
     reactingToMessageId: MutableState<String?>,
     showEmojiPreferencesId: MutableState<String?>,
     replyToMessage: MutableState<ConversationMessageIO?>,
@@ -443,7 +483,6 @@ private fun LazyItemScope.MessageContent(
             }
         }
 
-
         MessageBubble(
             data = data,
             isReacting = reactingToMessageId.value == data?.id,
@@ -465,7 +504,10 @@ private fun LazyItemScope.MessageContent(
             },
             onAdditionalReactionRequest = {
                 showEmojiPreferencesId.value = data?.id
+                // TODO save in DB
             },
+            transcribe = transcribe,
+            onTranscribed = onTranscribed,
             onReplyRequest = onReplyRequest,
             additionalContent = { onDragChange, onDrag ->
                 val rememberedHeight = rememberSaveable(data?.id) {

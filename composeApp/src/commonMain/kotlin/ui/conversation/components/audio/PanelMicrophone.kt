@@ -71,7 +71,7 @@ import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_resume
 import augmy.composeapp.generated.resources.conversation_action_delete
 import augmy.composeapp.generated.resources.conversation_action_send
-import augmy.interactive.shared.DateUtils
+import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.ext.scalingDraggable
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.PlatformType

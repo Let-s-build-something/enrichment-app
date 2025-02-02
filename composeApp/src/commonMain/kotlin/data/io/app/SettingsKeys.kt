@@ -26,6 +26,7 @@ object SettingsKeys {
 
     /** Prefix key for last unsent message */
     const val KEY_LAST_MESSAGE = "last_message"
+    const val KEY_LAST_MESSAGE_TIMINGS = "last_message_timings"
 
     /** Height of soft keyboard */
     const val KEY_KEYBOARD_HEIGHT = "keyboard_height"

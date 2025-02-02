@@ -3,7 +3,7 @@ package ui.conversation
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import augmy.interactive.shared.DateUtils.localNow
+import augmy.interactive.shared.utils.DateUtils.localNow
 import base.utils.sha256
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
@@ -83,7 +83,7 @@ class ConversationRepository(
     @OptIn(ExperimentalPagingApi::class)
     fun getMessagesListFlow(
         config: PagingConfig,
-        conversationId: String? = null
+        conversationId: String? = null,
     ): Pager<Int, ConversationMessageIO> {
         val scope = CoroutineScope(Dispatchers.Default)
 
@@ -182,7 +182,7 @@ class ConversationRepository(
             conversationMessageDao.insert(msg)
             invalidateLocalSource()
 
-            // upload the real message
+            // upload the final message
             val response = httpClient.safeRequest<Any> {
                 post(
                     urlString = "/api/v1/social/conversation/send",
@@ -234,6 +234,13 @@ class ConversationRepository(
             invalidateLocalSource()
 
             response
+        }
+    }
+
+    /** Marks a message as transcribed */
+    suspend fun markMessageAsTranscribed(id: String) {
+        withContext(Dispatchers.IO) {
+            conversationMessageDao.transcribe(messageId = id, transcribed = true)
         }
     }
 

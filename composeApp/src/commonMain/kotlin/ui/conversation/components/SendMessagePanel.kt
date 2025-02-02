@@ -62,7 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -146,10 +146,17 @@ internal fun BoxScope.SendMessagePanel(
 
     val keyboardHeight = viewModel.keyboardHeight.collectAsState()
     val savedMessage = viewModel.savedMessage.collectAsState()
+    val savedTimings = viewModel.savedTimings.collectAsState()
     val messageState = remember(savedMessage.value) {
         TextFieldState(
             initialText = savedMessage.value,
             initialSelection = TextRange(savedMessage.value.length)
+        )
+    }
+    val timingSensor = remember {
+        TimingSensor(
+            initialText = savedMessage.value,
+            timings = savedTimings.value.toMutableList()
         )
     }
     val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
@@ -241,8 +248,10 @@ internal fun BoxScope.SendMessagePanel(
                 anchorMessage = replyToMessage.value,
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
-                showPreview = showPreview.value
+                showPreview = showPreview.value,
+                timings = timingSensor.timings.toList()
             )
+            timingSensor.flush()
             mediaAttached.clear()
             keyboardMode.value = ConversationKeyboardMode.Default.ordinal
             messageState.clearText()
@@ -257,7 +266,10 @@ internal fun BoxScope.SendMessagePanel(
 
     DisposableEffect(null) {
         onDispose {
-            viewModel.saveMessage(messageState.text.toString())
+            viewModel.saveMessage(
+                content = messageState.text.toString(),
+                timings = timingSensor.timings
+            )
         }
     }
 
@@ -291,6 +303,7 @@ internal fun BoxScope.SendMessagePanel(
         if(messageState.text.isNotBlank()) {
             showMoreOptions.value = false
         }
+        timingSensor.onNewText(messageState.text)
         if(showPreview.value) {
             cancellableScope.coroutineContext.cancelChildren()
             cancellableScope.launch(Dispatchers.Default) {
@@ -505,11 +518,14 @@ internal fun BoxScope.SendMessagePanel(
                             else -> urlsAttached.add(uri)
                         }
                     }
-                    .focusRequester(focusRequester),
+                    .onFocusChanged {
+                        if(!it.isFocused) timingSensor.pause()
+                    },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send
                 ),
+                focusRequester = focusRequester,
                 state = messageState,
                 onKeyboardAction = {
                     sendMessage()
@@ -736,7 +752,8 @@ const val MEDIA_MAX_HEIGHT_DP = 250
 
 // IOS does not support unicode special classes, must be done manually
 private val REGEX_GRAPHEME_IOS = """
-    (?:[\uD800-\uDBFF][\uDC00-\uDFFF][\uFE0F\u200D\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*|[\u0020-\u007E]|[\u00A0-\uFFFF]|\s|.)[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*
+    (?:\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*|\p{L}\p{M}*)
 """.trimIndent()
 
-private val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""
+/** regular expression for a singular grapheme */
+val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""

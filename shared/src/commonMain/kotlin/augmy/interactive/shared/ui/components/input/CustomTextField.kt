@@ -66,6 +66,7 @@ fun CustomTextField(
     textObfuscationMode: TextObfuscationMode = TextObfuscationMode.RevealLastTyped,
     inputTransformation: InputTransformation? = null,
     prefixIcon: ImageVector? = null,
+    focusRequester: FocusRequester = remember(state) { FocusRequester() },
     trailingIcon: @Composable (() -> Unit)? = null,
     lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
@@ -75,7 +76,6 @@ fun CustomTextField(
     isCorrect: Boolean = false,
     enabled: Boolean = true
 ) {
-    val focusRequester = remember(state) { FocusRequester() }
     val isFocused = remember(state.text) { mutableStateOf(false) }
     val controlColor = if(showBorders) {
         animateColorAsState(
