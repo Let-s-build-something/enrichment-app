@@ -473,9 +473,9 @@ private fun ContentLayout(
                                     // textual content
                                     if (!data.content.isNullOrEmpty()) {
                                         val text = @Composable {
-                                            val isTranscribed = remember(data.id) { mutableStateOf(false) }
                                             val awaitingTranscription = !transcribe
-                                                    && !isTranscribed.value
+                                                    && !transcribe
+                                                    && data.transcribed != true
                                                     && !data.timings.isNullOrEmpty()
                                                     // TODO just temporary && !isCurrentUser
 
@@ -503,6 +503,7 @@ private fun ContentLayout(
                                                         horizontal = 14.dp
                                                     ),
                                                 key = data.id,
+                                                enabled = transcribe,
                                                 text = buildAnnotatedLinkString(
                                                     text = data.content,
                                                     onLinkClicked = { openLink(it) }
@@ -516,14 +517,11 @@ private fun ContentLayout(
                                                 ),
                                                 maxLines = MaximumTextLines,
                                                 overflow = TextOverflow.Ellipsis,
-                                                timings = if(transcribe) data.timings else emptyList(),
-                                                onFinish = {
-                                                    isTranscribed.value = true
-                                                    onTranscribed()
-                                                }
+                                                timings = data.timings.orEmpty(),
+                                                onFinish = onTranscribed
                                             )
                                         }
-                                        // TODO read more on overflow: new screen with author's profile picture, reactions, and replies as comments
+                                        // TODO "read more" on overflow: new screen with author's profile picture, reactions, and replies as comments
                                         if(showOptions || LocalIsMouseUser.current) {
                                             SelectionContainer {
                                                 text()

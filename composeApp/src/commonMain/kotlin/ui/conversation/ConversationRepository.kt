@@ -237,6 +237,13 @@ class ConversationRepository(
         }
     }
 
+    /** Marks a message as transcribed */
+    suspend fun markMessageAsTranscribed(id: String) {
+        withContext(Dispatchers.IO) {
+            conversationMessageDao.transcribe(messageId = id, transcribed = true)
+        }
+    }
+
     /** Adds or changes reaction on a message */
     suspend fun reactToMessage(
         conversationId: String,

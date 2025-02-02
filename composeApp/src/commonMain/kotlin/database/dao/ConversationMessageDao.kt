@@ -38,6 +38,12 @@ interface ConversationMessageDao {
             "LIMIT 1")
     suspend fun get(messageId: String?): ConversationMessageIO?
 
+    /** marks a message as transcribed */
+    @Query("UPDATE ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+            "SET transcribed = :transcribed " +
+            "WHERE id = :messageId ")
+    suspend fun transcribe(messageId: String, transcribed: Boolean)
+
     /** Inserts or updates a a single item object */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: ConversationMessageIO)

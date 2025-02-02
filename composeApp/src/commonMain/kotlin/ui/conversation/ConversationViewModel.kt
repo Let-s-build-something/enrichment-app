@@ -184,6 +184,14 @@ class ConversationViewModel(
         }
     }
 
+    /** Marks a single message as transcribed */
+    fun markMessageAsTranscribed(id: String?) {
+        if(id == null) return
+        viewModelScope.launch {
+            repository.markMessageAsTranscribed(id = id)
+        }
+    }
+
     /**
      * Makes a request to send a conversation message
      * @param content textual content of the message

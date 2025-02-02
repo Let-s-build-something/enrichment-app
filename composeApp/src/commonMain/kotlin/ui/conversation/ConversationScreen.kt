@@ -154,8 +154,8 @@ fun ConversationScreen(
     val replyToMessage = remember {
         mutableStateOf<ConversationMessageIO?>(null)
     }
-    val transcribedIndex = remember {
-        mutableStateOf<Int?>(null)
+    val transcribedItem = remember {
+        mutableStateOf<Pair<Int, String>?>(null) // index to id
     }
 
     val scrollToMessage: (String?, Int?) -> Unit = { id, fallBackIndex ->
@@ -321,26 +321,38 @@ fun ConversationScreen(
 
                     val isCurrentUser = data?.authorPublicId == viewModel.currentUser.value?.publicId
                     val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
-                    val isNextMessageSameAuthor = messages.getOrNull(index - 1)?.authorPublicId == data?.authorPublicId
+                    val nextItem = messages.getOrNull(index - 1)
+                    val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
 
                     if(isCurrentUser && !isNextMessageSameAuthor && lastCurrentUserMessage.value > index) {
                         lastCurrentUserMessage.value = index
                     }
+                    val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.transcribed == true) }
 
-                    LaunchedEffect(Unit) {
-                        if(data?.transcribed != true && (transcribedIndex.value ?: -1) < index) {
-                            transcribedIndex.value = index
+                    if(data?.id != null) {
+                        LaunchedEffect(Unit) {
+                            if(data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
+                                transcribedItem.value = index to data.id
+                            }else if ((transcribedItem.value?.first ?: -1) == index
+                                && data.id != transcribedItem.value?.second
+                            ) {
+                                transcribedItem.value = null
+                            }
+
+                            if(data.transcribed == true && transcribedItem.value?.second == data.id) {
+                                transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
+                            }
                         }
                     }
 
                     DisposableEffect(null) {
                         onDispose {
-                            if(transcribedIndex.value == index) transcribedIndex.value = null
+                            if(transcribedItem.value?.second == data?.id) transcribedItem.value = null
                         }
                     }
 
                     MessageContent(
-                        data = data,
+                        data = data?.copy(transcribed = data.transcribed == true || isTranscribed.value),
                         isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
                         isNextMessageSameAuthor = isNextMessageSameAuthor,
                         currentUser = isCurrentUser,
@@ -351,9 +363,12 @@ fun ConversationScreen(
                         scrollToMessage = scrollToMessage,
                         preferredEmojis = preferredEmojis.value,
                         isMyLastMessage = lastCurrentUserMessage.value == index,
-                        transcribe = /*!isCurrentUser &&*/ transcribedIndex.value == index,
+                        transcribe = /*!isCurrentUser &&*/ transcribedItem.value?.second == data?.id
+                                && !isTranscribed.value,
                         onTranscribed = {
-                            transcribedIndex.value = transcribedIndex.value?.minus(1)
+                            isTranscribed.value = true
+                            viewModel.markMessageAsTranscribed(id = data?.id)
+                            transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
                         },
                         onReplyRequest = {
                             coroutineScope.launch {
