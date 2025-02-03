@@ -20,13 +20,14 @@ import database.file.FileAccess
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-
 /** Common module for the whole application */
-@OptIn(ExperimentalCoilApi::class)
+@OptIn(ExperimentalCoilApi::class, ExperimentalSerializationApi::class)
 internal val commonModule = module {
     if(currentPlatform != PlatformType.Jvm) includes(settingsModule)
     single { FileAccess() }
@@ -42,6 +43,7 @@ internal val commonModule = module {
             allowSpecialFloatingPointValues = true
             allowStructuredMapKeys = true
             prettyPrint = true
+            namingStrategy = JsonNamingStrategy.SnakeCase
         }
     }
 
@@ -68,7 +70,7 @@ internal val commonModule = module {
         httpClientFactory(
             sharedViewModel = get<SharedViewModel>(),
             developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
-            json = get()
+            json = get<Json>()
         )
     }
 

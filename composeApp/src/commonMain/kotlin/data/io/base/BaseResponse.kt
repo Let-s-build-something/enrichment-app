@@ -25,8 +25,7 @@ sealed class BaseResponse<out T> {
         val message: String? = null,
 
         /** The request block in milliseconds */
-        @SerialName("retry_after_ms")
-        val retryAfter: Int? = null,
+        val retryAfterMs: Int? = null,
 
         /** BE error code */
         @SerialName("errcode")

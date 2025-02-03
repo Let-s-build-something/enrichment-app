@@ -173,7 +173,7 @@ fun TempoText(
     }
 
     Text(
-        modifier = modifier.animateContentSize(),
+        modifier = if(enabled) modifier.animateContentSize() else modifier,
         text = annotatedText,
         style = style,
         maxLines = maxLines,

@@ -1,12 +1,9 @@
 package data.io.social.network.conversation.matrix
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class MatrixEventContent(
-
-) {
+sealed class MatrixEventContent{
 
     @Serializable
     data class RoomAvatar(
@@ -23,7 +20,6 @@ sealed class MatrixEventContent(
         val body: String? = null,
 
         /** The formatted version of the body. This is required if format is specified. */
-        @SerialName("formatted_body")
         val formattedBody: String? = null,
 
         /** Required: The type of message being sent. */

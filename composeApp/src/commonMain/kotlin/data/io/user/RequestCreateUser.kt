@@ -2,7 +2,6 @@ package data.io.user
 
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Request body for creation of a user on our BE */
@@ -21,11 +20,9 @@ data class RequestCreateUser(
     val fcmToken: String? = null, //optional
 
     /** Fully qualified Matrix id */
-    @SerialName("matrix_user_id")
     val matrixUserId: String?, //optional
 
     /** home server under which this user has been created */
-    @SerialName("home_server")
     val homeServer: String?,
 
     /** Currently used platform */

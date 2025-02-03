@@ -7,7 +7,6 @@ import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -24,7 +23,7 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val summary: RoomSummary? = null,
 
     /** Counts of unread notifications for this room. */
-    @SerialName("unread_notifications")
+    @ColumnInfo("unread_notifications")
     val unreadNotifications: RoomNotificationsCount? = null,
 
     /** Typing notification and read receipt events */
@@ -34,18 +33,18 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val state: RoomEphemeral? = null,
 
     /** The private data that this user has attached to this room. */
-    @SerialName("account_data")
+    @ColumnInfo("account_data")
     val accountData: RoomAccountData? = null,
 
     /** The timeline of messages and state changes in the room. */
     val timeline: RoomTimeline? = null,
 
     /** The stripped state of a room that the user has been invited to. */
-    @SerialName("invite_state")
+    @ColumnInfo("invite_state")
     val inviteState: RoomInviteState? = null,
 
     /** The stripped state of a room that the user has knocked upon. */
-    @SerialName("knock_state")
+    @ColumnInfo("knock_state")
     val knockState: RoomInviteState? = null,
 
     /**
@@ -63,6 +62,7 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     var batch: String? = null
 
     /** Next batch identification if any */
+    @ColumnInfo("next_batch")
     var nextBatch: String? = null
 
     /** Type of the room */

@@ -31,24 +31,29 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     val media: List<MediaIO>? = null,
 
     /** Audio url as a content of this message */
+    @ColumnInfo("audio_url")
     val audioUrl: String? = null,
 
     /** Url asset of a gif */
+    @ColumnInfo("gif_asset")
     val gifAsset: GifAsset? = null,
 
     /** Public id of the author of this message */
+    @ColumnInfo("author_public_id")
     val authorPublicId: String? = null,
 
     /** List of reactions to this message */
     val reactions: List<MessageReactionIO>? = null,
 
     /** Whether preview should be shown for this message */
+    @ColumnInfo("show_preview")
     val showPreview: Boolean? = true,
 
     /**
      * Content of message this message is anchored to.
      * It doesn't contain any [anchorMessage] itself.
      */
+    @ColumnInfo("anchor_message")
     val anchorMessage: ConversationAnchorMessageIO? = null,
 
     /** Time of message being sent in ISO format */

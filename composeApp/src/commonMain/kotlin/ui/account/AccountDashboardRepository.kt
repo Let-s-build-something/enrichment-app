@@ -11,7 +11,6 @@ import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import ui.login.safeRequest
 
@@ -34,7 +33,6 @@ class AccountDashboardRepository(private val httpClient: HttpClient): SharedRepo
 
     @Serializable
     data class LogoutRequestBody(
-        @SerialName("device_name")
         val deviceName: String
     )
 

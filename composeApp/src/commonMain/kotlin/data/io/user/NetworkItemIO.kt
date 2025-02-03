@@ -30,18 +30,23 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     val userPublicId: String? = null,
 
     /** Matrix public user identifier */
+    @ColumnInfo("user_matrix_id")
     val userMatrixId: String? = null,
 
     /** url of a photo of this object */
+    @ColumnInfo("photo_url")
     val photoUrl: String? = null,
 
     /** Whether the user is a mutually included */
+    @ColumnInfo("is_mutual")
     val isMutual: Boolean? = null,
 
     /** Last message sent within this network item */
+    @ColumnInfo("last_message")
     val lastMessage: String? = null,
 
     /** Whether the user's configuration is public */
+    @ColumnInfo("is_public")
     val isPublic: Boolean? = null,
 
     /**

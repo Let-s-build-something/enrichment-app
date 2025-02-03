@@ -174,7 +174,7 @@ class LoginViewModel(
                 email = _matrixProgress.value?.email ?: "",
                 address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
             ).also { res ->
-                res.error?.retryAfter?.let {
+                res.error?.retryAfterMs?.let {
                     _matrixProgress.value = _matrixProgress.value?.copy(retryAfter = it)
                 }
                 res.success?.data?.sid?.let {
