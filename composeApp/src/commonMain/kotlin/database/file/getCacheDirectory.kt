@@ -33,11 +33,11 @@ open class FileAccess {
     }
 
     /** Attempts to retrieve a file from the cache directory */
-    suspend fun loadFileFromCache(fileName: String): ByteArray? {
+    suspend fun loadFileFromCache(fileName: String): Pair<ByteArray, Path?>? {
         return withContext(Dispatchers.IO) {
             val cachePath = getCacheDirectory().div(fileName)
             if (FileSystem.SYSTEM.exists(cachePath)) {
-                FileSystem.SYSTEM.read(cachePath) { readByteArray() }
+                FileSystem.SYSTEM.read(cachePath) { readByteArray() } to cachePath
             } else null
         }
     }

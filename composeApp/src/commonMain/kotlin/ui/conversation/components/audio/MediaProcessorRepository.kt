@@ -11,29 +11,32 @@ import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import okio.Path
 
 /** Class for calling APIs and remote work in general */
 class MediaProcessorRepository(
-    private val fileAccess: FileAccess
+    private val fileAccess: FileAccess,
+    private val httpClient: HttpClient
 ) {
 
     /** returns a file from Google cloud storage or cache and caches it if it is not cached */
     suspend fun getFileByteArray(
         url: String,
         onProgressChange: (bytesSentTotal: Long, contentLength: Long?) -> Unit
-    ): ByteArray? {
+    ): Pair<ByteArray, Path?>? {
         return withContext(Dispatchers.IO) {
             fileAccess.loadFileFromCache(sha256(url)) ?: try {
-                HttpClient().config {
+                val byteArray = httpClient.config {
                     install(ContentNegotiation)
                 }.get(urlString = url) {
                     onDownload { bytesSentTotal, contentLength ->
                         onProgressChange(bytesSentTotal, contentLength)
                     }
-                }.bodyAsBytes().also { byteArray ->
-                    byteArray.takeIf { it.isNotEmpty() }?.let {
-                        fileAccess.saveFileToCache(data = it, fileName = sha256(url))
-                    }
+                }.bodyAsBytes()
+
+                byteArray.takeIf { it.isNotEmpty() }.let {
+                    if(it == null) null
+                    else it to fileAccess.saveFileToCache(data = it, fileName = sha256(url))
                 }
             }catch (e: Exception) { null }
         }

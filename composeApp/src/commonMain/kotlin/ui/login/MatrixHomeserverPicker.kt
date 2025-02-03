@@ -184,5 +184,5 @@ fun MatrixHomeserverPicker(
     }
 }
 
-private const val MATRIX_HOME_SERVER = "matrix.org"
+const val MATRIX_HOME_SERVER = "matrix.org"
 const val AUGMY_HOME_SERVER = "homeserver.augmy.org"

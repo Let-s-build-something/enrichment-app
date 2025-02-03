@@ -14,7 +14,7 @@ import ui.conversation.components.link.GraphProtocol
 
 internal val audioProcessorModule = module {
     factory { MediaProcessorModel(get()) }
-    factory { MediaProcessorRepository(get<FileAccess>()) }
+    factory { MediaProcessorRepository(get<FileAccess>(), get()) }
     viewModelOf(::MediaProcessorModel)
 }
 
@@ -31,6 +31,7 @@ class MediaProcessorModel(
 ): ViewModel() {
     private val _resultByteArray = MutableStateFlow<ByteArray?>(null)
     private val _resultData = MutableStateFlow<Map<MediaIO, ByteArray>>(mapOf())
+    private val _cachedFiles = MutableStateFlow<Map<MediaIO, String>>(mapOf())
     private val _downloadProgress = MutableStateFlow<MediaHttpProgress?>(null)
     private val _graphProtocol = MutableStateFlow<GraphProtocol?>(null)
 
@@ -42,6 +43,9 @@ class MediaProcessorModel(
 
     /** Progress of the current download */
     val downloadProgress = _downloadProgress.asStateFlow()
+
+    /** Locally cached files mapped to local paths */
+    val cachedFiles = _cachedFiles.asStateFlow()
 
     /** Resulting graph protocol from a website fetcher */
     val graphProtocol = _graphProtocol.asStateFlow()
@@ -60,7 +64,7 @@ class MediaProcessorModel(
                 }
             )?.let { file ->
                 // wav to PCM
-                _resultByteArray.value = file.copyOfRange(44, file.size)
+                _resultByteArray.value = file.first.copyOfRange(44, file.first.size)
             }
         }
     }
@@ -72,8 +76,8 @@ class MediaProcessorModel(
         _downloadProgress.value = null
     }
 
-    /** Attempts to retrieve bitmaps out of urls */
-    fun processFiles(vararg media: MediaIO?) {
+    /** Attempts to retrieve bytearrays out of urls */
+    fun downloadFiles(vararg media: MediaIO?) {
         viewModelScope.launch {
             _downloadProgress.value = MediaHttpProgress(
                 items = media.size,
@@ -91,7 +95,33 @@ class MediaProcessorModel(
                         )
                     }
                 )).let {
-                    if(it == null || unit == null) null else unit to it
+                    if(it == null || unit == null) null else unit to it.first
+                }
+            }.toMap()
+            _downloadProgress.value = null
+        }
+    }
+
+    /** Attempts to retrieve bytearrays out of urls and cache them */
+    fun cacheFiles(vararg media: MediaIO?) {
+        viewModelScope.launch {
+            _downloadProgress.value = MediaHttpProgress(
+                items = media.size,
+                item = 0,
+                progress = null
+            )
+            _cachedFiles.value = media.mapIndexedNotNull { index, unit ->
+                (if(unit == null) null else repository.getFileByteArray(
+                    url = unit.url ?: "",
+                    onProgressChange = { bytesSentTotal, contentLength ->
+                        _downloadProgress.value = MediaHttpProgress(
+                            items = media.size,
+                            item = index + 1,
+                            progress = if(contentLength == null) null else (bytesSentTotal..contentLength)
+                        )
+                    }
+                )).let {
+                    if(it?.second == null || unit == null) null else unit to it.second.toString()
                 }
             }.toMap()
             _downloadProgress.value = null

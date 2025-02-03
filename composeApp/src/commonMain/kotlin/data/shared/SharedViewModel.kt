@@ -53,13 +53,19 @@ open class SharedViewModel: ViewModel() {
         Firebase.auth.currentUser
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
+            delay(500) // we have to delay the check to give time login flow to catch up
             if(sharedDataManager.currentUser.value == null) {
                 firebaseUser.getIdToken(false)?.let { idToken ->
-                    sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                    sharedDataManager.currentUser.value = sharedRepository.authenticateUser(
-                        localSettings = sharedDataManager.localSettings.value
-                    )?.copy(
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                         idToken = idToken
+                    ) ?: UserIO(idToken = idToken)
+
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                        sharedRepository.authenticateUser(
+                            localSettings = sharedDataManager.localSettings.value,
+                            refreshToken = sharedDataManager.currentUser.value?.refreshToken,
+                            expiresInMs = sharedDataManager.currentUser.value?.expiresInMs
+                        )
                     )
                 }
             }

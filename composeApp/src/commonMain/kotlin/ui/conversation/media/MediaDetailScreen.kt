@@ -142,7 +142,7 @@ fun MediaDetailScreen(
                         text = stringResource(Res.string.action_download_all),
                         imageVector = Icons.Outlined.Download,
                         onClick = {
-                            processor.processFiles(*media)
+                            processor.downloadFiles(*media)
                         }
                     )
                     ActionBarIcon(
@@ -280,7 +280,7 @@ fun MediaDetailScreen(
                                 .size(36.dp)
                                 .align(Alignment.BottomEnd)
                                 .scalingClickable {
-                                    processor.processFiles(unit)
+                                    processor.downloadFiles(unit)
                                 },
                             imageVector = Icons.Outlined.Download,
                             contentDescription = stringResource(Res.string.accessibility_message_download),

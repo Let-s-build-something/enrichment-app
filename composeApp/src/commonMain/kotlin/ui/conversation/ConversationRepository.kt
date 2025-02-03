@@ -7,6 +7,8 @@ import augmy.interactive.shared.utils.DateUtils.localNow
 import base.utils.sha256
 import data.io.base.BaseResponse
 import data.io.base.PaginationInfo
+import data.io.matrix.media.MediaRepositoryConfig
+import data.io.matrix.media.MediaUploadResponse
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -24,9 +26,12 @@ import io.github.vinceglb.filekit.core.baseName
 import io.github.vinceglb.filekit.core.extension
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.HttpHeaders
+import io.ktor.http.Url
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -151,6 +156,7 @@ class ConversationRepository(
     @OptIn(ExperimentalUuidApi::class)
     suspend fun sendMessage(
         conversationId: String,
+        homeserver: String,
         message: ConversationMessageIO,
         audioByteArray: ByteArray? = null,
         // TODO upload progress
@@ -200,8 +206,9 @@ class ConversationRepository(
                     uploadMedia(
                         mediaByteArray = bytes,
                         fileName = "${Uuid.random()}.${media.extension.lowercase()}",
-                        conversationId = conversationId
-                    ).takeIf { !it.isNullOrBlank() }?.let { url ->
+                        homeserver = homeserver,
+                        mimeType = MimeType.getByExtension(media.extension).mime
+                    )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
                         MediaIO(
                             url = url,
                             size = bytes.size,
@@ -213,8 +220,9 @@ class ConversationRepository(
                 audioUrl = uploadMedia(
                     mediaByteArray = audioByteArray,
                     fileName = "${Uuid.random()}.wav",
-                    conversationId = conversationId
-                ).also { audioUrl ->
+                    homeserver = homeserver,
+                    mimeType = MimeType.getByExtension("wav").mime
+                )?.success?.data?.contentUri.also { audioUrl ->
                     if(!audioUrl.isNullOrBlank()) {
                         msg = msg.copy(audioUrl = audioUrl)
                         audioByteArray?.let { data ->
@@ -278,22 +286,34 @@ class ConversationRepository(
         }
     }
 
+    /** Returns configuration of the homeserver */
+    suspend fun getMediaConfig(homeserver: String): BaseResponse<MediaRepositoryConfig> {
+        return httpClient.safeRequest<MediaRepositoryConfig> {
+            get(url = Url("https://$homeserver/_matrix/media/v3/upload"))
+        }
+    }
+
     /**
      * Uploads media to the server
      * @return the server location URL
      */
     private suspend fun uploadMedia(
-        conversationId: String,
         mediaByteArray: ByteArray?,
+        mimeType: String,
+        homeserver: String,
         fileName: String
-    ): String? {
+    ): BaseResponse<MediaUploadResponse>? {
         return try {
             if(mediaByteArray == null) null
-            else uploadMediaToStorage(
-                conversationId = conversationId,
-                byteArray = mediaByteArray,
-                fileName = fileName
-            )
+            else {
+                httpClient.safeRequest<MediaUploadResponse> {
+                    post(url = Url("https://$homeserver/_matrix/media/v3/upload")) {
+                        header(HttpHeaders.ContentType, mimeType)
+                        parameter("filename", fileName)
+                        setBody(mediaByteArray)
+                    }
+                }
+            }
         }catch (e: Exception) {
             e.printStackTrace()
             null

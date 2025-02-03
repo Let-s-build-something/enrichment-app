@@ -195,6 +195,7 @@
   <string name="download_failure">There was an error, try again later.</string>
   <string name="download_open_file">Open file location</string>
   <string name="link_preview_error">No Preview for the mentioned url:-(.</string>
+  <string name="file_too_large">The file's too large, we are sorry, the maximum is %1$d MB.</string>
 
   <string name="work_in_progress">We are actively working on this, hang on tight!</string>
   <string name="function_unavailable">This functionality is not supported on your device yet. But you can use Android, iOS, or macOS device to complete your action.</string>

@@ -49,7 +49,11 @@ internal fun httpClientFactory(
             logger = Logger.SIMPLE
             level = LogLevel.ALL
 
-            sanitizeHeader { header -> header == HttpHeaders.Authorization || header == HttpHeaders.IdToken }
+            sanitizeHeader { header ->
+                header == HttpHeaders.Authorization
+                        || header == HttpHeaders.IdToken
+                        || header == HttpHeaders.AccessToken
+            }
         }
         ResponseObserver { response ->
             developerViewModel?.appendHttpLog(
@@ -67,18 +71,23 @@ internal fun httpClientFactory(
         }
     }.apply {
         plugin(HttpSend).intercept { request ->
-            // add sensitive information only for our domains
-            if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
-                request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
+            request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
 
-                // assign current idToken
-                sharedViewModel.currentUser.value?.idToken?.let { idToken ->
-                    request.headers.append(HttpHeaders.IdToken, idToken)
+            // add sensitive information only for trusted domains
+            when {
+                request.url.toString().contains("/_matrix/") -> {
+                    sharedViewModel.currentUser.value?.accessToken?.let { accessToken ->
+                        request.headers.append(HttpHeaders.Authorization, "Bearer $accessToken")
+                    }
                 }
-                // assign current accessToken
-                sharedViewModel.currentUser.value?.accessToken?.let { idToken ->
-                    request.headers.append(HttpHeaders.AccessToken, idToken)
+                request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
+                    request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                    sharedViewModel.currentUser.value?.idToken?.let { idToken ->
+                        request.headers.append(HttpHeaders.IdToken, idToken)
+                    }
+                    sharedViewModel.currentUser.value?.accessToken?.let { accessToken ->
+                        request.headers.append(HttpHeaders.AccessToken, accessToken)
+                    }
                 }
             }
 
