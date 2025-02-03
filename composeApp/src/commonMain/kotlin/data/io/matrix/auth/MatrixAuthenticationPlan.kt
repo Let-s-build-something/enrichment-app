@@ -20,7 +20,6 @@ data class MatrixAuthenticationParams(
 
 @Serializable
 data class MatrixAuthenticationRecaptcha(
-    @SerialName("public_key")
     val publicKey: String? = null
 )
 

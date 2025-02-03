@@ -1,7 +1,6 @@
 package data.io.social.network.conversation.matrix
 
 import data.io.user.NetworkItemIO
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -40,11 +39,9 @@ data class RoomSummary(
     val invitationMessage: String? = null,
 
     /** The number of users with membership of invite. */
-    @SerialName("invited_member_count")
     val invitedMembersCount: Int? = null,
 
     /** The number of users with membership of join, including the client’s own user ID. */
-    @SerialName("joined_member_count")
     val joinedMemberCount: Int? = null
 ) {
     /** Either [canonicalAlias] or a default based on [heroes] */

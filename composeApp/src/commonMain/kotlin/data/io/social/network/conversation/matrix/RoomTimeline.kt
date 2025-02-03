@@ -1,6 +1,5 @@
 package data.io.social.network.conversation.matrix
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** The timeline of messages and state changes in the room. */
@@ -12,6 +11,5 @@ data class RoomTimeline(
     /** True if the number of events returned was limited by the limit on the filter. */
     val limited: Boolean? = null,
 
-    @SerialName("prev_batch")
     val prevBatch: String? = null
 )

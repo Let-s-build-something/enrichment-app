@@ -11,6 +11,5 @@ data class AuthenticationData(
     @SerialName("threepid_creds")
     val credentials: AuthenticationCredentials? = null,
     val response: String? = null,
-    @SerialName("user_accepts")
     val userAccepts: List<String>? = null
 )

@@ -2,7 +2,6 @@ package data.io.user.matrix
 
 import data.io.social.network.conversation.matrix.RoomAccountData
 import data.io.social.network.conversation.matrix.RoomsResponseIO
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -15,11 +14,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SyncResponse(
     /** The global private data created by this user. */
-    @SerialName("account_data")
     val accountData: RoomAccountData? = null,
 
     /** Required: The batch token to supply in the since param of the next /sync request. */
-    @SerialName("next_batch")
     val nextBatch: String? = null,
 
     /** Updates to rooms. */

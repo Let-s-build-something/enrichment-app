@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
 import kotlinx.datetime.Clock
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Meta information of paging response from Matrix protocol */
@@ -23,13 +22,13 @@ data class MatrixPagingMetaIO(
     val entityType: PagingEntityType? = null,
 
     /** A flag whether there is another page after this one or not */
-    @SerialName("next_batch")
+    @ColumnInfo("next_batch")
     val nextBatch: String? = null,
 
     /** Identification of current batch */
     val batch: String? = null,
 
     /** At what time was this object created in milliseconds */
-    @ColumnInfo(name = "created_at")
+    @ColumnInfo("created_at")
     val createdAt: Long = Clock.System.now().toEpochMilliseconds()
 )

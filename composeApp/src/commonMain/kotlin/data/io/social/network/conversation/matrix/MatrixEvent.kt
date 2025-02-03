@@ -1,6 +1,5 @@
 package data.io.social.network.conversation.matrix
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,7 +13,6 @@ sealed class MatrixEvent(
     @Serializable
     data class StrippedStateEvent(
         /** Required: The state_key for the event. */
-        @SerialName("state_key")
         val stateKey: String? = null,
 
         /** Required: Contains the fully-qualified ID of the user who sent this event. */
@@ -24,11 +22,9 @@ sealed class MatrixEvent(
     @Serializable
     data class RoomClientEvent(
         /** Required: The globally unique event identifier. */
-        @SerialName("event_id")
         val eventId: String? = null,
 
         /** Required: The time the event was sent to the server as a unix timestamp in milliseconds. */
-        @SerialName("origin_server_ts")
         val originServerTs: Long? = null,
 
         /** Required: Contains the fully-qualified ID of the user who sent this event. */

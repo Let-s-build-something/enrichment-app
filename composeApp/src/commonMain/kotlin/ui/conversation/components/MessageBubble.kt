@@ -175,10 +175,12 @@ private fun ContentLayout(
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
+    val isMouseUser = LocalIsMouseUser.current
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
     val coroutineScope = rememberCoroutineScope()
     val dragCoroutineScope = rememberCoroutineScope()
     val isCurrentUser = data.authorPublicId == currentUserPublicId
+    println("kostka_test, message: ${data.content}, author: ${data.authorPublicId}, currentUser: $currentUserPublicId")
     val replyBounds = remember {
         with(density) {
             (-screenSize.width.dp.toPx() / 8f)..(screenSize.width.dp.toPx() / 8f)
@@ -308,7 +310,7 @@ private fun ContentLayout(
                 detectMessageInteraction(
                     onTap = {
                         if(isReacting) onReactionRequest(false)
-                        else showHistory.value = !showHistory.value
+                        else if(!isMouseUser)  showHistory.value = !showHistory.value
                     },
                     onLongPress = {
                         onReactionRequest(true)
@@ -473,11 +475,10 @@ private fun ContentLayout(
                                     // textual content
                                     if (!data.content.isNullOrEmpty()) {
                                         val text = @Composable {
-                                            val awaitingTranscription = !transcribe
+                                            val awaitingTranscription = !isCurrentUser
                                                     && !transcribe
                                                     && data.transcribed != true
                                                     && !data.timings.isNullOrEmpty()
-                                                    && !isCurrentUser
 
                                             TempoText(
                                                 modifier = Modifier
@@ -522,7 +523,7 @@ private fun ContentLayout(
                                             )
                                         }
                                         // TODO "read more" on overflow: new screen with author's profile picture, reactions, and replies as comments
-                                        if(showOptions || LocalIsMouseUser.current) {
+                                        if(showOptions || isMouseUser) {
                                             SelectionContainer {
                                                 text()
                                             }

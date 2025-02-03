@@ -27,7 +27,7 @@ interface ConversationRoomDao {
             "WHERE owner_public_id = :ownerPublicId ")
     suspend fun getNonFiltered(
         ownerPublicId: String? = Firebase.auth.currentUser?.uid
-    ): List<ConversationRoomIO>?
+    ): List<ConversationRoomIO>
 
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +

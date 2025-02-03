@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
 import kotlinx.datetime.Clock
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Meta information of paging response */
@@ -23,18 +22,19 @@ data class PagingMetaIO(
     val entityType: String? = null,
 
     /** Index of this page */
-    @SerialName("current_page")
+    @ColumnInfo("current_page")
     val currentPage: Int? = null,
 
     /** A flag whether there is another page after this one or not */
-    @SerialName("next_page")
+    @ColumnInfo("next_page")
     val nextPage: Int? = null,
 
     /** At what time was this object created in milliseconds */
-    @ColumnInfo(name = "created_at")
+    @ColumnInfo("created_at")
     val createdAt: Long = Clock.System.now().toEpochMilliseconds(),
 
     /** Index of previous page, mainly for local Room database */
+    @ColumnInfo("previous_page")
     val previousPage: Int? = null
 )
 

@@ -257,9 +257,9 @@ class ConversationRepository(
                     reactions = message.reactions.orEmpty().toMutableList().apply {
                         add(
                             MessageReactionIO(
-                            content = reaction.content,
-                            authorPublicId = dataManager.currentUser.value?.publicId
-                        )
+                                content = reaction.content,
+                                authorPublicId = dataManager.currentUser.value?.publicId
+                            )
                         )
                     }
                 ))

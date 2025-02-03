@@ -60,7 +60,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
                         MatrixTokenRequest(
                             email = email,
                             clientSecret = secret,
-                            sendAttempts = attempt
+                            sendAttempt = attempt
                         )
                     )
                 }
