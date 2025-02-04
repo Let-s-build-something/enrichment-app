@@ -47,12 +47,12 @@ internal fun httpClientFactory(
         }
         install(Logging) {
             logger = Logger.SIMPLE
-            level = LogLevel.ALL
+            level = LogLevel.INFO
 
             sanitizeHeader { header ->
                 header == HttpHeaders.Authorization
-                        || header == HttpHeaders.IdToken
-                        || header == HttpHeaders.AccessToken
+                        || header == IdToken
+                        || header == AccessToken
             }
         }
         ResponseObserver { response ->
@@ -83,10 +83,10 @@ internal fun httpClientFactory(
                 request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
                     request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
                     sharedViewModel.currentUser.value?.idToken?.let { idToken ->
-                        request.headers.append(HttpHeaders.IdToken, idToken)
+                        request.headers.append(IdToken, idToken)
                     }
                     sharedViewModel.currentUser.value?.accessToken?.let { accessToken ->
-                        request.headers.append(HttpHeaders.AccessToken, accessToken)
+                        request.headers.append(AccessToken, accessToken)
                     }
                 }
             }
@@ -100,11 +100,11 @@ internal fun httpClientFactory(
 }
 
 /** Authorization type header with Firebase identification token */
-val HttpHeaders.IdToken: String
+val IdToken: String
     get() = "Id-Token"
 
 /** Authorization type header with Firebase identification token */
-val HttpHeaders.AccessToken: String
+val AccessToken: String
     get() = "Access-Token"
 
 /** http response code indicating expired token */

@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaHttpProgress
+import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -51,6 +52,7 @@ class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
     private val pagingMetaDao: PagingMetaDao,
+    private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
 ) {
     private var currentPagingSource: ConversationRoomSource? = null
@@ -207,7 +209,7 @@ class ConversationRepository(
                         mediaByteArray = bytes,
                         fileName = "${Uuid.random()}.${media.extension.lowercase()}",
                         homeserver = homeserver,
-                        mimeType = MimeType.getByExtension(media.extension).mime
+                        mimetype = MimeType.getByExtension(media.extension).mime
                     )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
                         MediaIO(
                             url = url,
@@ -221,7 +223,7 @@ class ConversationRepository(
                     mediaByteArray = audioByteArray,
                     fileName = "${Uuid.random()}.wav",
                     homeserver = homeserver,
-                    mimeType = MimeType.getByExtension("wav").mime
+                    mimetype = MimeType.getByExtension("wav").mime
                 )?.success?.data?.contentUri.also { audioUrl ->
                     if(!audioUrl.isNullOrBlank()) {
                         msg = msg.copy(audioUrl = audioUrl)
@@ -289,7 +291,7 @@ class ConversationRepository(
     /** Returns configuration of the homeserver */
     suspend fun getMediaConfig(homeserver: String): BaseResponse<MediaRepositoryConfig> {
         return httpClient.safeRequest<MediaRepositoryConfig> {
-            get(url = Url("https://$homeserver/_matrix/media/v3/upload"))
+            get(url = Url("https://$homeserver/_matrix/client/v1/media/config"))
         }
     }
 
@@ -299,7 +301,7 @@ class ConversationRepository(
      */
     private suspend fun uploadMedia(
         mediaByteArray: ByteArray?,
-        mimeType: String,
+        mimetype: String,
         homeserver: String,
         fileName: String
     ): BaseResponse<MediaUploadResponse>? {
@@ -308,9 +310,28 @@ class ConversationRepository(
             else {
                 httpClient.safeRequest<MediaUploadResponse> {
                     post(url = Url("https://$homeserver/_matrix/media/v3/upload")) {
-                        header(HttpHeaders.ContentType, mimeType)
+                        header(HttpHeaders.ContentType, mimetype)
                         parameter("filename", fileName)
                         setBody(mediaByteArray)
+                    }
+                }.also {
+                    it.success?.success?.data?.contentUri?.let { uri ->
+                        fileAccess.saveFileToCache(
+                            data = mediaByteArray,
+                            fileName = sha256(uri)
+                        )?.let { path ->
+                            mediaDataManager.cachedFiles.value = mediaDataManager.cachedFiles.value.toMutableMap().apply {
+                                put(
+                                    path.toString(),
+                                    MediaIO(
+                                        url = uri,
+                                        mimetype = mimetype,
+                                        size = mediaByteArray.size,
+                                        name = fileName
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -97,7 +97,7 @@ sealed class NavigationNode {
         val title: String? = null,
         val subtitle: String? = null,
         val selectedIndex: Int = 0,
-        private val encodedMedia: List<String> = media.map { "${it.name}|||${it.mimetype}|||${it.url}" }
+        private val encodedMedia: List<String> = media.map { "${it.name}|||${it.mimetype}|||${it.url}|||${it.path}" }
     ): NavigationNode() {
         override val deepLink: String = ""
     }

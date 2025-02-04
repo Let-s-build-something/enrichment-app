@@ -692,11 +692,11 @@ private fun Options(
     val density = LocalDensity.current
     val buttonSize = with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 2.dp
 
-    if(visible) {
+    AnimatedVisibility(
+        visible = visible,
+    ) {
         Row(
-            modifier = modifier
-                .horizontalScroll(rememberScrollState())
-                .animateContentSize(),
+            modifier = modifier.horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

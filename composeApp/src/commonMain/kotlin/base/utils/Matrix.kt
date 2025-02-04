@@ -25,4 +25,8 @@ object Matrix {
     object Medium {
         const val EMAIL = "email"
     }
+
+    object Media {
+        const val MATRIX_REPOSITORY_PREFIX = "mxc://"
+    }
 }

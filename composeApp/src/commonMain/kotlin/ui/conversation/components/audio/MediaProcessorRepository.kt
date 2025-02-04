@@ -22,13 +22,19 @@ class MediaProcessorRepository(
     /** returns a file from Google cloud storage or cache and caches it if it is not cached */
     suspend fun getFileByteArray(
         url: String,
+        downloadUrl: String = url,
+        extension: String? = null,
         onProgressChange: (bytesSentTotal: Long, contentLength: Long?) -> Unit
     ): Pair<ByteArray, Path?>? {
         return withContext(Dispatchers.IO) {
-            fileAccess.loadFileFromCache(sha256(url)) ?: try {
-                val byteArray = httpClient.config {
-                    install(ContentNegotiation)
-                }.get(urlString = url) {
+            val fileName = sha256(url).plus(if(extension != null) ".$extension" else "")
+
+            if(url.isBlank()) return@withContext null
+
+            fileAccess.loadFileFromCache(fileName) ?: try {
+                if(downloadUrl.isBlank()) return@withContext null
+
+                val byteArray = httpClient.get(urlString = downloadUrl) {
                     onDownload { bytesSentTotal, contentLength ->
                         onProgressChange(bytesSentTotal, contentLength)
                     }
@@ -36,7 +42,10 @@ class MediaProcessorRepository(
 
                 byteArray.takeIf { it.isNotEmpty() }.let {
                     if(it == null) null
-                    else it to fileAccess.saveFileToCache(data = it, fileName = sha256(url))
+                    else it to fileAccess.saveFileToCache(
+                        data = it,
+                        fileName = fileName
+                    )
                 }
             }catch (e: Exception) { null }
         }

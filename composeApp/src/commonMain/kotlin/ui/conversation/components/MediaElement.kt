@@ -102,7 +102,7 @@ fun MediaElement(
                 } else if(media?.url != null) {
                     AsyncSvgImage(
                         modifier = itemModifier.wrapContentWidth(),
-                        model = media.url,
+                        model = media.path ?: media.url,
                         contentScale = contentScale,
                         contentDescription = contentDescription
                     )
@@ -110,7 +110,9 @@ fun MediaElement(
             }
             MediaType.GIF -> {
                 @Suppress("IMPLICIT_CAST_TO_ANY")
-                (if(localMedia != null) PlatformFileShell(localMedia) else media?.url)?.let { data ->
+                (if(localMedia != null) {
+                    PlatformFileShell(localMedia)
+                } else media?.path ?: media?.url)?.let { data ->
                     GifImage(
                         modifier = itemModifier
                             .zIndex(1f)
@@ -153,7 +155,7 @@ fun MediaElement(
 
                     VideoPlayerComposable(
                         modifier = itemModifier,
-                        url = localMedia?.path ?: media?.url ?: "",
+                        url = localMedia?.path ?: media?.path ?: media?.url ?: "",
                         playerConfig = config
                     )
                 }else {
@@ -173,7 +175,7 @@ fun MediaElement(
                         }
 
                         VideoPreviewComposable(
-                            url = localMedia?.path ?: media?.url ?: "",
+                            url = localMedia?.path ?: media?.path ?: media?.url ?: "",
                             loadingIndicatorColor = LocalTheme.current.colors.secondary,
                             frameCount = 1
                         )

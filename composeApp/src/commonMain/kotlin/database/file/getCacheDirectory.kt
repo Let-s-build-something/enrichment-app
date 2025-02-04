@@ -1,5 +1,6 @@
 package database.file
 
+import augmy.interactive.shared.utils.DateUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -21,7 +22,7 @@ open class FileAccess {
     suspend fun saveFileToCache(data: ByteArray, fileName: String): Path? {
         return withContext(Dispatchers.IO) {
             try {
-                val cachePath = getCacheDirectory().div(fileName)
+                val cachePath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.div(fileName)
                 FileSystem.SYSTEM.write(cachePath) {
                     write(data)
                 }
@@ -35,10 +36,21 @@ open class FileAccess {
     /** Attempts to retrieve a file from the cache directory */
     suspend fun loadFileFromCache(fileName: String): Pair<ByteArray, Path?>? {
         return withContext(Dispatchers.IO) {
-            val cachePath = getCacheDirectory().div(fileName)
-            if (FileSystem.SYSTEM.exists(cachePath)) {
-                FileSystem.SYSTEM.read(cachePath) { readByteArray() } to cachePath
-            } else null
+            val cachePath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.div(fileName)
+            try {
+                if((FileSystem.SYSTEM.metadataOrNull(cachePath)?.lastAccessedAtMillis
+                    ?.minus(DateUtils.now.toEpochMilliseconds()) ?: EXPIRATION_MILLIS) < EXPIRATION_MILLIS) {
+                    FileSystem.SYSTEM.read(cachePath) { readByteArray() } to cachePath
+                }else {
+                    FileSystem.SYSTEM.delete(cachePath)
+                    null
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
         }
     }
 }
+
+private const val EXPIRATION_MILLIS = 7L * 24L * 60L * 60L * 1000L

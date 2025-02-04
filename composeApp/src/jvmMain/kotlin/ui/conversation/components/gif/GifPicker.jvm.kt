@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.DefaultAlpha
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import io.kamel.core.Resource
+import io.kamel.core.utils.File
 import io.kamel.core.utils.cacheControl
 import io.kamel.image.asyncPainterResource
 import io.ktor.http.CacheControl
@@ -30,7 +31,9 @@ actual fun GifImage(
 ) {
     val resource = asyncPainterResource(
         key = data,
-        data = if(data is String) Url(data) else data
+        data = if(data is String) {
+            if(data.toString().contains("http")) Url(data) else File(data)
+        } else data
     ) {
         coroutineContext = Job() + Dispatchers.IO
         requestBuilder {

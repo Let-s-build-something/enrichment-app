@@ -47,7 +47,7 @@ internal val conversationModule = module {
     includes(keyboardModule)
     includes(audioProcessorModule)
 
-    factory { ConversationRepository(get(), get(), get(), get<FileAccess>()) }
+    factory { ConversationRepository(get(), get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
             get<ConversationRepository>(),
@@ -157,6 +157,7 @@ class ConversationViewModel(
     // ==================== functions ===========================
 
     /** Saves content of a message */
+    @OptIn(ExperimentalSettingsApi::class)
     fun saveMessage(
         content: String?,
         timings: List<Long> = listOf()

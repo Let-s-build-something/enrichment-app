@@ -170,7 +170,7 @@ fun MediaDetailScreen(
                         currentIndex.value = ConversationKeyboardMode.entries[it].ordinal
                     },
                 state = pagerState,
-                beyondViewportPageCount = 1
+                beyondViewportPageCount = pagerState.pageCount // hotfix due to video player crashing otherwise
             ) { index ->
                 media.getOrNull(index)?.let { unit ->
                     val offset = remember(index) {

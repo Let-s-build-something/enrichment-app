@@ -12,7 +12,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,7 +48,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,7 +65,6 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.detectMessageInteraction
-import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -94,7 +91,6 @@ import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.MEDIA_MAX_HEIGHT_DP
-import ui.conversation.components.MediaElement
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.ReplyIndication
 import ui.conversation.components.SendMessagePanel
@@ -103,7 +99,7 @@ import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
-import kotlin.math.abs
+import ui.conversation.media.MediaRow
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -589,66 +585,21 @@ private fun LazyItemScope.MessageContent(
                             contentScale = ContentScale.Fit
                         )
                     }
-                    if(data?.media?.mapNotNull { m -> m.url.takeIf { !it.isNullOrBlank() } }?.isNotEmpty() == true) {
-                        val date = data.sentAt?.formatAsRelative() ?: ""
 
-                        LaunchedEffect(mediaRowState) {
-                            snapshotFlow { mediaRowState.value }.collect {
-                                if(abs(scrollPosition.value - it) < 300) {
-                                    scrollPosition.value = it
-                                }
-                            }
+                    MediaRow(
+                        modifier = heightModifier,
+                        data = data,
+                        media = (if(isCurrentUser) data?.media else data?.media).orEmpty(),
+                        scrollState = mediaRowState,
+                        temporaryFiles = viewModel.cachedFiles.toMap(),
+                        isCurrentUser = isCurrentUser,
+                        onDragChange = onDragChange,
+                        onDrag = onDrag,
+                        onLongPress = {
+                            reactingToMessageId.value = data?.id
                         }
+                    )
 
-                        Row(
-                            modifier = heightModifier
-                                .wrapContentWidth()
-                                .horizontalScroll(state = mediaRowState)
-                                .horizontallyDraggable(state = mediaRowState),
-                            horizontalArrangement = Arrangement.spacedBy(
-                                LocalTheme.current.shapes.betweenItemsSpace
-                            )
-                        ) {
-                            (if(isCurrentUser) {
-                                data.media
-                            } else data.media.reversed()).forEachIndexed { index, media ->
-                                val cachedMedia = viewModel.cachedFiles[media.url]
-                                val canBeVisualized = media.mimetype?.contains("image") == true
-                                        || media.mimetype?.contains("video") == true
-
-                                MediaElement(
-                                    modifier = if((data.state?.ordinal ?: 0) > 0 && canBeVisualized) {
-                                        heightModifier.pointerInput(data.id, ) {
-                                            detectMessageInteraction(
-                                                onTap = {
-                                                    coroutineScope.launch {
-                                                        navController?.navigate(
-                                                            NavigationNode.MediaDetail(
-                                                                media = data.media,
-                                                                selectedIndex = index,
-                                                                title = if(isCurrentUser) {
-                                                                    getString(Res.string.conversation_detail_you)
-                                                                } else data.user?.name,
-                                                                subtitle = date
-                                                            )
-                                                        )
-                                                    }
-                                                },
-                                                onLongPress = {
-                                                    reactingToMessageId.value = data.id
-                                                },
-                                                onDragChange = onDragChange,
-                                                onDrag = onDrag
-                                            )
-                                        }
-                                    }else heightModifier,
-                                    media = media,
-                                    localMedia = cachedMedia,
-                                    enabled = false
-                                )
-                            }
-                        }
-                    }
                     if(!data?.audioUrl.isNullOrBlank()) {
                         AudioMessageBubble(
                             modifier = Modifier.zIndex(1f),

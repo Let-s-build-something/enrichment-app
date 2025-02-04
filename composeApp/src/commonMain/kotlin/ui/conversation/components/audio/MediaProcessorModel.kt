@@ -1,9 +1,11 @@
 package ui.conversation.components.audio
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
+import base.utils.getExtensionFromMimeType
 import com.fleeksoft.ksoup.Ksoup
 import data.io.social.network.conversation.message.MediaIO
+import data.shared.SharedViewModel
 import database.file.FileAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +15,9 @@ import org.koin.dsl.module
 import ui.conversation.components.link.GraphProtocol
 
 internal val audioProcessorModule = module {
-    factory { MediaProcessorModel(get()) }
+    factory { MediaProcessorDataManager() }
+    single { MediaProcessorDataManager() }
+    factory { MediaProcessorModel(get(), get()) }
     factory { MediaProcessorRepository(get<FileAccess>(), get()) }
     viewModelOf(::MediaProcessorModel)
 }
@@ -27,11 +31,11 @@ data class MediaHttpProgress(
 
 /** Audio processor model for downloading the audio files */
 class MediaProcessorModel(
-    private val repository: MediaProcessorRepository
-): ViewModel() {
+    private val repository: MediaProcessorRepository,
+    private val dataManager: MediaProcessorDataManager
+): SharedViewModel() {
     private val _resultByteArray = MutableStateFlow<ByteArray?>(null)
     private val _resultData = MutableStateFlow<Map<MediaIO, ByteArray>>(mapOf())
-    private val _cachedFiles = MutableStateFlow<Map<MediaIO, String>>(mapOf())
     private val _downloadProgress = MutableStateFlow<MediaHttpProgress?>(null)
     private val _graphProtocol = MutableStateFlow<GraphProtocol?>(null)
 
@@ -45,7 +49,7 @@ class MediaProcessorModel(
     val downloadProgress = _downloadProgress.asStateFlow()
 
     /** Locally cached files mapped to local paths */
-    val cachedFiles = _cachedFiles.asStateFlow()
+    val cachedFiles = dataManager.cachedFiles.asStateFlow()
 
     /** Resulting graph protocol from a website fetcher */
     val graphProtocol = _graphProtocol.asStateFlow()
@@ -84,17 +88,20 @@ class MediaProcessorModel(
                 item = 0,
                 progress = null
             )
+            var bytesSentTotal = 0
+            val totalContentSize = media.sumOf { it?.size ?: 0 }
             _resultData.value = media.mapIndexedNotNull { index, unit ->
                 (if(unit == null) null else repository.getFileByteArray(
                     url = unit.url ?: "",
-                    onProgressChange = { bytesSentTotal, contentLength ->
+                    onProgressChange = { bytesSent, _ ->
                         _downloadProgress.value = MediaHttpProgress(
                             items = media.size,
                             item = index + 1,
-                            progress = if(contentLength == null) null else (bytesSentTotal..contentLength)
+                            progress = (bytesSentTotal + bytesSent)..totalContentSize
                         )
                     }
                 )).let {
+                    bytesSentTotal += unit?.size ?: 0
                     if(it == null || unit == null) null else unit to it.first
                 }
             }.toMap()
@@ -110,20 +117,37 @@ class MediaProcessorModel(
                 item = 0,
                 progress = null
             )
-            _cachedFiles.value = media.mapIndexedNotNull { index, unit ->
-                (if(unit == null) null else repository.getFileByteArray(
-                    url = unit.url ?: "",
-                    onProgressChange = { bytesSentTotal, contentLength ->
+            var bytesSentTotal = 0
+            val totalContentSize = media.sumOf { it?.size ?: 0 }
+            media.forEachIndexed { index, unit ->
+                val downloadUrl = if(unit?.url != null && currentUser.value?.homeserver != null) {
+                    unit.url.takeIf { !it.startsWith(MATRIX_REPOSITORY_PREFIX) }
+                        ?: "https://${currentUser.value?.homeserver}/_matrix/client/v1/media/download/${unit.url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
+                }else ""
+
+                repository.getFileByteArray(
+                    url = unit?.url ?: "",
+                    downloadUrl = downloadUrl,
+                    extension = getExtensionFromMimeType(unit?.mimetype),
+                    onProgressChange = { bytesSent, _ ->
                         _downloadProgress.value = MediaHttpProgress(
                             items = media.size,
                             item = index + 1,
-                            progress = if(contentLength == null) null else (bytesSentTotal..contentLength)
+                            progress = (bytesSentTotal + bytesSent)..totalContentSize
                         )
                     }
-                )).let {
-                    if(it?.second == null || unit == null) null else unit to it.second.toString()
+                ).let { result ->
+                    dataManager.cachedFiles.value = dataManager.cachedFiles.value.toMutableMap().apply {
+                        if(result != null && unit != null) {
+                            bytesSentTotal += unit.size ?: 0
+                            put(
+                                unit.url ?: "",
+                                unit.copy(path = result.second?.toString())
+                            )
+                        }
+                    }
                 }
-            }.toMap()
+            }
             _downloadProgress.value = null
         }
     }

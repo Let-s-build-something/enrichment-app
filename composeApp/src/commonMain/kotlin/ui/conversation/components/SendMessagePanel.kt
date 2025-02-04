@@ -89,6 +89,7 @@ import augmy.composeapp.generated.resources.file_too_large
 import augmy.interactive.shared.ext.contentReceiver
 import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -222,11 +223,14 @@ internal fun BoxScope.SendMessagePanel(
                                 && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
-                if(files.any { (it.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                if(files.any { (it.getSize() ?: 0) > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
                     snackbarHost?.showSnackbar(
-                        getString(
-                            Res.string.file_too_large,
-                            repositoryConfig.value?.maxUploadSize?.div(1_000_000).toString()
+                        CustomSnackbarVisuals(
+                            message = getString(
+                                Res.string.file_too_large,
+                                repositoryConfig.value?.maxUploadSize?.div(1_000_000).toString()
+                            ),
+                            isError = true
                         )
                     )
                 }
