@@ -1,5 +1,6 @@
 package ui.conversation.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,8 +45,8 @@ import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getExtensionFromMimeType
 import base.utils.getMediaType
-import chaintech.videoplayer.model.PlayerConfig
-import chaintech.videoplayer.model.ScreenResize
+import chaintech.videoplayer.host.VideoPlayerHost
+import chaintech.videoplayer.model.VideoPlayerConfig
 import chaintech.videoplayer.ui.preview.VideoPreviewComposable
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import components.AsyncSvgImage
@@ -116,8 +118,7 @@ fun MediaElement(
                     GifImage(
                         modifier = itemModifier
                             .zIndex(1f)
-                            .clip(RoundedCornerShape(6.dp))
-                            .wrapContentWidth(),
+                            .clip(RoundedCornerShape(6.dp)),
                         data = data,
                         contentDescription = contentDescription,
                         contentScale = contentScale
@@ -127,7 +128,7 @@ fun MediaElement(
             MediaType.VIDEO -> {
                 if(videoPlayerEnabled) {
                     val theme = LocalTheme.current
-                    val config = PlayerConfig(
+                    val config = VideoPlayerConfig(
                         isFullScreenEnabled = true,
                         isSpeedControlEnabled = false,
                         isMuteControlEnabled = false,
@@ -140,22 +141,32 @@ fun MediaElement(
                         loadingIndicatorColor = theme.colors.secondary,
                         isDurationVisible = true,
                         isFastForwardBackwardEnabled = false,
-                        loop = false,
                         loaderView = {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .zIndex(1f)
-                                    .requiredSize(32.dp),
-                                color = LocalTheme.current.colors.brandMainDark,
-                                trackColor = LocalTheme.current.colors.tetrial
-                            )
-                        },
-                        videoFitMode = ScreenResize.FIT
+                            Box(
+                                modifier = Modifier.size(100.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .zIndex(1f)
+                                        .requiredSize(32.dp),
+                                    color = LocalTheme.current.colors.brandMainDark,
+                                    trackColor = LocalTheme.current.colors.tetrial
+                                )
+                            }
+                        }
                     )
 
+                    val playerHost = remember(media?.url) {
+                        VideoPlayerHost(
+                            url = localMedia?.path ?: media?.path ?: media?.url ?: "",
+                        )
+                    }
                     VideoPlayerComposable(
-                        modifier = itemModifier,
-                        url = localMedia?.path ?: media?.path ?: media?.url ?: "",
+                        modifier = itemModifier.animateContentSize(
+                            alignment = Alignment.Center
+                        ),
+                        playerHost = playerHost,
                         playerConfig = config
                     )
                 }else {

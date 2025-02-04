@@ -155,9 +155,9 @@ fun AudioMessageBubble(
                     .padding(end = 16.dp)
                     .animateContentSize(),
                 text = "${
-                    DateUtils.formatTime(millisecondsElapsed.longValue).takeIf {
+                    DateUtils.formatMillis(millisecondsElapsed.longValue).takeIf {
                     it != "00:00"
-                }?.plus("/") ?: ""}${DateUtils.formatTime(totalLengthMs)}",
+                }?.plus("/") ?: ""}${DateUtils.formatMillis(totalLengthMs)}",
                 style = LocalTheme.current.styles.regular.copy(color = tintColor)
             )
             player.barPeakAmplitudes.value.takeLast(player.barsCount).forEach { bar ->

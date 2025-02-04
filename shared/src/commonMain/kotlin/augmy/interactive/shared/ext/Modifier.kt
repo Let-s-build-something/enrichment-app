@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -215,6 +216,22 @@ fun Modifier.horizontallyDraggable(state: ScrollState) = composed {
                     state.scrollBy(-delta)
                 }
             }
+        )
+    }else Modifier
+}
+
+/** Makes a vertically scrollable layout draggable for desktop */
+fun Modifier.verticallyDraggable(listState: LazyListState) = composed {
+    if(LocalIsMouseUser.current) {
+        val coroutineScope = rememberCoroutineScope()
+
+        draggable(
+            orientation = Orientation.Vertical,
+            state = rememberDraggableState { delta ->
+                coroutineScope.launch {
+                    listState.scrollBy(delta)
+                }
+            },
         )
     }else Modifier
 }

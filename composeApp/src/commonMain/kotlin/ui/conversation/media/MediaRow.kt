@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -22,6 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_detail_you
@@ -61,11 +65,16 @@ fun MediaRow(
     if(media.isNotEmpty() && data != null) {
         val navController = LocalNavController.current
         val isMouseUser = LocalIsMouseUser.current
+        val density = LocalDensity.current
+        val screenSize = LocalScreenSize.current
         val coroutineScope = rememberCoroutineScope()
 
+        val showSpacers = remember(data.id) {
+            mutableStateOf(false)
+        }
         val date = data.sentAt?.formatAsRelative() ?: ""
-        val cachedMedia = mediaProcessorModel.cachedFiles.collectAsState()
         val hoverInteractionSource = remember { MutableInteractionSource() }
+        val cachedMedia = mediaProcessorModel.cachedFiles.collectAsState()
         val isHovered = hoverInteractionSource.collectIsHoveredAsState()
 
         LaunchedEffect(media) {
@@ -84,11 +93,14 @@ fun MediaRow(
                 .hoverable(
                     enabled = isMouseUser,
                     interactionSource = hoverInteractionSource
-                ),
+                )
+                .onSizeChanged {
+                    showSpacers.value = with(density) { it.width.toDp().value } >= screenSize.width * .8f
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             if(isCurrentUser) {
-                AnimatedVisibility(!isHovered.value) {
+                AnimatedVisibility(!isHovered.value && showSpacers.value) {
                     Spacer(Modifier.width((LocalScreenSize.current.width * .3f).dp))
                 }
             }
@@ -132,11 +144,12 @@ fun MediaRow(
                     }else modifier).padding(horizontal = LocalTheme.current.shapes.betweenItemsSpace),
                     media = cachedMedia.value[media.url] ?: media,
                     localMedia = temporaryMedia,
-                    enabled = false
+                    enabled = false,
+                    contentScale = ContentScale.FillHeight
                 )
             }
             if(!isCurrentUser) {
-                AnimatedVisibility(!isHovered.value) {
+                AnimatedVisibility(!isHovered.value && showSpacers.value) {
                     Spacer(Modifier.width((LocalScreenSize.current.width * .3f).dp))
                 }
             }

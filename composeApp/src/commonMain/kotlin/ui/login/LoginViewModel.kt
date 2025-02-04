@@ -432,7 +432,7 @@ class LoginViewModel(
                     idToken = idToken,
                     accessToken = _matrixAuthResponse.value?.accessToken,
                     refreshToken = _matrixAuthResponse.value?.refreshToken,
-                    homeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                    matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                 )
                 sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
                     repository.authenticateUser(
@@ -461,7 +461,7 @@ class LoginViewModel(
                             clientId = clientId,
                             fcmToken = localSettings.value?.fcmToken,
                             matrixUserId = _matrixAuthResponse.value?.userId,
-                            homeServer = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                            matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                         )
                     )?.publicId
                 )

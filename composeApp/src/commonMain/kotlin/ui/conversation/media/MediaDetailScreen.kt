@@ -270,7 +270,7 @@ fun MediaDetailScreen(
                                         }
                                     )
                                 },
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.FillWidth,
                             media = unit,
                             videoPlayerEnabled = true
                         )

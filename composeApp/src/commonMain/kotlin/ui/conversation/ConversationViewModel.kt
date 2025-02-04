@@ -141,7 +141,7 @@ class ConversationViewModel(
                 ?.mapNotNull { it.toLongOrNull() }
                 .orEmpty()
 
-            currentUser.value?.homeserver?.let { homeserver ->
+            currentUser.value?.matrixHomeserver?.let { homeserver ->
                 _repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
             }
         }
@@ -222,7 +222,7 @@ class ConversationViewModel(
             var progressId = ""
             repository.sendMessage(
                 conversationId = conversationId,
-                homeserver = currentUser.value?.homeserver ?: AUGMY_HOME_SERVER,
+                homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
                 mediaFiles = mediaFiles,
                 onProgressChange = { progress ->
                     _uploadProgress.update {
@@ -273,7 +273,7 @@ class ConversationViewModel(
             repository.sendMessage(
                 audioByteArray = byteArray,
                 conversationId = conversationId,
-                homeserver = currentUser.value?.homeserver ?: AUGMY_HOME_SERVER,
+                homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
                 message = ConversationMessageIO()
             )
         }

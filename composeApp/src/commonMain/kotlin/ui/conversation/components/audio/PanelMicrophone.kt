@@ -291,8 +291,8 @@ private fun MicrophoneIcon(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 4.dp),
-                        text = "${DateUtils.formatTime(millisecondsElapsed.longValue)}/${
-                            DateUtils.formatTime(
+                        text = "${DateUtils.formatMillis(millisecondsElapsed.longValue)}/${
+                            DateUtils.formatMillis(
                                 MAX_RECORDING_LENGTH_MILLIS
                             )
                         }",
@@ -567,8 +567,8 @@ private fun AudioWaveForm(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(bottom = 4.dp),
-            text = "${DateUtils.formatTime(millisecondsElapsed.longValue)}/${
-                DateUtils.formatTime(
+            text = "${DateUtils.formatMillis(millisecondsElapsed.longValue)}/${
+                DateUtils.formatMillis(
                     MAX_RECORDING_LENGTH_MILLIS
                 )
             }",

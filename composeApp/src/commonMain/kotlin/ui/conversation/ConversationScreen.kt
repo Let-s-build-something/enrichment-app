@@ -6,12 +6,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +61,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.detectMessageInteraction
+import augmy.interactive.shared.ext.verticallyDraggable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -281,14 +278,7 @@ fun ConversationScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .draggable(
-                        orientation = Orientation.Vertical,
-                        state = rememberDraggableState { delta ->
-                            coroutineScope.launch {
-                                listState.scrollBy(delta)
-                            }
-                        },
-                    ),
+                    .verticallyDraggable(listState),
                 verticalArrangement = Arrangement.Bottom,
                 reverseLayout = true,
                 state = listState
@@ -500,11 +490,22 @@ private fun LazyItemScope.MessageContent(
             },
             onAdditionalReactionRequest = {
                 showEmojiPreferencesId.value = data?.id
-                // TODO save in DB
             },
             transcribe = transcribe,
             onTranscribed = onTranscribed,
             onReplyRequest = onReplyRequest,
+            openDetail = {
+                coroutineScope.launch {
+                    navController?.navigate(
+                        NavigationNode.MessageDetail(
+                            messageId = data?.id ?: "",
+                            title = if(isCurrentUser) {
+                                getString(Res.string.conversation_detail_you)
+                            } else data?.user?.name
+                        )
+                    )
+                }
+            },
             additionalContent = { onDragChange, onDrag ->
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
