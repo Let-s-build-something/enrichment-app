@@ -3,7 +3,7 @@ package data.shared
 import augmy.interactive.shared.ui.base.currentPlatform
 import base.utils.deviceName
 import data.io.app.LocalSettings
-import data.io.user.RequestGetUser
+import data.io.user.RequestInitApp
 import data.io.user.UserIO
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
@@ -36,7 +36,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
                 httpClient.safeRequest<UserIO> {
                     post(urlString = "/api/v1/auth/init-app") {
                         setBody(
-                            RequestGetUser(
+                            RequestInitApp(
                                 fcmToken = localSettings?.fcmToken,
                                 deviceName = deviceName() ?: currentPlatform.name,
                                 refreshToken = refreshToken,

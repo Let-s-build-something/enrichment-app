@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 /** Request body for retrieval of a user */
 @Serializable
-data class RequestGetUser(
+data class RequestInitApp(
     /** Currently used platform */
     val platform: PlatformType = currentPlatform,
 

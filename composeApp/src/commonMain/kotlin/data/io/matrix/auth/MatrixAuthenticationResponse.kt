@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MatrixAuthenticationResponse(
     val accessToken: String? = null,
-    val homeServer: String? = null,
+    val homeserver: String? = null,
     val userId: String? = null,
     val refreshToken: String? = null,
     val expiresInMs: Long? = null

@@ -68,7 +68,7 @@ object DeveloperUtils {
             var id: String? = null
 
             request.headers.entries().toList().sortedBy { it.key }.forEach { (key, values) ->
-                val placeholder = if(key == HttpHeaders.Authorization || key == HttpHeaders.IdToken) {
+                val placeholder = if(key == HttpHeaders.Authorization || key == IdToken) {
                     values.firstOrNull()?.take(4) + "..." + values.firstOrNull()?.takeLast(4)
                 } else null
                 headers.add("$key: ${placeholder ?: values.joinToString("; ")}")
@@ -93,7 +93,7 @@ object DeveloperUtils {
             }?.value?.firstOrNull()?.let { id ->
                 HttpCall(
                     id = id,
-                    responseBody = formatJson(response.body()),
+                    responseBody = formatJson(response.body<String>().take(1000)),
                     responseSeconds = response.responseTime.seconds - response.requestTime.seconds,
                     responseCode = response.status.value
                 )

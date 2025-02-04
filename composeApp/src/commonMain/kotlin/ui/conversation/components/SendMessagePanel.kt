@@ -85,12 +85,15 @@ import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_more_options
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
+import augmy.composeapp.generated.resources.file_too_large
 import augmy.interactive.shared.ext.contentReceiver
 import augmy.interactive.shared.ext.horizontallyDraggable
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -117,6 +120,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationViewModel
 import ui.conversation.components.audio.PanelMicrophone
@@ -135,6 +139,7 @@ internal fun BoxScope.SendMessagePanel(
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
     val navController = LocalNavController.current
+    val snackbarHost = LocalSnackbarHost.current
     val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
@@ -147,6 +152,7 @@ internal fun BoxScope.SendMessagePanel(
     val keyboardHeight = viewModel.keyboardHeight.collectAsState()
     val savedMessage = viewModel.savedMessage.collectAsState()
     val savedTimings = viewModel.savedTimings.collectAsState()
+    val repositoryConfig = viewModel.repositoryConfig.collectAsState()
     val messageState = remember(savedMessage.value) {
         TextFieldState(
             initialText = savedMessage.value,
@@ -214,8 +220,20 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
+                                && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
+                if(files.any { (it.getSize() ?: 0) > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                    snackbarHost?.showSnackbar(
+                        CustomSnackbarVisuals(
+                            message = getString(
+                                Res.string.file_too_large,
+                                repositoryConfig.value?.maxUploadSize?.div(1_000_000).toString()
+                            ),
+                            isError = true
+                        )
+                    )
+                }
             }
         }
     }
@@ -230,8 +248,17 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
+                                && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
+                if(files.any { (it.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                    snackbarHost?.showSnackbar(
+                        getString(
+                            Res.string.file_too_large,
+                            repositoryConfig.value?.maxUploadSize?.div(1_000_000).toString()
+                        )
+                    )
+                }
             }
         }
     }

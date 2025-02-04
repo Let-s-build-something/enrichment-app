@@ -77,7 +77,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     ): MatrixAuthenticationResponse? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<MatrixAuthenticationResponse> {
-                httpClient.post(url = Url("https://${address}/_matrix/client/v3/register?kind=user")) {
+                post(url = Url("https://${address}/_matrix/client/v3/register?kind=user")) {
                     setBody(
                         EmailRegistrationRequest(
                             auth = authenticationData,
@@ -95,7 +95,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     suspend fun dummyMatrixRegister(address: String): MatrixAuthenticationPlan? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<MatrixAuthenticationPlan> {
-                httpClient.post(url = Url("https://${address}/_matrix/client/v3/register")) {
+                post(url = Url("https://${address}/_matrix/client/v3/register")) {
                     setBody(
                         MatrixRegistrationRequest(
                             initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform"
@@ -132,7 +132,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     suspend fun dummyMatrixLogin(address: String): MatrixAuthenticationPlan? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<MatrixAuthenticationPlan> {
-                httpClient.get(url = Url("https://${address}/_matrix/client/v3/login"))
+                get(url = Url("https://${address}/_matrix/client/v3/login"))
             }
         }
     }
@@ -144,9 +144,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     ): UsernameValidationResponse? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<UsernameValidationResponse> {
-                httpClient.get(
-                    url = Url("https://${address}/_matrix/client/v3/register/available?username=$username")
-                )
+                get(url = Url("https://${address}/_matrix/client/v3/register/available?username=$username"))
             }
         }
     }

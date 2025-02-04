@@ -62,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
@@ -71,7 +72,6 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import data.shared.DeveloperConsoleViewModel
 import data.shared.developerConsoleModule
-import augmy.interactive.shared.ext.scalingClickable
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
 import koin.DeveloperUtils
@@ -222,6 +222,15 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                     RowInformation(title = "displayName: ", currentUser.value?.publicId?.plus("#")?.plus(currentUser.value?.tag))
                     RowInformation(title = "privacy: ", currentUser.value?.configuration?.privacy)
                     RowInformation(title = "visibility: ", currentUser.value?.configuration?.visibility)
+                    Text(
+                        modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
+                        text = "Matrix",
+                        style = LocalTheme.current.styles.subheading
+                    )
+                    RowInformation(title = "homeserver: ", currentUser.value?.homeserver)
+                    RowInformation(title = "accessToken: ", currentUser.value?.accessToken)
+                    RowInformation(title = "refreshToken: ", currentUser.value?.refreshToken)
+                    RowInformation(title = "expiresInMs: ", currentUser.value?.expiresInMs)
                     Text(
                         modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
                         text = "Firebase",

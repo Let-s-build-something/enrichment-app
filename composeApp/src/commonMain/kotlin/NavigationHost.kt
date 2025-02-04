@@ -66,7 +66,8 @@ fun NavigationHost(
                         MediaIO(
                             name = it?.get(0),
                             mimetype = it?.get(1),
-                            url = it?.get(2)
+                            url = it?.get(2),
+                            path = it?.get(3)
                         )
                     }
                 }.toTypedArray(),

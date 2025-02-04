@@ -1,6 +1,8 @@
 package data.io.social.network.conversation.message
 
+import androidx.room.Ignore
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /** Information about a single media */
 @Serializable
@@ -15,5 +17,10 @@ data class MediaIO(
     val name: String? = null,
 
     /** Size in bytes of the media */
-    val size: Int? = null
+    val size: Int? = null,
+
+    /** Local file path */
+    @Ignore
+    @Transient
+    val path: String? = null
 )

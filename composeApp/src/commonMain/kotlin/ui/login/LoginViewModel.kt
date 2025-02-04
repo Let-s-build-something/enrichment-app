@@ -22,6 +22,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthEmailException
 import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
+import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -29,7 +30,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -327,9 +327,7 @@ class LoginViewModel(
                             else -> _loginResult.emit(LoginResultType.FAILURE)
                         }
                     } ?: try {
-                        Firebase.auth.createUserWithEmailAndPassword(email, password).user?.let {
-                            authenticateUser(email)
-                        }
+                        Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
                     } catch(e: FirebaseAuthUserCollisionException) {
                         _loginResult.emit(LoginResultType.EMAIL_EXISTS)
                     } catch(e: Exception) {
@@ -395,8 +393,7 @@ class LoginViewModel(
             _matrixAuthResponse.value = res
             clearMatrixProgress()
             try {
-                Firebase.auth.signInWithEmailAndPassword(email, password)
-                authenticateUser(email)
+                Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
             }catch (e: FirebaseAuthInvalidCredentialsException) {
                 _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
             }catch (e: FirebaseAuthEmailException) {
@@ -412,7 +409,7 @@ class LoginViewModel(
         viewModelScope.launch {
             val res = serviceProvider.requestGoogleSignIn(filterAuthorizedAccounts = true)
             if(res == LoginResultType.SUCCESS) {
-                finalizeSignIn(null)
+                null.finalizeSignIn(null)
             }else _loginResult.emit(res)
         }
     }
@@ -422,38 +419,39 @@ class LoginViewModel(
         viewModelScope.launch {
             val res = serviceProvider.requestAppleSignIn()
             if(res == LoginResultType.SUCCESS) {
-                finalizeSignIn(null)
+                null.finalizeSignIn(null)
             }else _loginResult.emit(res)
         }
     }
 
     /** Authenticates user with a token */
-    private suspend fun authenticateUser(email: String?) {
+    private suspend fun FirebaseUser.authenticateUser(email: String?, attempt: Int = 1) {
         withContext(Dispatchers.IO) {
-            firebaseUser.firstOrNull()?.getIdToken(false)?.let { idToken ->
-                sharedDataManager.currentUser.value = UserIO(idToken = idToken)
-                val res = repository.authenticateUser(
-                    localSettings = sharedDataManager.localSettings.value,
-                    refreshToken = _matrixAuthResponse.value?.refreshToken,
-                    expiresInMs = _matrixAuthResponse.value?.expiresInMs
-                )
-                sharedDataManager.currentUser.value = res?.copy(
+            this@authenticateUser.getIdToken(false)?.let { idToken ->
+                sharedDataManager.currentUser.value = UserIO(
                     idToken = idToken,
-                    accessToken = res.accessToken ?: _matrixAuthResponse.value?.accessToken
+                    accessToken = _matrixAuthResponse.value?.accessToken,
+                    refreshToken = _matrixAuthResponse.value?.refreshToken,
+                    homeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                 )
-            }
-            finalizeSignIn(email)
+                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                    repository.authenticateUser(
+                        localSettings = sharedDataManager.localSettings.value,
+                        refreshToken = _matrixAuthResponse.value?.refreshToken,
+                        expiresInMs = _matrixAuthResponse.value?.expiresInMs
+                    )
+                )
+                if(attempt < 3) {
+                    this@authenticateUser.finalizeSignIn(email, attempt = attempt)
+                }else _loginResult.emit(LoginResultType.FAILURE)
+            }.ifNull { _loginResult.emit(LoginResultType.FAILURE) }
         }
     }
 
     /** finalizes full flow with a result */
-    private suspend fun finalizeSignIn(email: String?) {
+    private suspend fun FirebaseUser?.finalizeSignIn(email: String?, attempt: Int = 1) {
         if(sharedDataManager.currentUser.value?.publicId == null) {
             Firebase.auth.currentUser?.uid?.let { clientId ->
-                sharedDataManager.currentUser.value = UserIO(
-                    accessToken = _matrixAuthResponse.value?.accessToken,
-                    refreshToken = _matrixAuthResponse.value?.refreshToken
-                )
                 sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                     publicId = repository.createUser(
                         RequestCreateUser(
@@ -463,11 +461,11 @@ class LoginViewModel(
                             clientId = clientId,
                             fcmToken = localSettings.value?.fcmToken,
                             matrixUserId = _matrixAuthResponse.value?.userId,
-                            homeServer = _matrixAuthResponse.value?.homeServer
+                            homeServer = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                         )
                     )?.publicId
                 )
-                authenticateUser(email)
+                this?.authenticateUser(email, attempt + 1)
                 clientId
             }.ifNull {
                 _loginResult.emit(LoginResultType.FAILURE)

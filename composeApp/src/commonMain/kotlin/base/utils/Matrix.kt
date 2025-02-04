@@ -11,6 +11,7 @@ object Matrix {
 
     object ErrorCode {
         const val FORBIDDEN = "M_FORBIDDEN"
+        const val LIMIT_EXCEEDED = "M_LIMIT_EXCEEDED"
         const val UNKNOWN = "M_UNKNOWN"
         const val CREDENTIALS_IN_USE = "M_THREEPID_IN_USE"
         const val CREDENTIALS_DENIED = "M_THREEPID_DENIED"
@@ -23,5 +24,9 @@ object Matrix {
 
     object Medium {
         const val EMAIL = "email"
+    }
+
+    object Media {
+        const val MATRIX_REPOSITORY_PREFIX = "mxc://"
     }
 }

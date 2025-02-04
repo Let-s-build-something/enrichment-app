@@ -142,7 +142,7 @@ fun MediaDetailScreen(
                         text = stringResource(Res.string.action_download_all),
                         imageVector = Icons.Outlined.Download,
                         onClick = {
-                            processor.processFiles(*media)
+                            processor.downloadFiles(*media)
                         }
                     )
                     ActionBarIcon(
@@ -170,7 +170,7 @@ fun MediaDetailScreen(
                         currentIndex.value = ConversationKeyboardMode.entries[it].ordinal
                     },
                 state = pagerState,
-                beyondViewportPageCount = 1
+                beyondViewportPageCount = pagerState.pageCount // hotfix due to video player crashing otherwise
             ) { index ->
                 media.getOrNull(index)?.let { unit ->
                     val offset = remember(index) {
@@ -280,7 +280,7 @@ fun MediaDetailScreen(
                                 .size(36.dp)
                                 .align(Alignment.BottomEnd)
                                 .scalingClickable {
-                                    processor.processFiles(unit)
+                                    processor.downloadFiles(unit)
                                 },
                             imageVector = Icons.Outlined.Download,
                             contentDescription = stringResource(Res.string.accessibility_message_download),

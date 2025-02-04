@@ -180,7 +180,7 @@ private fun ContentLayout(
     val coroutineScope = rememberCoroutineScope()
     val dragCoroutineScope = rememberCoroutineScope()
     val isCurrentUser = data.authorPublicId == currentUserPublicId
-    println("kostka_test, message: ${data.content}, author: ${data.authorPublicId}, currentUser: $currentUserPublicId")
+
     val replyBounds = remember {
         with(density) {
             (-screenSize.width.dp.toPx() / 8f)..(screenSize.width.dp.toPx() / 8f)
@@ -228,7 +228,7 @@ private fun ContentLayout(
         label = "startPaddingAnimation"
     )
     val onDownloadRequest: () -> Unit = {
-        processor?.processFiles(
+        processor?.downloadFiles(
             *data.media.orEmpty().toTypedArray()
         )
     }
@@ -522,7 +522,8 @@ private fun ContentLayout(
                                                 onFinish = onTranscribed
                                             )
                                         }
-                                        // TODO "read more" on overflow: new screen with author's profile picture, reactions, and replies as comments
+                                        // https://app.clickup.com/t/86c1pce5x: new screen with the full message, reactions,
+                                        // and replies as comments, sort of a "focus mode"
                                         if(showOptions || isMouseUser) {
                                             SelectionContainer {
                                                 text()
@@ -691,11 +692,11 @@ private fun Options(
     val density = LocalDensity.current
     val buttonSize = with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 2.dp
 
-    if(visible) {
+    AnimatedVisibility(
+        visible = visible,
+    ) {
         Row(
-            modifier = modifier
-                .horizontalScroll(rememberScrollState())
-                .animateContentSize(),
+            modifier = modifier.horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

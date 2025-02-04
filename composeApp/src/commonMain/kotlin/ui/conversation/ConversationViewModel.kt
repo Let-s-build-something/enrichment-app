@@ -11,6 +11,7 @@ import base.utils.getUrlExtension
 import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
+import data.io.matrix.media.MediaRepositoryConfig
 import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.NetworkConversationIO
@@ -40,12 +41,13 @@ import ui.conversation.components.audio.audioProcessorModule
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
+import ui.login.AUGMY_HOME_SERVER
 
 internal val conversationModule = module {
     includes(keyboardModule)
     includes(audioProcessorModule)
 
-    factory { ConversationRepository(get(), get(), get(), get<FileAccess>()) }
+    factory { ConversationRepository(get(), get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
             get<ConversationRepository>(),
@@ -77,6 +79,7 @@ class ConversationViewModel(
     private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
     private val _typingIndicators = MutableStateFlow<Pair<Int, List<ConversationTypingIndicator>>>(-1 to listOf())
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
+    private val _repositoryConfig = MutableStateFlow<MediaRepositoryConfig?>(null)
 
 
     /** Detailed information about this conversation */
@@ -84,6 +87,9 @@ class ConversationViewModel(
 
     /** Current typing indicators, indicating typing statuses of other users */
     val typingIndicators = _typingIndicators.asStateFlow()
+
+    /** Current configuration of media repository */
+    val repositoryConfig = _repositoryConfig.asStateFlow()
 
     /** Progress of the current upload */
     val uploadProgress = _uploadProgress.asStateFlow()
@@ -134,7 +140,12 @@ class ConversationViewModel(
                 ?.split(",")
                 ?.mapNotNull { it.toLongOrNull() }
                 .orEmpty()
+
+            currentUser.value?.homeserver?.let { homeserver ->
+                _repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
+            }
         }
+
         // TODO remove demo data
         _conversationDetail.value = demoConversationDetail
 
@@ -146,6 +157,7 @@ class ConversationViewModel(
     // ==================== functions ===========================
 
     /** Saves content of a message */
+    @OptIn(ExperimentalSettingsApi::class)
     fun saveMessage(
         content: String?,
         timings: List<Long> = listOf()
@@ -210,6 +222,7 @@ class ConversationViewModel(
             var progressId = ""
             repository.sendMessage(
                 conversationId = conversationId,
+                homeserver = currentUser.value?.homeserver ?: AUGMY_HOME_SERVER,
                 mediaFiles = mediaFiles,
                 onProgressChange = { progress ->
                     _uploadProgress.update {
@@ -260,6 +273,7 @@ class ConversationViewModel(
             repository.sendMessage(
                 audioByteArray = byteArray,
                 conversationId = conversationId,
+                homeserver = currentUser.value?.homeserver ?: AUGMY_HOME_SERVER,
                 message = ConversationMessageIO()
             )
         }
