@@ -26,7 +26,7 @@ object DateUtils {
         get() = now.toLocalDateTime(TimeZone.currentSystemDefault())
 
     /** Formats milliseconds as minutes and seconds */
-    fun formatTime(millis: Long): String {
+    fun formatMillis(millis: Long): String {
         val seconds = ((millis / 1000.0) % 60.0).toInt()
         val minutes = ((millis / (1000.0 * 60.0)) % 60.0).toInt()
 

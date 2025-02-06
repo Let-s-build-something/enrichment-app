@@ -16,6 +16,8 @@ import ui.account.WaterPleaseScreen
 import ui.account.accountDashboardModule
 import ui.conversation.ConversationScreen
 import ui.conversation.media.MediaDetailScreen
+import ui.conversation.message.MessageDetailScreen
+import ui.conversation.message.messageDetailModule
 import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
@@ -80,6 +82,14 @@ fun NavigationHost(
             ConversationScreen(
                 conversationId = it.arguments?.getString("conversationId"),
                 name = it.arguments?.getString("name")
+            )
+        }
+        composable<NavigationNode.MessageDetail> {
+            loadKoinModules(messageDetailModule)
+            MessageDetailScreen(
+                messageId = it.arguments?.getString("messageId"),
+                conversationId = it.arguments?.getString("conversationId"),
+                title = it.arguments?.getString("title")
             )
         }
     }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicSecureTextField
@@ -36,6 +37,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,6 +53,7 @@ import augmy.interactive.shared.ui.theme.SharedColors
 @Composable
 fun CustomTextField(
     modifier: Modifier = Modifier,
+    fieldModifier: Modifier = Modifier,
     state: TextFieldState,
     textStyle: TextStyle = LocalTheme.current.styles.title.copy(
         fontSize = 18.sp
@@ -98,7 +103,7 @@ fun CustomTextField(
     ) {
         Row(
             Modifier
-                .height(44.dp)
+                .heightIn(min = 44.dp)
                 .fillMaxSize()
                 .then(
                     controlColor?.value?.let {
@@ -130,7 +135,12 @@ fun CustomTextField(
             ) {
                 if(keyboardOptions.keyboardType == KeyboardType.Password) {
                     BasicSecureTextField(
-                        modifier = Modifier
+                        modifier = fieldModifier
+                            .onKeyEvent { keyEvent ->
+                                if(keyEvent.key == Key.Escape) {
+                                    focusRequester.freeFocus()
+                                }else false
+                            }
                             .focusRequester(focusRequester)
                             .onFocusChanged {
                                 isFocused.value = it.isFocused
@@ -144,7 +154,12 @@ fun CustomTextField(
                     )
                 }else {
                     BasicTextField(
-                        modifier = Modifier
+                        modifier = fieldModifier
+                            .onKeyEvent { keyEvent ->
+                                if(keyEvent.key == Key.Escape) {
+                                    focusRequester.freeFocus()
+                                }else false
+                            }
                             .focusRequester(focusRequester)
                             .onFocusChanged {
                                 isFocused.value = it.isFocused

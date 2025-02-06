@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -40,7 +39,6 @@ import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.social.network.conversation.message.MessageReactionIO
-import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -49,11 +47,9 @@ import org.jetbrains.compose.resources.stringResource
 /** Dialog displaying categorized reactions of a singular message */
 @Composable
 fun MessageReactionsDialog(
-    reactions: MutableState<List<Pair<String?, Pair<List<NetworkItemIO>, Boolean>>>>,
-    reactionsRaw: List<MessageReactionIO>,
+    reactions: List<MessageReactionIO>,
     messageContent: String?,
     initialEmojiSelection: String?,
-    users: List<NetworkItemIO>,
     onDismissRequest: () -> Unit
 ) {
     val screenSize = LocalScreenSize.current
@@ -61,10 +57,10 @@ fun MessageReactionsDialog(
     val coroutineScope = rememberCoroutineScope()
 
     val selectedIndex = remember {
-        mutableStateOf(reactions.value.indexOfFirst { it.first == initialEmojiSelection } + 1)
+        mutableStateOf(reactions.indexOfFirst { it.content == initialEmojiSelection } + 1)
     }
     val tabs = remember {
-        reactions.value.mapNotNull { it.first }.toMutableList().apply {
+        reactions.mapNotNull { it.content }.toMutableList().apply {
             add(0, TabEmojisAll)
         }
     }
@@ -153,21 +149,13 @@ fun MessageReactionsDialog(
                     state = pagerState,
                     beyondViewportPageCount = 1
                 ) { index ->
-                    val list = remember(index, reactions.value) {
-                        mutableStateOf(listOf<Pair<String?, NetworkItemIO?>>())
+                    val list = remember(index, reactions) {
+                        mutableStateOf(listOf<MessageReactionIO>())
                     }
 
-                    LaunchedEffect(index, reactions.value) {
+                    LaunchedEffect(index, reactions) {
                         withContext(Dispatchers.Default) {
-                            list.value = if (index == 0) {
-                                reactionsRaw.map { reaction ->
-                                    reaction.content to users.find { it.publicId == reaction.authorPublicId }
-                                }
-                            } else {
-                                reactions.value.find { reaction -> reaction.first == tabs[index] }?.second?.first.orEmpty().map {
-                                    tabs[index] to it
-                                }
-                            }
+                            list.value = reactions.filter { index == 0 || it.content == tabs[index] }
                         }
                     }
 
@@ -190,14 +178,14 @@ fun MessageReactionsDialog(
                             ) {
                                 Text(
                                     modifier = Modifier.padding(4.dp),
-                                    text = reaction.first ?: "",
+                                    text = reaction.content ?: "",
                                     style = LocalTheme.current.styles.category,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     modifier = Modifier.padding(start = 6.dp),
-                                    text = reaction.second?.name ?: "",
+                                    text = reaction.user?.name ?: "",
                                     style = LocalTheme.current.styles.category
                                 )
                             }

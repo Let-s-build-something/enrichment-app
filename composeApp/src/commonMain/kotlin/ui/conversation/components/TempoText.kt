@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -31,13 +32,14 @@ import kotlinx.coroutines.withContext
 @Composable
 fun TempoText(
     modifier: Modifier = Modifier,
-    key: Any,
+    key: Any? = null,
     text: AnnotatedString,
     style: TextStyle,
     enabled: Boolean,
     timings: List<Long>,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
     onFinish: () -> Unit
 ) {
     val aboveMedianIndexes = remember(key, timings) {
@@ -97,7 +99,7 @@ fun TempoText(
             val cancellableScope = rememberCoroutineScope()
             val scope = rememberCoroutineScope()
 
-            var currentPosition by rememberSaveable(key) {
+            var currentPosition by rememberSaveable(key, timings) {
                 mutableStateOf(-1)
             }
             val isTicked = remember(key) {
@@ -177,7 +179,8 @@ fun TempoText(
         text = annotatedText,
         style = style,
         maxLines = maxLines,
-        overflow = overflow
+        overflow = overflow,
+        onTextLayout = onTextLayout
     )
 }
 

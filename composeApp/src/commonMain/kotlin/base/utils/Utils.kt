@@ -1,8 +1,11 @@
 package base.utils
 
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import app.cash.paging.compose.LazyPagingItems
+import augmy.interactive.shared.ui.base.LocalDeviceType
 import coil3.toUri
 import io.github.vinceglb.filekit.core.PlatformFile
 
@@ -47,6 +50,14 @@ enum class MediaType {
     PRESENTATION,
     UNKNOWN;
 }
+
+val maxMultiLineHeight: Int
+    @Composable
+    get() = when(LocalDeviceType.current) {
+        WindowWidthSizeClass.Compact -> 5
+        WindowWidthSizeClass.Medium -> 8
+        else -> 15
+    }
 
 /** Returns a bitmap from a given file */
 expect suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap?

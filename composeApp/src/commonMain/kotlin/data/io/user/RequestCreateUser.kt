@@ -23,7 +23,7 @@ data class RequestCreateUser(
     val matrixUserId: String?, //optional
 
     /** home server under which this user has been created */
-    val homeServer: String?,
+    val matrixHomeserver: String?,
 
     /** Currently used platform */
     val platform: PlatformType = currentPlatform

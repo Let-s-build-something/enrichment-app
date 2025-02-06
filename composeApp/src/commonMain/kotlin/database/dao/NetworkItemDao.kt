@@ -41,6 +41,12 @@ interface NetworkItemDao {
         ownerPublicId: String? = Firebase.auth.currentUser?.uid
     ): List<NetworkItemIO>
 
+    /** Retrieves a single item */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE public_id = :publicId " +
+            "LIMIT 1")
+    suspend fun get(publicId: String?): NetworkItemIO?
+
     /** Returns all network items specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId " +

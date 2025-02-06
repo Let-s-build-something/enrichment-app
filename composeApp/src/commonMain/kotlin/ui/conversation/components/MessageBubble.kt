@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -60,10 +61,9 @@ import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_message_react
 import augmy.composeapp.generated.resources.accessibility_message_download
-import augmy.composeapp.generated.resources.accessibility_message_forward
 import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
-import augmy.composeapp.generated.resources.ic_forward
+import augmy.composeapp.generated.resources.message_read_more
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.scalingClickable
@@ -72,22 +72,18 @@ import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.theme.Colors
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
+import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.openLink
 import base.utils.tagToColor
 import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MessageState
-import data.io.user.NetworkItemIO
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
@@ -104,7 +100,6 @@ import kotlin.math.absoluteValue
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
-    users: List<NetworkItemIO>,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
@@ -118,6 +113,7 @@ fun MessageBubble(
     onReactionChange: (String) -> Unit,
     onAdditionalReactionRequest: () -> Unit,
     onReplyRequest: () -> Unit,
+    openDetail: () -> Unit,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
         onDrag: (Boolean) -> Unit
@@ -131,8 +127,8 @@ fun MessageBubble(
                 modifier = modifier,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
+                openDetail = openDetail,
                 data = data,
-                users = users,
                 preferredEmojis = preferredEmojis,
                 currentUserPublicId = currentUserPublicId,
                 isReacting = isReacting,
@@ -154,7 +150,6 @@ fun MessageBubble(
 private fun ContentLayout(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO,
-    users: List<NetworkItemIO>,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
@@ -168,6 +163,7 @@ private fun ContentLayout(
     onReactionChange: (String) -> Unit,
     onAdditionalReactionRequest: () -> Unit,
     onReplyRequest: () -> Unit,
+    openDetail: () -> Unit,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
         onDrag: (Boolean) -> Unit
@@ -199,16 +195,10 @@ private fun ContentLayout(
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
 
-    val reactions = remember(data.id) {
-        mutableStateOf(listOf<Pair<String?, Pair<List<NetworkItemIO>, Boolean>>>())
-    }
     val showDetailDialogOf = remember(data.id) {
         mutableStateOf<Pair<String?, String?>?>(null)
     }
     val isDragged = remember(data.id) {
-        mutableStateOf(false)
-    }
-    val showHistory = remember(data.id) {
         mutableStateOf(false)
     }
     val animatedOffsetX = remember(data.id) {
@@ -263,32 +253,11 @@ private fun ContentLayout(
         }
     }
 
-    LaunchedEffect(isFocused.value) {
-        showHistory.value = isFocused.value
-    }
-
-    LaunchedEffect(Unit, data.reactions) {
-        withContext(Dispatchers.Default) {
-            val map = hashMapOf<String?, Pair<List<NetworkItemIO>, Boolean>>()
-            data.reactions?.forEach { reaction ->
-                map[reaction.content] = Pair(
-                    users.find { it.publicId == reaction.authorPublicId }?.let {
-                        map[reaction.content]?.first.orEmpty().plus(it)
-                    } ?: map[reaction.content]?.first.orEmpty(),
-                    (map[reaction.content]?.second ?: false) || (reaction.authorPublicId == currentUserPublicId)
-                )
-            }
-            reactions.value = map.toList().sortedByDescending { it.second.first.size }
-        }
-    }
-
     showDetailDialogOf.value?.let {
         MessageReactionsDialog(
-            reactions = reactions,
-            users = users,
+            reactions = data.reactions.orEmpty(),
             messageContent = it.first,
             initialEmojiSelection = it.second,
-            reactionsRaw = data.reactions.orEmpty(),
             onDismissRequest = {
                 showDetailDialogOf.value = null
             }
@@ -310,7 +279,7 @@ private fun ContentLayout(
                 detectMessageInteraction(
                     onTap = {
                         if(isReacting) onReactionRequest(false)
-                        else if(!isMouseUser)  showHistory.value = !showHistory.value
+                        else openDetail()
                     },
                     onLongPress = {
                         onReactionRequest(true)
@@ -393,12 +362,15 @@ private fun ContentLayout(
 
                     // message content + reply function + reactions
                     Box(
-                        if (isReacting || data.anchorMessage != null) {
+                        (if (isReacting || data.anchorMessage != null) {
                             Modifier.background(
                                 color = LocalTheme.current.colors.backgroundDark,
                                 shape = LocalTheme.current.shapes.componentShape
                             )
-                        } else Modifier
+                        } else Modifier)
+                            .animateContentSize(
+                                alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart
+                            )
                     ) {
                         Column(
                             horizontalAlignment = alignment,
@@ -474,18 +446,17 @@ private fun ContentLayout(
                                 Box {
                                     // textual content
                                     if (!data.content.isNullOrEmpty()) {
+                                        val showReadMore = remember(data.id) {
+                                            mutableStateOf(false)
+                                        }
                                         val text = @Composable {
                                             val awaitingTranscription = !isCurrentUser
                                                     && !transcribe
                                                     && data.transcribed != true
                                                     && !data.timings.isNullOrEmpty()
 
-                                            TempoText(
+                                            Column(
                                                 modifier = Modifier
-                                                    .widthIn(max = (screenSize.width * .8f).dp)
-                                                    .then(
-                                                        if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                                                    )
                                                     .then(
                                                         if (!data.reactions.isNullOrEmpty()) {
                                                             Modifier.padding(bottom = with(density) {
@@ -494,36 +465,71 @@ private fun ContentLayout(
                                                         } else Modifier
                                                     )
                                                     .background(
-                                                        color = tagToColor(data.user?.tag) ?: if (isCurrentUser) {
+                                                        color = if (isCurrentUser) {
                                                             LocalTheme.current.colors.brandMainDark
                                                         } else LocalTheme.current.colors.backgroundContrast,
                                                         shape = messageShape
                                                     )
+                                                    .then(
+                                                        tagToColor(data.user?.tag)?.let { color ->
+                                                            Modifier.border(
+                                                                width = 1.dp,
+                                                                color = color,
+                                                                shape = messageShape
+                                                            )
+                                                        } ?: Modifier
+                                                    )
                                                     .padding(
                                                         vertical = 10.dp,
                                                         horizontal = 14.dp
-                                                    ),
-                                                key = data.id,
-                                                enabled = transcribe,
-                                                text = buildAnnotatedLinkString(
-                                                    text = data.content,
-                                                    onLinkClicked = { openLink(it) }
-                                                ),
-                                                style = LocalTheme.current.styles.title.copy(
-                                                    color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
-                                                        .copy(
-                                                            alpha = if(awaitingTranscription) .4f else 1f
+                                                    )
+                                            ) {
+                                                TempoText(
+                                                    modifier = Modifier
+                                                        .widthIn(max = (screenSize.width * .8f).dp)
+                                                        .then(
+                                                            if(hasAttachment) Modifier.fillMaxWidth() else Modifier
                                                         ),
-                                                    fontFamily = FontFamily(fontQuicksandMedium)
-                                                ),
-                                                maxLines = MaximumTextLines,
-                                                overflow = TextOverflow.Ellipsis,
-                                                timings = data.timings.orEmpty(),
-                                                onFinish = onTranscribed
-                                            )
+                                                    key = data.id,
+                                                    enabled = transcribe,
+                                                    text = buildAnnotatedLinkString(
+                                                        text = data.content,
+                                                        onLinkClicked = { openLink(it) }
+                                                    ),
+                                                    style = LocalTheme.current.styles.title.copy(
+                                                        color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+                                                            .copy(
+                                                                alpha = if(awaitingTranscription) .4f else 1f
+                                                            ),
+                                                        fontFamily = FontFamily(fontQuicksandMedium)
+                                                    ),
+                                                    maxLines = MaximumTextLines,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    timings = data.timings.orEmpty(),
+                                                    onFinish = onTranscribed,
+                                                    onTextLayout = {
+                                                        showReadMore.value = it.didOverflowHeight
+                                                    }
+                                                )
+                                                AnimatedVisibility(showReadMore.value) {
+                                                    Text(
+                                                        modifier = Modifier
+                                                            .padding(top = 4.dp)
+                                                            .scalingClickable {
+                                                                openDetail()
+                                                            },
+                                                        text = stringResource(Res.string.message_read_more),
+                                                        style = LocalTheme.current.styles.title.copy(
+                                                            color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+                                                                .copy(
+                                                                    alpha = if(awaitingTranscription) .6f else 1f
+                                                                ),
+                                                            fontFamily = FontFamily(fontQuicksandSemiBold)
+                                                        ),
+                                                    )
+                                                }
+                                            }
                                         }
-                                        // https://app.clickup.com/t/86c1pce5x: new screen with the full message, reactions,
-                                        // and replies as comments, sort of a "focus mode"
                                         if(showOptions || isMouseUser) {
                                             SelectionContainer {
                                                 text()
@@ -546,7 +552,7 @@ private fun ContentLayout(
                                                     end = if (isCurrentUser) 12.dp else 0.dp
                                                 )
                                                 .then(
-                                                    if (reactions.value.size > 1) {
+                                                    if ((data.reactions?.size ?: 0) > 1) {
                                                         Modifier.offset(x = if (isCurrentUser) (-8).dp else 8.dp)
                                                     } else Modifier
                                                 )
@@ -558,12 +564,12 @@ private fun ContentLayout(
                                                 ),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            reactions.value.take(MaximumReactions).forEach { reaction ->
+                                            data.reactions?.take(MaximumReactions)?.forEach { reaction ->
                                                 Row(
                                                     Modifier
                                                         .scalingClickable {
-                                                            if ((data.reactions?.size ?: 0) > 1) {
-                                                                showDetailDialogOf.value = data.content to reaction.first
+                                                            if (data.reactions.size > 1) {
+                                                                showDetailDialogOf.value = data.content to reaction.content
                                                             }
                                                         }
                                                         .width(IntrinsicSize.Min)
@@ -577,12 +583,12 @@ private fun ContentLayout(
                                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                         Text(
                                                             modifier = Modifier.padding(end = 2.dp),
-                                                            text = reaction.first ?: "",
+                                                            text = reaction.content ?: "",
                                                             style = LocalTheme.current.styles.category.copy(
                                                                 textAlign = TextAlign.Center
                                                             )
                                                         )
-                                                        if (reaction.second.second) {
+                                                        if (reaction.user?.userPublicId == currentUserPublicId) {
                                                             Box(
                                                                 modifier = Modifier
                                                                     .height(2.dp)
@@ -594,9 +600,18 @@ private fun ContentLayout(
                                                             )
                                                         }
                                                     }
-                                                    reaction.second.first.size.takeIf { it > 1 }?.let { count ->
+                                                    val count = remember(data.id) {
+                                                        mutableStateOf(1)
+                                                    }
+                                                    LaunchedEffect(data.reactions) {
+                                                        count.value = data.reactions.count {
+                                                            it.content == reaction.content
+                                                        }
+                                                    }
+
+                                                    count.value.takeIf { it > 1 }?.let {
                                                         Text(
-                                                            text = count.toString(),
+                                                            text = it.toString(),
                                                             style = LocalTheme.current.styles.regular
                                                         )
                                                     }
@@ -641,40 +656,27 @@ private fun ContentLayout(
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .offset(y = if(isReacting) 0.dp else -contentPadding.calculateBottomPadding())
-                    .zIndex(2f)
-                    .animateContentSize(),
-                verticalAlignment = Alignment.CenterVertically
+            if (isCurrentUser && (isMyLastMessage || (data.state?.ordinal
+                    ?: 0) < MessageState.Sent.ordinal)
             ) {
-                if (isCurrentUser && (isMyLastMessage || (data.state?.ordinal
-                        ?: 0) < MessageState.Sent.ordinal)
-                ) {
-                    data.state?.imageVector?.let { imgVector ->
-                        Icon(
-                            modifier = Modifier.size(16.dp),
-                            imageVector = imgVector,
-                            contentDescription = data.state.description,
-                            tint = if (data.state == MessageState.Failed) {
-                                SharedColors.RED_ERROR
-                            } else LocalTheme.current.colors.disabled
-                        )
-                    } ?: CircularProgressIndicator(
-                        modifier = Modifier.requiredSize(12.dp),
-                        color = LocalTheme.current.colors.disabled,
-                        trackColor = LocalTheme.current.colors.disabledComponent,
-                        strokeWidth = 2.dp
+                data.state?.imageVector?.let { imgVector ->
+                    Icon(
+                        modifier = Modifier
+                            .offset(y = if(isReacting) 0.dp else -contentPadding.calculateBottomPadding())
+                            .zIndex(2f)
+                            .size(16.dp),
+                        imageVector = imgVector,
+                        contentDescription = data.state.description,
+                        tint = if (data.state == MessageState.Failed) {
+                            SharedColors.RED_ERROR
+                        } else LocalTheme.current.colors.disabled
                     )
-                }
-
-                if (showHistory.value) {
-                    Text(
-                        modifier = Modifier.padding(start = 4.dp, end = 6.dp),
-                        text = "${data.state?.description?.plus(", ") ?: ""}${data.sentAt?.formatAsRelative() ?: ""}",
-                        style = LocalTheme.current.styles.regular
-                    )
-                }
+                } ?: CircularProgressIndicator(
+                    modifier = Modifier.requiredSize(12.dp),
+                    color = LocalTheme.current.colors.disabled,
+                    trackColor = LocalTheme.current.colors.disabledComponent,
+                    strokeWidth = 2.dp
+                )
             }
         }
     }
@@ -700,7 +702,7 @@ private fun Options(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(
+            /*Icon(
                 modifier = Modifier
                     .scalingClickable {
                         //onForwardRequest()
@@ -709,7 +711,7 @@ private fun Options(
                 painter = painterResource(Res.drawable.ic_forward),
                 contentDescription = stringResource(Res.string.accessibility_message_forward),
                 tint = LocalTheme.current.colors.secondary
-            )
+            )*/
             if (hasMedia) {
                 Icon(
                     modifier = Modifier
@@ -763,6 +765,6 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 }
 
 // maximum visible reactions within message bubble
-private const val MaximumReactions = 4
-private const val MaximumTextLines = 10
+const val MaximumReactions = 4
+private const val MaximumTextLines = 6
 private const val DragCancelDelayMillis = 100L

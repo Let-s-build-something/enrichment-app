@@ -227,7 +227,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                         text = "Matrix",
                         style = LocalTheme.current.styles.subheading
                     )
-                    RowInformation(title = "homeserver: ", currentUser.value?.homeserver)
+                    RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
                     RowInformation(title = "accessToken: ", currentUser.value?.accessToken)
                     RowInformation(title = "refreshToken: ", currentUser.value?.refreshToken)
                     RowInformation(title = "expiresInMs: ", currentUser.value?.expiresInMs)

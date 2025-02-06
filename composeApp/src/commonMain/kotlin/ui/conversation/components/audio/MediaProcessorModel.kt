@@ -120,9 +120,9 @@ class MediaProcessorModel(
             var bytesSentTotal = 0
             val totalContentSize = media.sumOf { it?.size ?: 0 }
             media.forEachIndexed { index, unit ->
-                val downloadUrl = if(unit?.url != null && currentUser.value?.homeserver != null) {
+                val downloadUrl = if(unit?.url != null && currentUser.value?.matrixHomeserver != null) {
                     unit.url.takeIf { !it.startsWith(MATRIX_REPOSITORY_PREFIX) }
-                        ?: "https://${currentUser.value?.homeserver}/_matrix/client/v1/media/download/${unit.url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
+                        ?: "https://${currentUser.value?.matrixHomeserver}/_matrix/client/v1/media/download/${unit.url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
                 }else ""
 
                 repository.getFileByteArray(

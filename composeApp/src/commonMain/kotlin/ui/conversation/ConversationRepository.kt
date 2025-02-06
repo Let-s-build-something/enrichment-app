@@ -3,6 +3,7 @@ package ui.conversation
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.PagingSource
 import augmy.interactive.shared.utils.DateUtils.localNow
 import base.utils.sha256
 import data.io.base.BaseResponse
@@ -48,14 +49,14 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Class for calling APIs and remote work in general */
-class ConversationRepository(
+open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
     private val pagingMetaDao: PagingMetaDao,
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
 ) {
-    private var currentPagingSource: ConversationRoomSource? = null
+    protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = hashMapOf<String, PlatformFile?>()
 
     /** Attempts to invalidate local PagingSource with conversation messages */

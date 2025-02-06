@@ -65,6 +65,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionOnScreen
@@ -103,11 +106,13 @@ import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
 import base.utils.getMediaType
 import base.utils.getUrlExtension
+import base.utils.maxMultiLineHeight
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
@@ -132,6 +137,7 @@ import ui.conversation.components.link.LinkPreview
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
     keyboardMode: MutableState<Int>,
+    overrideAnchorMessage: ConversationMessageIO? = null,
     replyToMessage: MutableState<ConversationMessageIO?>,
     scrollToMessage: (ConversationMessageIO) -> Unit,
     viewModel: ConversationViewModel
@@ -272,7 +278,7 @@ internal fun BoxScope.SendMessagePanel(
             viewModel.sendMessage(
                 content = messageState.text.toString(),
                 mediaFiles = mediaAttached.toList(),
-                anchorMessage = replyToMessage.value,
+                anchorMessage = replyToMessage.value ?: overrideAnchorMessage,
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
                 showPreview = showPreview.value,
@@ -287,6 +293,12 @@ internal fun BoxScope.SendMessagePanel(
             gifAttached.value = null
             showPreview.value = true
             typedUrl.value = null
+
+            navController?.previousBackStackEntry
+                ?.savedStateHandle
+                ?.apply {
+                    set(NavigationArguments.CONVERSATION_NEW_MESSAGE, true)
+                }
         }
     }
 
@@ -390,7 +402,7 @@ internal fun BoxScope.SendMessagePanel(
 
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
-        replyToMessage.value?.let { originalMessage ->
+        replyToMessage.value?.takeIf { it.id != overrideAnchorMessage?.id } ?.let { originalMessage ->
             LaunchedEffect(Unit) {
                 focusRequester.requestFocus()
             }
@@ -538,6 +550,13 @@ internal fun BoxScope.SendMessagePanel(
                     .padding(start = 12.dp, end = spacing)
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionOnScreen().y
+                    },
+                fieldModifier = Modifier
+                    .onKeyEvent { keyEvent ->
+                        if(keyEvent.key == Key.Enter) {
+                            sendMessage()
+                            true
+                        }else false
                     }
                     .contentReceiver { uri ->
                         when(getMediaType(uri)) {
@@ -547,10 +566,12 @@ internal fun BoxScope.SendMessagePanel(
                     }
                     .onFocusChanged {
                         if(!it.isFocused) timingSensor.pause()
-                    },
+                    }
+                    .fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Send
+                    imeAction = ImeAction.Send,
+                    showKeyboardOnFocus = true
                 ),
                 focusRequester = focusRequester,
                 state = messageState,
@@ -592,7 +613,9 @@ internal fun BoxScope.SendMessagePanel(
                         )
                     }
                 },
-                lineLimits = TextFieldLineLimits.SingleLine,
+                lineLimits = if(messageState.text.length < 100) {
+                    TextFieldLineLimits.SingleLine
+                }else TextFieldLineLimits.MultiLine(maxHeightInLines = maxMultiLineHeight),
                 shape = LocalTheme.current.shapes.componentShape
             )
 

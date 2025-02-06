@@ -89,6 +89,17 @@ sealed class NavigationNode {
         override val deepLink: String = ""
     }
 
+    /** Detail screen of a single message, sort of a focus mode with replies,
+     *  reactions and longer and scrollable content */
+    @Serializable
+    data class MessageDetail(
+        val messageId: String? = null,
+        val conversationId: String? = null,
+        val title: String? = null
+    ): NavigationNode() {
+        override val deepLink: String = ""
+    }
+
     /** Full screen media detail */
     @Serializable
     data class MediaDetail(
@@ -109,7 +120,8 @@ sealed class NavigationNode {
             Conversation(),
             AccountDashboard,
             NetworkManagement(),
-            MediaDetail()
+            MediaDetail(),
+            MessageDetail()
         )
     }
 }

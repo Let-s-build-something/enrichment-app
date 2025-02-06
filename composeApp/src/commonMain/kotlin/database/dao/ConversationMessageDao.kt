@@ -23,6 +23,21 @@ interface ConversationMessageDao {
         offset: Int
     ): List<ConversationMessageIO>
 
+    /** Returns anchored items related to a single message */
+    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+            "WHERE conversation_id = :conversationId " +
+            "AND (anchor_message_id = :anchorMessageId " +
+            "OR parent_anchor_message_id = :anchorMessageId)" +
+            "ORDER BY sent_at DESC " +
+            "LIMIT :limit " +
+            "OFFSET :offset")
+    suspend fun getAnchoredPaginated(
+        conversationId: String?,
+        anchorMessageId: String?,
+        limit: Int,
+        offset: Int
+    ): List<ConversationMessageIO>
+
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
             "WHERE conversation_id = :conversationId")
