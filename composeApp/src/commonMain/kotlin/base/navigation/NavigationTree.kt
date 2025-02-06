@@ -94,6 +94,7 @@ sealed class NavigationNode {
     @Serializable
     data class MessageDetail(
         val messageId: String? = null,
+        val conversationId: String? = null,
         val title: String? = null
     ): NavigationNode() {
         override val deepLink: String = ""

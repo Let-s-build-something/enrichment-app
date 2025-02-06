@@ -56,6 +56,12 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("anchor_message")
     val anchorMessage: ConversationAnchorMessageIO? = null,
 
+    @ColumnInfo("anchor_message_id")
+    val anchorMessageId: String? = anchorMessage?.id,
+
+    @ColumnInfo("parent_anchor_message_id")
+    val parentAnchorMessageId: String? = anchorMessage?.anchorMessageId,
+
     /** Time of message being sent in ISO format */
     @ColumnInfo(name = "sent_at")
     @Serializable(with = DateTimeAsStringSerializer::class)
@@ -91,7 +97,8 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         mediaUrls = media,
         audioUrl = audioUrl,
         gifAsset = gifAsset,
-        authorPublicId = authorPublicId
+        authorPublicId = authorPublicId,
+        anchorMessageId = anchorMessageId
     )
 
     /** Whether content contains any website url */

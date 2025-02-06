@@ -88,6 +88,7 @@ fun NavigationHost(
             loadKoinModules(messageDetailModule)
             MessageDetailScreen(
                 messageId = it.arguments?.getString("messageId"),
+                conversationId = it.arguments?.getString("conversationId"),
                 title = it.arguments?.getString("title")
             )
         }

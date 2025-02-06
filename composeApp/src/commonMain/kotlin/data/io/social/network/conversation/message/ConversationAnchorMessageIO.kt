@@ -36,7 +36,9 @@ data class ConversationAnchorMessageIO(
     val authorPublicId: String? = null,
 
     /** Index within the whole data set ASC */
-    val index: Int? = null
+    val index: Int? = null,
+
+    val anchorMessageId: String? = null
 ) {
     /** User attached to this message */
     @Ignore

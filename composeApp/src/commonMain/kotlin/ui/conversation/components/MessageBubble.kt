@@ -81,12 +81,9 @@ import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MessageState
-import data.io.user.NetworkItemIO
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
@@ -103,7 +100,6 @@ import kotlin.math.absoluteValue
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
-    users: List<NetworkItemIO>,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
@@ -133,7 +129,6 @@ fun MessageBubble(
                 hasNext = hasNext,
                 openDetail = openDetail,
                 data = data,
-                users = users,
                 preferredEmojis = preferredEmojis,
                 currentUserPublicId = currentUserPublicId,
                 isReacting = isReacting,
@@ -155,7 +150,6 @@ fun MessageBubble(
 private fun ContentLayout(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO,
-    users: List<NetworkItemIO>,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
@@ -201,9 +195,6 @@ private fun ContentLayout(
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
 
-    val reactions = remember(data.id) {
-        mutableStateOf(listOf<Pair<String?, Pair<List<NetworkItemIO>, Boolean>>>())
-    }
     val showDetailDialogOf = remember(data.id) {
         mutableStateOf<Pair<String?, String?>?>(null)
     }
@@ -262,28 +253,11 @@ private fun ContentLayout(
         }
     }
 
-    LaunchedEffect(Unit, data.reactions) {
-        withContext(Dispatchers.Default) {
-            val map = hashMapOf<String?, Pair<List<NetworkItemIO>, Boolean>>()
-            data.reactions?.forEach { reaction ->
-                map[reaction.content] = Pair(
-                    users.find { it.publicId == reaction.authorPublicId }?.let {
-                        map[reaction.content]?.first.orEmpty().plus(it)
-                    } ?: map[reaction.content]?.first.orEmpty(),
-                    (map[reaction.content]?.second ?: false) || (reaction.authorPublicId == currentUserPublicId)
-                )
-            }
-            reactions.value = map.toList().sortedByDescending { it.second.first.size }
-        }
-    }
-
     showDetailDialogOf.value?.let {
         MessageReactionsDialog(
-            reactions = reactions,
-            users = users,
+            reactions = data.reactions.orEmpty(),
             messageContent = it.first,
             initialEmojiSelection = it.second,
-            reactionsRaw = data.reactions.orEmpty(),
             onDismissRequest = {
                 showDetailDialogOf.value = null
             }
@@ -578,7 +552,7 @@ private fun ContentLayout(
                                                     end = if (isCurrentUser) 12.dp else 0.dp
                                                 )
                                                 .then(
-                                                    if (reactions.value.size > 1) {
+                                                    if ((data.reactions?.size ?: 0) > 1) {
                                                         Modifier.offset(x = if (isCurrentUser) (-8).dp else 8.dp)
                                                     } else Modifier
                                                 )
@@ -590,12 +564,12 @@ private fun ContentLayout(
                                                 ),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            reactions.value.take(MaximumReactions).forEach { reaction ->
+                                            data.reactions?.take(MaximumReactions)?.forEach { reaction ->
                                                 Row(
                                                     Modifier
                                                         .scalingClickable {
-                                                            if ((data.reactions?.size ?: 0) > 1) {
-                                                                showDetailDialogOf.value = data.content to reaction.first
+                                                            if (data.reactions.size > 1) {
+                                                                showDetailDialogOf.value = data.content to reaction.content
                                                             }
                                                         }
                                                         .width(IntrinsicSize.Min)
@@ -609,12 +583,12 @@ private fun ContentLayout(
                                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                         Text(
                                                             modifier = Modifier.padding(end = 2.dp),
-                                                            text = reaction.first ?: "",
+                                                            text = reaction.content ?: "",
                                                             style = LocalTheme.current.styles.category.copy(
                                                                 textAlign = TextAlign.Center
                                                             )
                                                         )
-                                                        if (reaction.second.second) {
+                                                        if (reaction.user?.userPublicId == currentUserPublicId) {
                                                             Box(
                                                                 modifier = Modifier
                                                                     .height(2.dp)
@@ -626,9 +600,18 @@ private fun ContentLayout(
                                                             )
                                                         }
                                                     }
-                                                    reaction.second.first.size.takeIf { it > 1 }?.let { count ->
+                                                    val count = remember(data.id) {
+                                                        mutableStateOf(1)
+                                                    }
+                                                    LaunchedEffect(data.reactions) {
+                                                        count.value = data.reactions.count {
+                                                            it.content == reaction.content
+                                                        }
+                                                    }
+
+                                                    count.value.takeIf { it > 1 }?.let {
                                                         Text(
-                                                            text = count.toString(),
+                                                            text = it.toString(),
                                                             style = LocalTheme.current.styles.regular
                                                         )
                                                     }
@@ -782,6 +765,6 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 }
 
 // maximum visible reactions within message bubble
-private const val MaximumReactions = 4
+const val MaximumReactions = 4
 private const val MaximumTextLines = 6
 private const val DragCancelDelayMillis = 100L

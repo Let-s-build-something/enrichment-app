@@ -26,10 +26,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,8 +50,9 @@ internal val conversationModule = module {
     factory { ConversationRepository(get(), get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
-            get<ConversationRepository>(),
             get<String>(),
+            get<Boolean>(),
+            get<ConversationRepository>(),
             get<EmojiUseCase>(),
             get<GifUseCase>()
         )
@@ -60,9 +61,10 @@ internal val conversationModule = module {
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-class ConversationViewModel(
-    private val repository: ConversationRepository,
+open class ConversationViewModel(
     private val conversationId: String,
+    enableMessages: Boolean,
+    private val repository: ConversationRepository,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase
 ): KeyboardViewModel(
@@ -95,35 +97,42 @@ class ConversationViewModel(
     val uploadProgress = _uploadProgress.asStateFlow()
 
     /** currently locally cached byte arrays */
-    val cachedFiles
+    val temporaryFiles
         get() = repository.cachedFiles
 
     /** flow of current messages */
-    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = repository.getMessagesListFlow(
-        config = PagingConfig(
-            pageSize = 50,
-            enablePlaceholders = true,
-            initialLoadSize = 50
-        ),
-        conversationId = conversationId
-    ).flow
-        .cachedIn(viewModelScope)
-        .combine(_conversationDetail) { messages, detail ->
-            withContext(Dispatchers.Default) {
-                messages.map {
-                    it.apply {
-                        user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+    val conversationMessages = if(enableMessages) {
+        repository.getMessagesListFlow(
+            config = PagingConfig(
+                pageSize = 50,
+                enablePlaceholders = true,
+                initialLoadSize = 50
+            ),
+            conversationId = conversationId
+        ).flow
+            .cachedIn(viewModelScope)
+            .combine(_conversationDetail) { messages, detail ->
+                withContext(Dispatchers.Default) {
+                    messages.map {
+                        it.apply {
+                            user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                            anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                            reactions?.forEach { reaction ->
+                                reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                            }
+                        }
                     }
                 }
             }
-        }
+    }else flow { PagingData.empty<ConversationMessageIO>() }
 
     /** Last saved message relevant to this conversation */
     val savedMessage = MutableStateFlow("")
 
     /** Last saved message timings relevant to this conversation */
     val savedTimings = MutableStateFlow(listOf<Long>())
+
+    val messageMaxLength = 5000
 
     init {
         if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
@@ -134,7 +143,10 @@ class ConversationViewModel(
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            savedMessage.value = settings.getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId") ?: ""
+            savedMessage.value = settings
+                .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId")
+                ?.take(messageMaxLength)
+                ?: ""
             savedTimings.value = settings
                 .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId")
                 ?.split(",")
@@ -255,7 +267,8 @@ class ConversationViewModel(
     }
 
     /** Makes a request to add or change reaction to a message */
-    fun reactToMessage(messageId: String, content: String) {
+    fun reactToMessage(messageId: String?, content: String) {
+        if(messageId == null) return
         viewModelScope.launch {
             repository.reactToMessage(
                 conversationId = conversationId,

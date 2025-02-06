@@ -1,20 +1,30 @@
 package ui.conversation.message
 
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingConfig
+import androidx.paging.cachedIn
+import androidx.paging.map
 import data.io.social.network.conversation.message.ConversationMessageIO
-import data.shared.SharedViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.conversation.ConversationViewModel
+import ui.conversation.components.emoji.EmojiUseCase
+import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
-    factory { MessageDetailRepository(get(), get()) }
+    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
     factory {
         MessageDetailViewModel(
             get<String>(),
-            get<MessageDetailRepository>()
+            get<String>(),
+            get<MessageDetailRepository>(),
+            get(),
+            get()
         )
     }
     viewModelOf(::MessageDetailViewModel)
@@ -22,13 +32,57 @@ internal val messageDetailModule = module {
 
 class MessageDetailViewModel(
     private val messageId: String?,
-    private val repository: MessageDetailRepository
-): SharedViewModel() {
+    conversationId: String?,
+    private val repository: MessageDetailRepository,
+    emojiUseCase: EmojiUseCase,
+    gifUseCase: GifUseCase
+): ConversationViewModel(
+    conversationId = conversationId ?: "",
+    enableMessages = false,
+    repository = repository,
+    emojiUseCase = emojiUseCase,
+    gifUseCase = gifUseCase
+) {
 
     private val _message = MutableStateFlow<ConversationMessageIO?>(null)
 
     /** Locally retrieved information */
-    val message = _message.asStateFlow()
+    val message = _message
+        .combine(conversationDetail) { message, detail ->
+            withContext(Dispatchers.Default) {
+                message?.apply {
+                    user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                    anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                    reactions?.forEach { reaction ->
+                        reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                    }
+                }
+            }
+        }
+
+    val replies = repository.getMessagesListFlow(
+        config = PagingConfig(
+            pageSize = 50,
+            enablePlaceholders = true,
+            initialLoadSize = 50
+        ),
+        anchorMessageId = messageId,
+        conversationId = conversationId
+    ).flow
+        .cachedIn(viewModelScope)
+        .combine(conversationDetail) { messages, detail ->
+            withContext(Dispatchers.Default) {
+                messages.map {
+                    it.apply {
+                        user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                        reactions?.forEach { reaction ->
+                            reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                        }
+                    }
+                }
+            }
+        }
 
     init {
         viewModelScope.launch {
