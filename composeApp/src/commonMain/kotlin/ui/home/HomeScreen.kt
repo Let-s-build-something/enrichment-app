@@ -72,7 +72,7 @@ import components.ScrollChoice
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
-import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.matrix.room.ConversationRoomIO
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest

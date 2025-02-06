@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

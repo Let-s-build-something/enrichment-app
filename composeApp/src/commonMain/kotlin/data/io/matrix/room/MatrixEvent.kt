@@ -1,15 +1,14 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class MatrixEvent(
+open class MatrixEvent(
     /** Required: The fields in this object will vary depending on the type of event. */
     val content: MatrixEventContent? = null,
     /** Required: The type of event. This SHOULD be namespaced similar to Java package naming conventions e.g. ‘com.example.subdomain.event.type’ */
     val type: String? = null,
 ) {
-
     @Serializable
     data class StrippedStateEvent(
         /** Required: The state_key for the event. */
@@ -17,7 +16,7 @@ sealed class MatrixEvent(
 
         /** Required: Contains the fully-qualified ID of the user who sent this event. */
         val sender: String? = null,
-    )
+    ): MatrixEvent()
 
     @Serializable
     data class RoomClientEvent(

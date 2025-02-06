@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.matrix.room.ConversationRoomIO
 import database.AppRoomDatabase
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth

@@ -15,7 +15,7 @@ import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
-import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.matrix.room.ConversationRoomIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO

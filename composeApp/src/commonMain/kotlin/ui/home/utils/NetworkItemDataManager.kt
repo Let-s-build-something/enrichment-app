@@ -1,6 +1,6 @@
 package ui.home.utils
 
-import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.matrix.room.ConversationRoomIO
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.flow.MutableStateFlow
 

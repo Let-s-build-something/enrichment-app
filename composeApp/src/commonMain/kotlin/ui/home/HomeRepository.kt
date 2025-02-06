@@ -4,10 +4,10 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
-import data.io.social.network.conversation.matrix.ConversationRoomIO
-import data.io.social.network.conversation.matrix.RoomType
-import data.io.social.network.conversation.matrix.RoomsResponseIO
-import data.io.user.matrix.SyncResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomType
+import data.io.matrix.room.RoomsResponseIO
+import data.io.matrix.SyncResponse
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
 import dev.gitlive.firebase.Firebase

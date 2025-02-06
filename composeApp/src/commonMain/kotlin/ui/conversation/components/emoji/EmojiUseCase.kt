@@ -24,6 +24,7 @@ import org.koin.dsl.module
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalSettingsApi::class)
 internal val emojiModule = module {
     factory { EmojiDataManager() }
     single { EmojiDataManager() }

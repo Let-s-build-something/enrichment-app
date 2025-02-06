@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import data.io.base.MatrixPagingMetaIO
 import data.io.base.PagingMetaIO
 import data.io.social.network.conversation.EmojiSelection
-import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.matrix.room.ConversationRoomIO
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao

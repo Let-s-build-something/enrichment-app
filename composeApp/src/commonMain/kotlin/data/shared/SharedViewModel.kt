@@ -6,6 +6,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.coroutines.FlowSettings
 import data.io.app.SettingsKeys
 import data.io.user.UserIO
+import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.storage.Data
@@ -14,6 +15,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -23,6 +25,7 @@ import org.koin.mp.KoinPlatform
 /** Viewmodel with shared behavior and injections for general purposes */
 @OptIn(ExperimentalSettingsApi::class)
 open class SharedViewModel: ViewModel() {
+    private val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
 
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
@@ -33,11 +36,22 @@ open class SharedViewModel: ViewModel() {
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<FlowSettings>()
 
+    /** currently signed in user */
+    val currentUser = sharedDataManager.currentUser.asStateFlow()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             delay(50)
             sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
+        }
+
+        viewModelScope.launch {
+            delay(1000)
+            currentUser.collectLatest { user ->
+                if(user?.accessToken != null && user.matrixHomeserver != null) {
+                    dataSyncService.sync(homeserver = user.matrixHomeserver)
+                }else dataSyncService.stop()
+            }
         }
     }
 
@@ -71,9 +85,6 @@ open class SharedViewModel: ViewModel() {
             }
         }
     }
-
-    /** currently signed in user */
-    val currentUser = sharedDataManager.currentUser.asStateFlow()
 
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()

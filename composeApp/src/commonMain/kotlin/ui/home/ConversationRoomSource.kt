@@ -5,8 +5,8 @@ import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.social.network.conversation.matrix.ConversationRoomIO
-import data.io.user.matrix.SyncResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.SyncResponse
 import kotlinx.io.IOException
 import ui.home.HomeRepository.Companion.INITIAL_BATCH
 

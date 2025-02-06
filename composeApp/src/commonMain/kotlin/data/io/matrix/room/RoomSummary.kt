@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import data.io.user.NetworkItemIO
 import kotlinx.serialization.Serializable
@@ -30,7 +30,7 @@ data class RoomSummary(
     val proximity: Float? = null,
 
     /** Last message that happened in this room. */
-    val lastMessage: MatrixEventContent.RoomMessageEvent? = null,
+    val lastMessage: MatrixEventContent? = null,
 
     /** Whether this room is just one on one. */
     val isDirect: Boolean? = null,

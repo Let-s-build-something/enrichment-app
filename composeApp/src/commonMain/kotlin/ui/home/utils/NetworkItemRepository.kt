@@ -1,12 +1,11 @@
 package ui.home.utils
 
 import data.io.base.BaseResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.InvitationResponse
 import data.io.social.network.conversation.RoomInvitationRequest
-import data.io.social.network.conversation.matrix.ConversationRoomIO
-import data.io.social.network.conversation.matrix.RoomSummary
-import data.io.social.network.conversation.matrix.RoomType
-import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.DemoData
 import database.dao.ConversationRoomDao
@@ -30,7 +29,7 @@ class NetworkItemRepository(
     private val conversationRoomDao: ConversationRoomDao
 ) {
     /** returns a list of network list */
-    suspend fun getNetworkItems(): List<NetworkItemIO>? {
+    suspend fun getNetworkItems(): List<NetworkItemIO> {
         return withContext(Dispatchers.IO) {
             networkItemDao.getNonFiltered()
         }
