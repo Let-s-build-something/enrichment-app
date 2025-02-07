@@ -4,14 +4,12 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
-import data.io.social.network.conversation.matrix.ConversationRoomIO
-import data.io.social.network.conversation.matrix.RoomType
-import data.io.social.network.conversation.matrix.RoomsResponseIO
-import data.io.user.matrix.SyncResponse
+import data.io.matrix.SyncResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomType
+import data.io.matrix.room.RoomsResponseIO
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.http.parameters
@@ -47,7 +45,10 @@ class HomeRepository(
 
     /** Returns a flow of network list */
     @OptIn(ExperimentalPagingApi::class)
-    fun getConversationRoomPager(config: PagingConfig): Pager<String, ConversationRoomIO> {
+    fun getConversationRoomPager(
+        config: PagingConfig,
+        ownerPublic: () -> String?
+    ): Pager<String, ConversationRoomIO> {
         val scope = CoroutineScope(Dispatchers.Default)
         var currentPagingSource: ConversationRoomSource? = null
 
@@ -57,9 +58,8 @@ class HomeRepository(
                 ConversationRoomSource(
                     size = config.pageSize,
                     getItems = { batch ->
-                        val ownerId = Firebase.auth.currentUser?.uid
                         val res = conversationRoomDao.getPaginated(
-                            ownerPublicId = ownerId,
+                            ownerPublicId = ownerPublic(),
                             batch = batch
                         )
 

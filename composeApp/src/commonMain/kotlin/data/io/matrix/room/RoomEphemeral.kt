@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import kotlinx.serialization.Serializable
 
@@ -8,5 +8,5 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class RoomEphemeral(
-    val events: List<MatrixEvent.RoomClientEvent>
+    val events: List<MatrixEvent>
 )

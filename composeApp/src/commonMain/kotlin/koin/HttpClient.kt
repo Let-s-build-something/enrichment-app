@@ -3,9 +3,11 @@ package koin
 import augmy.interactive.com.BuildKonfig
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedViewModel
+import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
@@ -41,6 +43,11 @@ internal fun httpClientFactory(
             url {
                 protocol = URLProtocol.HTTPS
             }
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = SYNC_INTERVAL + 10_000
+            socketTimeoutMillis = SYNC_INTERVAL + 10_000
+            connectTimeoutMillis = 5_000
         }
         install(ContentNegotiation) {
             json(json)

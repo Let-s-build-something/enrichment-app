@@ -5,8 +5,8 @@ import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.social.network.conversation.matrix.ConversationRoomIO
-import data.io.user.matrix.SyncResponse
+import data.io.matrix.SyncResponse
+import data.io.matrix.room.ConversationRoomIO
 import kotlinx.io.IOException
 import ui.home.HomeRepository.Companion.INITIAL_BATCH
 
@@ -31,10 +31,10 @@ class ConversationRoomSource(
             )
             val content = mutableListOf<ConversationRoomIO>().apply {
                 data.rooms?.let { response ->
-                    addAll(response.join.values)
-                    addAll(response.invite.values)
-                    addAll(response.knock.values)
-                    addAll(response.leave.values)
+                    addAll(response.join?.values.orEmpty())
+                    addAll(response.invite?.values.orEmpty())
+                    addAll(response.knock?.values.orEmpty())
+                    addAll(response.leave?.values.orEmpty())
                 }
             }
 

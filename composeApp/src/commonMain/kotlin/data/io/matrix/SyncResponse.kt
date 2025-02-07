@@ -1,7 +1,7 @@
-package data.io.user.matrix
+package data.io.matrix
 
-import data.io.social.network.conversation.matrix.RoomAccountData
-import data.io.social.network.conversation.matrix.RoomsResponseIO
+import data.io.matrix.room.RoomAccountData
+import data.io.matrix.room.RoomsResponseIO
 import kotlinx.serialization.Serializable
 
 /**

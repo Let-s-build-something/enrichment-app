@@ -7,7 +7,7 @@ import androidx.paging.PagingSource
 import augmy.interactive.shared.utils.DateUtils.localNow
 import base.utils.sha256
 import data.io.base.BaseResponse
-import data.io.base.PaginationInfo
+import data.io.base.paging.PaginationInfo
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.social.network.conversation.MessageReactionRequest

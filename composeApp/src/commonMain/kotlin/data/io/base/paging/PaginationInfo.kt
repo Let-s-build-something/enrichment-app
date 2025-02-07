@@ -1,4 +1,4 @@
-package data.io.base
+package data.io.base.paging
 
 import kotlinx.serialization.Serializable
 

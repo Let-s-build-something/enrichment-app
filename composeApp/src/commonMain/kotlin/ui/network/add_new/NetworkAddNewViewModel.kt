@@ -56,7 +56,8 @@ class NetworkAddNewViewModel(
         viewModelScope.launch {
             repository.getUserRecommendations(
                 takeCount = TOP_ITEMS,
-                excludeId = excludeId
+                excludeId = excludeId,
+                ownerPublicId = currentUser.value?.publicId
             ).success?.data.let { data ->
                 _recommendedUsers.value = data
             }

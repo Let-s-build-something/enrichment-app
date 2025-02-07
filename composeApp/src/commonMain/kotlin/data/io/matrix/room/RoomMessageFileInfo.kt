@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import kotlinx.serialization.Serializable
 
@@ -9,7 +9,7 @@ data class RoomMessageFileInfo(
     val mimetype: String? = null,
 
     /** The size of the file in bytes. */
-    val size: Long? = null,
+    val size: Int? = null,
 
     /** Information on the encrypted thumbnail file if encrypted. */
     val thumbnailFile: MatrixEncryptedFile? = null,

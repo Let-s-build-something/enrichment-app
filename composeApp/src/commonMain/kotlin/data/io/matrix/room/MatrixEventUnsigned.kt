@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import kotlinx.serialization.Serializable
 

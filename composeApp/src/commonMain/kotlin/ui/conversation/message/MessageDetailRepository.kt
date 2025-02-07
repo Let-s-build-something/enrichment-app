@@ -3,7 +3,7 @@ package ui.conversation.message
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
-import data.io.base.PaginationInfo
+import data.io.base.paging.PaginationInfo
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.user.NetworkItemIO
@@ -36,18 +36,24 @@ class MessageDetailRepository(
 ) {
 
     /** Retrieves singular message from the local DB */
-    suspend fun getMessage(id: String): ConversationMessageIO? {
+    suspend fun getMessage(id: String, ownerPublicId: String?): ConversationMessageIO? {
         return withContext(Dispatchers.IO) {
             conversationMessageDao.get(id)?.also {
-                it.user = getUser(it.authorPublicId)
+                it.user = getUser(
+                    id = it.authorPublicId,
+                    ownerPublicId = ownerPublicId
+                )
             }
         }
     }
 
     /** Retrieves singular message from the local DB */
-    private suspend fun getUser(id: String?): NetworkItemIO? {
+    private suspend fun getUser(
+        id: String?,
+        ownerPublicId: String?
+    ): NetworkItemIO? {
         return if(id == null) null else withContext(Dispatchers.IO) {
-            networkItemDao.get(id)
+            networkItemDao.get(publicId = id, ownerPublicId = ownerPublicId)
         }
     }
 

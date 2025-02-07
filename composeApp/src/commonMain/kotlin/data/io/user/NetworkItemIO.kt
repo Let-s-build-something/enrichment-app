@@ -4,8 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -21,7 +19,6 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     val tag: String? = null,
 
     /** Public identification of this entity */
-    @PrimaryKey
     @ColumnInfo("public_id")
     val publicId: String = Uuid.random().toString(),
 
@@ -60,5 +57,9 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Database flag: an identifier of the owner of this item */
     @ColumnInfo("owner_public_id")
-    var ownerPublicId: String? = Firebase.auth.currentUser?.uid
+    val ownerPublicId: String? = null,
+
+    @PrimaryKey
+    @ColumnInfo("primary_key")
+    val primaryKey: String = "${publicId}_$ownerPublicId"
 )

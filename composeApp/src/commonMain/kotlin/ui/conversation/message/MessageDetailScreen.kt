@@ -51,7 +51,9 @@ import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.utils.openLink
 import components.UserProfileImage
 import components.buildAnnotatedLinkString
+import data.io.base.AppPingType
 import data.io.social.network.conversation.message.MessageState
+import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -85,6 +87,17 @@ fun MessageDetailScreen(
     }
     val showDetailDialogOf = remember {
         mutableStateOf<Pair<String?, String?>?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.appPing.collectLatest {
+            if(it.type == AppPingType.Conversation
+                && (it.identifiers.contains(messageId)
+                        || it.identifiers.contains(conversationId))
+            ) {
+                replies.refresh()
+            }
+        }
     }
 
     showDetailDialogOf.value?.let {

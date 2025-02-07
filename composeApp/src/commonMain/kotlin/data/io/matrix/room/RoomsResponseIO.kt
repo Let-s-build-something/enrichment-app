@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import kotlinx.serialization.Serializable
 
@@ -6,14 +6,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RoomsResponseIO(
     /** The rooms that the user has been invited to, mapped as room ID to room information. */
-    val invite: Map<String, ConversationRoomIO>,
+    val invite: Map<String, ConversationRoomIO>? = null,
 
     /** The rooms that the user has joined, mapped as room ID to room information. */
-    val join: Map<String, ConversationRoomIO>,
+    val join: Map<String, ConversationRoomIO>? = null,
 
     /** The rooms that the user has knocked upon, mapped as room ID to room information. */
-    val leave: Map<String, ConversationRoomIO>,
+    val leave: Map<String, ConversationRoomIO>? = null,
 
     /** The rooms that the user has left or been banned from, mapped as room ID to room information. */
-    val knock: Map<String, ConversationRoomIO>
+    val knock: Map<String, ConversationRoomIO>? = null
 )

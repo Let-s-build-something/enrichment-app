@@ -15,6 +15,7 @@ import data.shared.SharedRepository
 import data.shared.SharedViewModel
 import data.shared.appServiceModule
 import data.shared.developerConsoleModule
+import data.shared.sync.dataSyncModule
 import database.databaseModule
 import database.file.FileAccess
 import dev.gitlive.firebase.Firebase
@@ -25,6 +26,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.home.homeModule
 
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class, ExperimentalSerializationApi::class)
@@ -48,8 +50,9 @@ internal val commonModule = module {
     }
 
     includes(databaseModule)
+    includes(dataSyncModule)
     viewModelOf(::SharedViewModel)
-    includes(ui.home.homeModule)
+    includes(homeModule)
     includes(appServiceModule)
 
     single {

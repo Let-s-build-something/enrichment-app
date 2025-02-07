@@ -6,15 +6,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -95,16 +93,10 @@ fun CustomTextField(
         )
     }else null
 
-    Column(
-        modifier = modifier
-            .animateContentSize()
-            .width(IntrinsicSize.Min)
-            .height(IntrinsicSize.Min)
-    ) {
+    Column(modifier = modifier.animateContentSize()) {
         Row(
             Modifier
                 .heightIn(min = 44.dp)
-                .fillMaxSize()
                 .then(
                     controlColor?.value?.let {
                         Modifier.border(
@@ -201,11 +193,13 @@ fun CustomTextField(
         }
         if(errorText.isNullOrBlank().not()) {
             Text(
-                modifier = Modifier.padding(
-                    start = 8.dp,
-                    end = 8.dp,
-                    bottom = 4.dp
-                ),
+                modifier = Modifier
+                    .wrapContentHeight()
+                    .padding(
+                        start = 8.dp,
+                        end = 8.dp,
+                        bottom = 4.dp
+                    ),
                 text = errorText ?: "",
                 style = LocalTheme.current.styles.regular.copy(
                     color = SharedColors.RED_ERROR,

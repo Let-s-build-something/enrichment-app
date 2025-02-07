@@ -1,4 +1,4 @@
-package data.io.social.network.conversation.matrix
+package data.io.matrix.room
 
 import data.io.user.NetworkItemIO
 import kotlinx.serialization.Serializable
@@ -14,9 +14,6 @@ data class RoomSummary(
      *  The list must never include the client’s own user ID. */
     val heroes: List<String>? = null,
 
-    /** List of members */
-    val members: List<NetworkItemIO>? = null,
-
     /** Name of the room. */
     val canonicalAlias: String? = null,
 
@@ -30,7 +27,7 @@ data class RoomSummary(
     val proximity: Float? = null,
 
     /** Last message that happened in this room. */
-    val lastMessage: MatrixEventContent.RoomMessageEvent? = null,
+    val lastMessage: MatrixEvent? = null,
 
     /** Whether this room is just one on one. */
     val isDirect: Boolean? = null,
@@ -44,7 +41,11 @@ data class RoomSummary(
     /** The number of users with membership of join, including the client’s own user ID. */
     val joinedMemberCount: Int? = null
 ) {
+
+    /** List of members */
+    var members: List<NetworkItemIO>? = null
+
     /** Either [canonicalAlias] or a default based on [heroes] */
     val alias: String
-        get() = canonicalAlias ?: heroes?.joinToString(", ") ?: "Room $tag"
+        get() = canonicalAlias ?: heroes?.joinToString(", ") ?: "Room ${tag ?: ""}"
 }
