@@ -6,14 +6,12 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import data.io.base.BaseResponse
-import data.io.base.PaginationInfo
+import data.io.base.paging.PaginationInfo
 import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
 import data.shared.setPaging
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import kotlinx.coroutines.CoroutineScope
@@ -52,7 +50,10 @@ class NetworkListRepository(
 
     /** Returns a flow of network list */
     @OptIn(ExperimentalPagingApi::class)
-    fun getNetworkListFlow(config: PagingConfig): Pager<Int, NetworkItemIO> {
+    fun getNetworkListFlow(
+        config: PagingConfig,
+        ownerPublicId: () -> String?
+    ): Pager<Int, NetworkItemIO> {
         val scope = CoroutineScope(Dispatchers.Default)
         var currentPagingSource: NetworkRoomSource? = null
 
@@ -61,9 +62,8 @@ class NetworkListRepository(
             pagingSourceFactory = {
                 NetworkRoomSource(
                     getItems = { page ->
-                        val ownerId = Firebase.auth.currentUser?.uid
                         val res = networkItemDao.getPaginated(
-                            ownerPublicId = ownerId,
+                            ownerPublicId = ownerPublicId(),
                             limit = config.pageSize,
                             offset = page * config.pageSize
                         )
@@ -74,7 +74,7 @@ class NetworkListRepository(
                                 pagination = PaginationInfo(
                                     page = page,
                                     size = res.size,
-                                    totalItems = networkItemDao.getCount(ownerId)
+                                    totalItems = networkItemDao.getCount(ownerPublicId())
                                 )
                             )
                         )

@@ -6,19 +6,19 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.base.MatrixPagingMetaIO
-import data.io.base.PagingEntityType
-import data.io.matrix.room.ConversationRoomIO
+import data.io.base.paging.MatrixPagingMetaIO
+import data.io.base.paging.PagingEntityType
 import data.io.matrix.SyncResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.shared.SharedDataManager
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.io.IOException
+import org.koin.mp.KoinPlatform
 import ui.home.HomeRepository.Companion.INITIAL_BATCH
 
 /**
@@ -33,8 +33,9 @@ class RoomsRemoteMediator(
     private val cacheTimeoutMillis: Int = 24 * 60 * 60 * 1000
 ): RemoteMediator<String, ConversationRoomIO>() {
 
-    private val currentUserUid: String?
-        get() = Firebase.auth.currentUser?.uid
+    private val dataManager: SharedDataManager by KoinPlatform.getKoin().inject()
+    private val ownerUserPublicId: String?
+        get() = dataManager.currentUser.value?.publicId
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
@@ -74,10 +75,10 @@ class RoomsRemoteMediator(
 
             val items = apiResponse.success?.data?.rooms?.let { response ->
                 mutableListOf<ConversationRoomIO>().apply {
-                    addAll(response.join.values)
-                    addAll(response.invite.values)
-                    addAll(response.knock.values)
-                    addAll(response.leave.values)
+                    addAll(response.join?.values.orEmpty())
+                    addAll(response.invite?.values.orEmpty())
+                    addAll(response.knock?.values.orEmpty())
+                    addAll(response.leave?.values.orEmpty())
                 }
             }
             val endOfPaginationReached = apiResponse.success?.data?.nextBatch == null
@@ -85,7 +86,7 @@ class RoomsRemoteMediator(
             return withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
                     batch = null
-                    pagingMetaDao.removeAll()
+                    pagingMetaDao.removeAll(PagingEntityType.ConversationRoom.name)
                     //conversationRoomDao.removeAll()
                 }
                 items?.map { item ->
@@ -97,11 +98,14 @@ class RoomsRemoteMediator(
                     )
                 }?.let {
                     pagingMetaDao.insertAll(it)
-                    conversationRoomDao.insertAll(items.onEach { room ->
-                        room.batch = batch ?: INITIAL_BATCH
-                        room.nextBatch = apiResponse.success?.data?.nextBatch
-                        room.ownerPublicId = currentUserUid
-                    })
+                    conversationRoomDao.insertAll(
+                        items.map { item ->
+                            item.copy(ownerPublicId = ownerUserPublicId).apply {
+                                this.batch = batch ?: INITIAL_BATCH
+                                this.nextBatch = apiResponse.success?.data?.nextBatch
+                            }
+                        }
+                    )
                     invalidatePagingSource()
                 }
                 MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)

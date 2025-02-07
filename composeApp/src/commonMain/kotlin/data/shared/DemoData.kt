@@ -3,7 +3,6 @@ package data.shared
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.DateUtils.now
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.MatrixEventContent
 import data.io.matrix.room.RoomNotificationsCount
 import data.io.matrix.room.RoomSummary
 import data.io.social.network.conversation.NetworkConversationIO
@@ -31,7 +30,6 @@ internal object DemoData {
             summary = RoomSummary(
                 heroes = listOf("1"),
                 canonicalAlias = "Jack'omygod",
-                lastMessage = MatrixEventContent(body = "Hey, what's up?"),
                 joinedMemberCount = 2,
                 avatarUrl = "https://wallpapers.com/images/hd/cool-xbox-profile-pictures-9dtcc745il694rjs.jpg",
                 isDirect = true
@@ -44,7 +42,6 @@ internal object DemoData {
             summary = RoomSummary(
                 heroes = listOf("2"),
                 canonicalAlias = "Gamer's room",
-                lastMessage = MatrixEventContent(body = "That's terrible:D"),
                 joinedMemberCount = 2,
                 avatarUrl = "https://sguru.org/wp-content/uploads/2017/06/cool-gaming-profile-pictures-youtube_profile.jpg",
                 isDirect = false

@@ -33,7 +33,8 @@ class NetworkListViewModel(
             pageSize = 20,
             enablePlaceholders = true,
             initialLoadSize = 20
-        )
+        ),
+        ownerPublicId = { currentUser.value?.publicId }
     ).flow.cachedIn(viewModelScope)
 
     /** Customized colors */
@@ -52,7 +53,7 @@ class NetworkListViewModel(
     /** Makes a request for all open rooms */
     fun requestOpenConversations() {
         viewModelScope.launch {
-            networkItemUseCase.requestOpenRooms()
+            networkItemUseCase.requestOpenRooms(currentUser.value?.publicId)
         }
     }
 
@@ -68,7 +69,8 @@ class NetworkListViewModel(
             networkItemUseCase.requestProximityChange(
                 conversationId = conversationId,
                 publicId = publicId,
-                proximity = proximity
+                proximity = proximity,
+                ownerPublicId = currentUser.value?.publicId
             )
             onOperationDone()
         }
@@ -86,7 +88,8 @@ class NetworkListViewModel(
                 conversationId = conversationId,
                 userPublicIds = userPublicIds,
                 message = message,
-                newName = newName
+                newName = newName,
+                ownerPublicId = currentUser.value?.publicId
             )
         }
     }

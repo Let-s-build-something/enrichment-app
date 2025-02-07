@@ -1,4 +1,4 @@
-package data.io.base
+package data.io.base.paging
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -19,7 +19,7 @@ data class MatrixPagingMetaIO(
 
     /** Type of paginated entity */
     @ColumnInfo("entity_type")
-    val entityType: PagingEntityType? = null,
+    val entityType: PagingEntityType?,
 
     /** A flag whether there is another page after this one or not */
     @ColumnInfo("next_batch")

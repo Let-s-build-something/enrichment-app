@@ -29,4 +29,16 @@ object Matrix {
     object Media {
         const val MATRIX_REPOSITORY_PREFIX = "mxc://"
     }
+
+    object Room {
+        const val AVATAR = "m.room.avatar"
+        const val CANONICAL_ALIAS = "m.room.canonical_alias"
+        const val NAME = "m.room.name"
+        const val MESSAGE = "m.room.message"
+        const val RECEIPT = "m.receipt"
+    }
+
+    object Message {
+        const val TEXT = "m.text"
+    }
 }

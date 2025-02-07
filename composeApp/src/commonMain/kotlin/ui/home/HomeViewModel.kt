@@ -90,7 +90,8 @@ class HomeViewModel(
             pageSize = 40,
             enablePlaceholders = true,
             initialLoadSize = 40
-        )
+        ),
+        ownerPublic = { currentUser.value?.publicId }
     ).flow
         .cachedIn(viewModelScope)
         .combine(_categories) { pagingData, categories ->
@@ -112,7 +113,7 @@ class HomeViewModel(
                 ?: NetworkProximityCategory.entries
         }
         viewModelScope.launch {
-            networkItemUseCase.getNetworkItems()
+            networkItemUseCase.getNetworkItems(ownerPublicId = currentUser.value?.publicId)
         }
     }
 
@@ -152,7 +153,7 @@ class HomeViewModel(
     /** Makes a request for all open rooms */
     fun requestOpenRooms() {
         viewModelScope.launch {
-            networkItemUseCase.requestOpenRooms()
+            networkItemUseCase.requestOpenRooms(currentUser.value?.publicId)
         }
     }
 
@@ -168,7 +169,8 @@ class HomeViewModel(
             networkItemUseCase.requestProximityChange(
                 conversationId = conversationId,
                 publicId = publicId,
-                proximity = proximity
+                proximity = proximity,
+                ownerPublicId = currentUser.value?.publicId
             )
             onOperationDone()
         }
@@ -186,7 +188,8 @@ class HomeViewModel(
                 conversationId = conversationId,
                 userPublicIds = userPublicIds,
                 message = message,
-                newName = newName
+                newName = newName,
+                ownerPublicId = currentUser.value?.publicId
             )
         }
     }

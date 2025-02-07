@@ -6,8 +6,8 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.base.PagingEntityType
-import data.io.base.PagingMetaIO
+import data.io.base.paging.PagingEntityType
+import data.io.base.paging.PagingMetaIO
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import database.dao.ConversationMessageDao

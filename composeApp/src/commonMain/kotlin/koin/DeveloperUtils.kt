@@ -93,7 +93,7 @@ object DeveloperUtils {
             }?.value?.firstOrNull()?.let { id ->
                 HttpCall(
                     id = id,
-                    responseBody = formatJson(response.body<String>().take(1000)),
+                    responseBody = formatJson(response.body<String>().take(10000)),
                     responseSeconds = response.responseTime.seconds - response.requestTime.seconds,
                     responseCode = response.status.value
                 )

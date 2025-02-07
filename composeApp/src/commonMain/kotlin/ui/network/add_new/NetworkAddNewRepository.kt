@@ -7,8 +7,6 @@ import data.io.social.network.request.CirclingRequest
 import data.io.user.NetworkItemIO
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -41,13 +39,14 @@ class NetworkAddNewRepository(
     /** Returns list of recommended users from each proximity category */
     suspend fun getUserRecommendations(
         takeCount: Int,
-        excludeId: String?
+        excludeId: String?,
+        ownerPublicId: String?
     ): BaseResponse<Map<NetworkProximityCategory, List<NetworkItemIO>>> {
         return withContext(Dispatchers.IO) {
             BaseResponse.Success(
                 NetworkProximityCategory.entries.associateWith { category ->
                     (conversationRoomDao.getByProximity(
-                        ownerPublicId = Firebase.auth.currentUser?.uid,
+                        ownerPublicId = ownerPublicId,
                         proximityMin = category.range.start,
                         proximityMax = category.range.endInclusive,
                         count = takeCount,
@@ -59,7 +58,7 @@ class NetworkAddNewRepository(
                             tag = conversation.summary?.tag
                         )
                     } + networkItemDao.getByProximity(
-                        ownerPublicId = Firebase.auth.currentUser?.uid,
+                        ownerPublicId = ownerPublicId,
                         proximityMin = category.range.start,
                         proximityMax = category.range.endInclusive,
                         count = takeCount,

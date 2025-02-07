@@ -1,4 +1,4 @@
-package data.io.base
+package data.io.base.paging
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -37,9 +37,3 @@ data class PagingMetaIO(
     @ColumnInfo("previous_page")
     val previousPage: Int? = null
 )
-
-enum class PagingEntityType {
-    NetworkItem,
-    ConversationMessage,
-    ConversationRoom
-}

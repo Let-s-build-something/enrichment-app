@@ -5,8 +5,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -16,11 +14,16 @@ import kotlin.uuid.Uuid
 @Serializable
 data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Unique identifier of this room, in the format of "!opaque_id:domain" */
-    @PrimaryKey
     val id: String = Uuid.random().toString(),
 
     /** Information about the room */
     val summary: RoomSummary? = null,
+
+    /**
+     * A decimal range between -1 and 10. -1 means blocked, 1 is muted,
+     *  or just a far social circle, and 10 is the closest
+     */
+    val proximity: Float? = null,
 
     /** Counts of unread notifications for this room. */
     @ColumnInfo("unread_notifications")
@@ -47,16 +50,14 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("knock_state")
     val knockState: RoomInviteState? = null,
 
-    /**
-     * A decimal range between -1 and 10. -1 means blocked, 1 is muted,
-     *  or just a far social circle, and 10 is the closest
-     */
-    val proximity: Float? = null
-) {
-
     /** Database flag: an identifier of the owner of this item */
     @ColumnInfo("owner_public_id")
-    var ownerPublicId: String? = Firebase.auth.currentUser?.uid
+    val ownerPublicId: String? = null,
+
+    @PrimaryKey
+    @ColumnInfo("primary_key")
+    val primaryKey: String = "${id}_$ownerPublicId"
+) {
 
     /** To which batch this data object belongs to */
     var batch: String? = null
@@ -80,6 +81,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         name = summary?.alias,
         tag = summary?.tag,
         photoUrl = summary?.avatarUrl,
-        lastMessage = summary?.lastMessage?.body
+        lastMessage = summary?.lastMessage?.content?.body
     )
 }

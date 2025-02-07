@@ -8,5 +8,5 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class RoomEphemeral(
-    val events: List<MatrixEvent.RoomClientEvent>
+    val events: List<MatrixEvent>
 )

@@ -45,7 +45,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
                         )
                     }
                 }.success?.data?.also {
-                    injectDemoData(Firebase.auth.currentUser?.uid)
+                    injectDemoData(it.publicId)
                 } ?: UserIO()
             }else null
         }
@@ -59,9 +59,10 @@ open class SharedRepository(private val httpClient: HttpClient) {
             val networkItemDao: NetworkItemDao = getKoin().get()
 
             if(conversationRoomDao.getCount(publicId) == 0) {
-                conversationRoomDao.insertAll(DemoData.demoRooms.onEach { room ->
-                    room.batch = INITIAL_BATCH
-                    room.ownerPublicId = publicId
+                conversationRoomDao.insertAll(DemoData.demoRooms.map {
+                    it.copy(
+                        ownerPublicId = publicId
+                    ).apply { batch = INITIAL_BATCH }
                 })
                 conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
                     it.conversationId = DemoData.demoRooms.getOrNull(0)?.id
@@ -69,8 +70,8 @@ open class SharedRepository(private val httpClient: HttpClient) {
                 conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
                     it.conversationId = DemoData.demoRooms.getOrNull(1)?.id
                 })
-                networkItemDao.insertAll(DemoData.proximityDemoData.onEach {
-                    it.ownerPublicId = publicId
+                networkItemDao.insertAll(DemoData.proximityDemoData.map {
+                    it.copy(ownerPublicId = publicId)
                 })
             }
         }

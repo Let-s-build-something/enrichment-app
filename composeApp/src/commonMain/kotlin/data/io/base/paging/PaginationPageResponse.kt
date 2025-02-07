@@ -1,4 +1,4 @@
-package data.io.base
+package data.io.base.paging
 
 /** standard shell for pagination response */
 interface PaginationPageResponse<T> {

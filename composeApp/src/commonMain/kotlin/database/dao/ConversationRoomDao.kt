@@ -6,8 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.matrix.room.ConversationRoomIO
 import database.AppRoomDatabase
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 
 /** Interface for communication with local Room database */
 @Dao
@@ -18,7 +16,7 @@ interface ConversationRoomDao {
             "WHERE owner_public_id = :ownerPublicId " +
             "AND batch = :batch ")
     suspend fun getPaginated(
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
+        ownerPublicId: String?,
         batch: String?
     ): List<ConversationRoomIO>
 
@@ -26,7 +24,7 @@ interface ConversationRoomDao {
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId ")
     suspend fun getNonFiltered(
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid
+        ownerPublicId: String?
     ): List<ConversationRoomIO>
 
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
@@ -37,7 +35,7 @@ interface ConversationRoomDao {
             "LIMIT :count")
     suspend fun getByProximity(
         count: Int,
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
+        ownerPublicId: String?,
         proximityMin: Float,
         proximityMax: Float,
         excludeId: String?
@@ -46,22 +44,25 @@ interface ConversationRoomDao {
     /** Counts the number of items */
     @Query("UPDATE ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "SET proximity = :proximity " +
-            "WHERE id = :id ")
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND id = :id ")
     suspend fun updateProximity(
         id: String?,
+        ownerPublicId: String?,
         proximity: Float
     )
 
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId")
-    suspend fun getCount(ownerPublicId: String? = Firebase.auth.currentUser?.uid): Int
+    suspend fun getCount(ownerPublicId: String?): Int
 
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomIO>)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE}")
-    suspend fun removeAll()
+    @Query("DELETE FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE}" +
+            " WHERE owner_public_id = :ownerPublicId")
+    suspend fun removeAll(ownerPublicId: String?)
 }

@@ -6,8 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 
 /** Interface for communication with local Room database */
 @Dao
@@ -29,7 +27,7 @@ interface NetworkItemDao {
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
             "WHERE owner_public_id = :ownerPublicId ")
     suspend fun getNonFiltered(
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid
+        ownerPublicId: String?
     ): List<NetworkItemIO>
 
     /** Returns all network items within the list [userPublicIds] */
@@ -38,14 +36,18 @@ interface NetworkItemDao {
             "AND user_public_id IN (:userPublicIds)")
     suspend fun getItems(
         userPublicIds: List<String>?,
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid
+        ownerPublicId: String?
     ): List<NetworkItemIO>
 
     /** Retrieves a single item */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
             "WHERE public_id = :publicId " +
+            "AND owner_public_id = :ownerPublicId " +
             "LIMIT 1")
-    suspend fun get(publicId: String?): NetworkItemIO?
+    suspend fun get(
+        publicId: String?,
+        ownerPublicId: String?
+    ): NetworkItemIO?
 
     /** Returns all network items specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
@@ -72,7 +74,7 @@ interface NetworkItemDao {
             "WHERE owner_public_id = :ownerPublicId " +
             "AND public_id = :publicId ")
     suspend fun updateProximity(
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
+        ownerPublicId: String?,
         proximity: Float,
         publicId: String?
     )
@@ -82,6 +84,7 @@ interface NetworkItemDao {
     suspend fun insertAll(items: List<NetworkItemIO>)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE}")
-    suspend fun removeAll()
+    @Query("DELETE FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+            "WHERE owner_public_id = :ownerPublicId")
+    suspend fun removeAll(ownerPublicId: String?)
 }

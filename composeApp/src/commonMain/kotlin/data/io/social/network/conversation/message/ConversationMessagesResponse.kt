@@ -1,7 +1,7 @@
 package data.io.social.network.conversation.message
 
-import data.io.base.PaginationInfo
-import data.io.base.PaginationPageResponse
+import data.io.base.paging.PaginationInfo
+import data.io.base.paging.PaginationPageResponse
 import kotlinx.serialization.Serializable
 
 /** Response to the request for circling requests */

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RoomTimeline(
     /** Required: List of events. */
-    val events: List<MatrixEvent.RoomClientEvent>? = null,
+    val events: List<MatrixEvent>? = null,
 
     /** True if the number of events returned was limited by the limit on the filter. */
     val limited: Boolean? = null,

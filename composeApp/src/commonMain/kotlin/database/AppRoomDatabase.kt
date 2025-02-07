@@ -5,10 +5,10 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
-import data.io.base.MatrixPagingMetaIO
-import data.io.base.PagingMetaIO
-import data.io.social.network.conversation.EmojiSelection
+import data.io.base.paging.MatrixPagingMetaIO
+import data.io.base.paging.PagingMetaIO
 import data.io.matrix.room.ConversationRoomIO
+import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
@@ -27,7 +27,7 @@ import database.dao.PagingMetaDao
         ConversationMessageIO::class,
         ConversationRoomIO::class
     ],
-    version = 22,
+    version = 25,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

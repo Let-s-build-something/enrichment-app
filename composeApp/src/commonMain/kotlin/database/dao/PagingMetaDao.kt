@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import data.io.base.PagingMetaIO
+import data.io.base.paging.PagingMetaIO
 import database.AppRoomDatabase.Companion.ROOM_PAGING_META_TABLE
 
 /** Interface for communication with local Room database */
