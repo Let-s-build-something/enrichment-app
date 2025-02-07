@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,8 +35,10 @@ import base.navigation.NavIconType
 import base.navigation.NavigationArguments
 import collectResult
 import components.UserProfileImage
+import data.io.base.AppPingType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -70,6 +73,14 @@ fun ConversationScreen(
     }
     val showEmojiPreferencesId = rememberSaveable {
         mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.appPing.collectLatest {
+            if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
+                messages.refresh()
+            }
+        }
     }
 
     navController?.collectResult(

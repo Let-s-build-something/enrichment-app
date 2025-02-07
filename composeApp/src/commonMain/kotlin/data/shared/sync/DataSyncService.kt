@@ -1,6 +1,9 @@
 package data.shared.sync
 
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
+import data.io.base.AppPing
+import data.io.base.AppPingType
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingEntityType
 import data.io.matrix.SyncResponse
@@ -20,7 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -107,6 +113,8 @@ class DataSyncService {
         homeserver: String,
         batch: String?
     ) {
+        if(sharedDataManager.currentUser.value?.publicId == null) return
+
         matrixPagingMetaDao.insert(
             MatrixPagingMetaIO(
                 entityId = homeserver,
@@ -116,12 +124,12 @@ class DataSyncService {
             )
         )
         withContext(Dispatchers.Default) {
-            val rooms = response.rooms?.let {
+            val rooms = response.rooms?.let { rooms ->
                 mutableListOf<ConversationRoomIO>().apply {
-                    addAll(it.join?.map { it.value.copy(id = it.key) }.orEmpty())
-                    addAll(it.invite?.map { it.value.copy(id = it.key) }.orEmpty())
-                    addAll(it.knock?.map { it.value.copy(id = it.key) }.orEmpty())
-                    addAll(it.leave?.map { it.value.copy(id = it.key) }.orEmpty())
+                    addAll(rooms.join?.map { it.value.copy(id = it.key) }.orEmpty())
+                    addAll(rooms.invite?.map { it.value.copy(id = it.key) }.orEmpty())
+                    addAll(rooms.knock?.map { it.value.copy(id = it.key) }.orEmpty())
+                    addAll(rooms.leave?.map { it.value.copy(id = it.key) }.orEmpty())
                 }
             }
             rooms?.map { item ->
@@ -158,12 +166,15 @@ class DataSyncService {
                         ownerPublicId = sharedDataManager.currentUser.value?.publicId,
                         primaryKey = "${previous.id}_${sharedDataManager.currentUser.value?.publicId}"
                     ).also { room ->
-                        room.batch = batch ?: INITIAL_BATCH
+                        room.batch = INITIAL_BATCH
                         room.nextBatch = nextBatch
                     }
                 }
                 withContext(Dispatchers.IO) {
                     conversationRoomDao.insertAll(values)
+                    if(values.isNotEmpty()) {
+                        appendPing(AppPing(type = AppPingType.Conversation))
+                    }
                 }
 
                 // messages
@@ -206,9 +217,7 @@ class DataSyncService {
                                 state = if(receipts?.find { it.eventId == event.eventId } != null) {
                                     MessageState.Read
                                 }else MessageState.Sent
-                            ).also {
-                                println("kostka_test, newMessage: $it")
-                            }
+                            )
                         )
                         messagePagingMeta.add(
                             MatrixPagingMetaIO(
@@ -222,10 +231,31 @@ class DataSyncService {
                 }
                 withContext(Dispatchers.IO) {
                     matrixPagingMetaDao.insertAll(messagePagingMeta)
-                }
-                withContext(Dispatchers.IO) {
                     conversationMessageDao.insertAll(messages)
+
+                    if(messages.isNotEmpty()) appendPing(
+                        AppPing(
+                            type = AppPingType.Conversation,
+                            identifiers = messages.mapNotNull { it.conversationId }.distinct()
+                        )
+                    )
                 }
+            }
+        }
+    }
+
+    private var lastPingTime: Long = 0L
+    private val mutex = Mutex()
+
+    private fun appendPing(ping: AppPing) {
+        syncScope.launch {
+            mutex.withLock {
+                val time = DateUtils.now.toEpochMilliseconds()
+                val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
+                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer of 400 milliseconds
+
+                if(calculatedDelay > 0) delay(calculatedDelay)
+                sharedDataManager.ping.emit(ping)
             }
         }
     }

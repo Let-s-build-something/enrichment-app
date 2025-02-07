@@ -72,6 +72,7 @@ import components.ScrollChoice
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
+import data.io.base.AppPingType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
@@ -115,6 +116,14 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
     val selectedUser = remember {
         mutableStateOf<NetworkItemIO?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.appPing.collectLatest {
+            if(it.type == AppPingType.ConversationDashboard) {
+                conversationRooms.refresh()
+            }
+        }
     }
 
     if(selectedUser.value != null) {

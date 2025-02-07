@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onEach
@@ -36,9 +37,6 @@ open class SharedViewModel: ViewModel() {
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<FlowSettings>()
 
-    /** currently signed in user */
-    val currentUser = sharedDataManager.currentUser.asStateFlow()
-
     init {
         viewModelScope.launch(Dispatchers.IO) {
             delay(50)
@@ -59,6 +57,12 @@ open class SharedViewModel: ViewModel() {
 
     /** Current configuration specific to this app */
     val localSettings = sharedDataManager.localSettings.asStateFlow()
+
+    /** currently signed in user */
+    val currentUser = sharedDataManager.currentUser.asStateFlow()
+
+    /** Acts as a sort of a in-app push notification, notifying of changes */
+    val appPing = sharedDataManager.ping.asSharedFlow()
 
     /** currently signed in firebase user */
     val firebaseUser = Firebase.auth.authStateChanged.stateIn(
