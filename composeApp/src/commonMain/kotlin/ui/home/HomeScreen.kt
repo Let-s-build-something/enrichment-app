@@ -108,6 +108,9 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val listState = rememberLazyGridState()
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
+    val drawnAsUser = rememberSaveable {
+        mutableStateOf(viewModel.currentUser.value?.publicId)
+    }
     val selectedItem = rememberSaveable {
         mutableStateOf<String?>(null)
     }
@@ -116,6 +119,15 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
     val selectedUser = remember {
         mutableStateOf<NetworkItemIO?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.currentUser.collectLatest {
+            if(drawnAsUser.value != it?.publicId) {
+                drawnAsUser.value = it?.publicId
+                conversationRooms.refresh()
+            }
+        }
     }
 
     LaunchedEffect(Unit) {

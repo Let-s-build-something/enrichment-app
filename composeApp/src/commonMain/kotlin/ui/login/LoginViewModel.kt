@@ -87,10 +87,6 @@ class LoginViewModel(
                 it.name == settings.getStringOrNull(KEY_CLIENT_STATUS)
             }?.let { status ->
                 clientStatus.value = status
-                selectHomeServer(
-                    screenType = if(status == ClientStatus.REGISTERED) LoginScreenType.SIGN_IN else LoginScreenType.SIGN_UP,
-                    address = AUGMY_HOME_SERVER
-                )
             }
         }
     }

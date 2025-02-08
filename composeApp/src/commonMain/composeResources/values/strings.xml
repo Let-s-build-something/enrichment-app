@@ -30,6 +30,9 @@
   <string name="login_password_email_hint">Email</string>
   <string name="login_password_password_hint">Password</string>
   <string name="error_general">Even we can fail communicating (with the server), apologies. Try again later.</string>
+  <string name="hint_unauthorized_matrix_title">We are still unsure of how to call you.</string>
+  <string name="hint_unauthorized_matrix_text">As soon as you're a unique snowflake, you can chat with other people:-).</string>
+  <string name="hint_unauthorized_matrix_action">❄️</string>
 
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>

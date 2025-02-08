@@ -6,5 +6,6 @@ import org.koin.dsl.module
 
 @OptIn(ExperimentalSettingsApi::class)
 internal val settingsModule = module {
+    factory<FlowSettings> { settings }
     single<FlowSettings> { settings }
 }
