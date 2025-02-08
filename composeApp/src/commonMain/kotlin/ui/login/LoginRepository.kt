@@ -107,14 +107,14 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     }
 
     /** Matrix login via email and username */
-    suspend fun loginWithUsername(
-        address: String,
+    suspend fun loginWithIdentifier(
+        homeserver: String,
         identifier: MatrixIdentifierData,
         password: String?,
     ): BaseResponse<MatrixAuthenticationResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
-                httpClient.post(url = Url("https://${address}/_matrix/client/v3/login")) {
+                httpClient.post(url = Url("https://${homeserver}/_matrix/client/v3/login")) {
                     setBody(
                         EmailLoginRequest(
                             identifier = identifier,

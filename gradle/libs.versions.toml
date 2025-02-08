@@ -47,6 +47,8 @@ androidFirebaseMessaging = "24.1.0"
 
 # Java
 jvmGoogleCloudStorage = "2.46.0"
+jvmCredentialStore = "243.23654.166"
+securityCryptoKtx = "1.1.0-alpha06"
 
 
 [libraries]
@@ -123,9 +125,11 @@ android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", 
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
+androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
 
 #------------------- JVM -------------------
 java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
+credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
 
 
 [bundles]

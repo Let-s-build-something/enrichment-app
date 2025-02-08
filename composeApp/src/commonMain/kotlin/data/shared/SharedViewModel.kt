@@ -3,13 +3,14 @@ package data.shared
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.coroutines.FlowSettings
 import data.io.app.SettingsKeys
 import data.io.user.UserIO
+import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.storage.Data
+import koin.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -27,6 +28,7 @@ import org.koin.mp.KoinPlatform
 @OptIn(ExperimentalSettingsApi::class)
 open class SharedViewModel: ViewModel() {
     private val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
+    private val authService = KoinPlatform.getKoin().get<AuthService>()
 
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
@@ -35,7 +37,7 @@ open class SharedViewModel: ViewModel() {
     private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
 
     /** persistent settings saved locally to a device */
-    protected val settings = KoinPlatform.getKoin().get<FlowSettings>()
+    protected val settings = KoinPlatform.getKoin().get<AppSettings>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

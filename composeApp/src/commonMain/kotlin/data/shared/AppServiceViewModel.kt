@@ -117,11 +117,8 @@ class AppServiceViewModel(
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
             }
-            /*Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
-                sharedDataManager.currentUser.update {
-                    it?.copy(idToken = firebaseUser?.getIdToken(false))
-                }
-            }*/
+
+            // TODO Matrix autologin
         }
     }
 

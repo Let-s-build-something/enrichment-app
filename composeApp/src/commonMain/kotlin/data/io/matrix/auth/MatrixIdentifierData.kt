@@ -5,6 +5,12 @@ import kotlinx.serialization.Serializable
 /** Identification for the Matrix login */
 @Serializable
 data class MatrixIdentifierData(
+    /** Matrix user_id or user localpart */
+    val user: String? = null,
+
+    /** email address */
+    val address: String? = null,
+
     /** One of
     m.id.user
     m.id.thirdparty
@@ -12,12 +18,6 @@ data class MatrixIdentifierData(
      */
     val type: String,
 
-    /** Matrix user_id or user localpart */
-    val user: String? = null,
-
     /** the medium of login */
-    val medium: String? = null,
-
-    /** email address */
-    val address: String? = null
+    val medium: String? = null
 )

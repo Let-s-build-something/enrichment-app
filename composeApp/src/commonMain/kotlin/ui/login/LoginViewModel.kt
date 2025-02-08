@@ -5,6 +5,7 @@ package ui.login
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
 import base.utils.Matrix
+import base.utils.Matrix.ErrorCode.USER_IN_USE
 import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
@@ -112,7 +113,7 @@ class LoginViewModel(
                 address = address,
                 username = username
             )?.let {
-                if(it.code == "M_USER_IN_USE") {
+                if(it.code == USER_IN_USE) {
                     _loginResult.emit(LoginResultType.USERNAME_EXISTS)
                 }
             }
@@ -137,8 +138,8 @@ class LoginViewModel(
                     plan = it,
                     address = address,
                     supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
-                        (homeserverAbilityCache[address] ?: (repository.loginWithUsername(
-                            address = address,
+                        (homeserverAbilityCache[address] ?: (repository.loginWithIdentifier(
+                            homeserver = address,
                             identifier = MatrixIdentifierData(
                                 type = Matrix.Id.THIRD_PARTY,
                                 medium = Matrix.Medium.EMAIL,
@@ -365,8 +366,8 @@ class LoginViewModel(
         isMatrix: Boolean
     ) {
         val res = if(isMatrix && _matrixAuthResponse.value?.userId == null) {
-            repository.loginWithUsername(
-                address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+            repository.loginWithIdentifier(
+                homeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
                     type = Matrix.Id.THIRD_PARTY,
                     medium = Matrix.Medium.EMAIL,
