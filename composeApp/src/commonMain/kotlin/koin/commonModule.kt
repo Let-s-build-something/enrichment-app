@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package koin
 
 import augmy.interactive.shared.ui.base.PlatformType
@@ -7,7 +5,6 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
-import com.russhwolf.settings.ExperimentalSettingsApi
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
