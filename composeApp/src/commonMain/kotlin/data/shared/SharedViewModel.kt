@@ -48,6 +48,13 @@ open class SharedViewModel: ViewModel() {
             currentUser.collectLatest { user ->
                 if(user?.accessToken != null && user.matrixHomeserver != null) {
                     dataSyncService.sync(homeserver = user.matrixHomeserver)
+
+                    // first API call for our BE
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                        sharedRepository.authenticateUser(
+                            localSettings = sharedDataManager.localSettings.value
+                        )
+                    )
                 }else dataSyncService.stop()
             }
         }
@@ -77,12 +84,6 @@ open class SharedViewModel: ViewModel() {
                     sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                         idToken = idToken
                     ) ?: UserIO(idToken = idToken)
-
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                        sharedRepository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value
-                        )
-                    )
                     authService.setupAutoLogin()
                 }
             }

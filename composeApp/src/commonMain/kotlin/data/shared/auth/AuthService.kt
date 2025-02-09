@@ -56,10 +56,10 @@ class AuthService {
     }
 
     suspend fun setupAutoLogin() {
+        if(isRunning) return
+
         withContext(Dispatchers.IO) {
-            println("kostka_test, setupAutoLogin")
             retrieveCredentials()?.let { credentials ->
-                println("kostka_test, setupAutoLogin, credentials: $credentials")
                 // we either use existing token or enqueue its refresh which results either in success or new login
                 if((credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
                     && credentials.accessToken != null
@@ -96,7 +96,6 @@ class AuthService {
         homeserver: String?,
         userId: String?
     ) {
-        println("kostka_test, setupAutoLogin, updating user, accessToken: $accessToken, homeserver: $homeserver, userId: $userId")
         if(sharedDataManager.currentUser.value != null) {
             sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                 accessToken = accessToken ?: sharedDataManager.currentUser.value?.accessToken,
