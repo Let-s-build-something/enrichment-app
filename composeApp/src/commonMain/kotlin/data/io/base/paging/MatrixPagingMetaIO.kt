@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 
 /** Meta information of paging response from Matrix protocol */
 @Serializable
-@Entity(tableName = AppRoomDatabase.ROOM_MATRIX_PAGING_META_TABLE)
+@Entity(tableName = AppRoomDatabase.TABLE_MATRIX_PAGING_META)
 data class MatrixPagingMetaIO(
 
     /** Local room database identifier */

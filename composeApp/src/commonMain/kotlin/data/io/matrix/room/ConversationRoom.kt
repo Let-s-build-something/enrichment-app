@@ -10,7 +10,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Matrix conversation room object */
-@Entity(tableName = AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE)
+@Entity(tableName = AppRoomDatabase.TABLE_CONVERSATION_ROOM)
 @Serializable
 data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Unique identifier of this room, in the format of "!opaque_id:domain" */

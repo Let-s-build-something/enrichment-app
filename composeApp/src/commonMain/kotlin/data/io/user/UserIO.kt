@@ -18,11 +18,6 @@ data class UserIO(
     /** current session token of the Matrix protocol */
     val accessToken: String? = null,
 
-    /** Matrix refresh token for revalidating [accessToken] */
-    val refreshToken: String? = null,
-
-    val expiresInMs: Long? = null,
-
     /** Matrix homeserver associated with this user */
     val matrixHomeserver: String? = null,
 
@@ -42,8 +37,6 @@ data class UserIO(
             tag = other?.tag ?: this.tag,
             idToken = other?.idToken ?: this.idToken,
             accessToken = other?.accessToken ?: this.accessToken,
-            refreshToken = other?.refreshToken ?: this.refreshToken,
-            expiresInMs = other?.expiresInMs ?: this.expiresInMs,
             matrixHomeserver = other?.matrixHomeserver ?: this.matrixHomeserver,
             publicId = other?.publicId ?: this.publicId,
             configuration = other?.configuration ?: this.configuration

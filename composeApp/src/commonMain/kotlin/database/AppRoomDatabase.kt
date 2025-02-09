@@ -48,22 +48,22 @@ abstract class AppRoomDatabase: RoomDatabase() {
         const val DATABASE_NAME = "app_database.db"
 
         /** Identification of table for [NetworkItemIO] */
-        const val ROOM_NETWORK_ITEM_TABLE = "room_network_item_table"
+        const val TABLE_NETWORK_ITEM = "room_network_item_table"
 
         /** Identification of table for [ConversationRoomIO] */
-        const val ROOM_CONVERSATION_ROOM_TABLE = "room_conversation_room_table"
+        const val TABLE_CONVERSATION_ROOM = "room_conversation_room_table"
 
         /** Identification of table for [ConversationMessageIO] */
-        const val ROOM_CONVERSATION_MESSAGE_TABLE = "room_conversation_message_table"
+        const val TABLE_CONVERSATION_MESSAGE = "room_conversation_message_table"
 
         /** Identification of table for [EmojiSelection] */
-        const val ROOM_EMOJI_SELECTION_TABLE = "room_emoji_selection"
+        const val TABLE_EMOJI_SELECTION = "room_emoji_selection"
 
         /** Identification of table for [PagingMetaIO] */
-        const val ROOM_PAGING_META_TABLE = "room_paging_meta_table"
+        const val TABLE_PAGING_META = "room_paging_meta_table"
 
         /** Identification of table for [MatrixPagingMetaIO] */
-        const val ROOM_MATRIX_PAGING_META_TABLE = "room_matrix_paging_meta_table"
+        const val TABLE_MATRIX_PAGING_META = "room_matrix_paging_meta_table"
     }
 }
 

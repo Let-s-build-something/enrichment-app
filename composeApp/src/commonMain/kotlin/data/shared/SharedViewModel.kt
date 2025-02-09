@@ -2,7 +2,6 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.SettingsKeys
 import data.io.user.UserIO
 import data.shared.auth.AuthService
@@ -25,7 +24,6 @@ import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
-@OptIn(ExperimentalSettingsApi::class)
 open class SharedViewModel: ViewModel() {
     private val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
     private val authService = KoinPlatform.getKoin().get<AuthService>()
@@ -82,11 +80,10 @@ open class SharedViewModel: ViewModel() {
 
                     sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
                         sharedRepository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value,
-                            refreshToken = sharedDataManager.currentUser.value?.refreshToken,
-                            expiresInMs = sharedDataManager.currentUser.value?.expiresInMs
+                            localSettings = sharedDataManager.localSettings.value
                         )
                     )
+                    authService.setupAutoLogin()
                 }
             }
         }

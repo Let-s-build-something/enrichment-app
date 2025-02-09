@@ -14,7 +14,7 @@ interface EmojiSelectionDao {
 
     /** Returns emoji selections specific to a conversation, or all if no conversation is specified */
     @Query(
-        "SELECT * FROM ${AppRoomDatabase.ROOM_EMOJI_SELECTION_TABLE} " +
+        "SELECT * FROM ${AppRoomDatabase.TABLE_EMOJI_SELECTION} " +
                 "WHERE conversation_id == :conversationId " +
                 "ORDER BY count DESC " +
                 "LIMIT $EMOJIS_HISTORY_LENGTH"
@@ -23,7 +23,7 @@ interface EmojiSelectionDao {
 
     /** Returns emoji selections specific to a conversation, or all if no conversation is specified */
     @Query(
-        "SELECT * FROM ${AppRoomDatabase.ROOM_EMOJI_SELECTION_TABLE} " +
+        "SELECT * FROM ${AppRoomDatabase.TABLE_EMOJI_SELECTION} " +
                 "WHERE conversation_id IS NULL " +
                 "ORDER BY count DESC "
     )

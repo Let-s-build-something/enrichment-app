@@ -10,7 +10,7 @@ import kotlin.uuid.Uuid
 
 /** user object of another use specific to our database */
 @Serializable
-@Entity(tableName = AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE)
+@Entity(tableName = AppRoomDatabase.TABLE_NETWORK_ITEM)
 data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** username of the current user */
     val name: String? = null,

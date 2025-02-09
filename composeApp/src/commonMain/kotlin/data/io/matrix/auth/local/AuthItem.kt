@@ -1,17 +1,21 @@
 package data.io.matrix.auth.local
 
-import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class AuthItem(
-    @PrimaryKey
-    val userIdHash: String?,
+    val homeserver: String?,
 
-    val matrixHomeserver: String?,
-
-    val loginType: String,
+    val loginType: String?,
 
     /** the medium of login */
-    val medium: String?
+    val medium: String?,
+
+    val expiresAtMsEpoch: Long?,
+
+    val accessToken: String?,
+    val refreshToken: String?,
+    val userId: String?,
+    val address: String?,
+    val password: String?,
 )

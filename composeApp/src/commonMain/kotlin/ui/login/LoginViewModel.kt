@@ -1,12 +1,9 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package ui.login
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
-import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
@@ -19,6 +16,7 @@ import data.io.matrix.auth.MatrixIdentifierData
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO
 import data.shared.SharedViewModel
+import data.shared.auth.AuthService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthEmailException
 import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -42,7 +40,8 @@ import kotlin.uuid.Uuid
 /** Communication between the UI, the control layers, and control and data layers */
 class LoginViewModel(
     private val serviceProvider: UserOperationService,
-    private val repository: LoginRepository
+    private val repository: LoginRepository,
+    private val authService: AuthService
 ): SharedViewModel() {
     data class HomeServerResponse(
         val state: HomeServerState,
@@ -138,7 +137,7 @@ class LoginViewModel(
                     plan = it,
                     address = address,
                     supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
-                        (homeserverAbilityCache[address] ?: (repository.loginWithIdentifier(
+                        (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
                             homeserver = address,
                             identifier = MatrixIdentifierData(
                                 type = Matrix.Id.THIRD_PARTY,
@@ -366,12 +365,13 @@ class LoginViewModel(
         isMatrix: Boolean
     ) {
         val res = if(isMatrix && _matrixAuthResponse.value?.userId == null) {
-            repository.loginWithIdentifier(
+            authService.loginWithIdentifier(
                 homeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
                     type = Matrix.Id.THIRD_PARTY,
                     medium = Matrix.Medium.EMAIL,
-                    address = email
+                    address = email,
+                    user = username
                 ),
                 password = password
             ).let {
@@ -390,7 +390,8 @@ class LoginViewModel(
             _matrixAuthResponse.value = res
             clearMatrixProgress()
             try {
-                Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
+                Firebase.auth.signInWithEmailAndPassword(email, password).user
+                    ?.authenticateUser(email)
             }catch (e: FirebaseAuthInvalidCredentialsException) {
                 _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
             }catch (e: FirebaseAuthEmailException) {
@@ -428,7 +429,6 @@ class LoginViewModel(
                 sharedDataManager.currentUser.value = UserIO(
                     idToken = idToken,
                     accessToken = _matrixAuthResponse.value?.accessToken,
-                    refreshToken = _matrixAuthResponse.value?.refreshToken,
                     matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                 )
                 sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
