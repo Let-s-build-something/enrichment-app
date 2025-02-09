@@ -121,7 +121,9 @@ fun BrandBaseScreen(
     Column {
         // information about being missing display name
         AnimatedVisibility(
-            currentUser.value != null && currentUser.value?.displayName == null
+            currentUser.value != null
+                    && currentUser.value?.displayName == null
+                    && !sharedViewModel.awaitingAutologin
         ) {
             InformationLine()
         }

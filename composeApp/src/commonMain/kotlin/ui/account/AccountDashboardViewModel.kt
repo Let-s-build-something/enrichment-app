@@ -1,7 +1,6 @@
 package ui.account
 
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
@@ -47,7 +46,6 @@ class AccountDashboardViewModel(
     val visibilityResponse = _visibilityResponse.asStateFlow()
 
     /** Sets the theme of the app */
-    @OptIn(ExperimentalSettingsApi::class)
     fun updateTheme(choiceOrdinal: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val choice = ThemeChoice.entries[choiceOrdinal]

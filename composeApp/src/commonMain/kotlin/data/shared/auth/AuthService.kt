@@ -50,6 +50,14 @@ class AuthService {
         private const val DEFAULT_TOKEN_LIFESPAN_MS = 30 * 60 * 1000L
     }
 
+    val awaitingAutologin: Boolean
+        get() = secureSettings.hasKey(SecureSettingsKeys.KEY_CREDENTIALS)
+
+    fun clear() {
+        stop()
+        secureSettings.remove(SecureSettingsKeys.KEY_CREDENTIALS)
+    }
+
     fun stop() {
         isRunning = false
         mutex.unlock()

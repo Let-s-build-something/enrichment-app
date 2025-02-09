@@ -62,6 +62,10 @@ open class SharedViewModel: ViewModel() {
 
     //======================================== public variables ==========================================
 
+    val awaitingAutologin: Boolean
+        get() = authService.awaitingAutologin
+
+
     /** Current configuration specific to this app */
     val localSettings = sharedDataManager.localSettings.asStateFlow()
 
@@ -110,6 +114,9 @@ open class SharedViewModel: ViewModel() {
         runBlocking {
             Firebase.auth.signOut()
             sharedDataManager.currentUser.value = null
+            sharedDataManager.localSettings.value = null
+            authService.clear()
+            dataSyncService.stop()
         }
     }
 }
