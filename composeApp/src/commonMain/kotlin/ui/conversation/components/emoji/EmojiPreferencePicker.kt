@@ -27,7 +27,7 @@ import augmy.composeapp.generated.resources.emojis_preference_set_heading
 import augmy.composeapp.generated.resources.emojis_preference_set_hint
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.InfoHintBox
+import components.notification.InfoHintBox
 import data.io.social.network.conversation.EmojiData
 import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource

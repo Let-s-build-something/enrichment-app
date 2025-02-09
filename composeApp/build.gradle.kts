@@ -90,6 +90,19 @@ kotlin {
     }
 
     sourceSets {
+        commonTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+        androidUnitTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+        jvmTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+        iosTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -102,6 +115,7 @@ kotlin {
 
             implementation(libs.androidx.splashscreen)
             implementation(libs.android.accompanist.permissions)
+            implementation(libs.androidx.security.crypto.ktx)
 
             implementation(libs.coil.gif)
 
@@ -124,11 +138,11 @@ kotlin {
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
             implementation(libs.java.cloud.storage)
+            implementation(libs.credential.store)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
         }
-
         commonMain.dependencies {
             implementation(project(":shared"))
             implementation(compose.runtime)

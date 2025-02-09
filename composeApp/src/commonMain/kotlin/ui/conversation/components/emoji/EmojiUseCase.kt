@@ -5,12 +5,12 @@ package ui.conversation.components.emoji
 import augmy.composeapp.generated.resources.Res
 import augmy.interactive.shared.ext.ifNull
 import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.coroutines.FlowSettings
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.EmojiSelection
 import data.shared.SharedDataManager
 import database.dao.EmojiSelectionDao
+import koin.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +37,7 @@ class EmojiUseCase(
     private val dataManager: EmojiDataManager,
     private val sharedDataManager: SharedDataManager,
     private val json: Json,
-    private val settings: FlowSettings,
+    private val settings: AppSettings,
     private val selectionDao: EmojiSelectionDao
 ) {
     private val conversationEmojiHistory = MutableStateFlow<EmojiHistory?>(null)

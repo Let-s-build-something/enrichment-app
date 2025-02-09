@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 
 /** Meta information of paging response */
 @Serializable
-@Entity(tableName = AppRoomDatabase.ROOM_PAGING_META_TABLE)
+@Entity(tableName = AppRoomDatabase.TABLE_PAGING_META)
 data class PagingMetaIO(
 
     /** Local room database identifier */

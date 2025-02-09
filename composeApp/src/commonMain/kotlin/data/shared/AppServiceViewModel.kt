@@ -17,9 +17,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -45,8 +47,23 @@ class AppServiceViewModel(
     /** Newly emitted deep link which should be handled */
     val newDeeplink = dataManager.newDeeplink.asSharedFlow()
 
+    /** current client status */
+    val clientStatus = MutableStateFlow<ClientStatus?>(null)
+
     /** Whether leave dialog should be shown */
     var showLeaveDialog: Boolean = true
+
+    init {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                ClientStatus.entries.find {
+                    it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
+                }.let { status ->
+                    clientStatus.emit(status ?: ClientStatus.NEW)
+                }
+            }
+        }
+    }
 
     /** Initializes the application */
     fun initApp() {
@@ -100,11 +117,8 @@ class AppServiceViewModel(
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
             }
-            /*Firebase.auth.idTokenChanged.collectLatest { firebaseUser ->
-                sharedDataManager.currentUser.update {
-                    it?.copy(idToken = firebaseUser?.getIdToken(false))
-                }
-            }*/
+
+            // TODO Matrix autologin
         }
     }
 
@@ -117,8 +131,6 @@ class AppServiceViewModel(
 
     /** Emits a new deep link for handling */
     fun emitDeepLink(uri: String?) {
-        println("emitDeepLink, path: $uri")
-
         if(uri == null) return
         viewModelScope.launch {
             dataManager.newDeeplink.emit(

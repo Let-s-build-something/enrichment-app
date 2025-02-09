@@ -12,6 +12,7 @@ object Matrix {
     object ErrorCode {
         const val FORBIDDEN = "M_FORBIDDEN"
         const val LIMIT_EXCEEDED = "M_LIMIT_EXCEEDED"
+        const val USER_IN_USE = "M_USER_IN_USE"
         const val UNKNOWN = "M_UNKNOWN"
         const val CREDENTIALS_IN_USE = "M_THREEPID_IN_USE"
         const val CREDENTIALS_DENIED = "M_THREEPID_DENIED"

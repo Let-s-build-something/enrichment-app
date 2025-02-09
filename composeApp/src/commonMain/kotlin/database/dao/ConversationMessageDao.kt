@@ -12,7 +12,7 @@ import database.AppRoomDatabase
 interface ConversationMessageDao {
 
     /** Returns all items */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId " +
             "ORDER BY sent_at DESC " +
             "LIMIT :limit " +
@@ -24,7 +24,7 @@ interface ConversationMessageDao {
     ): List<ConversationMessageIO>
 
     /** Returns anchored items related to a single message */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId " +
             "AND (anchor_message_id = :anchorMessageId " +
             "OR parent_anchor_message_id = :anchorMessageId)" +
@@ -39,7 +39,7 @@ interface ConversationMessageDao {
     ): List<ConversationMessageIO>
 
     /** Counts the number of items */
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId")
     suspend fun getCount(conversationId: String?): Int
 
@@ -48,13 +48,13 @@ interface ConversationMessageDao {
     suspend fun insertAll(items: List<ConversationMessageIO>)
 
     /** Retrieves a single item */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE id = :messageId " +
             "LIMIT 1")
     suspend fun get(messageId: String?): ConversationMessageIO?
 
     /** marks a message as transcribed */
-    @Query("UPDATE ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+    @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "SET transcribed = :transcribed " +
             "WHERE id = :messageId ")
     suspend fun transcribe(messageId: String, transcribed: Boolean)
@@ -64,7 +64,7 @@ interface ConversationMessageDao {
     suspend fun insert(item: ConversationMessageIO)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE} " +
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId")
     suspend fun removeAll(conversationId: String?)
 }

@@ -16,7 +16,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Conversation entity representing a singular message within a conversation */
-@Entity(tableName = AppRoomDatabase.ROOM_CONVERSATION_MESSAGE_TABLE)
+@Entity(tableName = AppRoomDatabase.TABLE_CONVERSATION_MESSAGE)
 @Serializable
 data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 

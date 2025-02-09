@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package koin
 
 import augmy.interactive.shared.ui.base.PlatformType
@@ -7,13 +5,12 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
-import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.coroutines.FlowSettings
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
 import data.shared.SharedViewModel
 import data.shared.appServiceModule
+import data.shared.auth.authModule
 import data.shared.developerConsoleModule
 import data.shared.sync.dataSyncModule
 import database.databaseModule
@@ -51,6 +48,7 @@ internal val commonModule = module {
 
     includes(databaseModule)
     includes(dataSyncModule)
+    includes(authModule)
     viewModelOf(::SharedViewModel)
     includes(homeModule)
     includes(appServiceModule)
@@ -80,4 +78,6 @@ internal val commonModule = module {
     factory { SharedRepository(get<HttpClient>()) }
 }
 
-expect val settings: FlowSettings
+expect val settings: AppSettings
+
+expect val secureSettings: SecureAppSettings

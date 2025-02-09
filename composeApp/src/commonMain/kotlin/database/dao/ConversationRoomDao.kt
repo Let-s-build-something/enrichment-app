@@ -12,7 +12,7 @@ import database.AppRoomDatabase
 interface ConversationRoomDao {
 
     /** Returns paginated conversation based on the owner as defined by [ownerPublicId] */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND batch = :batch ")
     suspend fun getPaginated(
@@ -21,14 +21,14 @@ interface ConversationRoomDao {
     ): List<ConversationRoomIO>
 
     /** Returns all conversations related to an owner as defined by [ownerPublicId] */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId ")
     suspend fun getNonFiltered(
         ownerPublicId: String?
     ): List<ConversationRoomIO>
 
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id != :excludeId " +
             "AND proximity BETWEEN :proximityMin AND :proximityMax " +
@@ -42,7 +42,7 @@ interface ConversationRoomDao {
     ): List<ConversationRoomIO>
 
     /** Counts the number of items */
-    @Query("UPDATE ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+    @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "SET proximity = :proximity " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id = :id ")
@@ -53,7 +53,7 @@ interface ConversationRoomDao {
     )
 
     /** Counts the number of items */
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE} " +
+    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
@@ -62,7 +62,7 @@ interface ConversationRoomDao {
     suspend fun insertAll(items: List<ConversationRoomIO>)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.ROOM_CONVERSATION_ROOM_TABLE}" +
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}" +
             " WHERE owner_public_id = :ownerPublicId")
     suspend fun removeAll(ownerPublicId: String?)
 }

@@ -9,12 +9,13 @@ version-code = "50"
 
 androidx-activityCompose = "1.10.0"
 kotlin = "2.1.0"
+kotlinTest = "2.1.20-Beta2"
 ksp = "2.1.0-1.0.29"
 ktor = "3.0.3"
 ksoup = "0.2.2"
 navigationCompose = "2.8.0-alpha12"
 compose-plugin = "1.7.3"
-compottie = "2.0.0-rc03"
+compottie = "2.0.0-rc04"
 mediaPlayerChaintech = "1.0.30"
 kotlinCrypto = "0.5.3"
 koin = "4.0.0"
@@ -41,12 +42,14 @@ workRuntimeKtx = "2.10.0"
 accompanistPermissions = "0.36.0"
 credentials = "1.3.0"
 androidxSplashscreen = "1.2.0-alpha02"
-androidFirebaseAuth = "23.1.0"
+androidFirebaseAuth = "23.2.0"
 androidFirebaseCommon = "21.0.0"
 androidFirebaseMessaging = "24.1.0"
 
 # Java
 jvmGoogleCloudStorage = "2.46.0"
+jvmCredentialStore = "243.23654.166"
+securityCryptoKtx = "1.1.0-alpha06"
 
 
 [libraries]
@@ -91,6 +94,9 @@ ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version
 ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 
+kotlin-test-common = { group = "org.jetbrains.kotlin", name = "kotlin-test-common", version.ref = "kotlinTest" }
+kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlinTest" }
+
 ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
@@ -123,12 +129,18 @@ android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", 
 android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
+androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
 
 #------------------- JVM -------------------
 java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
+credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
 
 
 [bundles]
+kotlin-test = [
+    "kotlin-test-common",
+    "kotlin-test-junit5",
+]
 ktor-common = [
     "ktor-client-core",
     "ktor-client-json",

@@ -54,6 +54,7 @@ import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.AugmyTheme
 import base.navigation.NavigationNode
+import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
 import data.shared.AppServiceViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -181,6 +182,14 @@ private fun AppContent(
                 }
             }catch (e: IllegalArgumentException) {
                 modalDeepLink.value = it
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.clientStatus.collectLatest {
+            if(it == ClientStatus.NEW) {
+                navController.navigate(NavigationNode.Login)
             }
         }
     }

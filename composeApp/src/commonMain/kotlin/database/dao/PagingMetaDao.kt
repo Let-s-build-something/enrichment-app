@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.base.paging.PagingMetaIO
-import database.AppRoomDatabase.Companion.ROOM_PAGING_META_TABLE
+import database.AppRoomDatabase.Companion.TABLE_PAGING_META
 
 /** Interface for communication with local Room database */
 @Dao
@@ -16,15 +16,15 @@ interface PagingMetaDao {
     suspend fun insertAll(pagingMeta: List<PagingMetaIO>)
 
     /** returns specific paging meta data for a given entity identification [entityId] */
-    @Query("SELECT * FROM $ROOM_PAGING_META_TABLE WHERE entity_id = :entityId")
+    @Query("SELECT * FROM $TABLE_PAGING_META WHERE entity_id = :entityId")
     suspend fun getByEntityId(entityId: String): PagingMetaIO?
 
     /** deletes all paging meta data */
-    @Query("DELETE FROM $ROOM_PAGING_META_TABLE")
+    @Query("DELETE FROM $TABLE_PAGING_META")
     suspend fun removeAll()
 
     /** returns when was the last time we used RestApi data */
-    @Query("SELECT created_at FROM $ROOM_PAGING_META_TABLE " +
+    @Query("SELECT created_at FROM $TABLE_PAGING_META " +
             "WHERE entity_type = :entityType " +
             "ORDER BY created_at DESC LIMIT 1")
     suspend fun getCreationTime(entityType: String): Long?

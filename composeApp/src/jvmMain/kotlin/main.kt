@@ -29,7 +29,6 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
 import com.google.firebase.initialize
 import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.coroutines.SuspendSettings
 import com.russhwolf.settings.coroutines.toBlockingSettings
 import data.io.app.ThemeChoice
@@ -39,6 +38,7 @@ import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
 import io.kamel.image.config.Default
 import io.kamel.image.config.LocalKamelConfig
+import koin.AppSettings
 import koin.commonModule
 import koin.settingsModule
 import kotlinx.coroutines.CoroutineScope
@@ -83,7 +83,7 @@ fun main(args: Array<String>) = application {
         startKoin {
             modules(settingsModule)
             initializeFirebase(
-                settings = KoinPlatform.getKoin().get<FlowSettings>(),
+                settings = KoinPlatform.getKoin().get<AppSettings>(),
                 scope = coroutineScope
             )
             modules(commonModule)
