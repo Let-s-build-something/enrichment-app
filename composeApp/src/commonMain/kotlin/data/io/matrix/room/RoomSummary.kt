@@ -42,6 +42,22 @@ data class RoomSummary(
     val joinedMemberCount: Int? = null
 ) {
 
+    fun update(other: RoomSummary?): RoomSummary {
+        return if(other == null) this
+        else this.copy(
+            heroes = other.heroes ?: heroes,
+            canonicalAlias = other.canonicalAlias ?: canonicalAlias,
+            tag = other.tag ?: tag,
+            avatarUrl = other.avatarUrl ?: avatarUrl,
+            proximity = other.proximity ?: proximity,
+            lastMessage = other.lastMessage ?: lastMessage,
+            isDirect = other.isDirect ?: isDirect,
+            invitationMessage = other.invitationMessage ?: invitationMessage,
+            invitedMembersCount = other.invitedMembersCount ?: invitedMembersCount,
+            joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
+        )
+    }
+
     /** List of members */
     var members: List<NetworkItemIO>? = null
 

@@ -57,6 +57,12 @@ interface ConversationRoomDao {
             "WHERE owner_public_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
+    /** Counts the number of items */
+    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND id = :id")
+    suspend fun getItem(id: String?, ownerPublicId: String?): ConversationRoomIO?
+
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomIO>)
