@@ -40,10 +40,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("account_data")
     val accountData: RoomAccountData? = null,
 
-    /** The timeline of messages and state changes in the room. */
-    @Ignore
-    val timeline: RoomTimeline? = null,
-
     /** The stripped state of a room that the user has been invited to. */
     @ColumnInfo("invite_state")
     val inviteState: RoomInviteState? = null,
@@ -61,6 +57,10 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val primaryKey: String = "${id}_$ownerPublicId"
 ) {
 
+    /** The timeline of messages and state changes in the room. */
+    @Ignore
+    var timeline: RoomTimeline? = null
+
     fun update(other: ConversationRoomIO?): ConversationRoomIO {
         return if(other == null) this
         else this.copy(
@@ -71,12 +71,13 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             ephemeral = other.ephemeral ?: ephemeral,
             state = other.state ?: state,
             accountData = other.accountData ?: accountData,
-            timeline = other.timeline ?: timeline,
             inviteState = other.inviteState ?: inviteState,
             knockState = other.knockState ?: knockState,
             ownerPublicId = other.ownerPublicId ?: ownerPublicId,
             primaryKey = other.primaryKey
-        )
+        ).apply {
+            this.timeline = other.timeline ?: this.timeline
+        }
     }
 
     /** Type of the room */

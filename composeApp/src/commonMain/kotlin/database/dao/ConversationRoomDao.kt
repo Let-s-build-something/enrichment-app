@@ -14,10 +14,13 @@ interface ConversationRoomDao {
     /** Returns paginated conversation based on the owner as defined by [ownerPublicId] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
-            "AND batch = :batch ")
+            "ORDER BY proximity DESC " +
+            "LIMIT :limit " +
+            "OFFSET :offset")
     suspend fun getPaginated(
         ownerPublicId: String?,
-        batch: String?
+        limit: Int,
+        offset: Int
     ): List<ConversationRoomIO>
 
     /** Returns all conversations related to an owner as defined by [ownerPublicId] */
@@ -58,9 +61,10 @@ interface ConversationRoomDao {
     suspend fun getCount(ownerPublicId: String?): Int
 
     /** Counts the number of items */
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
-            "AND id = :id")
+            "AND id = :id " +
+            "LIMIT 1")
     suspend fun getItem(id: String?, ownerPublicId: String?): ConversationRoomIO?
 
     /** Inserts or updates a set of item objects */

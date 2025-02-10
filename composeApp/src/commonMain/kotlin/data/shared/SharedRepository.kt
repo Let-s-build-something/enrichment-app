@@ -20,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform.getKoin
-import ui.home.HomeRepository.Companion.INITIAL_BATCH
 import ui.login.safeRequest
 
 open class SharedRepository(private val httpClient: HttpClient) {
@@ -60,9 +59,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
 
             if(conversationRoomDao.getCount(publicId) == 0) {
                 conversationRoomDao.insertAll(DemoData.demoRooms.map {
-                    it.copy(
-                        ownerPublicId = publicId
-                    ).apply { batch = INITIAL_BATCH }
+                    it.copy(ownerPublicId = publicId)
                 })
                 conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
                     it.conversationId = DemoData.demoRooms.getOrNull(0)?.id

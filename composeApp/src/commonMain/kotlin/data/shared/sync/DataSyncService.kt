@@ -12,6 +12,7 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
+import data.shared.SharedRepository
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
@@ -50,6 +51,7 @@ class DataSyncService {
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
+    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
 
@@ -64,6 +66,11 @@ class DataSyncService {
         if(!isRunning) {
             isRunning = true
             syncScope.launch {
+                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                    sharedRepository.authenticateUser(
+                        localSettings = sharedDataManager.localSettings.value
+                    )
+                )
                 enqueue()
             }
         }
