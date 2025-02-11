@@ -2,7 +2,6 @@ package data.io.matrix.room
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
@@ -54,12 +53,11 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     @PrimaryKey
     @ColumnInfo("primary_key")
-    val primaryKey: String = "${id}_$ownerPublicId"
-) {
+    val primaryKey: String = "${id}_$ownerPublicId",
 
     /** The timeline of messages and state changes in the room. */
-    @Ignore
-    var timeline: RoomTimeline? = null
+    val timeline: RoomTimeline? = null
+) {
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {
         return if(other == null) this
@@ -74,10 +72,9 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             inviteState = other.inviteState ?: inviteState,
             knockState = other.knockState ?: knockState,
             ownerPublicId = other.ownerPublicId ?: ownerPublicId,
-            primaryKey = other.primaryKey
-        ).apply {
-            this.timeline = other.timeline ?: this.timeline
-        }
+            primaryKey = other.primaryKey,
+            timeline = other.timeline ?: this.timeline
+        )
     }
 
     /** Type of the room */

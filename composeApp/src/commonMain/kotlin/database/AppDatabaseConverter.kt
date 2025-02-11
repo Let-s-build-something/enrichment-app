@@ -2,13 +2,13 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
-import data.io.social.network.conversation.giphy.GifAsset
 import data.io.matrix.room.RoomAccountData
 import data.io.matrix.room.RoomEphemeral
 import data.io.matrix.room.RoomInviteState
 import data.io.matrix.room.RoomNotificationsCount
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomTimeline
+import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
@@ -84,16 +84,14 @@ class AppDatabaseConverter {
         return json.decodeFromString(value)
     }
 
-    /** Converts object to string */
+    // empty converters
     @TypeConverter
-    fun fromRoomTimeline(value: RoomTimeline): String {
-        return json.encodeToString(value)
+    fun fromRoomTimeline(value: RoomTimeline): String? {
+        return null
     }
-
-    /** Converts string to an object */
     @TypeConverter
-    fun toRoomTimeline(value: String): RoomTimeline {
-        return json.decodeFromString(value)
+    fun toRoomTimeline(value: String): RoomTimeline? {
+        return null
     }
 
     /** Converts object to string */

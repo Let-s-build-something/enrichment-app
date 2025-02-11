@@ -86,7 +86,7 @@ class DataSyncService {
         nextBatch: String? = this.nextBatch
     ) {
         if(homeserver == null) return
-        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(homeserver)?.nextBatch
+        val batch = nextBatch// ?: matrixPagingMetaDao.getByEntityId(homeserver)?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
