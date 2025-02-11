@@ -11,21 +11,9 @@ import database.AppRoomDatabase.Companion.TABLE_MATRIX_PAGING_META
 @Dao
 interface MatrixPagingMetaDao {
 
-    /** Inserts all paging meta data */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(pagingMeta: List<MatrixPagingMetaIO>)
-
     /** Inserts a paging meta data */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(pagingMeta: MatrixPagingMetaIO)
-
-    /** returns specific paging meta data for a given entity identification [entityId] */
-    @Query("SELECT * FROM $TABLE_MATRIX_PAGING_META WHERE entity_id = :entityId")
-    suspend fun getByEntityId(entityId: String): MatrixPagingMetaIO?
-
-    /** deletes all paging meta data */
-    @Query("DELETE FROM $TABLE_MATRIX_PAGING_META WHERE entity_type = :entityType")
-    suspend fun removeAll(entityType: String)
 
     /** returns when was the last time we used RestApi data */
     @Query("SELECT created_at FROM $TABLE_MATRIX_PAGING_META " +
