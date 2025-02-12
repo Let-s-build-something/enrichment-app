@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package ui.conversation
 
 import androidx.lifecycle.viewModelScope
@@ -8,7 +6,6 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
 import base.utils.getUrlExtension
-import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.matrix.media.MediaRepositoryConfig
@@ -132,7 +129,7 @@ open class ConversationViewModel(
     /** Last saved message timings relevant to this conversation */
     val savedTimings = MutableStateFlow(listOf<Long>())
 
-    val messageMaxLength = 5000
+    private val messageMaxLength = 5000
 
     init {
         if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
@@ -169,7 +166,6 @@ open class ConversationViewModel(
     // ==================== functions ===========================
 
     /** Saves content of a message */
-    @OptIn(ExperimentalSettingsApi::class)
     fun saveMessage(
         content: String?,
         timings: List<Long> = listOf()
