@@ -86,7 +86,9 @@ class DataSyncService {
         nextBatch: String? = this.nextBatch
     ) {
         if(homeserver == null) return
-        val batch = nextBatch// ?: matrixPagingMetaDao.getByEntityId(homeserver)?.nextBatch
+        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
+            entityId = "${homeserver}_${sharedDataManager.currentUser.value?.publicId}"
+        )?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
@@ -123,7 +125,7 @@ class DataSyncService {
 
         matrixPagingMetaDao.insert(
             MatrixPagingMetaIO(
-                entityId = homeserver,
+                entityId = "${homeserver}_$owner",
                 entityType = PagingEntityType.Sync,
                 nextBatch = nextBatch,
                 batch = batch
@@ -243,7 +245,7 @@ class DataSyncService {
             mutex.withLock {
                 val time = DateUtils.now.toEpochMilliseconds()
                 val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
-                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer of 400 milliseconds
+                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer
 
                 if(calculatedDelay > 0) delay(calculatedDelay)
                 sharedDataManager.ping.emit(ping)
