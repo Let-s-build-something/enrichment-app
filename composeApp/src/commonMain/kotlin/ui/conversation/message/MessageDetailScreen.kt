@@ -90,12 +90,15 @@ fun MessageDetailScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.appPing.collectLatest {
-            if(it.type == AppPingType.Conversation
-                && (it.identifiers.contains(messageId)
-                        || it.identifiers.contains(conversationId))
-            ) {
-                replies.refresh()
+        viewModel.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.Conversation
+                    && (it.identifiers.contains(messageId)
+                            || it.identifiers.contains(conversationId))
+                ) {
+                    replies.refresh()
+                    viewModel.consumePing(it)
+                }
             }
         }
     }

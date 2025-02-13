@@ -46,6 +46,7 @@ internal val dataSyncModule = module {
 class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
+        private const val PING_EXPIRY_MS = 60_000 * 15
     }
 
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
@@ -227,12 +228,14 @@ class DataSyncService {
             withContext(Dispatchers.IO) {
                 conversationMessageDao.insertAll(messages)
 
-                if(messages.isNotEmpty()) appendPing(
-                    AppPing(
-                        type = AppPingType.Conversation,
-                        identifiers = messages.mapNotNull { it.conversationId }.distinct()
+                if(messages.isNotEmpty()) {
+                    appendPing(
+                        AppPing(
+                            type = AppPingType.Conversation,
+                            identifiers = messages.mapNotNull { it.conversationId }.distinct()
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -248,7 +251,11 @@ class DataSyncService {
                 lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer
 
                 if(calculatedDelay > 0) delay(calculatedDelay)
-                sharedDataManager.ping.emit(ping)
+                sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
+                    retainAll {
+                        DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
+                    }
+                }.plus(ping)
             }
         }
     }

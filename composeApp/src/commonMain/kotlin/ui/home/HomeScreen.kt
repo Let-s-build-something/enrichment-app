@@ -131,9 +131,11 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        viewModel.appPing.collectLatest {
-            if(it.type == AppPingType.ConversationDashboard) {
-                conversationRooms.refresh()
+        viewModel.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.ConversationDashboard) {
+                    conversationRooms.refresh()
+                }
             }
         }
     }

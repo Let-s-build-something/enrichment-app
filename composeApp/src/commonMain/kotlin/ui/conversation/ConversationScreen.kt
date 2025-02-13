@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
@@ -30,6 +31,7 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationArguments
@@ -75,10 +77,18 @@ fun ConversationScreen(
         mutableStateOf<String?>(null)
     }
 
+    LifecycleListener {
+        if(it == Lifecycle.Event.ON_RESUME) {
+            messages.refresh()
+        }
+    }
     LaunchedEffect(Unit) {
-        viewModel.appPing.collectLatest {
-            if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
-                messages.refresh()
+        viewModel.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
+                    messages.refresh()
+                    viewModel.consumePing(it)
+                }
             }
         }
     }
