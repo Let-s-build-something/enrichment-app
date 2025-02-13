@@ -363,7 +363,7 @@ private fun NetworkItemCompact(
                         .scalingClickable {
                             onClick()
                         },
-                    model = data.photoUrl,
+                    media = data.avatar,
                     tag = data.tag
                 )
                 Text(

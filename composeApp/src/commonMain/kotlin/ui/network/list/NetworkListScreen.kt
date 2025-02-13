@@ -278,7 +278,7 @@ private fun NetworkItem(
                     name = it.summary?.alias,
                     proximity = it.summary?.proximity,
                     publicId = it.id,
-                    photoUrl = it.summary?.avatarUrl
+                    avatar = it.summary?.avatar
                 )
             },
             onDismissRequest = {

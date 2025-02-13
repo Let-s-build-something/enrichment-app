@@ -30,6 +30,8 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
+import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
@@ -37,8 +39,6 @@ import components.LoadingIndicator
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.social.network.request.CirclingRequest
-import augmy.interactive.shared.ext.brandShimmerEffect
-import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -87,7 +87,7 @@ private fun ContentLayout(
         ) {
             UserProfileImage(
                 modifier = Modifier.size(48.dp),
-                model = data.photoUrl,
+                media = data.avatar,
                 tag = data.tag,
                 contentDescription = null
             )

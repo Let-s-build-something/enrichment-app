@@ -131,7 +131,7 @@ fun ProximityPicker(
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .size(42.dp),
-                                    model = user.photoUrl,
+                                    model = user.avatar,
                                     contentDescription = null
                                 )
                                 if(selectedCategory == category) {

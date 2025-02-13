@@ -22,7 +22,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +45,7 @@ import augmy.composeapp.generated.resources.logo_powerpoint
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
+import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getExtensionFromMimeType
@@ -55,8 +60,11 @@ import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.extension
 import korlibs.io.net.MimeType
+import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.components.audio.MediaProcessorModel
 import ui.conversation.components.gif.GifImage
 
 /**
@@ -77,8 +85,11 @@ fun MediaElement(
     enabled: Boolean = onTap != null,
     onLongPress: () -> Unit = {}
 ) {
+    var finalMedia by remember(media) {
+        mutableStateOf(media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true })
+    }
     val mediaType = getMediaType(
-        media?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
+        finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
     )
     val itemModifier = modifier.scalingClickable(
         enabled = enabled,
@@ -92,7 +103,23 @@ fun MediaElement(
         }
     )
 
-    if(!media?.url.isNullOrBlank() || localMedia != null) {
+    if(media?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) == true) {
+        val viewModel: MediaProcessorModel = koinViewModel()
+
+        LaunchedEffect(Unit) {
+            viewModel.cacheFiles(media)
+        }
+
+        LaunchedEffect(Unit) {
+            viewModel.cachedFiles.collectLatest {
+                it[media.url]?.let { newMedia ->
+                    finalMedia = newMedia
+                }
+            }
+        }
+    }
+
+    if(!finalMedia?.url.isNullOrBlank() || localMedia != null) {
         when(mediaType) {
             MediaType.IMAGE -> {
                 if (localMedia != null) {
@@ -101,10 +128,10 @@ fun MediaElement(
                         contentScale = contentScale,
                         media = localMedia
                     )
-                } else if(media?.url != null) {
+                } else if(finalMedia?.url != null) {
                     AsyncSvgImage(
                         modifier = itemModifier.wrapContentWidth(),
-                        model = media.path ?: media.url,
+                        model = finalMedia?.path ?: finalMedia?.url,
                         contentScale = contentScale,
                         contentDescription = contentDescription
                     )
@@ -114,7 +141,7 @@ fun MediaElement(
                 @Suppress("IMPLICIT_CAST_TO_ANY")
                 (if(localMedia != null) {
                     PlatformFileShell(localMedia)
-                } else media?.path ?: media?.url)?.let { data ->
+                } else finalMedia?.path ?: finalMedia?.url)?.let { data ->
                     GifImage(
                         modifier = itemModifier
                             .zIndex(1f)
@@ -157,9 +184,9 @@ fun MediaElement(
                         }
                     )
 
-                    val playerHost = remember(media?.url) {
+                    val playerHost = remember(finalMedia?.url) {
                         VideoPlayerHost(
-                            url = localMedia?.path ?: media?.path ?: media?.url ?: "",
+                            url = localMedia?.path ?: finalMedia?.path ?: finalMedia?.url ?: "",
                         )
                     }
                     VideoPlayerComposable(
@@ -186,7 +213,7 @@ fun MediaElement(
                         }
 
                         VideoPreviewComposable(
-                            url = localMedia?.path ?: media?.path ?: media?.url ?: "",
+                            url = localMedia?.path ?: finalMedia?.path ?: finalMedia?.url ?: "",
                             loadingIndicatorColor = LocalTheme.current.colors.secondary,
                             frameCount = 1
                         )
@@ -243,7 +270,7 @@ fun MediaElement(
                     }
                     Text(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
-                        text = "${localMedia?.name ?: media?.name ?: ""}.${localMedia?.extension ?: getExtensionFromMimeType(media?.mimetype)}",
+                        text = "${localMedia?.name ?: finalMedia?.name ?: ""}.${localMedia?.extension ?: getExtensionFromMimeType(finalMedia?.mimetype)}",
                         style = LocalTheme.current.styles.regular
                     )
                 }

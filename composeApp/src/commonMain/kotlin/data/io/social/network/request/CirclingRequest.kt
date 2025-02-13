@@ -1,5 +1,6 @@
 package data.io.social.network.request
 
+import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.Serializable
 
 /**
@@ -21,7 +22,7 @@ data class CirclingRequest(
 	val createdAt: Long? = null,
 
 	/** URL of profile picture of the initiating user */
-	val photoUrl: String? = null,
+	val avatar: MediaIO? = null,
 
 	/**
 	 * A decimal range between -1 and 10. -1 means blocked, 1 is muted,

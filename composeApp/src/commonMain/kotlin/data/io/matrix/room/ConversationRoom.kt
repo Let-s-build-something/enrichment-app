@@ -2,6 +2,7 @@ package data.io.matrix.room
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
@@ -86,12 +87,16 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             else -> RoomType.Joined
         }
 
+    /** Users participating in the conversation */
+    @Ignore
+    val users: List<NetworkItemIO>? = null
+
     /** Converts this item to a network item representation */
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
         name = summary?.alias,
         tag = summary?.tag,
-        photoUrl = summary?.avatarUrl,
+        avatar = summary?.avatar,
         lastMessage = summary?.lastMessage?.content?.body
     )
 }

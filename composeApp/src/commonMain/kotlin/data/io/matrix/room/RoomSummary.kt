@@ -1,5 +1,6 @@
 package data.io.matrix.room
 
+import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import kotlinx.serialization.Serializable
 
@@ -21,7 +22,7 @@ data class RoomSummary(
     val tag: String? = null,
 
     /** Avatar photo url. */
-    val avatarUrl: String? = null,
+    val avatar: MediaIO? = null,
 
     /** The room’s canonical alias. */
     val proximity: Float? = null,
@@ -48,7 +49,7 @@ data class RoomSummary(
             heroes = other.heroes ?: heroes,
             canonicalAlias = other.canonicalAlias ?: canonicalAlias,
             tag = other.tag ?: tag,
-            avatarUrl = other.avatarUrl ?: avatarUrl,
+            avatar = other.avatar ?: avatar,
             proximity = other.proximity ?: proximity,
             lastMessage = other.lastMessage ?: lastMessage,
             isDirect = other.isDirect ?: isDirect,

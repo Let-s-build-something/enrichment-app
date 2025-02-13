@@ -9,13 +9,12 @@ import base.utils.getUrlExtension
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.matrix.media.MediaRepositoryConfig
+import data.io.matrix.room.ConversationRoomIO
 import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
-import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import data.shared.DemoData.demoConversationDetail
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import korlibs.io.net.MimeType
@@ -34,7 +33,6 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardViewModel
 import ui.conversation.components.audio.MediaHttpProgress
-import ui.conversation.components.audio.audioProcessorModule
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
@@ -42,9 +40,8 @@ import ui.login.AUGMY_HOME_SERVER
 
 internal val conversationModule = module {
     includes(keyboardModule)
-    includes(audioProcessorModule)
 
-    factory { ConversationRepository(get(), get(), get(), get(), get<FileAccess>()) }
+    factory { ConversationRepository(get(), get(), get(), get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
             get<String>(),
@@ -75,7 +72,7 @@ open class ConversationViewModel(
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
-    private val _conversationDetail = MutableStateFlow<NetworkConversationIO?>(null)
+    private val _conversationDetail = MutableStateFlow<ConversationRoomIO?>(null)
     private val _typingIndicators = MutableStateFlow<Pair<Int, List<ConversationTypingIndicator>>>(-1 to listOf())
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
     private val _repositoryConfig = MutableStateFlow<MediaRepositoryConfig?>(null)
@@ -132,9 +129,12 @@ open class ConversationViewModel(
     private val messageMaxLength = 5000
 
     init {
-        if(conversationId.isNotBlank() && _conversationDetail.value?.publicId != conversationId) {
+        if(conversationId.isNotBlank() && _conversationDetail.value?.id != conversationId) {
             viewModelScope.launch {
-                repository.getConversationDetail(conversationId = conversationId).success?.data?.let { data ->
+                repository.getConversationDetail(
+                    conversationId = conversationId,
+                    owner = currentUser.value?.publicId
+                )?.let { data ->
                     _conversationDetail.value = data
                 }
             }
@@ -154,9 +154,6 @@ open class ConversationViewModel(
                 _repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
             }
         }
-
-        // TODO remove demo data
-        _conversationDetail.value = demoConversationDetail
 
         // TODO socket listening on typing indicators
         //appendTypingIndicator()

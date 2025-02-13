@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 27,
+    "version": 28,
     "identityHash": "30450891e943b103ce11cb4aa1505089",
     "entities": [
       {
@@ -35,7 +35,7 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "photoMedia",
+            "fieldPath": "avatar",
             "columnName": "photo_media",
             "affinity": "TEXT"
           },

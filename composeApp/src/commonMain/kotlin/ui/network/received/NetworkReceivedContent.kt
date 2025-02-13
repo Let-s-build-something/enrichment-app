@@ -154,7 +154,7 @@ fun NetworkReceivedContent(
                                 if(accept) {
                                     showProximityPicker.value = NetworkItemIO(
                                         publicId = data.publicId,
-                                        photoUrl = data.photoUrl,
+                                        avatar = data.avatar,
                                         name = data.displayName,
                                         tag = data.tag
                                     )

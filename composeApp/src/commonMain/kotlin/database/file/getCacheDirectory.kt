@@ -1,6 +1,7 @@
 package database.file
 
 import augmy.interactive.shared.utils.DateUtils
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -8,6 +9,7 @@ import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
 import okio.SYSTEM
+import ui.conversation.components.audio.MediaProcessorRepository
 
 /** Returns a platform specific cache directory */
 expect fun getCacheDirectory(): Path
@@ -34,13 +36,23 @@ open class FileAccess {
     }
 
     /** Attempts to retrieve a file from the cache directory */
-    suspend fun loadFileFromCache(fileName: String): Pair<ByteArray, Path?>? {
+    suspend fun loadFileFromCache(
+        fileName: String,
+        extension: String?
+    ): MediaProcessorRepository.FileResult? {
         return withContext(Dispatchers.IO) {
             val cachePath = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.div(fileName)
             try {
                 if((FileSystem.SYSTEM.metadataOrNull(cachePath)?.lastAccessedAtMillis
                     ?.minus(DateUtils.now.toEpochMilliseconds()) ?: EXPIRATION_MILLIS) < EXPIRATION_MILLIS) {
-                    FileSystem.SYSTEM.read(cachePath) { readByteArray() } to cachePath
+                    MediaProcessorRepository.FileResult(
+                        byteArray = FileSystem.SYSTEM.read(cachePath) { readByteArray() },
+                        path = cachePath,
+                        mimetype = MimeType.getByExtension(
+                            ext = extension ?: "",
+                            default = MimeType.IMAGE_JPEG
+                        ).mime
+                    )
                 }else {
                     FileSystem.SYSTEM.delete(cachePath)
                     null

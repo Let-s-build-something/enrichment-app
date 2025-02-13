@@ -163,7 +163,7 @@ fun MessageDetailScreen(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),
-                                        model = message.value?.user?.photoUrl,
+                                        media = message.value?.user?.avatar,
                                         tag = message.value?.user?.tag,
                                         animate = true
                                     )

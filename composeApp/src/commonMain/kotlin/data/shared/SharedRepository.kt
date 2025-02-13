@@ -5,9 +5,6 @@ import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.user.RequestInitApp
 import data.io.user.UserIO
-import database.dao.ConversationMessageDao
-import database.dao.ConversationRoomDao
-import database.dao.NetworkItemDao
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
@@ -19,7 +16,6 @@ import io.ktor.http.parameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import org.koin.mp.KoinPlatform.getKoin
 import ui.login.safeRequest
 
 open class SharedRepository(private val httpClient: HttpClient) {
@@ -43,34 +39,8 @@ open class SharedRepository(private val httpClient: HttpClient) {
                             )
                         )
                     }
-                }.success?.data?.also {
-                    injectDemoData(it.publicId)
-                } ?: UserIO()
+                }.success?.data ?: UserIO()
             }else null
-        }
-    }
-
-    //TODO remove DEMO data once not needed
-    private suspend fun injectDemoData(publicId: String?) {
-        withContext(Dispatchers.IO) {
-            val conversationRoomDao: ConversationRoomDao = getKoin().get()
-            val conversationMessageDao: ConversationMessageDao = getKoin().get()
-            val networkItemDao: NetworkItemDao = getKoin().get()
-
-            if(conversationRoomDao.getCount(publicId) == 0) {
-                conversationRoomDao.insertAll(DemoData.demoRooms.map {
-                    it.copy(ownerPublicId = publicId)
-                })
-                conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
-                    it.conversationId = DemoData.demoRooms.getOrNull(0)?.id
-                })
-                conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
-                    it.conversationId = DemoData.demoRooms.getOrNull(1)?.id
-                })
-                networkItemDao.insertAll(DemoData.proximityDemoData.map {
-                    it.copy(ownerPublicId = publicId)
-                })
-            }
         }
     }
 }

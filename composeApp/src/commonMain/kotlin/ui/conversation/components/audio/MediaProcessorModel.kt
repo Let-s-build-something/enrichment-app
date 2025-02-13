@@ -14,7 +14,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.link.GraphProtocol
 
-internal val audioProcessorModule = module {
+internal val mediaProcessorModule = module {
     factory { MediaProcessorDataManager() }
     single { MediaProcessorDataManager() }
     factory { MediaProcessorModel(get(), get()) }
@@ -68,7 +68,7 @@ class MediaProcessorModel(
                 }
             )?.let { file ->
                 // wav to PCM
-                _resultByteArray.value = file.first.copyOfRange(44, file.first.size)
+                _resultByteArray.value = file.byteArray.copyOfRange(44, file.byteArray.size)
             }
         }
     }
@@ -102,7 +102,7 @@ class MediaProcessorModel(
                     }
                 )).let {
                     bytesSentTotal += unit?.size ?: 0
-                    if(it == null || unit == null) null else unit to it.first
+                    if(it == null || unit == null) null else unit to it.byteArray
                 }
             }.toMap()
             _downloadProgress.value = null
@@ -142,7 +142,10 @@ class MediaProcessorModel(
                             bytesSentTotal += unit.size ?: 0
                             put(
                                 unit.url ?: "",
-                                unit.copy(path = result.second?.toString())
+                                unit.copy(
+                                    path = result.path?.toString(),
+                                    mimetype = result.mimetype
+                                )
                             )
                         }
                     }
