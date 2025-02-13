@@ -48,6 +48,7 @@ class MediaProcessorRepository(
                     }
                 }
                 val mimetype = response.contentType()?.toString()
+                val responseMimetype = getExtensionFromMimeType(mimetype)?.let { ".$it" }
 
                 response.bodyAsBytes().takeIf { it.isNotEmpty() }.let { bytes ->
                     if(bytes == null) null
@@ -55,7 +56,7 @@ class MediaProcessorRepository(
                         byteArray = bytes,
                         path = fileAccess.saveFileToCache(
                             data = bytes,
-                            fileName = fileName.plus(getExtensionFromMimeType(mimetype)?.let { ".$it" })
+                            fileName = fileName.plus(responseMimetype)
                         ),
                         mimetype = mimetype
                     )
