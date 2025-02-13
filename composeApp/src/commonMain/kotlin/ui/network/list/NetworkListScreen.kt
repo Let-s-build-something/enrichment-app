@@ -88,9 +88,11 @@ fun NetworkListContent(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.appPing.collectLatest {
-            if(it.type == AppPingType.NetworkDashboard) {
-                networkItems.refresh()
+        viewModel.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.NetworkDashboard) {
+                    networkItems.refresh()
+                }
             }
         }
     }

@@ -131,9 +131,11 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        viewModel.appPing.collectLatest {
-            if(it.type == AppPingType.ConversationDashboard) {
-                conversationRooms.refresh()
+        viewModel.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.ConversationDashboard) {
+                    conversationRooms.refresh()
+                }
             }
         }
     }
@@ -283,65 +285,67 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 }else conversationRooms.itemCount,
                                 key = { index -> conversationRooms.getOrNull(index)?.id ?: Uuid.random().toString() }
                             ) { index ->
-                                conversationRooms.getOrNull(index).let { room ->
-                                    ConversationRoomItem(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        viewModel = viewModel,
-                                        room = room,
-                                        selectedItem = selectedItem.value,
-                                        requestProximityChange = { proximity ->
-                                            val singleUser = if(room?.summary?.isDirect == true) {
-                                                room.summary.members?.firstOrNull()
-                                            }else null
+                                val room = conversationRooms.getOrNull(index)
 
-                                            viewModel.requestProximityChange(
-                                                conversationId = room?.id,
-                                                publicId = singleUser?.publicId,
-                                                proximity = proximity,
-                                                onOperationDone = {
-                                                    if(selectedItem.value == room?.id) {
-                                                        selectedItem.value = null
-                                                    }
-                                                    conversationRooms.refresh()
+                                ConversationRoomItem(
+                                    modifier = Modifier
+                                        .animateItem()
+                                        .fillMaxWidth(),
+                                    viewModel = viewModel,
+                                    room = room,
+                                    selectedItem = selectedItem.value,
+                                    requestProximityChange = { proximity ->
+                                        val singleUser = if(room?.summary?.isDirect == true) {
+                                            room.summary.members?.firstOrNull()
+                                        }else null
+
+                                        viewModel.requestProximityChange(
+                                            conversationId = room?.id,
+                                            publicId = singleUser?.publicId,
+                                            proximity = proximity,
+                                            onOperationDone = {
+                                                if(selectedItem.value == room?.id) {
+                                                    selectedItem.value = null
                                                 }
-                                            )
-                                        },
-                                        customColors = customColors.value,
-                                        onTap = {
-                                            if(selectedItem.value == room?.id) {
-                                                selectedItem.value = null
-                                            }else navController?.navigate(
-                                                NavigationNode.Conversation(
-                                                    conversationId = room?.id,
-                                                    name = room?.summary?.alias
-                                                )
-                                            )
-                                        },
-                                        onLongPress = {
-                                            selectedItem.value = room?.id
-                                        },
-                                        onAvatarClick = {
-                                            if(room?.summary?.isDirect == true) {
-                                                coroutineScope.launch(Dispatchers.Default) {
-                                                    selectedUser.value = networkItems.value?.find {
-                                                        it.userMatrixId == room.summary.heroes?.firstOrNull()
-                                                    }
-                                                }
-                                            }else {
-                                                NavigationNode.ConversationInformation(
-                                                    conversationId = room?.id,
-                                                    name = room?.summary?.alias
-                                                )
+                                                conversationRooms.refresh()
                                             }
-                                        }
-                                    ) {
-                                        if(index != conversationRooms.itemCount - 1) {
-                                            Divider(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                color = LocalTheme.current.colors.disabledComponent,
-                                                thickness = .3.dp
+                                        )
+                                    },
+                                    customColors = customColors.value,
+                                    onTap = {
+                                        if(selectedItem.value == room?.id) {
+                                            selectedItem.value = null
+                                        }else navController?.navigate(
+                                            NavigationNode.Conversation(
+                                                conversationId = room?.id,
+                                                name = room?.summary?.alias
+                                            )
+                                        )
+                                    },
+                                    onLongPress = {
+                                        selectedItem.value = room?.id
+                                    },
+                                    onAvatarClick = {
+                                        if(room?.summary?.isDirect == true) {
+                                            coroutineScope.launch(Dispatchers.Default) {
+                                                selectedUser.value = networkItems.value?.find {
+                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()
+                                                }
+                                            }
+                                        }else {
+                                            NavigationNode.ConversationInformation(
+                                                conversationId = room?.id,
+                                                name = room?.summary?.alias
                                             )
                                         }
+                                    }
+                                ) {
+                                    if(index != conversationRooms.itemCount - 1) {
+                                        Divider(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            color = LocalTheme.current.colors.disabledComponent,
+                                            thickness = .3.dp
+                                        )
                                     }
                                 }
                             }

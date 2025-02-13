@@ -39,9 +39,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("account_data")
     val accountData: RoomAccountData? = null,
 
-    /** The timeline of messages and state changes in the room. */
-    val timeline: RoomTimeline? = null,
-
     /** The stripped state of a room that the user has been invited to. */
     @ColumnInfo("invite_state")
     val inviteState: RoomInviteState? = null,
@@ -56,15 +53,29 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     @PrimaryKey
     @ColumnInfo("primary_key")
-    val primaryKey: String = "${id}_$ownerPublicId"
+    val primaryKey: String = "${id}_$ownerPublicId",
+
+    /** The timeline of messages and state changes in the room. */
+    val timeline: RoomTimeline? = null
 ) {
 
-    /** To which batch this data object belongs to */
-    var batch: String? = null
-
-    /** Next batch identification if any */
-    @ColumnInfo("next_batch")
-    var nextBatch: String? = null
+    fun update(other: ConversationRoomIO?): ConversationRoomIO {
+        return if(other == null) this
+        else this.copy(
+            id = other.id,
+            summary = summary?.update(other.summary) ?: other.summary,
+            proximity = other.proximity ?: proximity,
+            unreadNotifications = other.unreadNotifications ?: unreadNotifications,
+            ephemeral = other.ephemeral ?: ephemeral,
+            state = other.state ?: state,
+            accountData = other.accountData ?: accountData,
+            inviteState = other.inviteState ?: inviteState,
+            knockState = other.knockState ?: knockState,
+            ownerPublicId = other.ownerPublicId ?: ownerPublicId,
+            primaryKey = other.primaryKey,
+            timeline = other.timeline ?: this.timeline
+        )
+    }
 
     /** Type of the room */
     val type: RoomType

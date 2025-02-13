@@ -3,7 +3,6 @@ package data.shared
 import data.io.app.LocalSettings
 import data.io.base.AppPing
 import data.io.user.UserIO
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /** Shared data manager with most common information */
@@ -19,5 +18,5 @@ class SharedDataManager {
     val isToolbarExpanded = MutableStateFlow(true)
 
     /** Acts as a sort of a in-app push notification, notifying of changes */
-    val ping = MutableSharedFlow<AppPing>()
+    val pingStream = MutableStateFlow(setOf<AppPing>())
 }

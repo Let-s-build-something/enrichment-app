@@ -27,7 +27,7 @@ import database.dao.PagingMetaDao
         ConversationMessageIO::class,
         ConversationRoomIO::class
     ],
-    version = 25,
+    version = 27,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

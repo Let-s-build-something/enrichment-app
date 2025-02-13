@@ -17,7 +17,6 @@ import io.ktor.client.request.setBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import ui.home.HomeRepository.Companion.INITIAL_BATCH
 import ui.login.safeRequest
 import ui.network.connection.SocialConnectionUpdate
 
@@ -115,9 +114,7 @@ class NetworkItemRepository(
                                         )
                                     },
                                     ownerPublicId = ownerPublicId
-                                ).apply {
-                                    batch = INITIAL_BATCH
-                                }
+                                )
                             )
                         )
                         BaseResponse.Success(

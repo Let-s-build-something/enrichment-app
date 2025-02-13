@@ -3,6 +3,7 @@ package data.shared
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import data.io.app.SettingsKeys
+import data.io.base.AppPing
 import data.io.user.UserIO
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
@@ -48,13 +49,6 @@ open class SharedViewModel: ViewModel() {
             currentUser.collectLatest { user ->
                 if(user?.accessToken != null && user.matrixHomeserver != null) {
                     dataSyncService.sync(homeserver = user.matrixHomeserver)
-
-                    // first API call for our BE
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                        sharedRepository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value
-                        )
-                    )
                 }else dataSyncService.stop()
             }
         }
@@ -73,7 +67,7 @@ open class SharedViewModel: ViewModel() {
     val currentUser = sharedDataManager.currentUser.asStateFlow()
 
     /** Acts as a sort of a in-app push notification, notifying of changes */
-    val appPing = sharedDataManager.ping.asSharedFlow()
+    val pingStream = sharedDataManager.pingStream.asSharedFlow()
 
     /** currently signed in firebase user */
     val firebaseUser = Firebase.auth.authStateChanged.stateIn(
@@ -100,6 +94,10 @@ open class SharedViewModel: ViewModel() {
 
     //======================================== functions ==========================================
 
+
+    fun consumePing(ping: AppPing) {
+        sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)
+    }
 
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {

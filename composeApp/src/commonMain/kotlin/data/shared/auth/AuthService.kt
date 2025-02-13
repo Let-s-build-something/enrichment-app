@@ -60,7 +60,7 @@ class AuthService {
 
     fun stop() {
         isRunning = false
-        mutex.unlock()
+        if(mutex.isLocked) mutex.unlock()
     }
 
     suspend fun setupAutoLogin() {

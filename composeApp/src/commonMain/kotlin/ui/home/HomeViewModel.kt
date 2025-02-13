@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package ui.home
 
 import androidx.compose.ui.graphics.Color
@@ -10,7 +8,6 @@ import androidx.paging.cachedIn
 import androidx.paging.filter
 import base.utils.asSimpleString
 import base.utils.tagToColor
-import com.russhwolf.settings.ExperimentalSettingsApi
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
@@ -34,7 +31,7 @@ import ui.home.utils.networkItemModule
 
 internal val homeModule = module {
     includes(networkItemModule)
-    factory { HomeRepository(get(), get(), get()) }
+    factory { HomeRepository(get()) }
     factory { HomeViewModel(get<HomeRepository>(), get()) }
     viewModelOf(::HomeViewModel)
 }
@@ -118,7 +115,6 @@ class HomeViewModel(
     }
 
     /** Filters currently downloaded network items */
-    @OptIn(ExperimentalSettingsApi::class)
     fun filterNetworkItems(filter: List<NetworkProximityCategory>) {
         viewModelScope.launch(Dispatchers.Default) {
             _categories.value = filter
@@ -130,7 +126,6 @@ class HomeViewModel(
     }
 
     /** Updates color preference */
-    @OptIn(ExperimentalSettingsApi::class)
     fun updateColorPreference(
         category: NetworkProximityCategory,
         color: Color

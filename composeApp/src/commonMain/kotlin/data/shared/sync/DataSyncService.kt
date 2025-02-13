@@ -12,6 +12,7 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
+import data.shared.SharedRepository
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
@@ -33,7 +34,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
-import ui.home.HomeRepository.Companion.INITIAL_BATCH
 import ui.login.safeRequest
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -46,11 +46,13 @@ internal val dataSyncModule = module {
 class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
+        private const val PING_EXPIRY_MS = 60_000 * 15
     }
 
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
+    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
 
@@ -65,6 +67,11 @@ class DataSyncService {
         if(!isRunning) {
             isRunning = true
             syncScope.launch {
+                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                    sharedRepository.authenticateUser(
+                        localSettings = sharedDataManager.localSettings.value
+                    )
+                )
                 enqueue()
             }
         }
@@ -80,7 +87,9 @@ class DataSyncService {
         nextBatch: String? = this.nextBatch
     ) {
         if(homeserver == null) return
-        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(homeserver)?.nextBatch
+        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
+            entityId = "${homeserver}_${sharedDataManager.currentUser.value?.publicId}"
+        )?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
@@ -113,11 +122,11 @@ class DataSyncService {
         homeserver: String,
         batch: String?
     ) {
-        if(sharedDataManager.currentUser.value?.publicId == null) return
+        val owner = sharedDataManager.currentUser.value?.publicId ?: return
 
         matrixPagingMetaDao.insert(
             MatrixPagingMetaIO(
-                entityId = homeserver,
+                entityId = "${homeserver}_$owner",
                 entityType = PagingEntityType.Sync,
                 nextBatch = nextBatch,
                 batch = batch
@@ -132,108 +141,95 @@ class DataSyncService {
                     addAll(rooms.leave?.map { it.value.copy(id = it.key) }.orEmpty())
                 }
             }
-            rooms?.map { item ->
-                MatrixPagingMetaIO(
-                    entityId = item.id,
-                    nextBatch = nextBatch,
-                    entityType = PagingEntityType.ConversationRoom,
-                    batch = batch ?: INITIAL_BATCH
+
+            // rooms
+            val values = rooms?.map { previous ->
+                val alias = previous.timeline?.events?.find {
+                    it.type == Matrix.Room.CANONICAL_ALIAS
+                }?.content?.let { it.alias ?: it.altAliases?.firstOrNull() }
+                val name = previous.timeline?.events?.find {
+                    it.type == Matrix.Room.NAME
+                }?.content?.name
+
+                val newItem = previous.copy(
+                    summary = previous.summary?.copy(
+                        avatarUrl = previous.state?.events?.find {
+                            it.type == Matrix.Room.AVATAR
+                        }?.content?.url,
+                        canonicalAlias = alias ?: name,
+                        lastMessage = previous.timeline?.events?.find {
+                            it.type == Matrix.Room.MESSAGE
+                        },
+                    ),
+                    ownerPublicId = owner,
+                    primaryKey = "${previous.id}_${owner}"
                 )
-            }?.let { pagingItems ->
-                withContext(Dispatchers.IO) {
-                    matrixPagingMetaDao.insertAll(pagingItems)
-                }
-
-                // rooms
-                val values = rooms.map { previous ->
-                    val alias = previous.timeline?.events?.find {
-                        it.type == Matrix.Room.CANONICAL_ALIAS
-                    }?.content?.let { it.alias ?: it.altAliases?.firstOrNull() }
-                    val name = previous.timeline?.events?.find {
-                        it.type == Matrix.Room.NAME
-                    }?.content?.name
-
-                    previous.copy(
-                        summary = previous.summary?.copy(
-                            avatarUrl = previous.state?.events?.find {
-                                it.type == Matrix.Room.AVATAR
-                            }?.content?.url,
-                            canonicalAlias = alias ?: name,
-                            lastMessage = previous.timeline?.events?.find {
-                                it.type == Matrix.Room.MESSAGE
-                            },
-                        ),
-                        ownerPublicId = sharedDataManager.currentUser.value?.publicId,
-                        primaryKey = "${previous.id}_${sharedDataManager.currentUser.value?.publicId}"
-                    ).also { room ->
-                        room.batch = INITIAL_BATCH
-                        room.nextBatch = nextBatch
-                    }
-                }
-                withContext(Dispatchers.IO) {
+                // either update existing one, or insert new one
+                conversationRoomDao.getItem(
+                    id = previous.id,
+                    ownerPublicId = owner
+                )?.update(newItem) ?: newItem
+            }
+            withContext(Dispatchers.IO) {
+                if(!values.isNullOrEmpty()) {
                     conversationRoomDao.insertAll(values)
-                    if(values.isNotEmpty()) {
-                        appendPing(AppPing(type = AppPingType.Conversation))
-                    }
+                    appendPing(AppPing(type = AppPingType.Conversation))
+                }
+            }
+
+            // messages
+            val messages = mutableListOf<ConversationMessageIO>()
+            rooms?.forEach { room ->
+                val receipts = room.ephemeral?.events?.filter {
+                    it.type == Matrix.Room.RECEIPT
                 }
 
-                // messages
-                val messages = mutableListOf<ConversationMessageIO>()
-                val messagePagingMeta = mutableListOf<MatrixPagingMetaIO>()
-                rooms.forEach { room ->
-                    val receipts = room.ephemeral?.events?.filter {
-                        it.type == Matrix.Room.RECEIPT
-                    }
+                room.timeline?.events?.filter {
+                    it.type == Matrix.Room.MESSAGE
+                }?.forEach { event ->
+                    val newItem = ConversationMessageIO(
+                        content = event.content?.body?.takeIf {
+                            event.content.messageType == Matrix.Message.TEXT
+                        },
+                        media = event.content?.url?.let {
+                            listOf(
+                                MediaIO(
+                                    url = it,
+                                    mimetype = event.content.info?.mimetype,
+                                    name = event.content.filename,
+                                    size = event.content.info?.size
+                                )
+                            )
+                        },
+                        sentAt = event.originServerTs?.let { millis ->
+                            Instant.fromEpochMilliseconds(millis)
+                                .toLocalDateTime(TimeZone.currentSystemDefault())
+                        },
+                        conversationId = room.id,
+                        authorPublicId = event.sender,
+                        id = event.eventId ?: Uuid.random().toString(),
+                        anchorMessageId = event.content?.relatesTo?.let {
+                            it.inReplyTo?.eventId ?: it.eventId
+                        },
+                        parentAnchorMessageId = event.content?.relatesTo?.eventId,
+                        state = if(receipts?.find { it.eventId == event.eventId } != null) {
+                            MessageState.Read
+                        }else MessageState.Sent
+                    )
 
-                    room.timeline?.events?.filter {
-                        it.type == Matrix.Room.MESSAGE
-                    }?.map { event ->
-                        messages.add(
-                            ConversationMessageIO(
-                                content = event.content?.body?.takeIf {
-                                    event.content.messageType == Matrix.Message.TEXT
-                                },
-                                media = event.content?.url?.let {
-                                    listOf(
-                                        MediaIO(
-                                            url = it,
-                                            mimetype = event.content.info?.mimetype,
-                                            name = event.content.filename,
-                                            size = event.content.info?.size
-                                        )
-                                    )
-                                },
-                                sentAt = event.originServerTs?.let { millis ->
-                                    Instant.fromEpochMilliseconds(millis)
-                                        .toLocalDateTime(TimeZone.currentSystemDefault())
-                                },
-                                conversationId = room.id,
-                                authorPublicId = event.sender,
-                                id = event.eventId ?: Uuid.random().toString(),
-                                anchorMessageId = event.content?.relatesTo?.let {
-                                    it.inReplyTo?.eventId ?: it.eventId
-                                },
-                                parentAnchorMessageId = event.content?.relatesTo?.eventId,
-                                state = if(receipts?.find { it.eventId == event.eventId } != null) {
-                                    MessageState.Read
-                                }else MessageState.Sent
-                            )
-                        )
-                        messagePagingMeta.add(
-                            MatrixPagingMetaIO(
-                                batch = batch,
-                                nextBatch = room.timeline.prevBatch,
-                                entityId = event.eventId ?: Uuid.random().toString(),
-                                entityType = PagingEntityType.ConversationMessage
-                            )
-                        )
-                    }
+                    // either update existing one, or insert new one
+                    messages.add(
+                        conversationMessageDao.get(
+                            messageId = newItem.id
+                        ) ?: newItem
+                    )
                 }
-                withContext(Dispatchers.IO) {
-                    matrixPagingMetaDao.insertAll(messagePagingMeta)
-                    conversationMessageDao.insertAll(messages)
+            }
+            withContext(Dispatchers.IO) {
+                conversationMessageDao.insertAll(messages)
 
-                    if(messages.isNotEmpty()) appendPing(
+                if(messages.isNotEmpty()) {
+                    appendPing(
                         AppPing(
                             type = AppPingType.Conversation,
                             identifiers = messages.mapNotNull { it.conversationId }.distinct()
@@ -252,10 +248,14 @@ class DataSyncService {
             mutex.withLock {
                 val time = DateUtils.now.toEpochMilliseconds()
                 val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
-                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer of 400 milliseconds
+                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer
 
                 if(calculatedDelay > 0) delay(calculatedDelay)
-                sharedDataManager.ping.emit(ping)
+                sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
+                    retainAll {
+                        DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
+                    }
+                }.plus(ping)
             }
         }
     }
