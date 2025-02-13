@@ -227,6 +227,15 @@ class DataSyncService {
             }
             withContext(Dispatchers.IO) {
                 conversationMessageDao.insertAll(messages)
+                // add the anchor messages
+                val updates = withContext(Dispatchers.Default) {
+                    messages.filter { it.anchorMessageId != null }.map {
+                        it.copy(anchorMessage = withContext(Dispatchers.IO) {
+                            conversationMessageDao.get(it.anchorMessageId)?.toAnchorMessage()
+                        })
+                    }
+                }
+                conversationMessageDao.insertAll(updates)
 
                 if(messages.isNotEmpty()) {
                     appendPing(
