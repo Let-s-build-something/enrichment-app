@@ -23,6 +23,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.conversation.components.audio.mediaProcessorModule
 import ui.home.homeModule
 
 /** Common module for the whole application */
@@ -52,6 +53,7 @@ internal val commonModule = module {
     viewModelOf(::SharedViewModel)
     includes(homeModule)
     includes(appServiceModule)
+    includes(mediaProcessorModule)
 
     single {
         NetworkFetcher.Factory(

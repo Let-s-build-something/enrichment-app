@@ -8,6 +8,7 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
+import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.file.FileAccess
@@ -25,6 +26,7 @@ class MessageDetailRepository(
     private val networkItemDao: NetworkItemDao,
     httpClient: HttpClient,
     fileAccess: FileAccess,
+    conversationRoomDao: ConversationRoomDao,
     mediaDataManager: MediaProcessorDataManager,
     pagingMetaDao: PagingMetaDao
 ): ConversationRepository(
@@ -32,7 +34,9 @@ class MessageDetailRepository(
     conversationMessageDao = conversationMessageDao,
     pagingMetaDao = pagingMetaDao,
     mediaDataManager = mediaDataManager,
-    fileAccess = fileAccess
+    fileAccess = fileAccess,
+    networkItemDao = networkItemDao,
+    conversationRoomDao = conversationRoomDao
 ) {
 
     /** Retrieves singular message from the local DB */

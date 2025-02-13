@@ -17,7 +17,7 @@ import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
-    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
+    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get(), get()) }
     factory {
         MessageDetailViewModel(
             get<String>(),

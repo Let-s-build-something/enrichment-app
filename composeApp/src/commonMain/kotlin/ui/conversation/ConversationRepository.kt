@@ -10,8 +10,8 @@ import data.io.base.BaseResponse
 import data.io.base.paging.PaginationInfo
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
+import data.io.matrix.room.ConversationRoomIO
 import data.io.social.network.conversation.MessageReactionRequest
-import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.MediaIO
@@ -20,6 +20,8 @@ import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
 import data.shared.setPaging
 import database.dao.ConversationMessageDao
+import database.dao.ConversationRoomDao
+import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
@@ -52,7 +54,9 @@ import kotlin.uuid.Uuid
 open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
+    private val conversationRoomDao: ConversationRoomDao,
     private val pagingMetaDao: PagingMetaDao,
+    private val networkItemDao: NetworkItemDao,
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
 ) {
@@ -142,16 +146,25 @@ open class ConversationRepository(
     }
 
     /** Returns a detailed information about a conversation */
-    suspend fun getConversationDetail(conversationId: String): BaseResponse<NetworkConversationIO?> {
+    suspend fun getConversationDetail(
+        conversationId: String,
+        owner: String?
+    ): ConversationRoomIO? {
         return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<NetworkConversationIO> {
+            conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
+                summary?.members = networkItemDao.getItems(
+                    userPublicIds = summary?.heroes,
+                    ownerPublicId = ownerPublicId
+                )
+            }
+            /*httpClient.safeRequest<NetworkConversationIO> {
                 get(
                     urlString = "/api/v1/social/conversation/detail",
                     block = {
                         parameter("conversationId", conversationId)
                     }
                 )
-            }
+            }*/
         }
     }
 

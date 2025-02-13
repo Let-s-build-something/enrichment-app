@@ -24,28 +24,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.tagToColor
+import data.io.social.network.conversation.message.MediaIO
+import ui.conversation.components.MediaElement
 
 @Composable
 fun UserProfileImage(
     modifier: Modifier = Modifier,
-    model: Any?,
+    media: MediaIO?,
     tag: String?,
     animate: Boolean = false,
     contentDescription: String? = null
 ) {
     Crossfade(
         modifier = modifier,
-        targetState = model != null
+        targetState = media != null
     ) { hasImage ->
         if(hasImage) {
             ContentLayout(
-                model = model,
+                media = media,
                 tag = tag,
                 animate = animate,
                 contentDescription = contentDescription
@@ -68,14 +71,14 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
-    model: Any?,
+    media: MediaIO?,
     tag: String?,
     animate: Boolean = false,
     contentDescription: String? = null
 ) {
     if(animate) {
         val density = LocalDensity.current
-        val avatarSize = remember(model) {
+        val avatarSize = remember(media) {
             mutableStateOf(0f)
         }
         val infiniteTransition = rememberInfiniteTransition(label = "infiniteScaleBackground")
@@ -112,7 +115,7 @@ private fun ContentLayout(
                         shape = CircleShape
                     )
             )
-            AsyncSvgImage(
+            MediaElement(
                 modifier = Modifier
                     .padding(
                         avatarSize.value.dp * .15f / 2f
@@ -131,7 +134,8 @@ private fun ContentLayout(
                             }
                         }
                     },
-                model = model,
+                media = media,
+                contentScale = ContentScale.Crop,
                 contentDescription = null
             )
         }
@@ -145,7 +149,7 @@ private fun ContentLayout(
                 .height(IntrinsicSize.Max)
                 .width(IntrinsicSize.Max)
         ) {
-            AsyncSvgImage(
+            MediaElement(
                 modifier = Modifier
                     .scale(0.95f)
                     .background(
@@ -155,7 +159,8 @@ private fun ContentLayout(
                     .clip(CircleShape)
                     .aspectRatio(1f),
                 contentDescription = contentDescription,
-                model = model
+                media = media,
+                contentScale = ContentScale.Crop
             )
         }
     }

@@ -3,6 +3,7 @@ package data.io.user
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import data.io.social.network.conversation.message.MediaIO
 import database.AppRoomDatabase
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
@@ -31,8 +32,8 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     val userMatrixId: String? = null,
 
     /** url of a photo of this object */
-    @ColumnInfo("photo_url")
-    val photoUrl: String? = null,
+    @ColumnInfo("photo_media")
+    val avatar: MediaIO? = null,
 
     /** Whether the user is a mutually included */
     @ColumnInfo("is_mutual")

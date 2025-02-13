@@ -506,7 +506,7 @@ private fun ConversationRoomItem(
                     newItem = NetworkItemIO(
                         name = room?.summary?.alias,
                         tag = room?.summary?.tag,
-                        photoUrl = room?.summary?.avatarUrl,
+                        avatar = room?.summary?.avatar,
                         publicId = room?.id ?: "-",
                         proximity = room?.proximity
                     )

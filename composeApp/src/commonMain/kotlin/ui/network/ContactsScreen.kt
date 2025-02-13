@@ -234,7 +234,7 @@ private fun SocialCircleTier(
                         .weight(1f)
                         .fillMaxHeight()
                         .aspectRatio(1f),
-                    model = data.photoUrl,
+                    media = data.avatar,
                     tag = data.tag
                 )
                 if(showNames) {

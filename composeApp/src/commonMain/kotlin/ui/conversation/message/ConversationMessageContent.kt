@@ -131,7 +131,7 @@ fun LazyItemScope.ConversationMessageContent(
                         )
                         .zIndex(4f)
                         .size(profileImageSize),
-                    model = data?.user?.photoUrl,
+                    media = data?.user?.avatar,
                     tag = data?.user?.tag
                 )
             }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {

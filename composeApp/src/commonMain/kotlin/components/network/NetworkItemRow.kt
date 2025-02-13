@@ -118,7 +118,7 @@ private fun ContentLayout(
                     }
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                     .size(48.dp),
-                model = data?.photoUrl,
+                media = data?.avatar,
                 tag = data?.tag,
                 contentDescription = null
             )

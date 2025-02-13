@@ -47,6 +47,7 @@ import augmy.interactive.shared.ui.theme.SharedColors
 import base.theme.Colors
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
+import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import org.jetbrains.compose.resources.stringResource
 
@@ -127,7 +128,7 @@ fun NetworkPreferencesLauncher(
                                 name = stringResource(Res.string.network_preferences_default_name),
                                 lastMessage = stringResource(Res.string.network_preferences_default_message),
                                 tag = "E7D37F",
-                                photoUrl = "https://augmy.org/storage/img/imjustafish.jpg"
+                                avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
                             ),
                             indicatorColor = selectedColor.value
                         )

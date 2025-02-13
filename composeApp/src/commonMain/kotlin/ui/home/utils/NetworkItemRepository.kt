@@ -7,7 +7,6 @@ import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.InvitationResponse
 import data.io.social.network.conversation.RoomInvitationRequest
 import data.io.user.NetworkItemIO
-import data.shared.DemoData
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
 import io.ktor.client.HttpClient
@@ -99,7 +98,7 @@ class NetworkItemRepository(
                 )
             }.let { response ->
                 if(newName != null) {
-                    (response.success?.data?.conversationId ?: DemoData.newRoomId).let { newId ->
+                    response.success?.data?.conversationId?.let { newId ->
                         conversationRoomDao.insertAll(
                             listOf(
                                 ConversationRoomIO(
@@ -123,7 +122,7 @@ class NetworkItemRepository(
                                 conversationId = newId
                             )
                         )
-                    }
+                    } ?: BaseResponse.Error()
                 }else response
             }
         }

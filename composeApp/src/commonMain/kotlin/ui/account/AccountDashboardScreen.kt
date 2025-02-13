@@ -86,6 +86,7 @@ import components.RowSetting
 import components.UserProfileImage
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
+import data.io.social.network.conversation.message.MediaIO
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -301,7 +302,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
         UserProfileImage(
             modifier = Modifier.fillMaxWidth(.4f),
             animate = true,
-            model = try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
+            media = try { MediaIO(url = firebaseUser.value?.photoURL) }catch (e: NotImplementedError) { null },
             tag = currentUser.value?.tag
         )
         MinimalisticFilledIcon(

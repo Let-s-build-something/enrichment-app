@@ -133,8 +133,8 @@ fun ConversationScreen(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
                             .size(32.dp),
-                        model = conversationDetail.value?.pictureUrl,
-                        tag = conversationDetail.value?.tag,
+                        media = conversationDetail.value?.summary?.avatar,
+                        tag = conversationDetail.value?.summary?.tag,
                         animate = true
                     )
                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))

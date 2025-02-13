@@ -87,9 +87,9 @@ class DataSyncService {
         nextBatch: String? = this.nextBatch
     ) {
         if(homeserver == null) return
-        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
+        val batch = nextBatch/* ?: matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_${sharedDataManager.currentUser.value?.publicId}"
-        )?.nextBatch
+        )?.nextBatch*/
 
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
@@ -147,15 +147,21 @@ class DataSyncService {
                 val alias = previous.timeline?.events?.find {
                     it.type == Matrix.Room.CANONICAL_ALIAS
                 }?.content?.let { it.alias ?: it.altAliases?.firstOrNull() }
-                val name = previous.timeline?.events?.find {
-                    it.type == Matrix.Room.NAME
-                }?.content?.name
+                val name = previous.state?.events?.find { it.type == Matrix.Room.NAME }?.content?.name
+                    ?: previous.timeline?.events?.find { it.type == Matrix.Room.NAME }?.content?.name
+                val avatar = previous.state?.events?.find { it.type == Matrix.Room.AVATAR }?.content
+                    ?: previous.timeline?.events?.find { it.type == Matrix.Room.AVATAR }?.content
 
                 val newItem = previous.copy(
                     summary = previous.summary?.copy(
-                        avatarUrl = previous.state?.events?.find {
-                            it.type == Matrix.Room.AVATAR
-                        }?.content?.url,
+                        avatar = avatar?.url?.let {
+                            MediaIO(
+                                url = it,
+                                mimetype = avatar.info?.mimetype,
+                                name = avatar.filename,
+                                size = avatar.info?.size
+                            )
+                        },
                         canonicalAlias = alias ?: name,
                         lastMessage = previous.timeline?.events?.find {
                             it.type == Matrix.Room.MESSAGE

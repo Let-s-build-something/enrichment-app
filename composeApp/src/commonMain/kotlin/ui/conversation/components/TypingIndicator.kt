@@ -89,7 +89,7 @@ fun TypingIndicator(
     ) {
         UserProfileImage(
             modifier = Modifier.size(with(density) { 38.sp.toDp() }),
-            model = data.user?.photoUrl,
+            media = data.user?.avatar,
             tag = data.user?.tag
         )
 

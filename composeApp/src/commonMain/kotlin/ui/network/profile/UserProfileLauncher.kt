@@ -262,7 +262,7 @@ private fun DataContent(
                     .size(pictureSize)
                     .zIndex(1f),
                 animate = true,
-                model = userProfile.photoUrl,
+                media = userProfile.avatar,
                 tag = userProfile.tag
             )
         }

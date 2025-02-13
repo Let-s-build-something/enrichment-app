@@ -54,6 +54,7 @@ import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import data.NetworkProximityCategory
 import data.io.ApiErrorCode
+import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -253,7 +254,7 @@ fun NetworkAddNewLauncher(
                 newItem = NetworkItemIO(
                     name = inputDisplayName.value,
                     tag = inputTag.value,
-                    photoUrl = "https://augmy.org/storage/img/imjustafish.jpg"
+                    avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
                 )
             )
         }

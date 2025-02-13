@@ -108,6 +108,18 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
+    fun fromMediaIO(value: MediaIO?): String? {
+        return if(value == null) null else json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toMediaIO(value: String?): MediaIO? {
+        return if(value == null) null else json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
     fun fromGifAsset(value: GifAsset): String {
         return json.encodeToString(value)
     }
