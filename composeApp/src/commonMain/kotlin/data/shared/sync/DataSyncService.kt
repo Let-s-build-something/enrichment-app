@@ -87,9 +87,9 @@ class DataSyncService {
         nextBatch: String? = this.nextBatch
     ) {
         if(homeserver == null) return
-        val batch = nextBatch/* ?: matrixPagingMetaDao.getByEntityId(
+        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_${sharedDataManager.currentUser.value?.publicId}"
-        )?.nextBatch*/
+        )?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
@@ -179,7 +179,7 @@ class DataSyncService {
             withContext(Dispatchers.IO) {
                 if(!values.isNullOrEmpty()) {
                     conversationRoomDao.insertAll(values)
-                    appendPing(AppPing(type = AppPingType.Conversation))
+                    appendPing(AppPing(type = AppPingType.ConversationDashboard))
                 }
             }
 

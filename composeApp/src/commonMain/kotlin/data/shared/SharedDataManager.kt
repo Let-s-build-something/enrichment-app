@@ -1,5 +1,6 @@
 package data.shared
 
+import base.utils.NetworkConnectivity
 import data.io.app.LocalSettings
 import data.io.base.AppPing
 import data.io.user.UserIO
@@ -19,4 +20,7 @@ class SharedDataManager {
 
     /** Acts as a sort of a in-app push notification, notifying of changes */
     val pingStream = MutableStateFlow(setOf<AppPing>())
+
+    /** Most recent measure of speed and network connectivity */
+    val networkConnectivity = MutableStateFlow<NetworkConnectivity?>(null)
 }

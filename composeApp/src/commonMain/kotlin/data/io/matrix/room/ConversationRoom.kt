@@ -57,7 +57,10 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val primaryKey: String = "${id}_$ownerPublicId",
 
     /** The timeline of messages and state changes in the room. */
-    val timeline: RoomTimeline? = null
+    val timeline: RoomTimeline? = null,
+
+    @ColumnInfo("last_message_timestamp")
+    val lastMessageTimestamp: Long? = summary?.lastMessage?.originServerTs
 ) {
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {

@@ -2,6 +2,8 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import base.utils.NetworkConnectivity
+import base.utils.NetworkSpeed
 import data.io.app.SettingsKeys
 import data.io.base.AppPing
 import data.io.user.UserIO
@@ -91,9 +93,30 @@ open class SharedViewModel: ViewModel() {
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
 
+    /** Most recent measure of speed and network connectivity */
+    val networkConnectivity = sharedDataManager.networkConnectivity.asStateFlow()
+
 
     //======================================== functions ==========================================
 
+    fun updateNetworkConnectivity(
+        isNetworkAvailable: Boolean? = null,
+        networkSpeed: NetworkSpeed? = null
+    ) {
+        sharedDataManager.networkConnectivity.value = sharedDataManager.networkConnectivity.value?.copy(
+            isNetworkAvailable = isNetworkAvailable ?: sharedDataManager.networkConnectivity.value?.isNetworkAvailable,
+            speed = networkSpeed ?: sharedDataManager.networkConnectivity.value?.speed
+        ) ?: NetworkConnectivity(
+            isNetworkAvailable = isNetworkAvailable,
+            speed = networkSpeed
+        )
+    }
+
+    fun setOfflineMode(offlineMode: Boolean) {
+        sharedDataManager.networkConnectivity.value = sharedDataManager.networkConnectivity.value?.copy(
+            offlineMode = offlineMode
+        )
+    }
 
     fun consumePing(ping: AppPing) {
         sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)

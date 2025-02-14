@@ -1,19 +1,35 @@
 package base
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.HourglassTop
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -22,13 +38,20 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.hint_unauthorized_matrix_action
 import augmy.composeapp.generated.resources.hint_unauthorized_matrix_text
 import augmy.composeapp.generated.resources.hint_unauthorized_matrix_title
+import augmy.composeapp.generated.resources.no_connection_action_offline
+import augmy.composeapp.generated.resources.no_connection_action_online
+import augmy.composeapp.generated.resources.no_connection_description
+import augmy.composeapp.generated.resources.no_connection_offline_description
+import augmy.composeapp.generated.resources.no_connection_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.BackHandlerOverride
 import augmy.interactive.shared.ui.base.BaseScreen
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
+import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
+import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.DefaultAppBarActions
 import base.navigation.NavIconType
@@ -36,7 +59,13 @@ import base.navigation.NavigationNode
 import base.theme.Colors
 import components.navigation.VerticalAppBar
 import components.notification.InfoHintBox
+import data.io.user.UserIO
 import data.shared.SharedViewModel
+import io.github.alexzhirkevich.compottie.DotLottie
+import io.github.alexzhirkevich.compottie.LottieCompositionSpec
+import io.github.alexzhirkevich.compottie.rememberLottieComposition
+import io.github.alexzhirkevich.compottie.rememberLottiePainter
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DisplayNameChangeLauncher
@@ -119,14 +148,10 @@ fun BrandBaseScreen(
     }
 
     Column {
-        // information about being missing display name
-        AnimatedVisibility(
-            currentUser.value != null
-                    && currentUser.value?.displayName == null
-                    && !sharedViewModel.awaitingAutologin
-        ) {
-            InformationLine()
-        }
+        InformationLines(
+            sharedViewModel = sharedViewModel,
+            currentUser = currentUser.value
+        )
         BaseScreen(
             modifier = modifier,
             title = title,
@@ -161,9 +186,108 @@ fun BrandBaseScreen(
     }
 }
 
+@OptIn(ExperimentalResourceApi::class)
+@Composable
+private fun ColumnScope.InformationLines(
+    sharedViewModel: SharedViewModel = koinViewModel(),
+    currentUser: UserIO?
+) {
+    val networkConnectivity = sharedViewModel.networkConnectivity.collectAsState()
+
+
+    // no stable internet connection
+    AnimatedVisibility(networkConnectivity.value?.isStable == false) {
+        val isOffline = derivedStateOf {
+            networkConnectivity.value?.offlineMode == true
+        }
+        val composition by rememberLottieComposition {
+            LottieCompositionSpec.DotLottie(
+                Res.readBytes("files/no_connection.lottie")
+            )
+        }
+
+        val button = @Composable {
+            OutlinedButton(
+                modifier = Modifier.animateContentSize(),
+                text = stringResource(
+                    if(isOffline.value) {
+                        Res.string.no_connection_action_online
+                    }else Res.string.no_connection_action_offline
+                ),
+                isActivated = !isOffline.value,
+                inactiveColor = LocalTheme.current.colors.disabled,
+                trailingIcon = if(isOffline.value) Icons.Outlined.HourglassTop else Icons.Outlined.WifiOff
+            ) {
+                sharedViewModel.setOfflineMode(!isOffline.value)
+            }
+        }
+
+        Column(
+            modifier = Modifier.animateContentSize(),
+            horizontalAlignment = Alignment.End
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    modifier = Modifier.height(90.dp),
+                    painter = rememberLottiePainter(
+                        composition = composition,
+                        iterations = Int.MAX_VALUE,
+                        reverseOnRepeat = true
+                    ),
+                    contentDescription = null
+                )
+                Crossfade(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .animateContentSize(),
+                    targetState = isOffline.value
+                ) { offlineMode ->
+                    if(offlineMode) {
+                        Text(
+                            text = stringResource(Res.string.no_connection_offline_description),
+                            style = LocalTheme.current.styles.regular
+                        )
+                    }else {
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .wrapContentHeight(),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.no_connection_title),
+                                style = LocalTheme.current.styles.title
+                            )
+                            Text(
+                                text = stringResource(Res.string.no_connection_description),
+                                style = LocalTheme.current.styles.regular
+                            )
+                        }
+                    }
+                }
+                if(LocalDeviceType.current != WindowWidthSizeClass.Compact) button()
+            }
+            if(LocalDeviceType.current == WindowWidthSizeClass.Compact) button()
+        }
+    }
+
+    // missing display name
+    AnimatedVisibility(
+        currentUser != null
+                && currentUser.displayName == null
+                && !sharedViewModel.awaitingAutologin
+    ) {
+        MissingDisplayNameLine()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun InformationLine() {
+private fun MissingDisplayNameLine() {
     val density = LocalDensity.current
     val showNameChangeLauncher = remember { mutableStateOf(false) }
 

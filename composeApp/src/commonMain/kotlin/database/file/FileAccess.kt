@@ -12,14 +12,11 @@ import okio.Path
 import okio.SYSTEM
 import ui.conversation.components.audio.MediaProcessorRepository
 
-/** Returns a platform specific cache directory */
-expect fun getCacheDirectory(): Path
-
 /** Use case for general file operations */
 open class FileAccess {
 
     companion object {
-        private const val EXPIRATION_MILLIS = 7L * 24L * 60L * 60L * 1000L
+        const val EXPIRATION_MILLIS = 7L * 24L * 60L * 60L * 1000L
 
         val TEMPORARY_DIRECTORY: Path
             get() = ensureDirectoryExists(FileSystem.SYSTEM_TEMPORARY_DIRECTORY.div("Augmy"))
@@ -60,7 +57,8 @@ open class FileAccess {
     /** Attempts to retrieve a file from the cache directory */
     suspend fun loadFileFromCache(
         fileName: String,
-        extension: String?
+        extension: String?,
+        expirationMillis: Long = EXPIRATION_MILLIS
     ): MediaProcessorRepository.FileResult? {
         return withContext(Dispatchers.IO) {
             val cachePath = TEMPORARY_DIRECTORY.div(fileName).takeIf {
@@ -71,7 +69,7 @@ open class FileAccess {
 
             try {
                 if((FileSystem.SYSTEM.metadataOrNull(cachePath)?.lastAccessedAtMillis
-                    ?.minus(DateUtils.now.toEpochMilliseconds()) ?: EXPIRATION_MILLIS) < EXPIRATION_MILLIS) {
+                    ?.minus(DateUtils.now.toEpochMilliseconds()) ?: expirationMillis) <= expirationMillis) {
                     MediaProcessorRepository.FileResult(
                         byteArray = FileSystem.SYSTEM.read(cachePath) { readByteArray() },
                         path = cachePath,

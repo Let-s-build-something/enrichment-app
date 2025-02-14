@@ -14,7 +14,7 @@ interface ConversationRoomDao {
     /** Returns paginated conversation based on the owner as defined by [ownerPublicId] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
-            "ORDER BY proximity DESC " +
+            "ORDER BY proximity DESC, last_message_timestamp DESC " +
             "LIMIT :limit " +
             "OFFSET :offset")
     suspend fun getPaginated(
