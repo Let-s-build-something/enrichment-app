@@ -2,7 +2,9 @@ package ui.conversation.components.audio
 
 import base.utils.getExtensionFromMimeType
 import base.utils.sha256
+import data.shared.SharedDataManager
 import database.file.FileAccess
+import database.file.FileAccess.Companion.EXPIRATION_MILLIS
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.onDownload
@@ -18,7 +20,8 @@ import okio.Path
 /** Class for calling APIs and remote work in general */
 class MediaProcessorRepository(
     private val fileAccess: FileAccess,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    private val sharedDataManager: SharedDataManager
 ) {
 
     class FileResult(
@@ -39,7 +42,13 @@ class MediaProcessorRepository(
 
             if(url.isBlank()) return@withContext null
 
-            fileAccess.loadFileFromCache(fileName = fileName, extension = extension) ?: try {
+            fileAccess.loadFileFromCache(
+                fileName = fileName,
+                extension = extension,
+                expirationMillis = if(sharedDataManager.networkConnectivity.value?.isStable != true) {
+                    Long.MAX_VALUE
+                }else EXPIRATION_MILLIS
+            ) ?: try {
                 if(downloadUrl.isBlank()) return@withContext null
 
                 val response = httpClient.get(urlString = downloadUrl) {
@@ -48,6 +57,7 @@ class MediaProcessorRepository(
                     }
                 }
                 val mimetype = response.contentType()?.toString()
+                val responseMimetype = getExtensionFromMimeType(mimetype)?.let { ".$it" }
 
                 response.bodyAsBytes().takeIf { it.isNotEmpty() }.let { bytes ->
                     if(bytes == null) null
@@ -55,7 +65,7 @@ class MediaProcessorRepository(
                         byteArray = bytes,
                         path = fileAccess.saveFileToCache(
                             data = bytes,
-                            fileName = fileName.plus(getExtensionFromMimeType(mimetype)?.let { ".$it" })
+                            fileName = fileName.plus(responseMimetype)
                         ),
                         mimetype = mimetype
                     )

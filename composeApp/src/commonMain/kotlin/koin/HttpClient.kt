@@ -1,10 +1,14 @@
 package koin
 
 import augmy.interactive.com.BuildKonfig
+import base.utils.NetworkSpeed
+import base.utils.speedInMbps
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedViewModel
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
 import io.ktor.client.HttpClient
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
@@ -22,7 +26,10 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.network.UnresolvedAddressException
+import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -66,12 +73,36 @@ internal fun httpClientFactory(
             developerViewModel?.appendHttpLog(
                 DeveloperUtils.processResponse(response)
             )
+
+            val speedMbps = response.speedInMbps().roundToInt()
+            sharedViewModel.updateNetworkConnectivity(
+                networkSpeed = when {
+                    speedMbps <= 1.0 -> NetworkSpeed.VerySlow
+                    speedMbps <= 2.0 -> NetworkSpeed.Slow
+                    speedMbps <= 5.0 -> NetworkSpeed.Moderate
+                    speedMbps <= 10.0 -> NetworkSpeed.Good
+                    else -> NetworkSpeed.Fast
+                }.takeIf { speedMbps != 0 },
+                isNetworkAvailable = true
+            )
         }
         HttpResponseValidator {
+            handleResponseException { cause, _ ->
+                when (cause) {
+                    is IOException, is UnresolvedAddressException -> {
+                        sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                        println("No network connection or server unreachable")
+                    }
+                    is ConnectTimeoutException, is SocketTimeoutException -> {
+                        sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                        println("Network timeout")
+                    }
+                }
+            }
             validateResponse { response ->
                 try {
                     if (response.status == EXPIRED_TOKEN_CODE) {
-                        println("Unauthorized - handle token refresh or log the user out")
+                        sharedViewModel.initUser()
                     }
                 }catch (_: Exception) { }
             }

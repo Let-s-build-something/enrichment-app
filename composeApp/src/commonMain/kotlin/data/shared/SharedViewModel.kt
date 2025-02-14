@@ -2,6 +2,8 @@ package data.shared
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import base.utils.NetworkConnectivity
+import base.utils.NetworkSpeed
 import data.io.app.SettingsKeys
 import data.io.base.AppPing
 import data.io.user.UserIO
@@ -52,6 +54,18 @@ open class SharedViewModel: ViewModel() {
                 }else dataSyncService.stop()
             }
         }
+        viewModelScope.launch {
+            delay(1000)
+            networkConnectivity.collectLatest {
+                while(it?.isNetworkAvailable == false) {
+                    sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
+                        dataSyncService.stop()
+                        dataSyncService.sync(homeserver = homeserver, delay = 2000)
+                        delay(3000)
+                    }
+                }
+            }
+        }
     }
 
     //======================================== public variables ==========================================
@@ -76,24 +90,51 @@ open class SharedViewModel: ViewModel() {
         Firebase.auth.currentUser
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
-            delay(500) // we have to delay the check to give time login flow to catch up
-            if(sharedDataManager.currentUser.value == null) {
-                firebaseUser.getIdToken(false)?.let { idToken ->
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-                        idToken = idToken
-                    ) ?: UserIO(idToken = idToken)
-                    authService.setupAutoLogin()
-                }
-            }
+            initUser()
         }
     }
 
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
 
+    /** Most recent measure of speed and network connectivity */
+    val networkConnectivity = sharedDataManager.networkConnectivity.asStateFlow()
+
 
     //======================================== functions ==========================================
 
+    suspend fun initUser() {
+        delay(500) // we have to delay the check to give time login flow to catch up
+        Firebase.auth.currentUser?.let { firebaseUser ->
+            if(sharedDataManager.currentUser.value?.idToken == null) {
+                try {
+                    firebaseUser.getIdToken(false)?.let { idToken ->
+                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
+                            idToken = idToken
+                        ) ?: UserIO(idToken = idToken)
+                        authService.setupAutoLogin()
+                    }
+                }catch (e: Exception) {
+                    sharedDataManager.currentUser.value = UserIO()
+                    authService.setupAutoLogin()
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    fun updateNetworkConnectivity(
+        isNetworkAvailable: Boolean? = null,
+        networkSpeed: NetworkSpeed? = null
+    ) {
+        sharedDataManager.networkConnectivity.value = sharedDataManager.networkConnectivity.value?.copy(
+            isNetworkAvailable = isNetworkAvailable ?: sharedDataManager.networkConnectivity.value?.isNetworkAvailable,
+            speed = networkSpeed ?: sharedDataManager.networkConnectivity.value?.speed
+        ) ?: NetworkConnectivity(
+            isNetworkAvailable = isNetworkAvailable,
+            speed = networkSpeed
+        )
+    }
 
     fun consumePing(ping: AppPing) {
         sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)

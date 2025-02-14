@@ -18,7 +18,7 @@ internal val mediaProcessorModule = module {
     factory { MediaProcessorDataManager() }
     single { MediaProcessorDataManager() }
     factory { MediaProcessorModel(get(), get()) }
-    factory { MediaProcessorRepository(get<FileAccess>(), get()) }
+    factory { MediaProcessorRepository(get<FileAccess>(), get(), get()) }
     viewModelOf(::MediaProcessorModel)
 }
 

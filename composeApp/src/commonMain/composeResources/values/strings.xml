@@ -33,6 +33,8 @@
   <string name="hint_unauthorized_matrix_title">We are still unsure of how to call you.</string>
   <string name="hint_unauthorized_matrix_text">As soon as you're a unique snowflake, you can chat with other people:-).</string>
   <string name="hint_unauthorized_matrix_action">❄️</string>
+  <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
+  <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>

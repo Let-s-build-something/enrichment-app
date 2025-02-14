@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -63,6 +64,7 @@ import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -119,6 +121,15 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     }
     val selectedUser = remember {
         mutableStateOf<NetworkItemIO?>(null)
+    }
+
+    LifecycleListener {
+        if(it == Lifecycle.Event.ON_RESUME) {
+            if(drawnAsUser.value != viewModel.currentUser.value?.publicId) {
+                drawnAsUser.value = viewModel.currentUser.value?.publicId
+                conversationRooms.refresh()
+            }
+        }
     }
 
     LaunchedEffect(Unit) {

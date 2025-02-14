@@ -62,17 +62,18 @@ class DataSyncService {
     private var isRunning = false
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
-    fun sync(homeserver: String) {
+    fun sync(homeserver: String, delay: Long? = null) {
         this.homeserver = homeserver
         if(!isRunning) {
             isRunning = true
             syncScope.launch {
-                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                    sharedRepository.authenticateUser(
-                        localSettings = sharedDataManager.localSettings.value
-                    )
-                )
-                enqueue()
+                delay?.let { delay(it) }
+                sharedRepository.authenticateUser(
+                    localSettings = sharedDataManager.localSettings.value
+                )?.let {
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it)
+                    enqueue()
+                }
             }
         }
     }
@@ -87,9 +88,9 @@ class DataSyncService {
         nextBatch: String? = this.nextBatch
     ) {
         if(homeserver == null) return
-        val batch = nextBatch/* ?: matrixPagingMetaDao.getByEntityId(
+        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_${sharedDataManager.currentUser.value?.publicId}"
-        )?.nextBatch*/
+        )?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
@@ -179,7 +180,7 @@ class DataSyncService {
             withContext(Dispatchers.IO) {
                 if(!values.isNullOrEmpty()) {
                     conversationRoomDao.insertAll(values)
-                    appendPing(AppPing(type = AppPingType.Conversation))
+                    appendPing(AppPing(type = AppPingType.ConversationDashboard))
                 }
             }
 
