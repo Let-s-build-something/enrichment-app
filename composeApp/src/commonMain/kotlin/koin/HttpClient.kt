@@ -102,21 +102,13 @@ internal fun httpClientFactory(
             validateResponse { response ->
                 try {
                     if (response.status == EXPIRED_TOKEN_CODE) {
-                        println("Unauthorized - handle token refresh or log the user out")
+                        sharedViewModel.initUser()
                     }
                 }catch (_: Exception) { }
             }
         }
     }.apply {
         plugin(HttpSend).intercept { request ->
-            if (sharedViewModel.networkConnectivity.value?.offlineMode == true
-                && sharedViewModel.networkConnectivity.value?.isStable != true
-            ) {
-                // If offline, don't send the request
-                println("Offline mode is enabled. Blocking request: ${request.url}")
-                throw IllegalStateException("Network is offline. Request blocked.")
-            }
-
             request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
 
             // add sensitive information only for trusted domains

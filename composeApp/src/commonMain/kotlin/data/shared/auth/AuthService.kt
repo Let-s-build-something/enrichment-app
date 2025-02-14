@@ -23,7 +23,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -123,7 +122,7 @@ class AuthService {
     ) {
         withContext(Dispatchers.IO) {
             val previous = retrieveCredentials()
-            val userId = identifier?.user ?: response.userId ?: previous?.userId
+            val userId = response.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
 
@@ -137,7 +136,7 @@ class AuthService {
                 json.encodeToString(
                     AuthItem(
                         accessToken = accessToken,
-                        refreshToken = response.refreshToken,
+                        refreshToken = response.refreshToken ?: previous?.refreshToken,
                         expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
                             .plus(response.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
                         password = password ?: previous?.password,
@@ -251,6 +250,23 @@ class AuthService {
                             .plus(response.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
                         homeserver = homeserver
                     )
+                }
+                if(sharedDataManager.networkConnectivity.value?.isNetworkAvailable == false) {
+                    retrieveCredentials()?.let { credentials ->
+                        if(sharedDataManager.currentUser.value?.matrixUserId == null) {
+                            updateUser(
+                                accessToken = credentials.accessToken,
+                                homeserver = credentials.homeserver,
+                                userId = credentials.userId
+                            )
+                        }
+                        delay(5000)
+                        enqueueRefreshToken(
+                            refreshToken = credentials.refreshToken,
+                            expiresAtMsEpoch = credentials.expiresAtMsEpoch,
+                            homeserver = credentials.homeserver
+                        )
+                    }
                 }
             }
         }

@@ -62,17 +62,18 @@ class DataSyncService {
     private var isRunning = false
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
-    fun sync(homeserver: String) {
+    fun sync(homeserver: String, delay: Long? = null) {
         this.homeserver = homeserver
         if(!isRunning) {
             isRunning = true
             syncScope.launch {
-                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                    sharedRepository.authenticateUser(
-                        localSettings = sharedDataManager.localSettings.value
-                    )
-                )
-                enqueue()
+                delay?.let { delay(it) }
+                sharedRepository.authenticateUser(
+                    localSettings = sharedDataManager.localSettings.value
+                )?.let {
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it)
+                    enqueue()
+                }
             }
         }
     }

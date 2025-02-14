@@ -54,6 +54,18 @@ open class SharedViewModel: ViewModel() {
                 }else dataSyncService.stop()
             }
         }
+        viewModelScope.launch {
+            delay(1000)
+            networkConnectivity.collectLatest {
+                while(it?.isNetworkAvailable == false) {
+                    sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
+                        dataSyncService.stop()
+                        dataSyncService.sync(homeserver = homeserver, delay = 2000)
+                        delay(3000)
+                    }
+                }
+            }
+        }
     }
 
     //======================================== public variables ==========================================
@@ -78,15 +90,7 @@ open class SharedViewModel: ViewModel() {
         Firebase.auth.currentUser
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
-            delay(500) // we have to delay the check to give time login flow to catch up
-            if(sharedDataManager.currentUser.value == null) {
-                firebaseUser.getIdToken(false)?.let { idToken ->
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-                        idToken = idToken
-                    ) ?: UserIO(idToken = idToken)
-                    authService.setupAutoLogin()
-                }
-            }
+            initUser()
         }
     }
 
@@ -99,6 +103,26 @@ open class SharedViewModel: ViewModel() {
 
     //======================================== functions ==========================================
 
+    suspend fun initUser() {
+        delay(500) // we have to delay the check to give time login flow to catch up
+        Firebase.auth.currentUser?.let { firebaseUser ->
+            if(sharedDataManager.currentUser.value?.idToken == null) {
+                try {
+                    firebaseUser.getIdToken(false)?.let { idToken ->
+                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
+                            idToken = idToken
+                        ) ?: UserIO(idToken = idToken)
+                        authService.setupAutoLogin()
+                    }
+                }catch (e: Exception) {
+                    sharedDataManager.currentUser.value = UserIO()
+                    authService.setupAutoLogin()
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     fun updateNetworkConnectivity(
         isNetworkAvailable: Boolean? = null,
         networkSpeed: NetworkSpeed? = null
@@ -109,12 +133,6 @@ open class SharedViewModel: ViewModel() {
         ) ?: NetworkConnectivity(
             isNetworkAvailable = isNetworkAvailable,
             speed = networkSpeed
-        )
-    }
-
-    fun setOfflineMode(offlineMode: Boolean) {
-        sharedDataManager.networkConnectivity.value = sharedDataManager.networkConnectivity.value?.copy(
-            offlineMode = offlineMode
         )
     }
 

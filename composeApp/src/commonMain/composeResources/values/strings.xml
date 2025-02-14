@@ -34,10 +34,7 @@
   <string name="hint_unauthorized_matrix_text">As soon as you're a unique snowflake, you can chat with other people:-).</string>
   <string name="hint_unauthorized_matrix_action">❄️</string>
   <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
-  <string name="no_connection_description">But don't worry, we've prepared for the worst. You can turn on the offline mode in order to stay uninterrupted until you're back online.</string>
-  <string name="no_connection_action_offline">Turn on offline mode</string>
-  <string name="no_connection_action_online">Wait for online</string>
-  <string name="no_connection_offline_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
+  <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>

@@ -10,7 +10,6 @@ import kotlinx.coroutines.withContext
 data class NetworkConnectivity(
     val speed: NetworkSpeed?,
     val isNetworkAvailable: Boolean?,
-    val offlineMode: Boolean = isNetworkAvailable == false
 ) {
     val isStable: Boolean
         get() = isNetworkAvailable != false && (speed?.ordinal ?: NetworkSpeed.Moderate.ordinal) > NetworkSpeed.VerySlow.ordinal

@@ -39,7 +39,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
                             )
                         )
                     }
-                }.success?.data ?: UserIO()
+                }.success?.data
             }else null
         }
     }
