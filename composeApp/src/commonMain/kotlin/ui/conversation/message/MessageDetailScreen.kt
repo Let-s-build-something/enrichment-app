@@ -149,7 +149,7 @@ fun MessageDetailScreen(
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        val isCurrentUser = viewModel.currentUser.value?.publicId == message.value?.authorPublicId
+                        val isCurrentUser = viewModel.currentUser.value?.matrixUserId == message.value?.authorPublicId
 
                         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
                         if(!isCurrentUser) {
@@ -261,7 +261,7 @@ fun MessageDetailScreen(
                                                         textAlign = TextAlign.Center
                                                     )
                                                 )
-                                                if (reaction.user?.userPublicId == viewModel.currentUser.value?.publicId) {
+                                                if (reaction.user?.userPublicId == viewModel.currentUser.value?.matrixUserId) {
                                                     Box(
                                                         modifier = Modifier
                                                             .height(2.dp)

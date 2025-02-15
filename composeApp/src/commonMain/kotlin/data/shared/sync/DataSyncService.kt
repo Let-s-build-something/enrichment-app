@@ -89,7 +89,7 @@ class DataSyncService {
     ) {
         if(homeserver == null) return
         val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
-            entityId = "${homeserver}_${sharedDataManager.currentUser.value?.publicId}"
+            entityId = "${homeserver}_${sharedDataManager.currentUser.value?.matrixUserId}"
         )?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
@@ -123,7 +123,7 @@ class DataSyncService {
         homeserver: String,
         batch: String?
     ) {
-        val owner = sharedDataManager.currentUser.value?.publicId ?: return
+        val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
 
         matrixPagingMetaDao.insert(
             MatrixPagingMetaIO(

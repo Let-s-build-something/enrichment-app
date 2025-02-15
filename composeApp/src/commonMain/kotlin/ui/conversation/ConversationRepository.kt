@@ -187,7 +187,7 @@ open class ConversationRepository(
             var msg = message.copy(
                 conversationId = conversationId,
                 sentAt = localNow,
-                authorPublicId = dataManager.currentUser.value?.publicId,
+                authorPublicId = dataManager.currentUser.value?.matrixUserId,
                 media = mediaFiles.map { media ->
                     MediaIO(
                         url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
@@ -282,7 +282,7 @@ open class ConversationRepository(
                         add(
                             MessageReactionIO(
                                 content = reaction.content,
-                                authorPublicId = dataManager.currentUser.value?.publicId
+                                authorPublicId = dataManager.currentUser.value?.matrixUserId
                             )
                         )
                     }

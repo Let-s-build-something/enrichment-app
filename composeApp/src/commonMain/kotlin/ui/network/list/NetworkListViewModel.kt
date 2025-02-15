@@ -34,7 +34,7 @@ class NetworkListViewModel(
             enablePlaceholders = true,
             initialLoadSize = 20
         ),
-        ownerPublicId = { currentUser.value?.publicId }
+        ownerPublicId = { currentUser.value?.matrixUserId }
     ).flow.cachedIn(viewModelScope)
 
     /** Customized colors */
@@ -53,7 +53,7 @@ class NetworkListViewModel(
     /** Makes a request for all open rooms */
     fun requestOpenConversations() {
         viewModelScope.launch {
-            networkItemUseCase.requestOpenRooms(currentUser.value?.publicId)
+            networkItemUseCase.requestOpenRooms(currentUser.value?.matrixUserId)
         }
     }
 
@@ -70,7 +70,7 @@ class NetworkListViewModel(
                 conversationId = conversationId,
                 publicId = publicId,
                 proximity = proximity,
-                ownerPublicId = currentUser.value?.publicId
+                ownerPublicId = currentUser.value?.matrixUserId
             )
             onOperationDone()
         }
@@ -89,7 +89,7 @@ class NetworkListViewModel(
                 userPublicIds = userPublicIds,
                 message = message,
                 newName = newName,
-                ownerPublicId = currentUser.value?.publicId
+                ownerPublicId = currentUser.value?.matrixUserId
             )
         }
     }
