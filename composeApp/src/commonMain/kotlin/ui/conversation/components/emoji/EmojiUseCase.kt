@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSettingsApi::class, ExperimentalUuidApi::class)
+@file:OptIn(ExperimentalUuidApi::class)
 
 package ui.conversation.components.emoji
 
@@ -17,14 +17,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.dsl.module
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalSettingsApi::class)
 internal val emojiModule = module {
     factory { EmojiDataManager() }
     single { EmojiDataManager() }
@@ -177,7 +175,7 @@ class EmojiUseCase(
         withContext(Dispatchers.IO) {
             preferredEmojis.value = list
             settings.putString(
-                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.publicId}",
+                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.matrixUserId}",
                 json.encodeToString(list)
             )
         }
@@ -187,7 +185,7 @@ class EmojiUseCase(
     private suspend fun requestPreferredEmojis() {
         withContext(Dispatchers.IO) {
             preferredEmojis.value = settings.getStringOrNull(
-                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.publicId}"
+                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.matrixUserId}"
             )?.let { jsonString ->
                 json.decodeFromString<List<EmojiData>>(jsonString)
             }.ifNull {

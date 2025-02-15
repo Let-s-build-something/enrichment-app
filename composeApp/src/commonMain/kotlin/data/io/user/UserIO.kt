@@ -37,6 +37,7 @@ data class UserIO(
             tag = other?.tag ?: this.tag,
             idToken = other?.idToken ?: this.idToken,
             accessToken = other?.accessToken ?: this.accessToken,
+            matrixUserId = other?.matrixUserId ?: this.matrixUserId,
             matrixHomeserver = other?.matrixHomeserver ?: this.matrixHomeserver,
             publicId = other?.publicId ?: this.publicId,
             configuration = other?.configuration ?: this.configuration

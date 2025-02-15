@@ -133,7 +133,7 @@ open class ConversationViewModel(
             viewModelScope.launch {
                 repository.getConversationDetail(
                     conversationId = conversationId,
-                    owner = currentUser.value?.publicId
+                    owner = currentUser.value?.matrixUserId
                 )?.let { data ->
                     _conversationDetail.value = data
                 }

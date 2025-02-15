@@ -57,7 +57,7 @@ class NetworkAddNewViewModel(
             repository.getUserRecommendations(
                 takeCount = TOP_ITEMS,
                 excludeId = excludeId,
-                ownerPublicId = currentUser.value?.publicId
+                ownerPublicId = currentUser.value?.matrixUserId
             ).success?.data.let { data ->
                 _recommendedUsers.value = data
             }

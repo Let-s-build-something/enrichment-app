@@ -219,7 +219,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                         style = LocalTheme.current.styles.subheading
                     )
                     RowInformation(title = "publicId: ", currentUser.value?.publicId)
-                    RowInformation(title = "displayName: ", currentUser.value?.publicId?.plus("#")?.plus(currentUser.value?.tag))
+                    RowInformation(title = "displayName: ", currentUser.value?.displayName?.plus("#")?.plus(currentUser.value?.tag))
                     RowInformation(title = "privacy: ", currentUser.value?.configuration?.privacy)
                     RowInformation(title = "visibility: ", currentUser.value?.configuration?.visibility)
                     Text(

@@ -111,7 +111,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
     val drawnAsUser = rememberSaveable {
-        mutableStateOf(viewModel.currentUser.value?.publicId)
+        mutableStateOf(viewModel.currentUser.value?.matrixUserId)
     }
     val selectedItem = rememberSaveable {
         mutableStateOf<String?>(null)
@@ -125,8 +125,8 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 
     LifecycleListener {
         if(it == Lifecycle.Event.ON_RESUME) {
-            if(drawnAsUser.value != viewModel.currentUser.value?.publicId) {
-                drawnAsUser.value = viewModel.currentUser.value?.publicId
+            if(drawnAsUser.value != viewModel.currentUser.value?.matrixUserId) {
+                drawnAsUser.value = viewModel.currentUser.value?.matrixUserId
                 conversationRooms.refresh()
             }
         }
@@ -134,8 +134,8 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 
     LaunchedEffect(Unit) {
         viewModel.currentUser.collectLatest {
-            if(drawnAsUser.value != it?.publicId) {
-                drawnAsUser.value = it?.publicId
+            if(drawnAsUser.value != it?.matrixUserId) {
+                drawnAsUser.value = it?.matrixUserId
                 conversationRooms.refresh()
             }
         }
