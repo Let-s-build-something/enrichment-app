@@ -13,6 +13,7 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
+import data.shared.cryptoModule
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.MatrixPagingMetaDao
@@ -32,6 +33,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
@@ -71,6 +73,7 @@ class DataSyncService {
                 sharedRepository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
                 )?.let {
+                    loadKoinModules(cryptoModule(sharedDataManager))
                     sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it)
                     enqueue()
                 }

@@ -2,6 +2,8 @@ package data.io.matrix.room
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent.HistoryVisibility
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 
 @Serializable
 data class MatrixEventContent(
@@ -23,6 +25,10 @@ data class MatrixEventContent(
 
     /** Required if the file is unencrypted. The URL (typically mxc:// URI) to the image. */
     val url: String? = null,
+
+    val historyVisibility: HistoryVisibility? = null,
+
+    val algorithm: EncryptionAlgorithm? = null,
 
     val alias: String? = null,
     val altAliases: List<String>? = null,

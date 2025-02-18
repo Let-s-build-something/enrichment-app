@@ -37,6 +37,8 @@ object Matrix {
         const val NAME = "m.room.name"
         const val MESSAGE = "m.room.message"
         const val RECEIPT = "m.receipt"
+        const val HISTORY_VISIBILITY = "m.room.history_visibility"
+        const val ENCRYPTION = "m.room.encryption"
     }
 
     object Message {

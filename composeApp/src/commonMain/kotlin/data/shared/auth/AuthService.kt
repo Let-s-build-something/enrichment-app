@@ -27,6 +27,8 @@ import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 internal val authModule = module {
     factory { AuthService() }
@@ -71,11 +73,7 @@ class AuthService {
                 if((credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
                     && credentials.accessToken != null
                 ) {
-                    updateUser(
-                        accessToken = credentials.accessToken,
-                        homeserver = credentials.homeserver,
-                        userId = credentials.userId
-                    )
+                    updateUser(credentials = credentials)
                 }else {
                     enqueueRefreshToken(
                         refreshToken = credentials.refreshToken,
@@ -98,22 +96,27 @@ class AuthService {
         }
     }
 
-    private fun updateUser(
-        accessToken: String?,
-        homeserver: String?,
-        userId: String?
-    ) {
+    private fun updateUser(credentials: AuthItem) {
         if(sharedDataManager.currentUser.value != null) {
             sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-                accessToken = accessToken ?: sharedDataManager.currentUser.value?.accessToken,
-                matrixHomeserver = homeserver ?: sharedDataManager.currentUser.value?.matrixHomeserver,
-                matrixUserId = userId ?: sharedDataManager.currentUser.value?.matrixUserId
+                accessToken = credentials.accessToken ?: sharedDataManager.currentUser.value?.accessToken,
+                matrixHomeserver = credentials.homeserver ?: sharedDataManager.currentUser.value?.matrixHomeserver,
+                matrixUserId = credentials.userId ?: sharedDataManager.currentUser.value?.matrixUserId
             )
         }else {
-            sharedDataManager.currentUser.value = UserIO(accessToken = accessToken)
+            sharedDataManager.currentUser.value = UserIO(
+                accessToken = credentials.accessToken,
+                matrixHomeserver = credentials.homeserver,
+                matrixUserId = credentials.userId
+            )
         }
+        sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.copy(
+            deviceId = credentials.deviceId ?: sharedDataManager.localSettings.value?.deviceId,
+            pickleKey = credentials.pickleKey ?: sharedDataManager.localSettings.value?.pickleKey
+        )
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private suspend fun cacheCredentials(
         homeserver: String?,
         password: String?,
@@ -126,27 +129,25 @@ class AuthService {
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
 
-            updateUser(
+            val credentials = AuthItem(
                 accessToken = accessToken,
+                refreshToken = response.refreshToken ?: previous?.refreshToken,
+                expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
+                    .plus(response.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
+                password = password ?: previous?.password,
                 homeserver = server,
-                userId = userId
+                userId = userId,
+                loginType = identifier?.type ?: previous?.loginType,
+                medium = identifier?.medium ?: previous?.medium,
+                address = identifier?.address ?: previous?.address,
+                pickleKey = previous?.pickleKey ?: Uuid.random().toString(),
+                deviceId = previous?.deviceId ?: currentPlatform.name.plus("_${Uuid.random()}")
             )
+
+            updateUser(credentials = credentials)
             secureSettings.putString(
                 key = SecureSettingsKeys.KEY_CREDENTIALS,
-                json.encodeToString(
-                    AuthItem(
-                        accessToken = accessToken,
-                        refreshToken = response.refreshToken ?: previous?.refreshToken,
-                        expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
-                            .plus(response.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
-                        password = password ?: previous?.password,
-                        homeserver = server,
-                        userId = userId,
-                        loginType = identifier?.type ?: previous?.loginType,
-                        medium = identifier?.medium ?: previous?.medium,
-                        address = identifier?.address ?: previous?.address
-                    )
-                )
+                json.encodeToString(credentials)
             )
         }
     }
@@ -254,11 +255,7 @@ class AuthService {
                 if(sharedDataManager.networkConnectivity.value?.isNetworkAvailable == false) {
                     retrieveCredentials()?.let { credentials ->
                         if(sharedDataManager.currentUser.value?.matrixUserId == null) {
-                            updateUser(
-                                accessToken = credentials.accessToken,
-                                homeserver = credentials.homeserver,
-                                userId = credentials.userId
-                            )
+                            updateUser(credentials = credentials)
                         }
                         delay(5000)
                         enqueueRefreshToken(

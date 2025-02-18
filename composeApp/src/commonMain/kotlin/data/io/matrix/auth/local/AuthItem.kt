@@ -4,18 +4,20 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AuthItem(
-    val homeserver: String?,
+    val homeserver: String? = null,
 
-    val loginType: String?,
+    val loginType: String? = null,
 
     /** the medium of login */
-    val medium: String?,
+    val medium: String? = null,
 
-    val expiresAtMsEpoch: Long?,
+    val expiresAtMsEpoch: Long? = null,
 
-    val accessToken: String?,
-    val refreshToken: String?,
-    val userId: String?,
-    val address: String?,
-    val password: String?,
+    val accessToken: String? = null,
+    val refreshToken: String? = null,
+    val userId: String? = null,
+    val address: String? = null,
+    val password: String? = null,
+    val pickleKey: String? = null,
+    val deviceId: String?
 )

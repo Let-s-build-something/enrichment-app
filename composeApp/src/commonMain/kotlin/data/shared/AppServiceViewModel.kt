@@ -1,15 +1,13 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package data.shared
 
 import androidx.lifecycle.viewModelScope
 import base.utils.asSimpleString
-import com.russhwolf.settings.ExperimentalSettingsApi
 import data.NetworkProximityCategory
 import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
+import data.shared.crypto.OlmCryptoStore
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.messaging.messaging
 import korlibs.io.net.MimeType
@@ -22,8 +20,100 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlinx.serialization.json.Json
+import net.folivo.trixnity.clientserverapi.model.keys.ClaimKeys
+import net.folivo.trixnity.core.UserInfo
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.ToDeviceEventContent
+import net.folivo.trixnity.core.model.keys.Key
+import net.folivo.trixnity.core.model.keys.KeyAlgorithm
+import net.folivo.trixnity.crypto.olm.OlmEncryptionServiceImpl
+import net.folivo.trixnity.crypto.olm.OlmEncryptionServiceRequestHandler
+import net.folivo.trixnity.crypto.olm.OlmStore
+import net.folivo.trixnity.crypto.sign.SignServiceImpl
+import net.folivo.trixnity.crypto.sign.SignServiceStore
+import net.folivo.trixnity.olm.OlmAccount
+import net.folivo.trixnity.olm.freeAfter
+import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+
+internal suspend fun cryptoModule(
+    sharedDataManager: SharedDataManager
+): Module {
+    val pickleKey = sharedDataManager.localSettings.value?.pickleKey
+    val deviceId = sharedDataManager.localSettings.value?.deviceId
+    val userId = sharedDataManager.currentUser.value?.matrixUserId
+
+    return if (pickleKey != null && deviceId != null && userId != null) {
+        val olmStore = OlmCryptoStore(sharedDataManager)
+
+        val (signingKey, identityKey) = freeAfter(
+            sharedDataManager.olmAccount
+                ?: olmStore.getOlmAccount().takeIf { it.isNotBlank() }?.let { pickle ->
+                    OlmAccount.unpickle(key = pickleKey, pickle = pickle)
+                } ?: OlmAccount.create().also { olmAccount ->
+                    olmStore.updateOlmAccount {
+                        olmAccount.pickle(key = pickleKey)
+                    }
+                }
+        ) {
+            sharedDataManager.olmAccount = it
+            Key.Ed25519Key(deviceId, it.identityKeys.ed25519) to
+                    Key.Curve25519Key(deviceId, it.identityKeys.curve25519)
+        }
+
+        module {
+            single { olmStore }
+            single {
+                object: OlmEncryptionServiceRequestHandler {
+                    override suspend fun claimKeys(oneTimeKeys: Map<UserId, Map<String, KeyAlgorithm>>): Result<ClaimKeys.Response> {
+                        TODO("Not yet implemented")
+                    }
+                    override suspend fun sendToDevice(events: Map<UserId, Map<String, ToDeviceEventContent>>): Result<Unit> {
+                        TODO("Not yet implemented")
+                    }
+                }
+            }
+            single {
+                object: SignServiceStore {
+                    override suspend fun getOlmAccount(): String {
+                        TODO("Not yet implemented")
+                    }
+                    override suspend fun getOlmPickleKey(): String {
+                        TODO("Not yet implemented")
+                    }
+                }
+            }
+            single {
+                UserInfo(
+                    userId = UserId(full = userId),
+                    deviceId = deviceId,
+                    signingPublicKey = signingKey,
+                    identityPublicKey = identityKey
+                )
+            }
+            single {
+                val userInfo = getOrNull<UserInfo>()
+                if(userInfo != null) {
+                    OlmEncryptionServiceImpl(
+                        json = get<Json>(),
+                        clock = Clock.System,
+                        signService = SignServiceImpl(
+                            json = get<Json>(),
+                            userInfo = get<UserInfo>(),
+                            store = get<SignServiceStore>()
+                        ),
+                        requests = get<OlmEncryptionServiceRequestHandler>(),
+                        store = get<OlmStore>(),
+                        userInfo = get<UserInfo>()
+                    )
+                }
+            }
+        }
+    }else module {  }
+}
 
 internal val appServiceModule = module {
     single<AppServiceDataManager> { AppServiceDataManager() }

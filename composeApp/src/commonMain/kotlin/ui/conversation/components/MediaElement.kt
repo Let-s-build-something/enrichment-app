@@ -50,7 +50,7 @@ import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getExtensionFromMimeType
 import base.utils.getMediaType
-import chaintech.videoplayer.host.VideoPlayerHost
+import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.model.VideoPlayerConfig
 import chaintech.videoplayer.ui.preview.VideoPreviewComposable
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
@@ -185,8 +185,8 @@ fun MediaElement(
                     )
 
                     val playerHost = remember(finalMedia?.url) {
-                        VideoPlayerHost(
-                            url = localMedia?.path ?: finalMedia?.path ?: finalMedia?.url ?: "",
+                        MediaPlayerHost(
+                            mediaUrl = localMedia?.path ?: finalMedia?.path ?: finalMedia?.url ?: "",
                         )
                     }
                     VideoPlayerComposable(
@@ -215,7 +215,8 @@ fun MediaElement(
                         VideoPreviewComposable(
                             url = localMedia?.path ?: finalMedia?.path ?: finalMedia?.url ?: "",
                             loadingIndicatorColor = LocalTheme.current.colors.secondary,
-                            frameCount = 1
+                            frameCount = 1,
+                            contentScale = contentScale
                         )
                     }
                 }

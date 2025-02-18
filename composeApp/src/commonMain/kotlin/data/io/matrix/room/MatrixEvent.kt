@@ -1,7 +1,12 @@
 package data.io.matrix.room
 
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import database.AppRoomDatabase.Companion.TABLE_ROOM_EVENT
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.UnsignedRoomEventData
 
+@Entity(tableName = TABLE_ROOM_EVENT)
 @Serializable
 open class MatrixEvent(
     /** Required: The fields in this object will vary depending on the type of event. */
@@ -26,5 +31,8 @@ open class MatrixEvent(
     val state: String? = null,
 
     /** Contains optional extra information about the event. */
-    val unsigned: MatrixEventUnsigned? = null
+    val unsigned: UnsignedRoomEventData? = null,
+
+    @ColumnInfo("room_id")
+    val roomId: String? = null
 )

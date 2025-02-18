@@ -2,6 +2,7 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
+import data.io.matrix.room.MatrixEventContent
 import data.io.matrix.room.RoomAccountData
 import data.io.matrix.room.RoomEphemeral
 import data.io.matrix.room.RoomInviteState
@@ -14,8 +15,8 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.core.model.events.UnsignedRoomEventData
 import org.koin.mp.KoinPlatform
 
 /** Factory converter for Room database */
@@ -45,6 +46,30 @@ class AppDatabaseConverter {
     /** Converts string to an object */
     @TypeConverter
     fun toRoomSummary(value: String): RoomSummary {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromMatrixEventContent(value: MatrixEventContent): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toMatrixEventContent(value: String): MatrixEventContent {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromUnsignedRoomEventData(value: UnsignedRoomEventData): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toUnsignedRoomEventData(value: String): UnsignedRoomEventData {
         return json.decodeFromString(value)
     }
 

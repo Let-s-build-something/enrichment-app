@@ -16,7 +16,7 @@ ksoup = "0.2.2"
 navigationCompose = "2.8.0-alpha12"
 compose-plugin = "1.7.3"
 compottie = "2.0.0-rc04"
-mediaPlayerChaintech = "1.0.30"
+mediaPlayerChaintech = "1.0.31"
 kotlinCrypto = "0.5.3"
 koin = "4.0.0"
 pagingCompose = "3.3.0-alpha02-0.5.1"
@@ -37,6 +37,7 @@ fileKit = "0.8.8"
 multiplatformSettings = "1.3.0"
 datastore = "1.1.2"
 workRuntimeKtx = "2.10.0"
+trixnity = "4.12.2"
 
 # Android
 accompanistPermissions = "0.37.0"
@@ -72,6 +73,7 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
 
+trixnity-crypto = { module = "net.folivo:trixnity-crypto", version.ref = "trixnity" }
 media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coilCompose" }

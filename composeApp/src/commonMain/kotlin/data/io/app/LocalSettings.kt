@@ -15,6 +15,11 @@ data class LocalSettings(
     /** Hexadecimal representations of colors for each category */
     var networkColors: List<String> = listOf(),
 
+    val deviceId: String? = null,
+
+    /** Identifier of the owner of OLM crypto keys */
+    val pickleKey: String? = null,
+
     /** instance pointer */
     val uuid: String? = null
 ) {

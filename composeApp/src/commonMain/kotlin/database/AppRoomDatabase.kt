@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingMetaIO
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.MatrixEvent
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
@@ -17,6 +18,7 @@ import database.dao.EmojiSelectionDao
 import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
+import database.dao.RoomEventDao
 
 @Database(
     entities = [
@@ -25,9 +27,10 @@ import database.dao.PagingMetaDao
         PagingMetaIO::class,
         MatrixPagingMetaIO::class,
         ConversationMessageIO::class,
+        MatrixEvent::class,
         ConversationRoomIO::class
     ],
-    version = 29,
+    version = 30,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -40,6 +43,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun emojiSelectionDao(): EmojiSelectionDao
     abstract fun pagingMetaDao(): PagingMetaDao
     abstract fun conversationRoomDao(): ConversationRoomDao
+    abstract fun roomEventDao(): RoomEventDao
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
 
 
@@ -52,6 +56,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [ConversationRoomIO] */
         const val TABLE_CONVERSATION_ROOM = "room_conversation_room_table"
+
+        /** Identification of table for [MatrixEvent] */
+        const val TABLE_ROOM_EVENT = "room_event_table"
 
         /** Identification of table for [ConversationMessageIO] */
         const val TABLE_CONVERSATION_MESSAGE = "room_conversation_message_table"

@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
@@ -156,6 +157,8 @@ open class SharedViewModel: ViewModel() {
             sharedDataManager.localSettings.value = null
             authService.clear()
             dataSyncService.stop()
+            sharedDataManager.olmAccount = null
+            unloadKoinModules(cryptoModule(sharedDataManager))
         }
     }
 }
