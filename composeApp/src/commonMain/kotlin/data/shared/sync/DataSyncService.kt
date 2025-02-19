@@ -94,9 +94,10 @@ class DataSyncService {
         homeserver: String? = this.homeserver,
         nextBatch: String? = this.nextBatch
     ) {
+        val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
         if(homeserver == null) return
         val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
-            entityId = "${homeserver}_${sharedDataManager.currentUser.value?.matrixUserId}"
+            entityId = "${homeserver}_$owner"
         )?.nextBatch
 
         httpClient.safeRequest<SyncResponse> {
@@ -114,7 +115,8 @@ class DataSyncService {
                         processResponse(
                             response = data,
                             homeserver = homeserver,
-                            batch = batch
+                            batch = batch,
+                            owner = owner
                         )
                     }
 
@@ -128,10 +130,9 @@ class DataSyncService {
     private suspend fun processResponse(
         response: SyncResponse,
         homeserver: String,
-        batch: String?
+        batch: String?,
+        owner: String
     ) {
-        val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
-
         matrixPagingMetaDao.insert(
             MatrixPagingMetaIO(
                 entityId = "${homeserver}_$owner",

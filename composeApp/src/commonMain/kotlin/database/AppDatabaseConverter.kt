@@ -157,13 +157,13 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
-    fun fromUnsignedRoomEventData(value: UnsignedRoomEventData): String {
+    fun fromUnsignedStateEventData(value: UnsignedRoomEventData.UnsignedStateEventData): String {
         return json.encodeToString(value)
     }
 
     /** Converts string to an object */
     @TypeConverter
-    fun toUnsignedRoomEventData(value: String): UnsignedRoomEventData {
+    fun toUnsignedStateEventData(value: String): UnsignedRoomEventData.UnsignedStateEventData {
         return json.decodeFromString(value)
     }
 

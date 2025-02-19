@@ -38,7 +38,7 @@ open class MatrixEvent @OptIn(ExperimentalUuidApi::class) constructor(
     val state: String? = null,
 
     /** Contains optional extra information about the event. */
-    val unsigned: UnsignedRoomEventData? = null,
+    val unsigned: UnsignedRoomEventData.UnsignedStateEventData? = null,
 
     @ColumnInfo("room_id")
     val roomId: String? = null,
