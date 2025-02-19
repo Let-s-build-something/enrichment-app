@@ -228,7 +228,10 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                         style = LocalTheme.current.styles.subheading
                     )
                     RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
-                    RowInformation(title = "accessToken: ", currentUser.value?.accessToken)
+                    RowInformation(title = "user_id: ", currentUser.value?.matrixUserId)
+                    RowInformation(title = "access_token: ", currentUser.value?.accessToken)
+                    RowInformation(title = "device_id: ", localSettings.value?.deviceId)
+                    RowInformation(title = "pickle_key: ", localSettings.value?.pickleKey)
                     Text(
                         modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
                         text = "Firebase",

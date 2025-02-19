@@ -1,4 +1,4 @@
-package database.dao
+package database.dao.matrix
 
 import androidx.room.Dao
 import androidx.room.Insert

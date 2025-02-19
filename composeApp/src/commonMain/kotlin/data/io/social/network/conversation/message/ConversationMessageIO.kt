@@ -5,11 +5,11 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import base.utils.LinkUtils
-import data.io.DateTimeAsStringSerializer
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
@@ -64,7 +64,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Time of message being sent in ISO format */
     @ColumnInfo(name = "sent_at")
-    @Serializable(with = DateTimeAsStringSerializer::class)
+    @Serializable(with = LocalDateTimeIso8601Serializer::class)
     val sentAt: LocalDateTime? = null,
 
     /**

@@ -7,6 +7,10 @@ import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingMetaIO
+import data.io.matrix.crypto.StoredInboundMegolmMessageIndexEntity
+import data.io.matrix.crypto.StoredInboundMegolmSessionEntity
+import data.io.matrix.crypto.StoredOlmSessionEntity
+import data.io.matrix.crypto.StoredOutboundMegolmSessionEntity
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.MatrixEvent
 import data.io.social.network.conversation.EmojiSelection
@@ -15,10 +19,14 @@ import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
-import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
-import database.dao.RoomEventDao
+import database.dao.matrix.InboundMegolmSessionDao
+import database.dao.matrix.MatrixPagingMetaDao
+import database.dao.matrix.MegolmMessageIndexDao
+import database.dao.matrix.OlmSessionDao
+import database.dao.matrix.OutboundMegolmSessionDao
+import database.dao.matrix.RoomEventDao
 
 @Database(
     entities = [
@@ -28,9 +36,13 @@ import database.dao.RoomEventDao
         MatrixPagingMetaIO::class,
         ConversationMessageIO::class,
         MatrixEvent::class,
+        StoredOlmSessionEntity::class,
+        StoredOutboundMegolmSessionEntity::class,
+        StoredInboundMegolmSessionEntity::class,
+        StoredInboundMegolmMessageIndexEntity::class,
         ConversationRoomIO::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -45,6 +57,10 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun conversationRoomDao(): ConversationRoomDao
     abstract fun roomEventDao(): RoomEventDao
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
+    abstract fun olmSessionDao(): OlmSessionDao
+    abstract fun outboundMegolmSessionDao(): OutboundMegolmSessionDao
+    abstract fun inboundMegolmSessionDao(): InboundMegolmSessionDao
+    abstract fun megolmMessageIndexDao(): MegolmMessageIndexDao
 
 
     companion object {
@@ -71,6 +87,18 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [MatrixPagingMetaIO] */
         const val TABLE_MATRIX_PAGING_META = "room_matrix_paging_meta_table"
+
+        /** Identification of table for [StoredOlmSessionEntity] */
+        const val TABLE_OLM_SESSION = "olm_session_table"
+
+        /** Identification of table for [StoredOutboundMegolmSessionEntity] */
+        const val TABLE_OUTBOUND_MEGOLM_SESSION = "outbound_megolm_session_table"
+
+        /** Identification of table for [StoredInboundMegolmSessionEntity] */
+        const val TABLE_INBOUND_MEGOLM_SESSION = "inbound_megolm_session_table"
+
+        /** Identification of table for [StoredInboundMegolmSessionEntity] */
+        const val TABLE_MEGOLM_MESSAGE_INDEX = "megolm_message_index_table"
     }
 }
 

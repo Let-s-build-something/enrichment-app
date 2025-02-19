@@ -1,4 +1,4 @@
-package database.dao
+package database.dao.matrix
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -20,7 +20,7 @@ interface RoomEventDao {
         roomId: String?,
         stateKey: String,
         type: String
-    ): List<MatrixEvent>?
+    ): List<MatrixEvent>
 
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

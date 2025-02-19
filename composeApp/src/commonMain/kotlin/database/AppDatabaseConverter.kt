@@ -13,10 +13,20 @@ import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
+import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.core.model.EventId
+import net.folivo.trixnity.core.model.EventIdSerializer
+import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.RoomIdSerializer
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.UnsignedRoomEventData
+import net.folivo.trixnity.core.model.keys.Curve25519KeySerializer
+import net.folivo.trixnity.core.model.keys.Ed25519KeySerializer
+import net.folivo.trixnity.core.model.keys.Key
 import org.koin.mp.KoinPlatform
 
 /** Factory converter for Room database */
@@ -46,6 +56,90 @@ class AppDatabaseConverter {
     /** Converts string to an object */
     @TypeConverter
     fun toRoomSummary(value: String): RoomSummary {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromRoomId(value: RoomId): String {
+        return json.encodeToString(value = value, serializer = RoomIdSerializer)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toRoomId(value: String): RoomId {
+        return json.decodeFromString(string = value, deserializer = RoomIdSerializer)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromInstant(value: Instant): String {
+        return json.encodeToString(value = value, serializer = InstantIso8601Serializer)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toInstant(value: String): Instant {
+        return json.decodeFromString(string = value, deserializer = InstantIso8601Serializer)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromCurve25519(value: Key.Curve25519Key): String {
+        return json.encodeToString(value = value, serializer = Curve25519KeySerializer)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toCurve25519(value: String): Key.Curve25519Key {
+        return json.decodeFromString(string = value, deserializer = Curve25519KeySerializer)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromCurve25519List(value: List<Key.Curve25519Key>): String {
+        return json.encodeToString(value = value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toCurve25519List(value: String): List<Key.Curve25519Key> {
+        return json.decodeFromString(string = value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromEd25519(value: Key.Ed25519Key): String {
+        return json.encodeToString(value = value, serializer = Ed25519KeySerializer)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toEd25519(value: String): Key.Ed25519Key {
+        return json.decodeFromString(string = value, deserializer = Ed25519KeySerializer)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromEventId(value: EventId): String {
+        return json.encodeToString(value = value, serializer = EventIdSerializer)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toEventId(value: String): EventId {
+        return json.decodeFromString(string = value, deserializer = EventIdSerializer)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromNewDevices(value: Map<UserId, Set<String>>): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toNewDevices(value: String): Map<UserId, Set<String>> {
         return json.decodeFromString(value)
     }
 

@@ -1,18 +1,29 @@
 package data.shared.crypto
 
 import base.utils.Matrix
-import data.io.InstantAsStringSerializer
 import data.io.app.SecureSettingsKeys.KEY_DEVICE_KEY
 import data.io.app.SecureSettingsKeys.KEY_FALLBACK_INSTANT
 import data.io.app.SecureSettingsKeys.KEY_OLM_ACCOUNT
+import data.io.matrix.crypto.asStoredInboundMegolmMessageIndexEntity
+import data.io.matrix.crypto.asStoredInboundMegolmSessionEntity
+import data.io.matrix.crypto.asStoredOlmSessionEntity
+import data.io.matrix.crypto.asStoredOutboundMegolmSessionEntity
 import data.shared.SharedDataManager
 import database.dao.ConversationRoomDao
-import database.dao.RoomEventDao
+import database.dao.matrix.InboundMegolmSessionDao
+import database.dao.matrix.MegolmMessageIndexDao
+import database.dao.matrix.OlmSessionDao
+import database.dao.matrix.OutboundMegolmSessionDao
+import database.dao.matrix.RoomEventDao
 import koin.SecureAppSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
+import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
@@ -36,13 +47,10 @@ class OlmCryptoStore(
     private val json: Json by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val roomEventDao: RoomEventDao by KoinPlatform.getKoin().inject()
-
-    override suspend fun getInboundMegolmSession(
-        sessionId: String,
-        roomId: RoomId
-    ): StoredInboundMegolmSession? {
-        TODO("Not yet implemented")
-    }
+    private val olmSessionDao: OlmSessionDao by KoinPlatform.getKoin().inject()
+    private val outboundMegolmSessionDao: OutboundMegolmSessionDao by KoinPlatform.getKoin().inject()
+    private val inboundMegolmSessionDao: InboundMegolmSessionDao by KoinPlatform.getKoin().inject()
+    private val megolmMessageIndexDao: MegolmMessageIndexDao by KoinPlatform.getKoin().inject()
 
     override suspend fun updateInboundMegolmMessageIndex(
         sessionId: String,
@@ -50,7 +58,18 @@ class OlmCryptoStore(
         messageIndex: Long,
         updater: suspend (StoredInboundMegolmMessageIndex?) -> StoredInboundMegolmMessageIndex?
     ) {
-        TODO("Not yet implemented")
+        withContext(Dispatchers.IO) {
+            val res = megolmMessageIndexDao.get(
+                sessionId = sessionId,
+                roomId = roomId,
+                messageIndex = messageIndex
+            )
+            withContext(Dispatchers.Default) {
+                updater.invoke(res?.asStoredInboundMegolmMessageIndex)?.also { updated ->
+                    megolmMessageIndexDao.insert(updated.asStoredInboundMegolmMessageIndexEntity)
+                }
+            }
+        }
     }
 
     override suspend fun updateInboundMegolmSession(
@@ -58,21 +77,57 @@ class OlmCryptoStore(
         roomId: RoomId,
         updater: suspend (StoredInboundMegolmSession?) -> StoredInboundMegolmSession?
     ) {
-        TODO("Not yet implemented")
+        withContext(Dispatchers.IO) {
+            val res = inboundMegolmSessionDao.get(
+                sessionId = sessionId,
+                roomId = roomId
+            )
+            withContext(Dispatchers.Default) {
+                updater.invoke(res?.asStoredInboundMegolmSession)?.also { updated ->
+                    inboundMegolmSessionDao.insert(updated.asStoredInboundMegolmSessionEntity)
+                }
+            }
+        }
     }
 
-    override suspend fun updateOlmSessions(
-        senderKey: Key.Curve25519Key,
-        updater: suspend (Set<StoredOlmSession>?) -> Set<StoredOlmSession>?
-    ) {
-        TODO("Not yet implemented")
+    override suspend fun getInboundMegolmSession(
+        sessionId: String,
+        roomId: RoomId
+    ): StoredInboundMegolmSession? {
+        return withContext(Dispatchers.IO) {
+            inboundMegolmSessionDao.get(
+                sessionId = sessionId,
+                roomId = roomId
+            )?.asStoredInboundMegolmSession
+        }
     }
 
     override suspend fun updateOutboundMegolmSession(
         roomId: RoomId,
         updater: suspend (StoredOutboundMegolmSession?) -> StoredOutboundMegolmSession?
     ) {
-        TODO("Not yet implemented")
+        withContext(Dispatchers.IO) {
+            val res = outboundMegolmSessionDao.get(roomId = roomId.full)
+            withContext(Dispatchers.Default) {
+                updater.invoke(res?.asStoredOutboundMegolmSession)?.also { updated ->
+                    outboundMegolmSessionDao.insert(updated.asStoredOutboundMegolmSessionEntity)
+                }
+            }
+        }
+    }
+
+    override suspend fun updateOlmSessions(
+        senderKey: Key.Curve25519Key,
+        updater: suspend (Set<StoredOlmSession>?) -> Set<StoredOlmSession>?
+    ) {
+        withContext(Dispatchers.IO) {
+            val res = olmSessionDao.getSentItems(senderKey = senderKey.fullKeyId)
+            withContext(Dispatchers.Default) {
+                updater.invoke(res.map { it.asStoredOlmSession }.toSet())?.also { updated ->
+                    olmSessionDao.insertAll(updated.map { it.asStoredOlmSessionEntity })
+                }
+            }
+        }
     }
 
     override suspend fun getForgetFallbackKeyAfter(): Flow<Instant?> {
@@ -91,7 +146,7 @@ class OlmCryptoStore(
             value = updater.invoke(getForgetFallbackKeyAfter().firstOrNull())?.let { safeInstant ->
                 json.encodeToString(
                     value = safeInstant,
-                    serializer = InstantAsStringSerializer
+                    serializer = InstantIso8601Serializer
                 )
             } ?: ""
         )
@@ -102,7 +157,7 @@ class OlmCryptoStore(
             roomId = roomId.full,
             stateKey = "",
             type = Matrix.Room.HISTORY_VISIBILITY
-        )?.firstOrNull()?.content?.historyVisibility
+        ).firstOrNull()?.content?.historyVisibility
     }
 
     override suspend fun getRoomEncryptionAlgorithm(roomId: RoomId): EncryptionAlgorithm? {
@@ -110,7 +165,7 @@ class OlmCryptoStore(
             roomId = roomId.full,
             stateKey = "",
             type = Matrix.Room.ENCRYPTION
-        )?.firstOrNull()?.content?.algorithm
+        ).firstOrNull()?.content?.algorithm
     }
 
     override suspend fun findCurve25519Key(userId: UserId, deviceId: String): Key.Curve25519Key? =
