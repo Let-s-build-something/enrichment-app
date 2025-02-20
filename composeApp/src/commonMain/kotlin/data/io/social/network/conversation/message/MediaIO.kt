@@ -17,7 +17,7 @@ data class MediaIO(
     val name: String? = null,
 
     /** Size in bytes of the media */
-    val size: Int? = null,
+    val size: Long? = null,
 
     /** Local file path */
     @Ignore

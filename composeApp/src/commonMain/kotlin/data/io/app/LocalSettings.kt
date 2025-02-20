@@ -26,6 +26,18 @@ data class LocalSettings(
     override fun toString(): String {
         return "LocalSettings(theme=$theme, fcmToken=$fcmToken, clientStatus=$clientStatus, networkColors=$networkColors, uuid=$uuid)"
     }
+
+    fun update(other: LocalSettings): LocalSettings {
+        return this.copy(
+            theme = other.theme,
+            fcmToken = other.fcmToken ?: this.fcmToken,
+            clientStatus = other.clientStatus,
+            networkColors = other.networkColors,
+            uuid = other.uuid ?: this.uuid,
+            deviceId = other.deviceId ?: this.deviceId,
+            pickleKey = other.pickleKey ?: this.pickleKey
+        )
+    }
 }
 
 enum class ClientStatus {

@@ -1,15 +1,24 @@
 package data.shared.sync
 
 import augmy.interactive.shared.utils.DateUtils
-import base.utils.Matrix
 import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingEntityType
 import data.io.matrix.SyncResponse
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.MatrixEvent
-import data.io.matrix.room.MatrixEventContent
+import data.io.matrix.room.event.content.AvatarEventContent
+import data.io.matrix.room.event.content.CanonicalAliasEventContent
+import data.io.matrix.room.event.content.MatrixClientEvent
+import data.io.matrix.room.event.content.MatrixClientEvent.RoomEvent.MessageEvent
+import data.io.matrix.room.event.content.NameEventContent
+import data.io.matrix.room.event.content.ReceiptEventContent
+import data.io.matrix.room.event.content.RelatesTo
+import data.io.matrix.room.event.content.RoomMessageEventContent
+import data.io.matrix.room.event.content.RoomMessageEventContent.FileBased
+import data.io.matrix.room.event.content.idOrNull
+import data.io.matrix.room.event.content.originTimestampOrNull
+import data.io.matrix.room.event.content.senderOrNull
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
@@ -77,8 +86,8 @@ class DataSyncService {
                 sharedRepository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
                 )?.let {
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
                     loadKoinModules(cryptoModule(sharedDataManager))
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it)
                     enqueue()
                 }
             }
@@ -152,62 +161,62 @@ class DataSyncService {
             }
 
 
-            // messages
+            var lastMessage: MessageEvent<*>? = null
             val messages = mutableListOf<ConversationMessageIO>()
             val rooms = mutableListOf<ConversationRoomIO>()
-            val receipts = mutableListOf<MatrixEvent>()
+            val receipts = mutableListOf<MatrixClientEvent<ReceiptEventContent>>()
             matrixRooms?.forEach { room ->
                 var alias: String? = null
                 var name: String? = null
-                var avatar: MatrixEventContent? = null
+                var avatar: AvatarEventContent? = null
 
-                mutableListOf<MatrixEvent>()
+                mutableListOf<MatrixClientEvent<*>>()
                     .apply {
                         addAll(room.accountData?.events.orEmpty())
-                        addAll(room.ephemeral?.events.orEmpty())
-                        addAll(room.state?.events.orEmpty())
+                        // TODO addAll(room.ephemeral?.events.orEmpty())
+                        // TODO addAll(room.state?.events.orEmpty())
                         addAll(room.timeline?.events.orEmpty())
 
-                        roomEventDao.insertAll(this)
+                        // TODO roomEventDao.insertAll(this)
                     }.forEach { event ->
-                        when(event.type) {
-                            Matrix.Room.RECEIPT -> receipts.add(event)
-                            Matrix.Room.CANONICAL_ALIAS -> {
-                                alias = event.content?.alias ?: event.content?.altAliases?.firstOrNull()
+                        when(val content = event.content) {
+                            is CanonicalAliasEventContent -> {
+                                alias = (content.alias ?: content.aliases?.firstOrNull())?.full
                             }
-                            Matrix.Room.NAME -> {
-                                name = event.content?.name ?: name
+                            is ReceiptEventContent -> {
+                                (event as? MatrixClientEvent<ReceiptEventContent>)?.let {
+                                    receipts.add(it)
+                                }
                             }
-                            Matrix.Room.AVATAR -> {
-                                avatar = event.content
-                            }
-                            Matrix.Room.MESSAGE -> {
+                            is NameEventContent -> name = content.name
+                            is AvatarEventContent -> avatar = content
+                            is RoomMessageEventContent -> {
+                                if(event is MessageEvent) lastMessage = event
+
                                 val newItem = ConversationMessageIO(
-                                    content = event.content?.body?.takeIf {
-                                        event.content.messageType == Matrix.Message.TEXT
-                                    },
-                                    media = event.content?.url?.let {
+                                    content = content.body,
+                                    media = (content as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
                                         listOf(
                                             MediaIO(
-                                                url = it,
-                                                mimetype = event.content.info?.mimetype,
-                                                name = event.content.filename,
-                                                size = event.content.info?.size
+                                                url = it.url,
+                                                mimetype = it.info?.mimeType,
+                                                name = it.fileName,
+                                                size = it.info?.size
                                             )
                                         )
                                     },
-                                    sentAt = event.originServerTs?.let { millis ->
+                                    sentAt = event.originTimestampOrNull?.let { millis ->
                                         Instant.fromEpochMilliseconds(millis)
                                             .toLocalDateTime(TimeZone.currentSystemDefault())
                                     },
                                     conversationId = room.id,
-                                    authorPublicId = event.sender,
-                                    id = event.eventId ?: Uuid.random().toString(),
-                                    anchorMessageId = event.content?.relatesTo?.let {
-                                        it.inReplyTo?.eventId ?: it.eventId
+                                    authorPublicId = event.senderOrNull?.full,
+                                    id = event.idOrNull?.full ?: Uuid.random().toString(),
+                                    anchorMessageId = content.relatesTo?.let {
+                                        (it as? RelatesTo.Reference)?.replyTo?.eventId?.full
                                     },
-                                    parentAnchorMessageId = event.content?.relatesTo?.eventId,
-                                    state = if(receipts.find { it.eventId == event.eventId } != null) {
+                                    parentAnchorMessageId = content.relatesTo?.eventId?.full,
+                                    state = if(receipts.find { it.idOrNull?.full == event.idOrNull?.full } != null) {
                                         MessageState.Read
                                     }else MessageState.Sent
                                 )
@@ -228,15 +237,12 @@ class DataSyncService {
                         avatar = avatar?.url?.let {
                             MediaIO(
                                 url = it,
-                                mimetype = avatar?.info?.mimetype,
-                                name = avatar?.filename,
-                                size = avatar?.info?.size
+                                mimetype = avatar.info?.mimeType,
+                                size = avatar.info?.size
                             )
                         },
                         canonicalAlias = alias ?: name,
-                        lastMessage = room.timeline?.events?.find {
-                            it.type == Matrix.Room.MESSAGE
-                        },
+                        lastEvent = lastMessage
                     ),
                     ownerPublicId = owner,
                     primaryKey = "${room.id}_${owner}"
@@ -271,7 +277,7 @@ class DataSyncService {
                     )
                 }
             }
-            
+
             withContext(Dispatchers.IO) {
                 if(rooms.isNotEmpty()) {
                     conversationRoomDao.insertAll(rooms)

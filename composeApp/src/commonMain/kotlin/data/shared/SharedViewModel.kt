@@ -35,16 +35,13 @@ open class SharedViewModel: ViewModel() {
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
-    /** lazily loaded repository for calling API */
-    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
-
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<AppSettings>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             delay(50)
-            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
+            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) != false
         }
 
         viewModelScope.launch {

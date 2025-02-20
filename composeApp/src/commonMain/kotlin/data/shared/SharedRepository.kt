@@ -28,7 +28,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
     ): UserIO? {
         return withContext(Dispatchers.IO) {
             if(Firebase.auth.currentUser != null) {
-                httpClient.safeRequest<UserIO> {
+                val res = httpClient.safeRequest<UserIO> {
                     post(urlString = "/api/v1/auth/init-app") {
                         setBody(
                             RequestInitApp(
@@ -40,6 +40,11 @@ open class SharedRepository(private val httpClient: HttpClient) {
                         )
                     }
                 }.success?.data
+                // BE can send empty strings
+                res?.copy(
+                    matrixUserId = res.matrixUserId.takeIf { !it.isNullOrBlank() },
+                    accessToken = res.accessToken.takeIf { !it.isNullOrBlank() },
+                )
             }else null
         }
     }

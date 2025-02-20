@@ -189,13 +189,13 @@ class AppServiceViewModel(
                 val fcmToken = if(defaultFcm == null) {
                     val newFcm = try {
                         Firebase.messaging.getToken()
-                    }catch (e: NotImplementedError) { null }?.apply {
+                    }catch (_: NotImplementedError) { null }?.apply {
                         settings.putString(SettingsKeys.KEY_FCM, this)
                     }
                     newFcm
                 }else defaultFcm
 
-                sharedDataManager.localSettings.value = LocalSettings(
+                val update = LocalSettings(
                     theme = ThemeChoice.entries.find {
                         it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
                     } ?: ThemeChoice.SYSTEM,
@@ -206,9 +206,8 @@ class AppServiceViewModel(
                     networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
                         ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
                 )
+                sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
             }
-
-            // TODO Matrix autologin
         }
     }
 

@@ -3,6 +3,7 @@ package data.shared.auth
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
+import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
 import data.io.base.BaseResponse
 import data.io.matrix.auth.EmailLoginRequest
@@ -110,10 +111,11 @@ class AuthService {
                 matrixUserId = credentials.userId
             )
         }
-        sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.copy(
+        val update = LocalSettings(
             deviceId = credentials.deviceId ?: sharedDataManager.localSettings.value?.deviceId,
             pickleKey = credentials.pickleKey ?: sharedDataManager.localSettings.value?.pickleKey
         )
+        sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
     }
 
     @OptIn(ExperimentalUuidApi::class)

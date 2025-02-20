@@ -12,7 +12,7 @@ import data.io.matrix.crypto.StoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.StoredOlmSessionEntity
 import data.io.matrix.crypto.StoredOutboundMegolmSessionEntity
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.MatrixEvent
+import data.io.matrix.room.event.content.MatrixEvent
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
@@ -42,7 +42,7 @@ import database.dao.matrix.RoomEventDao
         StoredInboundMegolmMessageIndexEntity::class,
         ConversationRoomIO::class
     ],
-    version = 31,
+    version = 35,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

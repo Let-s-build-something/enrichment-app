@@ -12,18 +12,18 @@ import net.folivo.trixnity.crypto.olm.StoredInboundMegolmMessageIndex
 @Serializable
 data class StoredInboundMegolmMessageIndexEntity(
     val sessionId: String,
-    val roomId: RoomId,
+    val roomId: RoomId? = null,
     val messageIndex: Long,
     val eventId: EventId,
     val originTimestamp: Long,
 
     @PrimaryKey
-    val id: String = "${roomId.full}-$sessionId-$messageIndex"
+    val id: String = "${roomId?.full}-$sessionId-$messageIndex"
 ) {
     val asStoredInboundMegolmMessageIndex: StoredInboundMegolmMessageIndex
         get() = StoredInboundMegolmMessageIndex(
             sessionId = sessionId,
-            roomId = roomId,
+            roomId = roomId ?: RoomId(""),
             messageIndex = messageIndex,
             eventId = eventId,
             originTimestamp = originTimestamp

@@ -1,5 +1,7 @@
 package data.io.matrix.room
 
+import data.io.matrix.room.event.content.PresenceEventContent
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 /**
@@ -8,5 +10,5 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class RoomEphemeral(
-    val events: List<MatrixEvent>
+    val events: List<@Contextual PresenceEventContent>
 )

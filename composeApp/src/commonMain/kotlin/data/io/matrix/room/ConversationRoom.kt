@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import data.io.matrix.room.event.content.RoomMessageEventContent
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import kotlinx.serialization.Serializable
@@ -60,7 +61,7 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val timeline: RoomTimeline? = null,
 
     @ColumnInfo("last_message_timestamp")
-    val lastMessageTimestamp: Long? = summary?.lastMessage?.originServerTs
+    val lastMessageTimestamp: Long? = summary?.lastMessage?.originTimestamp
 ) {
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {
@@ -100,6 +101,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         name = summary?.alias,
         tag = summary?.tag,
         avatar = summary?.avatar,
-        lastMessage = summary?.lastMessage?.content?.body
+        lastMessage = (summary?.lastMessage?.content as? RoomMessageEventContent)?.body
     )
 }

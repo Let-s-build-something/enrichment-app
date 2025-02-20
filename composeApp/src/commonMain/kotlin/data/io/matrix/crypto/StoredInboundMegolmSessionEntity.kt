@@ -14,7 +14,7 @@ data class StoredInboundMegolmSessionEntity(
     val senderKey: Key.Curve25519Key,
     val senderSigningKey: Key.Ed25519Key,
     val sessionId: String,
-    val roomId: RoomId,
+    val roomId: RoomId? = null,
     val firstKnownIndex: Long,
     val hasBeenBackedUp: Boolean,
     /**
@@ -27,14 +27,14 @@ data class StoredInboundMegolmSessionEntity(
     val pickled: String,
 
     @PrimaryKey
-    val id: String = "${roomId.full}-$sessionId"
+    val id: String = "${roomId?.full}-$sessionId"
 ) {
     val asStoredInboundMegolmSession: StoredInboundMegolmSession
         get() = StoredInboundMegolmSession(
             senderKey = senderKey,
             senderSigningKey = senderSigningKey,
             sessionId = sessionId,
-            roomId = roomId,
+            roomId = roomId ?: RoomId(""),
             firstKnownIndex = firstKnownIndex,
             hasBeenBackedUp = hasBeenBackedUp,
             isTrusted = isTrusted,

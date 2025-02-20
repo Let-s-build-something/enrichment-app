@@ -27,6 +27,7 @@ import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.keys.DeviceKeys
@@ -153,19 +154,19 @@ class OlmCryptoStore(
     }
 
     override suspend fun getHistoryVisibility(roomId: RoomId): HistoryVisibilityEventContent.HistoryVisibility? {
-        return roomEventDao.filterStateItems(
+        return roomEventDao.getStateItem(
             roomId = roomId.full,
             stateKey = "",
             type = Matrix.Room.HISTORY_VISIBILITY
-        ).firstOrNull()?.content?.historyVisibility
+        )?.asClientEvent<HistoryVisibilityEventContent>(json)?.content?.historyVisibility
     }
 
     override suspend fun getRoomEncryptionAlgorithm(roomId: RoomId): EncryptionAlgorithm? {
-        return roomEventDao.filterStateItems(
+        return roomEventDao.getStateItem(
             roomId = roomId.full,
             stateKey = "",
             type = Matrix.Room.ENCRYPTION
-        ).firstOrNull()?.content?.algorithm
+        )?.asClientEvent<EncryptedMessageEventContent>(json)?.content?.algorithm
     }
 
     override suspend fun findCurve25519Key(userId: UserId, deviceId: String): Key.Curve25519Key? =

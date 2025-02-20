@@ -227,7 +227,7 @@ open class ConversationRepository(
                     )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
                         MediaIO(
                             url = url,
-                            size = bytes.size,
+                            size = bytes.size.toLong(),
                             name = media.baseName,
                             mimetype = MimeType.getByExtension(media.extension).mime
                         )
@@ -340,7 +340,7 @@ open class ConversationRepository(
                                     MediaIO(
                                         url = uri,
                                         mimetype = mimetype,
-                                        size = mediaByteArray.size,
+                                        size = mediaByteArray.size.toLong(),
                                         name = fileName
                                     )
                                 )

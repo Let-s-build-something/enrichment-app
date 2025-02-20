@@ -2,7 +2,6 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
-import data.io.matrix.room.MatrixEventContent
 import data.io.matrix.room.RoomAccountData
 import data.io.matrix.room.RoomEphemeral
 import data.io.matrix.room.RoomInviteState
@@ -145,18 +144,6 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
-    fun fromMatrixEventContent(value: MatrixEventContent): String {
-        return json.encodeToString(value)
-    }
-
-    /** Converts string to an object */
-    @TypeConverter
-    fun toMatrixEventContent(value: String): MatrixEventContent {
-        return json.decodeFromString(value)
-    }
-
-    /** Converts object to string */
-    @TypeConverter
     fun fromUnsignedStateEventData(value: UnsignedRoomEventData.UnsignedStateEventData): String {
         return json.encodeToString(value)
     }
@@ -203,7 +190,7 @@ class AppDatabaseConverter {
         return json.decodeFromString(value)
     }
 
-    // empty converters
+    // empty converters, we don't want it saved, yet we can't ignore it
     @TypeConverter
     fun fromRoomTimeline(value: RoomTimeline): String? {
         return null
@@ -222,6 +209,18 @@ class AppDatabaseConverter {
     /** Converts string to an object */
     @TypeConverter
     fun toRoomInviteState(value: String): RoomInviteState {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromUserId(value: UserId): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toUserId(value: String): UserId {
         return json.decodeFromString(value)
     }
 
