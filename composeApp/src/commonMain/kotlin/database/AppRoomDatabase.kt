@@ -42,7 +42,7 @@ import database.dao.matrix.RoomEventDao
         StoredInboundMegolmMessageIndexEntity::class,
         ConversationRoomIO::class
     ],
-    version = 35,
+    version = 37,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

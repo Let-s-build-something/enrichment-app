@@ -1,12 +1,14 @@
 package data.io.matrix.room
 
 import androidx.room.Ignore
-import data.io.matrix.room.event.content.MatrixClientEvent
 import data.io.matrix.room.event.content.MatrixClientEvent.RoomEvent.MessageEvent
+import data.io.matrix.room.event.content.RoomMessageEventContent
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import org.koin.mp.KoinPlatform.getKoin
 
 /**
  * Information about the room which clients may need to correctly render it to users.
@@ -32,7 +34,7 @@ data class RoomSummary(
     /** The room’s canonical alias. */
     val proximity: Float? = null,
 
-    val lastEvent: MessageEvent<*>? = null,
+    val lastEventJson: String? = null,
 
     /** Whether this room is just one on one. */
     val isDirect: Boolean? = null,
@@ -51,7 +53,9 @@ data class RoomSummary(
 
     /** Last message that happened in this room. */
     @Ignore
-    val lastMessage = lastEvent as? MatrixClientEvent.RoomEvent<*>
+    val lastMessage: MessageEvent<RoomMessageEventContent>? = lastEventJson?.let {
+        getKoin().get<Json>().decodeFromString(it)
+    }
 
     fun update(other: RoomSummary?): RoomSummary {
         return if(other == null) this
@@ -61,7 +65,7 @@ data class RoomSummary(
             tag = other.tag ?: tag,
             avatar = other.avatar ?: avatar,
             proximity = other.proximity ?: proximity,
-            lastEvent = other.lastEvent ?: lastEvent,
+            lastEventJson = other.lastEventJson ?: lastEventJson,
             isDirect = other.isDirect ?: isDirect,
             invitationMessage = other.invitationMessage ?: invitationMessage,
             invitedMembersCount = other.invitedMembersCount ?: invitedMembersCount,

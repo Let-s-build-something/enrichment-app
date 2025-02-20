@@ -45,6 +45,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -69,6 +70,7 @@ class DataSyncService {
     private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val json: Json by KoinPlatform.getKoin().inject()
     private val roomEventDao: RoomEventDao by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -161,7 +163,7 @@ class DataSyncService {
             }
 
 
-            var lastMessage: MessageEvent<*>? = null
+            var lastMessage: MessageEvent<RoomMessageEventContent>? = null
             val messages = mutableListOf<ConversationMessageIO>()
             val rooms = mutableListOf<ConversationRoomIO>()
             val receipts = mutableListOf<MatrixClientEvent<ReceiptEventContent>>()
@@ -191,7 +193,9 @@ class DataSyncService {
                             is NameEventContent -> name = content.name
                             is AvatarEventContent -> avatar = content
                             is RoomMessageEventContent -> {
-                                if(event is MessageEvent) lastMessage = event
+                                (event as? MessageEvent<RoomMessageEventContent>)?.let {
+                                    lastMessage = it
+                                }
 
                                 val newItem = ConversationMessageIO(
                                     content = content.body,
@@ -242,7 +246,7 @@ class DataSyncService {
                             )
                         },
                         canonicalAlias = alias ?: name,
-                        lastEvent = lastMessage
+                        lastEventJson = json.encodeToString(lastMessage)
                     ),
                     ownerPublicId = owner,
                     primaryKey = "${room.id}_${owner}"
