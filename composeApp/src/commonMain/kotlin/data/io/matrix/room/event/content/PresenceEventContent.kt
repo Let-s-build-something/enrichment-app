@@ -10,11 +10,9 @@ import kotlinx.serialization.Serializable
 data class PresenceEventContent(
     @SerialName("presence")
     val presence: Presence? = null,
-    @SerialName("avatar_url")
     val avatarUrl: String? = null,
     @SerialName("displayname")
     val displayName: String? = null,
-    @SerialName("last_active_ago")
     val lastActiveAgo: Long? = null,
     @SerialName("currently_active")
     val isCurrentlyActive: Boolean? = null,

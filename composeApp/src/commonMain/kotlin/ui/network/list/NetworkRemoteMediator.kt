@@ -97,7 +97,7 @@ class NetworkRemoteMediator (
                     pagingMetaDao.insertAll(it)
                     networkItemDao.insertAll(
                         items.map { item ->
-                            item.copy(ownerPublicId = ownerUserPublicId)
+                            item.copy(ownerUserId = ownerUserPublicId)
                         }
                     )
                     invalidatePagingSource()

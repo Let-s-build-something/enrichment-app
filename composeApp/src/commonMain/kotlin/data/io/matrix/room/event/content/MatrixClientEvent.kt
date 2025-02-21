@@ -16,7 +16,7 @@ sealed interface MatrixClientEvent<C : EventContent> : Event<C> {
     sealed interface RoomEvent<C : RoomEventContent> : MatrixClientEvent<C> {
         val id: EventId
         val sender: UserId
-        val roomId: RoomId?
+        var roomId: RoomId?
         val originTimestamp: Long
         val unsigned: UnsignedRoomEventData?
 
@@ -25,7 +25,7 @@ sealed interface MatrixClientEvent<C : EventContent> : Event<C> {
             @SerialName("content") override val content: C,
             @SerialName("event_id") override val id: EventId,
             @SerialName("sender") override val sender: UserId,
-            @SerialName("room_id") override val roomId: RoomId? = null,
+            @SerialName("room_id") override var roomId: RoomId? = null,
             @SerialName("origin_server_ts") override val originTimestamp: Long,
             @SerialName("unsigned") override val unsigned: UnsignedRoomEventData.UnsignedMessageEventData? = null
         ) : RoomEvent<C>
@@ -38,7 +38,7 @@ sealed interface MatrixClientEvent<C : EventContent> : Event<C> {
             @SerialName("content") override val content: C,
             @SerialName("event_id") override val id: EventId,
             @SerialName("sender") override val sender: UserId,
-            @SerialName("room_id") override val roomId: RoomId? = null,
+            @SerialName("room_id") override var roomId: RoomId? = null,
             @SerialName("origin_server_ts") override val originTimestamp: Long,
             @SerialName("unsigned") override val unsigned: UnsignedRoomEventData.UnsignedStateEventData? = null,
             @SerialName("state_key") override val stateKey: String,
@@ -52,7 +52,7 @@ sealed interface MatrixClientEvent<C : EventContent> : Event<C> {
         override val content: C
         val id: EventId?
         val sender: UserId
-        val roomId: RoomId?
+        var roomId: RoomId?
         val originTimestamp: Long?
         val unsigned: UnsignedRoomEventData.UnsignedStateEventData?
         val stateKey: String
@@ -63,7 +63,7 @@ sealed interface MatrixClientEvent<C : EventContent> : Event<C> {
         @SerialName("content") override val content: C,
         @SerialName("event_id") override val id: EventId? = null,
         @SerialName("sender") override val sender: UserId,
-        @SerialName("room_id") override val roomId: RoomId? = null,
+        @SerialName("room_id") override var roomId: RoomId? = null,
         @SerialName("origin_server_ts") override val originTimestamp: Long? = null,
         @SerialName("unsigned") override val unsigned: UnsignedRoomEventData.UnsignedStateEventData? = null,
         @SerialName("state_key") override val stateKey: String,
@@ -79,13 +79,13 @@ sealed interface MatrixClientEvent<C : EventContent> : Event<C> {
     data class EphemeralEvent<C : EphemeralEventContent>(
         @SerialName("content") override val content: C,
         @SerialName("sender") val sender: UserId? = null,
-        @SerialName("room_id") val roomId: RoomId? = null
+        @SerialName("room_id") var roomId: RoomId? = null
     ) : MatrixClientEvent<C>
 
     @Serializable
     data class RoomAccountDataEvent<C : RoomAccountDataEventContent>(
         @SerialName("content") override val content: C,
-        @SerialName("room_id") val roomId: RoomId? = null,
+        @SerialName("room_id") var roomId: RoomId? = null,
         // This does not actually exist. We use it to circumvent inconsistent spec.
         @SerialName("key") val key: String = ""
     ) : MatrixClientEvent<C>

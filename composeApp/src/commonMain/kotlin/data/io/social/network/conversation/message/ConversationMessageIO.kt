@@ -101,6 +101,26 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         anchorMessageId = anchorMessageId
     )
 
+    fun update(other: ConversationMessageIO): ConversationMessageIO {
+        return this.copy(
+            content = other.content ?: content,
+            media = other.media ?: media,
+            audioUrl = other.audioUrl ?: audioUrl,
+            gifAsset = other.gifAsset ?: gifAsset,
+            authorPublicId = other.authorPublicId ?: authorPublicId,
+            reactions = other.reactions ?: reactions,
+            showPreview = other.showPreview ?: showPreview,
+            anchorMessage = other.anchorMessage ?: anchorMessage,
+            anchorMessageId = other.anchorMessageId ?: anchorMessageId,
+            parentAnchorMessageId = other.parentAnchorMessageId ?: parentAnchorMessageId,
+            sentAt = other.sentAt ?: sentAt,
+            state = other.state ?: state,
+            timings = other.timings ?: timings,
+            conversationId = other.conversationId ?: conversationId,
+            transcribed = other.transcribed ?: transcribed
+        )
+    }
+
     /** Whether content contains any website url */
     val containsUrl: Boolean
         get() = showPreview == true

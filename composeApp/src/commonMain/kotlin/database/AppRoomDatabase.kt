@@ -13,9 +13,11 @@ import data.io.matrix.crypto.StoredOlmSessionEntity
 import data.io.matrix.crypto.StoredOutboundMegolmSessionEntity
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.content.MatrixEvent
+import data.io.matrix.room.event.content.PresenceEventContent
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
+import data.io.user.PresenceData
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
@@ -26,6 +28,7 @@ import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
+import database.dao.matrix.PresenceEventDao
 import database.dao.matrix.RoomEventDao
 
 @Database(
@@ -40,9 +43,10 @@ import database.dao.matrix.RoomEventDao
         StoredOutboundMegolmSessionEntity::class,
         StoredInboundMegolmSessionEntity::class,
         StoredInboundMegolmMessageIndexEntity::class,
+        PresenceData::class,
         ConversationRoomIO::class
     ],
-    version = 37,
+    version = 39,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -56,6 +60,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun pagingMetaDao(): PagingMetaDao
     abstract fun conversationRoomDao(): ConversationRoomDao
     abstract fun roomEventDao(): RoomEventDao
+    abstract fun presenceEventDao(): PresenceEventDao
+
+    // crypto
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
     abstract fun olmSessionDao(): OlmSessionDao
     abstract fun outboundMegolmSessionDao(): OutboundMegolmSessionDao
@@ -87,6 +94,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [MatrixPagingMetaIO] */
         const val TABLE_MATRIX_PAGING_META = "room_matrix_paging_meta_table"
+
+        /** Identification of table for [PresenceEventContent] */
+        const val TABLE_PRESENCE_EVENT = "presence_event_table"
 
         /** Identification of table for [StoredOlmSessionEntity] */
         const val TABLE_OLM_SESSION = "olm_session_table"

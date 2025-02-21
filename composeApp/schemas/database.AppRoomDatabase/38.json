@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 37,
-    "identityHash": "1c81727d67d2e5e7ed19c968c6b3ad7a",
+    "version": 38,
+    "identityHash": "5ee9b9a58531f6521443af94eab72bd7",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_matrix_id` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_public_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_matrix_id` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
           {
             "fieldPath": "name",
@@ -65,8 +65,8 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "ownerPublicId",
-            "columnName": "owner_public_id",
+            "fieldPath": "ownerUserId",
+            "columnName": "owner_user_id",
             "affinity": "TEXT"
           },
           {
@@ -589,47 +589,25 @@
       },
       {
         "tableName": "presence_event_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`presence` TEXT, `avatarUrl` TEXT, `displayName` TEXT, `lastActiveAgo` INTEGER, `isCurrentlyActive` INTEGER, `statusMessage` TEXT, `user_id_full` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id_full` TEXT NOT NULL, `content` TEXT, PRIMARY KEY(`user_id_full`))",
         "fields": [
-          {
-            "fieldPath": "presence",
-            "columnName": "presence",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "avatarUrl",
-            "columnName": "avatarUrl",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "displayName",
-            "columnName": "displayName",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "lastActiveAgo",
-            "columnName": "lastActiveAgo",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "isCurrentlyActive",
-            "columnName": "isCurrentlyActive",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "statusMessage",
-            "columnName": "statusMessage",
-            "affinity": "TEXT"
-          },
           {
             "fieldPath": "userIdFull",
             "columnName": "user_id_full",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
             "affinity": "TEXT"
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": []
+          "columnNames": [
+            "user_id_full"
+          ]
         }
       },
       {
@@ -714,7 +692,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1c81727d67d2e5e7ed19c968c6b3ad7a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ee9b9a58531f6521443af94eab72bd7')"
     ]
   }
 }

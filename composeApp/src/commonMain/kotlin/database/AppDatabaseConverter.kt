@@ -8,6 +8,7 @@ import data.io.matrix.room.RoomInviteState
 import data.io.matrix.room.RoomNotificationsCount
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomTimeline
+import data.io.matrix.room.event.content.PresenceEventContent
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.MediaIO
@@ -55,6 +56,18 @@ class AppDatabaseConverter {
     /** Converts string to an object */
     @TypeConverter
     fun toRoomSummary(value: String): RoomSummary {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromPresenceEventContent(value: PresenceEventContent): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toPresenceEventContent(value: String): PresenceEventContent {
         return json.decodeFromString(value)
     }
 

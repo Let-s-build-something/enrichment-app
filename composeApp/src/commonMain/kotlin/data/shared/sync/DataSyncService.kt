@@ -11,9 +11,10 @@ import data.io.matrix.room.event.content.AvatarEventContent
 import data.io.matrix.room.event.content.CanonicalAliasEventContent
 import data.io.matrix.room.event.content.MatrixClientEvent
 import data.io.matrix.room.event.content.MatrixClientEvent.RoomEvent.MessageEvent
+import data.io.matrix.room.event.content.MessageEventContent
 import data.io.matrix.room.event.content.NameEventContent
+import data.io.matrix.room.event.content.PresenceEventContent
 import data.io.matrix.room.event.content.ReceiptEventContent
-import data.io.matrix.room.event.content.RelatesTo
 import data.io.matrix.room.event.content.RoomMessageEventContent
 import data.io.matrix.room.event.content.RoomMessageEventContent.FileBased
 import data.io.matrix.room.event.content.idOrNull
@@ -22,12 +23,14 @@ import data.io.matrix.room.event.content.senderOrNull
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
+import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
 import data.shared.cryptoModule
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
+import database.dao.matrix.PresenceEventDao
 import database.dao.matrix.RoomEventDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -46,6 +49,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.core.model.RoomId
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -62,6 +66,7 @@ class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
         private const val PING_EXPIRY_MS = 60_000 * 15
+        private const val START_ANEW = false
     }
 
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
@@ -70,6 +75,7 @@ class DataSyncService {
     private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
     private val roomEventDao: RoomEventDao by KoinPlatform.getKoin().inject()
 
@@ -107,7 +113,7 @@ class DataSyncService {
     ) {
         val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
         if(homeserver == null) return
-        val batch = nextBatch ?: matrixPagingMetaDao.getByEntityId(
+        val batch = nextBatch ?: if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_$owner"
         )?.nextBatch
 
@@ -166,6 +172,7 @@ class DataSyncService {
             var lastMessage: MessageEvent<RoomMessageEventContent>? = null
             val messages = mutableListOf<ConversationMessageIO>()
             val rooms = mutableListOf<ConversationRoomIO>()
+            val presenceContent = mutableListOf<PresenceData>()
             val receipts = mutableListOf<MatrixClientEvent<ReceiptEventContent>>()
             matrixRooms?.forEach { room ->
                 var alias: String? = null
@@ -175,13 +182,28 @@ class DataSyncService {
                 mutableListOf<MatrixClientEvent<*>>()
                     .apply {
                         addAll(room.accountData?.events.orEmpty())
-                        // TODO addAll(room.ephemeral?.events.orEmpty())
-                        // TODO addAll(room.state?.events.orEmpty())
+                        addAll(room.ephemeral?.events.orEmpty())
+                        addAll(room.state?.events.orEmpty())
                         addAll(room.timeline?.events.orEmpty())
 
                         // TODO roomEventDao.insertAll(this)
                     }.forEach { event ->
+                        with(event) {
+                            when (this) {
+                                is MatrixClientEvent.RoomEvent -> roomId = roomId ?: RoomId(room.id)
+                                is MatrixClientEvent.StrippedStateEvent -> roomId = roomId ?: RoomId(room.id)
+                                is MatrixClientEvent.RoomAccountDataEvent -> roomId = roomId ?: RoomId(room.id)
+                                is MatrixClientEvent.EphemeralEvent -> roomId = roomId ?: RoomId(room.id)
+                                else -> {}
+                            }
+                        }
+
                         when(val content = event.content) {
+                            is PresenceEventContent -> {
+                                event.senderOrNull?.full?.let { userId ->
+                                    presenceContent.add(PresenceData(userIdFull = userId, content = content))
+                                }
+                            }
                             is CanonicalAliasEventContent -> {
                                 alias = (content.alias ?: content.aliases?.firstOrNull())?.full
                             }
@@ -192,13 +214,15 @@ class DataSyncService {
                             }
                             is NameEventContent -> name = content.name
                             is AvatarEventContent -> avatar = content
-                            is RoomMessageEventContent -> {
-                                (event as? MessageEvent<RoomMessageEventContent>)?.let {
-                                    lastMessage = it
+                            is MessageEventContent -> {
+                                if(content is RoomMessageEventContent) {
+                                    (event as? MessageEvent<RoomMessageEventContent>)?.let {
+                                        lastMessage = it
+                                    }
                                 }
 
                                 val newItem = ConversationMessageIO(
-                                    content = content.body,
+                                    content = (content as? RoomMessageEventContent)?.body,
                                     media = (content as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
                                         listOf(
                                             MediaIO(
@@ -216,20 +240,18 @@ class DataSyncService {
                                     conversationId = room.id,
                                     authorPublicId = event.senderOrNull?.full,
                                     id = event.idOrNull?.full ?: Uuid.random().toString(),
-                                    anchorMessageId = content.relatesTo?.let {
-                                        (it as? RelatesTo.Reference)?.replyTo?.eventId?.full
-                                    },
+                                    anchorMessageId = content.relatesTo?.replyTo?.eventId?.full,
                                     parentAnchorMessageId = content.relatesTo?.eventId?.full,
                                     state = if(receipts.find { it.idOrNull?.full == event.idOrNull?.full } != null) {
                                         MessageState.Read
                                     }else MessageState.Sent
                                 )
 
-                                // either update existing one, or insert new one
+                                // either update existing one, or insert a new one
                                 messages.add(
                                     conversationMessageDao.get(
                                         messageId = newItem.id
-                                    ) ?: newItem
+                                    )?.update(newItem) ?: newItem
                                 )
                             }
                             else -> {}
@@ -260,6 +282,15 @@ class DataSyncService {
                     )?.update(newItem) ?: newItem
                 )
             }
+
+            // Save presence locally
+            withContext(Dispatchers.IO) {
+                if(presenceContent.isNotEmpty()) {
+                    presenceEventDao.insertAll(presenceContent)
+                }
+            }
+
+            // Save messages locally
             withContext(Dispatchers.IO) {
                 conversationMessageDao.insertAll(messages)
                 // add the anchor messages
@@ -282,6 +313,7 @@ class DataSyncService {
                 }
             }
 
+            // Save rooms locally
             withContext(Dispatchers.IO) {
                 if(rooms.isNotEmpty()) {
                     conversationRoomDao.insertAll(rooms)
