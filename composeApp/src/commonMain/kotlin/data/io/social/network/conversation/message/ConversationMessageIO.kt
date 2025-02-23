@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import base.utils.LinkUtils
-import data.io.social.network.conversation.giphy.GifAsset
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
@@ -29,14 +28,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** List of Urls of attached media to this message */
     val media: List<MediaIO>? = null,
-
-    /** Audio url as a content of this message */
-    @ColumnInfo("audio_url")
-    val audioUrl: String? = null,
-
-    /** Url asset of a gif */
-    @ColumnInfo("gif_asset")
-    val gifAsset: GifAsset? = null,
 
     /** Public id of the author of this message */
     @ColumnInfo("author_public_id")
@@ -75,13 +66,17 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** List of timings of each keystroke in this message */
     val timings: List<Long>? = null,
+    var transcribed: Boolean? = null,
 
-    /** Local database use only, we don't need this information from API */
     @ColumnInfo(name = "conversation_id")
     var conversationId: String? = null,
 
-    /** Local database use only, we don't need this information from API */
-    var transcribed: Boolean? = null
+    @ColumnInfo("prev_batch")
+    val prevBatch: String? = null,
+    @ColumnInfo("next_batch")
+    val nextBatch: String? = null,
+    @ColumnInfo("current_batch")
+    val currentBatch: String? = null,
 ) {
 
     /** User attached to this message */
@@ -95,8 +90,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         id = id,
         content = content,
         mediaUrls = media,
-        audioUrl = audioUrl,
-        gifAsset = gifAsset,
         authorPublicId = authorPublicId,
         anchorMessageId = anchorMessageId
     )
@@ -105,8 +98,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         return this.copy(
             content = other.content ?: content,
             media = other.media ?: media,
-            audioUrl = other.audioUrl ?: audioUrl,
-            gifAsset = other.gifAsset ?: gifAsset,
             authorPublicId = other.authorPublicId ?: authorPublicId,
             reactions = other.reactions ?: reactions,
             showPreview = other.showPreview ?: showPreview,

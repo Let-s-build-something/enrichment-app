@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FilePresent
-import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -30,11 +29,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.accessibility_message_audio
 import augmy.composeapp.generated.resources.accessibility_message_file
 import augmy.composeapp.generated.resources.accessibility_message_pdf
 import augmy.composeapp.generated.resources.accessibility_message_presentation
@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.components.audio.AudioMessageBubble
 import ui.conversation.components.audio.MediaProcessorModel
 import ui.conversation.components.gif.GifImage
 
@@ -78,6 +79,7 @@ fun MediaElement(
     modifier: Modifier = Modifier,
     videoPlayerEnabled: Boolean = false,
     media: MediaIO? = null,
+    tintColor: Color = LocalTheme.current.colors.secondary,
     localMedia: PlatformFile? = null,
     contentDescription: String? = null,
     contentScale: ContentScale = ContentScale.Inside,
@@ -221,6 +223,13 @@ fun MediaElement(
                     }
                 }
             }
+            MediaType.AUDIO -> {
+                AudioMessageBubble(
+                    modifier = Modifier.zIndex(1f),
+                    url = localMedia?.path ?: finalMedia?.path ?: finalMedia?.url ?: "",
+                    tintColor = tintColor
+                )
+            }
             else -> {
                 Column(
                     modifier = itemModifier.width(IntrinsicSize.Min),
@@ -237,25 +246,18 @@ fun MediaElement(
                                 contentDescription = stringResource(Res.string.accessibility_message_pdf)
                             )
                         }
-                        MediaType.AUDIO -> {
-                            Icon(
-                                modifier = iconModifier,
-                                imageVector = Icons.Outlined.GraphicEq,
-                                tint = LocalTheme.current.colors.secondary,
-                                contentDescription = stringResource(Res.string.accessibility_message_audio)
-                            )
-                        }
                         MediaType.TEXT -> {
                             Icon(
                                 modifier = iconModifier,
                                 imageVector = Icons.Outlined.Description,
-                                tint = LocalTheme.current.colors.secondary,
+                                tint = tintColor,
                                 contentDescription = stringResource(Res.string.accessibility_message_text)
                             )
                         }
                         MediaType.PRESENTATION -> {
                             Image(
                                 modifier = iconModifier,
+                                colorFilter = ColorFilter.tint(tintColor),
                                 painter = painterResource(Res.drawable.logo_powerpoint),
                                 contentDescription = stringResource(Res.string.accessibility_message_presentation)
                             )
@@ -264,7 +266,7 @@ fun MediaElement(
                             Icon(
                                 modifier = iconModifier,
                                 imageVector = Icons.Outlined.FilePresent,
-                                tint = LocalTheme.current.colors.secondary,
+                                tint = tintColor,
                                 contentDescription = stringResource(Res.string.accessibility_message_file)
                             )
                         }
@@ -272,7 +274,9 @@ fun MediaElement(
                     Text(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                         text = "${localMedia?.name ?: finalMedia?.name ?: ""}.${localMedia?.extension ?: getExtensionFromMimeType(finalMedia?.mimetype)}",
-                        style = LocalTheme.current.styles.regular
+                        style = LocalTheme.current.styles.regular.copy(
+                            color = tintColor
+                        )
                     )
                 }
             }

@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 39,
-    "identityHash": "61fd60c5187accc3d423b99795369f6b",
+    "version": 41,
+    "identityHash": "b37e7afc08f7fa7b5a446196744b6ae5",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -218,7 +218,7 @@
       },
       {
         "tableName": "room_conversation_message_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `prev_batch` TEXT, `next_batch` TEXT, `current_batch` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `prev_batch` TEXT, `next_batch` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -299,11 +299,6 @@
           {
             "fieldPath": "nextBatch",
             "columnName": "next_batch",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "currentBatch",
-            "columnName": "current_batch",
             "affinity": "TEXT"
           }
         ],
@@ -707,7 +702,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '61fd60c5187accc3d423b99795369f6b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b37e7afc08f7fa7b5a446196744b6ae5')"
     ]
   }
 }

@@ -98,10 +98,13 @@ open class ConversationViewModel(
     val conversationMessages = if(enableMessages) {
         repository.getMessagesListFlow(
             config = PagingConfig(
-                pageSize = 50,
+                pageSize = 30,
                 enablePlaceholders = true,
-                initialLoadSize = 50
+                initialLoadSize = 30
             ),
+            homeserver = {
+                currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
+            },
             conversationId = conversationId
         ).flow
             .cachedIn(viewModelScope)
@@ -237,10 +240,10 @@ open class ConversationViewModel(
                         }
                     }
                 },
+                gifAsset = gifAsset,
                 message = ConversationMessageIO(
                     content = content,
                     anchorMessage = anchorMessage?.toAnchorMessage(),
-                    gifAsset = gifAsset,
                     media = mediaUrls.map { url ->
                         MediaIO(
                             url = url,

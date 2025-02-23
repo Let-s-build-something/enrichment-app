@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import data.io.matrix.room.event.content.RoomMessageEventContent
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import kotlinx.serialization.Serializable
@@ -60,6 +59,12 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** The timeline of messages and state changes in the room. */
     val timeline: RoomTimeline? = null,
 
+    /**
+     * Previous batch of the initially received room. This should never change and, thus, marks the beginning of /messages pagination
+     */
+    @ColumnInfo("prev_batch")
+    val prevBatch: String? = timeline?.prevBatch,
+
     @ColumnInfo("last_message_timestamp")
     val lastMessageTimestamp: Long? = summary?.lastMessage?.originTimestamp
 ) {
@@ -101,6 +106,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         name = summary?.alias,
         tag = summary?.tag,
         avatar = summary?.avatar,
-        lastMessage = (summary?.lastMessage?.content as? RoomMessageEventContent)?.body
+        lastMessage = summary?.lastMessage?.content?.body
     )
 }
