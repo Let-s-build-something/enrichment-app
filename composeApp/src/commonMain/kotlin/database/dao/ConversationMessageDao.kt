@@ -20,15 +20,6 @@ interface ConversationMessageDao {
         batch: String?
     ): List<ConversationMessageIO>
 
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
-            "WHERE conversation_id = :conversationId " +
-            "ORDER BY sent_at DESC " +
-            "LIMIT :limit")
-    suspend fun getLimited(
-        conversationId: String?,
-        limit: Int
-    ): List<ConversationMessageIO>
-
     /** Returns anchored items related to a single message */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId " +
@@ -51,9 +42,10 @@ interface ConversationMessageDao {
     @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "SET current_batch = :batch " +
             "WHERE conversation_id = :conversationId " +
-            "AND current_batch IS NULL")
+            "AND current_batch = :initialBatch")
     suspend fun setInitialBatch(
         conversationId: String?,
+        initialBatch: String,
         batch: String?
     )
 

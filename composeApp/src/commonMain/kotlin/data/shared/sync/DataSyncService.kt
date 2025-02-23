@@ -44,8 +44,8 @@ import net.folivo.trixnity.core.model.RoomId
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import ui.conversation.MessagesRemoteMediator.Companion.INITIAL_BATCH
 import ui.login.safeRequest
-import kotlin.uuid.ExperimentalUuidApi
 
 internal val dataSyncModule = module {
     factory { DataSyncService() }
@@ -135,7 +135,6 @@ class DataSyncService {
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     private suspend fun processResponse(
         response: SyncResponse,
         homeserver: String,
@@ -207,26 +206,38 @@ class DataSyncService {
                             }
                             else -> {}
                         }
-
-                        messages.addAll(
-                            constructMessages(
-                                state = room.state?.events.orEmpty(),
-                                timeline = room.timeline?.events.orEmpty(),
-                                prevBatch = prevBatch,
-                                nextBatch = nextBatch,
-                                currentBatch = null,
-                                roomId = room.id
-                            )
-                        )
                     }
+
+                constructMessages(
+                    state = room.state?.events.orEmpty(),
+                    timeline = room.timeline?.events.orEmpty(),
+                    prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
+                    nextBatch = null,
+                    currentBatch = INITIAL_BATCH,
+                    roomId = room.id
+                ).let { newMessages ->
+                    messages.addAll(newMessages)
+
+                    newMessages.map {
+                        MatrixPagingMetaIO(
+                            entityId = it.id,
+                            prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
+                            nextBatch = null,
+                            currentBatch = INITIAL_BATCH,
+                            entityType = "${PagingEntityType.ConversationMessage}_${room.id}"
+                        )
+                    }.let {
+                        matrixPagingMetaDao.insertAll(it)
+                    }
+                }
 
                 val newItem = room.copy(
                     summary = room.summary?.copy(
                         avatar = avatar?.url?.let {
                             MediaIO(
                                 url = it,
-                                mimetype = avatar.info?.mimeType,
-                                size = avatar.info?.size
+                                mimetype = avatar?.info?.mimeType,
+                                size = avatar?.info?.size
                             )
                         },
                         canonicalAlias = alias ?: name,
@@ -257,16 +268,6 @@ class DataSyncService {
             // Save messages locally
             withContext(Dispatchers.IO) {
                 conversationMessageDao.insertAll(messages)
-                messages.map {
-                    MatrixPagingMetaIO(
-                        entityId = it.id,
-                        prevBatch = prevBatch,
-                        nextBatch = nextBatch,
-                        entityType = "${PagingEntityType.ConversationMessage}_${it.conversationId}"
-                    )
-                }.let {
-                    matrixPagingMetaDao.insertAll(it)
-                }
                 // add the anchor messages
                 val updates = withContext(Dispatchers.Default) {
                     messages.filter { it.anchorMessageId != null }.map {

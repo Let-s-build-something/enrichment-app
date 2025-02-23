@@ -43,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform
+import ui.conversation.MessagesRemoteMediator.Companion.INITIAL_BATCH
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
@@ -80,15 +81,17 @@ open class ConversationRepository(
         conversationId: String?
     ): BaseResponse<ConversationMessagesResponse> {
         return withContext(Dispatchers.IO) {
+            if(conversationId == null || fromBatch.takeIf { it != INITIAL_BATCH } == null) {
+                return@withContext BaseResponse.Error()
+            }
+
             httpClient.safeRequest<ConversationMessagesResponse> {
                 get(
                     urlString = "https://${homeserver}/_matrix/client/v3/rooms/$conversationId/messages",
                     block =  {
                         parameter("limit", limit)
                         parameter("dir", dir)
-                        fromBatch?.let { from ->
-                            parameter("from", from)
-                        }
+                        parameter("from", fromBatch)
                     }
                 )
             }
@@ -118,13 +121,7 @@ open class ConversationRepository(
                             batch = batch
                         )
                     },
-                    size = config.pageSize,
-                    initialBatch = {
-                        conversationMessageDao.getLimited(
-                            conversationId = conversationId,
-                            limit = 1
-                        ).firstOrNull()?.currentBatch ?: ""
-                    }
+                    size = config.pageSize
                 ).also { pagingSource ->
                     currentPagingSource = pagingSource
                 }
@@ -132,7 +129,6 @@ open class ConversationRepository(
             remoteMediator = MessagesRemoteMediator(
                 pagingMetaDao = pagingMetaDao,
                 conversationMessageDao = conversationMessageDao,
-                size = config.pageSize,
                 conversationId = conversationId ?: "",
                 getItems = { batch ->
                     getMessages(
@@ -140,20 +136,10 @@ open class ConversationRepository(
                         conversationId = conversationId,
                         fromBatch = batch,
                         homeserver = homeserver()
-                    ).also { res ->
-                        res.success?.data?.end?.let { prevBatch ->
-                            conversationRoomDao.updatePrevBatch(id = conversationId, prevBatch = prevBatch)
-                        }
-                    }
+                    )
                 },
                 prevBatch = {
                     conversationRoomDao.getPrevBatch(id = conversationId)
-                },
-                initialBatch = {
-                    conversationMessageDao.getLimited(
-                        conversationId = conversationId,
-                        limit = 1
-                    ).firstOrNull()?.currentBatch
                 },
                 invalidatePagingSource = {
                     scope.coroutineContext.cancelChildren()
@@ -174,7 +160,7 @@ open class ConversationRepository(
         return withContext(Dispatchers.IO) {
             conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
                 summary?.members = networkItemDao.getItems(
-                    userPublicIds = summary.heroes,
+                    userPublicIds = summary?.heroes,
                     ownerPublicId = ownerPublicId
                 )
             }

@@ -26,6 +26,7 @@ data class MatrixPagingMetaIO(
     val nextBatch: String?,
 
     /** The starting batch of all the data in the DB, this serves as a limit for loading older messages */
+    @ColumnInfo("current_batch")
     val currentBatch: String? = null,
 
     val prevBatch: String?,

@@ -15,6 +15,7 @@ import database.dao.ConversationMessageDao
 import database.dao.matrix.MatrixPagingMetaDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.io.IOException
@@ -27,15 +28,17 @@ class MessagesRemoteMediator (
     private val conversationMessageDao: ConversationMessageDao,
     private val pagingMetaDao: MatrixPagingMetaDao,
     private val conversationId: String,
-    private val size: Int,
-    private val initialBatch: suspend () -> String?,
     private val prevBatch: suspend () -> String?,
     private val invalidatePagingSource: () -> Unit,
     private val getItems: suspend (batch: String?) -> BaseResponse<ConversationMessagesResponse>,
     private val cacheTimeoutMillis: Int = 24 * 60 * 60 * 1000
 ): RemoteMediator<String, ConversationMessageIO>() {
 
-    val entityType: String
+    companion object {
+        const val INITIAL_BATCH = "initial_batch"
+    }
+
+    private val entityType: String
         get() = "${PagingEntityType.ConversationMessage}_$conversationId"
 
     override suspend fun initialize(): InitializeAction {
@@ -54,52 +57,75 @@ class MessagesRemoteMediator (
         loadType: LoadType,
         state: PagingState<String, ConversationMessageIO>
     ): MediatorResult {
-        var batch: String? = when (loadType) {
-            LoadType.REFRESH -> getPagingMetaClosestToCurrentPosition(state)?.currentBatch
-            LoadType.PREPEND -> getPagingMetaForFirstItem(state)?.prevBatch ?: prevBatch()
-            LoadType.APPEND -> getPagingMetaForLastItem(state)?.nextBatch
+        val currentKey = getPagingMetaClosestToCurrentPosition(state)?.currentBatch ?: INITIAL_BATCH
+        val nextKey = getPagingMetaForFirstItem(state)?.prevBatch?.takeIf { it != currentKey }
+        val prevKey = (getPagingMetaForLastItem(state)?.nextBatch ?: INITIAL_BATCH.takeIf {
+            currentKey != INITIAL_BATCH
+        })?.takeIf { it != nextKey && it != currentKey }
+
+        val batch: String? = when (loadType) {
+            LoadType.REFRESH -> currentKey
+            LoadType.APPEND -> nextKey
+            LoadType.PREPEND -> prevKey
         }
 
         try {
-            val data = getItems.invoke(batch).success?.data
-
-            val items = constructMessages(
-                state = data?.state.orEmpty(),
-                timeline = data?.chunk.orEmpty(),
-                roomId = conversationId,
-                prevBatch = data?.end,
-                nextBatch = data?.start,
-                currentBatch = batch
-            )
-            println("kostka_test, saving ${items.size} messages under $batch")
-            val endOfPaginationReached = items.size != size
+            val (data, items) = if(batch == INITIAL_BATCH) {
+                val data = ConversationMessagesResponse(
+                    state = emptyList(),
+                    chunk = emptyList(),
+                    start = null,
+                    end = prevBatch()
+                )
+                data to conversationMessageDao.getBatched(
+                    conversationId = conversationId,
+                    batch = batch
+                )
+            }else {
+                val data = withContext(NonCancellable) {
+                    getItems.invoke(batch).success?.data
+                }
+                data to constructMessages(
+                    state = data?.state.orEmpty(),
+                    timeline = data?.chunk.orEmpty(),
+                    roomId = conversationId,
+                    prevBatch = data?.end,
+                    nextBatch = data?.start,
+                    currentBatch = batch
+                )
+            }
+            val endOfPaginationReached = data?.end == null
 
             return withContext(Dispatchers.IO) {
-                if (loadType == LoadType.REFRESH) pagingMetaDao.removeAll()
+                if (loadType == LoadType.REFRESH) pagingMetaDao.removeAll(INITIAL_BATCH)
 
-                items.map {
-                    MatrixPagingMetaIO(
-                        entityId = it.id,
-                        prevBatch = data?.end,
-                        nextBatch = data?.start,
-                        currentBatch = batch,
-                        entityType = entityType
-                    )
-                }.also {
-                    pagingMetaDao.insertAll(it)
+                if(items.isNotEmpty()) {
+                    items.map {
+                        MatrixPagingMetaIO(
+                            entityId = it.id,
+                            prevBatch = data?.end,
+                            nextBatch = data?.start,
+                            currentBatch = batch,
+                            entityType = entityType
+                        )
+                    }.also {
+                        pagingMetaDao.insertAll(it)
+                    }
+                    conversationMessageDao.insertAll(items)
+                    invalidatePagingSource()
                 }
-                // TODO the reason why data appeared and disappeared right after is because last batch will be null,
-                //  yet the first one as well, we should identify them in a different way
-                // first data, we finally get to know the current batch with a hack of sorts
-                println("kostka_test, batch: $batch, initial: ${initialBatch()}, updating to ${data?.start}")
-                if(batch == initialBatch()) {
-                    conversationMessageDao.setInitialBatch(
+
+                println("kostka_test, saving ${
+                    conversationMessageDao.getBatched(
                         conversationId = conversationId,
-                        batch = data?.start
-                    )
-                }
-                conversationMessageDao.insertAll(items)
-                invalidatePagingSource()
+                        batch = batch
+                    ).size
+                } messages under $batch")
+                println("kostka_test, loadType: $loadType")
+                println("kostka_test, end: ${data?.end}")
+                println("kostka_test, start: ${data?.start}")
+                println("kostka_test, prevBatch: ${prevBatch()}")
+
                 MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
             }
         } catch (exception: IOException) {

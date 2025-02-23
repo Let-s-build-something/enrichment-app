@@ -5,9 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.base.paging.MatrixPagingMetaIO
-import data.io.base.paging.PagingMetaIO
 import database.AppRoomDatabase.Companion.TABLE_MATRIX_PAGING_META
-import database.AppRoomDatabase.Companion.TABLE_PAGING_META
 
 /** Interface for communication with local Room database */
 @Dao
@@ -16,7 +14,8 @@ interface MatrixPagingMetaDao {
     /** returns when was the last time we used RestApi data */
     @Query("SELECT created_at FROM $TABLE_MATRIX_PAGING_META " +
             "WHERE entity_type = :entityType " +
-            "ORDER BY created_at DESC LIMIT 1")
+            "ORDER BY created_at DESC " +
+            "LIMIT 1")
     suspend fun getCreationTime(entityType: String): Long?
 
     /** Inserts a paging meta data */
@@ -32,6 +31,7 @@ interface MatrixPagingMetaDao {
     suspend fun getByEntityId(entityId: String): MatrixPagingMetaIO?
 
     /** deletes all paging meta data */
-    @Query("DELETE FROM $TABLE_MATRIX_PAGING_META")
-    suspend fun removeAll()
+    @Query("DELETE FROM $TABLE_MATRIX_PAGING_META" +
+            " WHERE current_batch != :excludedBatch")
+    suspend fun removeAll(excludedBatch: String)
 }

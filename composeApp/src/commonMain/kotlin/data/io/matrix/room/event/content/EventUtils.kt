@@ -73,6 +73,17 @@ suspend fun constructMessages(
                         receipts.add(it)
                     }
                 }
+                else -> {}
+                /*EmptyEventContent -> TODO()
+                is EphemeralDataUnitContent -> TODO()
+                is EphemeralEventContent -> TODO()
+                is GlobalAccountDataEventContent -> TODO()
+                is RoomAccountDataEventContent -> TODO()
+                is MessageEventContent -> TODO()
+                is RedactedEventContent -> TODO()
+                is StateEventContent -> TODO()
+                is UnknownEventContent -> TODO()
+                is ToDeviceEventContent -> TODO()*/
             }
         }
 

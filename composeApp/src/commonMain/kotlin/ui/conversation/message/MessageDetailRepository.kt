@@ -75,12 +75,6 @@ class MessageDetailRepository(
                             batch = batch
                         )
                     },
-                    initialBatch = {
-                        conversationMessageDao.getLimited(
-                            conversationId = conversationId,
-                            limit = 1
-                        ).firstOrNull()?.currentBatch ?: ""
-                    },
                     size = config.pageSize
                 ).also {
                     currentPagingSource = it

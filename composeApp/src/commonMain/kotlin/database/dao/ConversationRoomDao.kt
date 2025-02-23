@@ -54,14 +54,6 @@ interface ConversationRoomDao {
         proximity: Float
     )
 
-    @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
-            "SET prev_batch = :prevBatch " +
-            "WHERE id = :id ")
-    suspend fun updatePrevBatch(
-        id: String?,
-        prevBatch: String?
-    )
-
     @Query("SELECT prev_batch FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE id = :id " +
             "LIMIT 1")
