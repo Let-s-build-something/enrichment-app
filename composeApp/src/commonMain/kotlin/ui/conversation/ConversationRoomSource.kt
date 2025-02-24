@@ -16,7 +16,7 @@ class ConversationRoomSource(
 
     override fun getRefreshKey(state: PagingState<String, ConversationMessageIO>): String? {
         return state.anchorPosition?.let { position ->
-            state.closestPageToPosition(position)?.data?.firstOrNull()?.currentBatch
+            state.closestPageToPosition(position)?.data?.firstOrNull()?.prevBatch ?: INITIAL_BATCH
         }
     }
 
@@ -27,15 +27,19 @@ class ConversationRoomSource(
             val firstItem = response.firstOrNull()
 
             val nextKey = firstItem?.prevBatch?.takeIf { it != paramsKey }
-            val prevKey = (firstItem?.nextBatch ?: INITIAL_BATCH.takeIf { paramsKey != INITIAL_BATCH })?.takeIf {
-                it != firstItem?.prevBatch && it != paramsKey
+            val prevKey = firstItem?.nextBatch?.takeIf {
+                it != firstItem.prevBatch && it != paramsKey
+            } ?: INITIAL_BATCH.takeIf {
+                paramsKey != INITIAL_BATCH && response.isNotEmpty()
             }
             val itemsAfter = if((response.size == size || paramsKey == INITIAL_BATCH) && nextKey != null) size else COUNT_UNDEFINED
 
             println("kostka_test, size: ${response.size}")
             println("kostka_test, params key: $paramsKey")
             println("kostka_test, prevKey: $prevKey")
-            println("kostka_test, nextKey: $nextKey")
+            println("kostka_test, prevBatch: ${firstItem?.prevBatch}")
+            println("kostka_test, nextKey: ${nextKey.takeIf { itemsAfter >= 0 }}")
+            println("kostka_test, prevBatch: ${firstItem?.prevBatch}")
             println("kostka_test, itemsAfter: $itemsAfter")
 
             LoadResult.Page(

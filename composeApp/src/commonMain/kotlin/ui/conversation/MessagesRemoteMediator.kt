@@ -70,63 +70,66 @@ class MessagesRemoteMediator (
         }
 
         try {
-            val (data, items) = if(batch == INITIAL_BATCH) {
-                val data = ConversationMessagesResponse(
-                    state = emptyList(),
-                    chunk = emptyList(),
-                    start = null,
-                    end = prevBatch()
-                )
-                data to conversationMessageDao.getBatched(
-                    conversationId = conversationId,
-                    batch = batch
-                )
-            }else {
-                val data = withContext(NonCancellable) {
-                    getItems.invoke(batch).success?.data
-                }
-                data to constructMessages(
-                    state = data?.state.orEmpty(),
-                    timeline = data?.chunk.orEmpty(),
-                    roomId = conversationId,
-                    prevBatch = data?.end,
-                    nextBatch = data?.start,
-                    currentBatch = batch
-                )
-            }
-            val endOfPaginationReached = data?.end == null
-
-            return withContext(Dispatchers.IO) {
-                if (loadType == LoadType.REFRESH) pagingMetaDao.removeAll(INITIAL_BATCH)
-
-                if(items.isNotEmpty()) {
-                    items.map {
-                        MatrixPagingMetaIO(
-                            entityId = it.id,
-                            prevBatch = data?.end,
-                            nextBatch = data?.start,
-                            currentBatch = batch,
-                            entityType = entityType
-                        )
-                    }.also {
-                        pagingMetaDao.insertAll(it)
-                    }
-                    conversationMessageDao.insertAll(items)
-                    invalidatePagingSource()
-                }
-
-                println("kostka_test, saving ${
-                    conversationMessageDao.getBatched(
+            return withContext(NonCancellable) {
+                val (data, items) = if(batch == INITIAL_BATCH) {
+                    val data = ConversationMessagesResponse(
+                        state = emptyList(),
+                        chunk = emptyList(),
+                        start = null,
+                        end = prevBatch()
+                    )
+                    data to conversationMessageDao.getBatched(
                         conversationId = conversationId,
                         batch = batch
-                    ).size
-                } messages under $batch")
-                println("kostka_test, loadType: $loadType")
-                println("kostka_test, end: ${data?.end}")
-                println("kostka_test, start: ${data?.start}")
-                println("kostka_test, prevBatch: ${prevBatch()}")
+                    )
+                }else {
+                    val data = withContext(Dispatchers.IO) {
+                        getItems.invoke(batch).success?.data
+                    }
+                    data to constructMessages(
+                        state = data?.state.orEmpty(),
+                        timeline = data?.chunk.orEmpty(),
+                        roomId = conversationId,
+                        prevBatch = data?.end,
+                        nextBatch = data?.start,
+                        currentBatch = batch
+                    )
+                }
+                val endOfPaginationReached = data?.end == null
+                withContext(Dispatchers.Default) {
+                    if (loadType == LoadType.REFRESH) pagingMetaDao.removeAll(INITIAL_BATCH)
 
-                MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
+                    if(items.isNotEmpty()) {
+                        items.map {
+                            MatrixPagingMetaIO(
+                                entityId = it.id,
+                                prevBatch = data?.end,
+                                nextBatch = data?.start,
+                                currentBatch = batch,
+                                entityType = entityType
+                            )
+                        }.also {
+                            withContext(Dispatchers.IO) {
+                                pagingMetaDao.insertAll(it)
+                                conversationMessageDao.insertAll(items)
+                            }
+                        }
+                        invalidatePagingSource()
+                    }
+
+                    println("kostka_test, saving ${
+                        conversationMessageDao.getBatched(
+                            conversationId = conversationId,
+                            batch = batch
+                        ).size
+                    } messages under $batch")
+                    println("kostka_test, loadType: $loadType")
+                    println("kostka_test, end: ${data?.end}")
+                    println("kostka_test, start: ${data?.start}")
+                    println("kostka_test, prevBatch: ${prevBatch()}")
+
+                    MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
+                }
             }
         } catch (exception: IOException) {
             return MediatorResult.Error(exception)

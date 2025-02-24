@@ -46,7 +46,7 @@ import database.dao.matrix.RoomEventDao
         PresenceData::class,
         ConversationRoomIO::class
     ],
-    version = 45,
+    version = 46,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
