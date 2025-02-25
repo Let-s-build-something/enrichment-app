@@ -56,7 +56,7 @@ class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
         private const val PING_EXPIRY_MS = 60_000 * 15
-        private const val START_ANEW = true//TODO
+        private const val START_ANEW = false
     }
 
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
