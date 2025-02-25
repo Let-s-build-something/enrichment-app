@@ -53,6 +53,13 @@ class OlmCryptoStore(
     private val inboundMegolmSessionDao: InboundMegolmSessionDao by KoinPlatform.getKoin().inject()
     private val megolmMessageIndexDao: MegolmMessageIndexDao by KoinPlatform.getKoin().inject()
 
+    suspend fun clear() {
+        withContext(Dispatchers.IO) {
+            secureSettings.remove(composeKey(KEY_OLM_ACCOUNT))
+            secureSettings.remove(composeKey(KEY_FALLBACK_INSTANT))
+        }
+    }
+
     override suspend fun updateInboundMegolmMessageIndex(
         sessionId: String,
         roomId: RoomId,

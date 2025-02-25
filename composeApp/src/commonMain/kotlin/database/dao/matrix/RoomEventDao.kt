@@ -26,4 +26,7 @@ interface RoomEventDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<MatrixEvent>)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_ROOM_EVENT}")
+    suspend fun removeAll()
 }

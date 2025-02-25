@@ -41,7 +41,7 @@ import ui.login.AUGMY_HOME_SERVER
 internal val conversationModule = module {
     includes(keyboardModule)
 
-    factory { ConversationRepository(get(), get(), get(), get(), get(), get(), get<FileAccess>()) }
+    factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationViewModel(
             get<String>(),

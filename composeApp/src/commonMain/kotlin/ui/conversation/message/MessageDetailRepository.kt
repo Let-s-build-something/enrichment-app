@@ -7,7 +7,6 @@ import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import database.dao.matrix.MatrixPagingMetaDao
 import database.file.FileAccess
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.Dispatchers
@@ -24,12 +23,10 @@ class MessageDetailRepository(
     httpClient: HttpClient,
     fileAccess: FileAccess,
     conversationRoomDao: ConversationRoomDao,
-    mediaDataManager: MediaProcessorDataManager,
-    pagingMetaDao: MatrixPagingMetaDao
+    mediaDataManager: MediaProcessorDataManager
 ): ConversationRepository(
     httpClient = httpClient,
     conversationMessageDao = conversationMessageDao,
-    pagingMetaDao = pagingMetaDao,
     mediaDataManager = mediaDataManager,
     fileAccess = fileAccess,
     networkItemDao = networkItemDao,
@@ -72,6 +69,18 @@ class MessageDetailRepository(
                         conversationMessageDao.getAnchoredPaginated(
                             conversationId = conversationId,
                             anchorMessageId = anchorMessageId,
+                            batch = batch
+                        )
+                    },
+                    findPreviousBatch = { currentBatch ->
+                        conversationMessageDao.getPreviousBatch(
+                            conversationId = conversationId,
+                            currentBatch = currentBatch
+                        )
+                    },
+                    countItems = { batch ->
+                        conversationMessageDao.getCount(
+                            conversationId = conversationId,
                             batch = batch
                         )
                     },

@@ -10,6 +10,7 @@ import data.io.base.BaseResponse
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.event.content.constructMessages
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -21,7 +22,6 @@ import data.shared.SharedDataManager
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import database.dao.matrix.MatrixPagingMetaDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.baseName
@@ -35,15 +35,11 @@ import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Url
 import korlibs.io.net.MimeType
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform
-import ui.conversation.MessagesRemoteMediator.Companion.INITIAL_BATCH
+import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
@@ -55,7 +51,6 @@ open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
     internal val conversationRoomDao: ConversationRoomDao,
-    private val pagingMetaDao: MatrixPagingMetaDao,
     private val networkItemDao: NetworkItemDao,
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
@@ -98,6 +93,31 @@ open class ConversationRepository(
         }
     }
 
+    protected suspend fun getProcessedMessages(
+        homeserver: String,
+        fromBatch: String? = null,
+        limit: Int,
+        conversationId: String?
+    ): List<ConversationMessageIO>? {
+        if(conversationId == null) return null
+
+        return getMessages(
+            limit = limit,
+            conversationId = conversationId,
+            fromBatch = fromBatch,
+            homeserver = homeserver
+        ).success?.data?.let { data ->
+            constructMessages(
+                state = data.state.orEmpty(),
+                timeline = data.chunk.orEmpty(),
+                roomId = conversationId,
+                prevBatch = data.end,
+                nextBatch = data.start,
+                currentBatch = fromBatch
+            )
+        }
+    }
+
     /** Returns a flow of conversation messages */
     @OptIn(ExperimentalPagingApi::class)
     fun getMessagesListFlow(
@@ -105,18 +125,41 @@ open class ConversationRepository(
         config: PagingConfig,
         conversationId: String? = null
     ): Pager<String, ConversationMessageIO> {
-        val scope = CoroutineScope(Dispatchers.Default)
-
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
                     getMessages = { batch ->
-                        println("kostka_test, source getItems, batch: $batch, count: ${
-                            conversationMessageDao.getCount(conversationId = conversationId, batch = batch)
-                        }")
+                        if(conversationId == null) return@ConversationRoomSource emptyList<ConversationMessageIO>()
 
-                        conversationMessageDao.getBatched(
+                        withContext(Dispatchers.IO) {
+                            conversationMessageDao.getBatched(
+                                conversationId = conversationId,
+                                batch = batch
+                            ).takeIf { it.isNotEmpty() }
+                                ?: getProcessedMessages(
+                                    limit = config.pageSize,
+                                    conversationId = conversationId,
+                                    fromBatch = batch,
+                                    homeserver = homeserver()
+                                ).orEmpty().also {
+                                    conversationMessageDao.insertAll(it)
+                                    // end of pagination with different number of items than expected,
+                                    // let's invalidate to recalculate
+                                    if(it.size < config.pageSize && batch != INITIAL_BATCH) {
+                                        invalidateLocalSource()
+                                    }
+                                }
+                        }
+                    },
+                    findPreviousBatch = { currentBatch ->
+                        conversationMessageDao.getPreviousBatch(
+                            conversationId = conversationId,
+                            currentBatch = currentBatch
+                        )
+                    },
+                    countItems = { batch ->
+                        conversationMessageDao.getCount(
                             conversationId = conversationId,
                             batch = batch
                         )
@@ -125,30 +168,7 @@ open class ConversationRepository(
                 ).also { pagingSource ->
                     currentPagingSource = pagingSource
                 }
-            },
-            remoteMediator = MessagesRemoteMediator(
-                pagingMetaDao = pagingMetaDao,
-                conversationMessageDao = conversationMessageDao,
-                conversationId = conversationId ?: "",
-                getItems = { batch ->
-                    getMessages(
-                        limit = config.pageSize,
-                        conversationId = conversationId,
-                        fromBatch = batch,
-                        homeserver = homeserver()
-                    )
-                },
-                prevBatch = {
-                    conversationRoomDao.getPrevBatch(id = conversationId)
-                },
-                invalidatePagingSource = {
-                    scope.coroutineContext.cancelChildren()
-                    scope.launch {
-                        delay(200)
-                        currentPagingSource?.invalidate()
-                    }
-                }
-            )
+            }
         )
     }
 
@@ -160,7 +180,7 @@ open class ConversationRepository(
         return withContext(Dispatchers.IO) {
             conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
                 summary?.members = networkItemDao.getItems(
-                    userPublicIds = summary?.heroes,
+                    userPublicIds = summary.heroes,
                     ownerPublicId = ownerPublicId
                 )
             }

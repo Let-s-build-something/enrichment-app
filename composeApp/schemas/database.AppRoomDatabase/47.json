@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 44,
-    "identityHash": "61fd60c5187accc3d423b99795369f6b",
+    "version": 47,
+    "identityHash": "faf539a4d7c06f2f021ac90aa5600de2",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -174,7 +174,7 @@
       },
       {
         "tableName": "room_matrix_paging_meta_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `currentBatch` TEXT, `prevBatch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `current_batch` TEXT, `prevBatch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
         "fields": [
           {
             "fieldPath": "entityId",
@@ -194,7 +194,7 @@
           },
           {
             "fieldPath": "currentBatch",
-            "columnName": "currentBatch",
+            "columnName": "current_batch",
             "affinity": "TEXT"
           },
           {
@@ -707,7 +707,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '61fd60c5187accc3d423b99795369f6b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'faf539a4d7c06f2f021ac90aa5600de2')"
     ]
   }
 }

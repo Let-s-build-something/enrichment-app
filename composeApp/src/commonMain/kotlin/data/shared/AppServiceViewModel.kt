@@ -30,7 +30,6 @@ import net.folivo.trixnity.core.model.keys.Key
 import net.folivo.trixnity.core.model.keys.KeyAlgorithm
 import net.folivo.trixnity.crypto.olm.OlmEncryptionServiceImpl
 import net.folivo.trixnity.crypto.olm.OlmEncryptionServiceRequestHandler
-import net.folivo.trixnity.crypto.olm.OlmStore
 import net.folivo.trixnity.crypto.sign.SignServiceImpl
 import net.folivo.trixnity.crypto.sign.SignServiceStore
 import net.folivo.trixnity.olm.OlmAccount
@@ -65,7 +64,7 @@ internal suspend fun cryptoModule(
         }
 
         module {
-            single { olmStore }
+            single<OlmCryptoStore> { olmStore }
             single {
                 object: OlmEncryptionServiceRequestHandler {
                     override suspend fun claimKeys(oneTimeKeys: Map<UserId, Map<String, KeyAlgorithm>>): Result<ClaimKeys.Response> {
@@ -106,7 +105,7 @@ internal suspend fun cryptoModule(
                             store = get<SignServiceStore>()
                         ),
                         requests = get<OlmEncryptionServiceRequestHandler>(),
-                        store = get<OlmStore>(),
+                        store = get<OlmCryptoStore>(),
                         userInfo = get<UserInfo>()
                     )
                 }

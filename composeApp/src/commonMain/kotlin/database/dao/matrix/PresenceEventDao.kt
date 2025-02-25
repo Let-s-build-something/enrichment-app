@@ -22,4 +22,7 @@ interface PresenceEventDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<PresenceData>)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_PRESENCE_EVENT}")
+    suspend fun removeAll()
 }

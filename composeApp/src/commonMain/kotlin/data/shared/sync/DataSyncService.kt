@@ -44,7 +44,7 @@ import net.folivo.trixnity.core.model.RoomId
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
-import ui.conversation.MessagesRemoteMediator.Companion.INITIAL_BATCH
+import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.login.safeRequest
 
 internal val dataSyncModule = module {
@@ -80,9 +80,9 @@ class DataSyncService {
             isRunning = true
             syncScope.launch {
                 delay?.let { delay(it) }
-                sharedRepository.authenticateUser(
+                (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
-                )?.let {
+                ))?.let {
                     sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
                     loadKoinModules(cryptoModule(sharedDataManager))
                     enqueue()
@@ -217,18 +217,6 @@ class DataSyncService {
                     roomId = room.id
                 ).let { newMessages ->
                     messages.addAll(newMessages)
-
-                    newMessages.map {
-                        MatrixPagingMetaIO(
-                            entityId = it.id,
-                            prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
-                            nextBatch = null,
-                            currentBatch = INITIAL_BATCH,
-                            entityType = "${PagingEntityType.ConversationMessage}_${room.id}"
-                        )
-                    }.let {
-                        matrixPagingMetaDao.insertAll(it)
-                    }
                 }
 
                 val newItem = room.copy(
@@ -236,8 +224,8 @@ class DataSyncService {
                         avatar = avatar?.url?.let {
                             MediaIO(
                                 url = it,
-                                mimetype = avatar?.info?.mimeType,
-                                size = avatar?.info?.size
+                                mimetype = avatar.info?.mimeType,
+                                size = avatar.info?.size
                             )
                         },
                         canonicalAlias = alias ?: name,

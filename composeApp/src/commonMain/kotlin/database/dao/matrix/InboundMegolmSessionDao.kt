@@ -26,4 +26,7 @@ interface InboundMegolmSessionDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: StoredInboundMegolmSessionEntity)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_INBOUND_MEGOLM_SESSION}")
+    suspend fun removeAll()
 }

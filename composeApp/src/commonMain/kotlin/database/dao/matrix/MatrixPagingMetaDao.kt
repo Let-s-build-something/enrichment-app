@@ -30,8 +30,6 @@ interface MatrixPagingMetaDao {
             "WHERE entity_id = :entityId")
     suspend fun getByEntityId(entityId: String): MatrixPagingMetaIO?
 
-    /** deletes all paging meta data */
-    @Query("DELETE FROM $TABLE_MATRIX_PAGING_META" +
-            " WHERE current_batch != :excludedBatch")
-    suspend fun removeAll(excludedBatch: String)
+    @Query("DELETE FROM $TABLE_MATRIX_PAGING_META")
+    suspend fun removeAll()
 }

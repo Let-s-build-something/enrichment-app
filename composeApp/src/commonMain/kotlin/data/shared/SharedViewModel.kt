@@ -149,10 +149,10 @@ open class SharedViewModel: ViewModel() {
     /** Logs out the currently signed in user */
     open fun logoutCurrentUser() {
         runBlocking {
+            authService.clear()
             Firebase.auth.signOut()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
-            authService.clear()
             dataSyncService.stop()
             sharedDataManager.olmAccount = null
             unloadKoinModules(cryptoModule(sharedDataManager))

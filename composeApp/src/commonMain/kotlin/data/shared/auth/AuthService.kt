@@ -13,6 +13,7 @@ import data.io.matrix.auth.RefreshTokenRequest
 import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
+import data.shared.crypto.OlmCryptoStore
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -55,8 +56,9 @@ class AuthService {
     val awaitingAutologin: Boolean
         get() = secureSettings.hasKey(SecureSettingsKeys.KEY_CREDENTIALS)
 
-    fun clear() {
+    suspend fun clear() {
         stop()
+        KoinPlatform.getKoin().getOrNull<OlmCryptoStore>()?.clear()
         secureSettings.remove(SecureSettingsKeys.KEY_CREDENTIALS)
     }
 

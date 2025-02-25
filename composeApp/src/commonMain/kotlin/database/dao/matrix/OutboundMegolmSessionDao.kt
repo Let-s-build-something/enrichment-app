@@ -20,4 +20,7 @@ interface OutboundMegolmSessionDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(items: StoredOutboundMegolmSessionEntity)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_OUTBOUND_MEGOLM_SESSION}")
+    suspend fun removeAll()
 }

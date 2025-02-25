@@ -49,6 +49,18 @@ interface ConversationMessageDao {
         batch: String?
     )
 
+    @Query("""
+    SELECT current_batch
+    FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+    WHERE conversation_id = :conversationId
+    AND (prev_batch = :currentBatch OR next_batch = :currentBatch)
+    LIMIT 1;
+""")
+    suspend fun getPreviousBatch(
+        conversationId: String?,
+        currentBatch: String
+    ): String?
+
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationMessageIO>)
@@ -70,7 +82,6 @@ interface ConversationMessageDao {
     suspend fun insert(item: ConversationMessageIO)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
-            "WHERE conversation_id = :conversationId")
-    suspend fun removeAll(conversationId: String?)
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}")
+    suspend fun removeAll()
 }

@@ -19,4 +19,7 @@ interface OlmSessionDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<StoredOlmSessionEntity>)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_OLM_SESSION}")
+    suspend fun removeAll()
 }

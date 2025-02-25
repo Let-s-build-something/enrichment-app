@@ -17,7 +17,7 @@ import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
-    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get(), get()) }
+    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
     factory {
         MessageDetailViewModel(
             get<String>(),
@@ -52,7 +52,7 @@ class MessageDetailViewModel(
             withContext(Dispatchers.Default) {
                 message?.apply {
                     user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                    anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                    anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage.authorPublicId }
                     reactions?.forEach { reaction ->
                         reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
                     }
@@ -75,7 +75,7 @@ class MessageDetailViewModel(
                 messages.map {
                     it.apply {
                         user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage.authorPublicId }
                         reactions?.forEach { reaction ->
                             reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
                         }

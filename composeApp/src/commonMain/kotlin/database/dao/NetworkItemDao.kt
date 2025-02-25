@@ -89,7 +89,6 @@ interface NetworkItemDao {
     suspend fun insertAll(items: List<NetworkItemIO>)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_user_id = :ownerPublicId")
-    suspend fun removeAll(ownerPublicId: String?)
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}")
+    suspend fun removeAll()
 }

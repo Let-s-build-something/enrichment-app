@@ -27,4 +27,7 @@ interface MegolmMessageIndexDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: StoredInboundMegolmMessageIndexEntity)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_MEGOLM_MESSAGE_INDEX}")
+    suspend fun removeAll()
 }

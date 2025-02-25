@@ -75,8 +75,6 @@ interface ConversationRoomDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomIO>)
 
-    /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}" +
-            " WHERE owner_public_id = :ownerPublicId")
-    suspend fun removeAll(ownerPublicId: String?)
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}")
+    suspend fun removeAll()
 }
