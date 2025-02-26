@@ -59,8 +59,14 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** The timeline of messages and state changes in the room. */
     val timeline: RoomTimeline? = null,
 
+    /**
+     * Previous batch of the initially received room. This should never change and, thus, marks the beginning of /messages pagination
+     */
+    @ColumnInfo("prev_batch")
+    val prevBatch: String? = timeline?.prevBatch,
+
     @ColumnInfo("last_message_timestamp")
-    val lastMessageTimestamp: Long? = summary?.lastMessage?.originServerTs
+    val lastMessageTimestamp: Long? = summary?.lastMessage?.originTimestamp
 ) {
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {

@@ -44,7 +44,6 @@ interface ConversationRoomDao {
         excludeId: String?
     ): List<ConversationRoomIO>
 
-    /** Counts the number of items */
     @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "SET proximity = :proximity " +
             "WHERE owner_public_id = :ownerPublicId " +
@@ -54,6 +53,11 @@ interface ConversationRoomDao {
         ownerPublicId: String?,
         proximity: Float
     )
+
+    @Query("SELECT prev_batch FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE id = :id " +
+            "LIMIT 1")
+    suspend fun getPrevBatch(id: String?): String?
 
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
@@ -71,8 +75,6 @@ interface ConversationRoomDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomIO>)
 
-    /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}" +
-            " WHERE owner_public_id = :ownerPublicId")
-    suspend fun removeAll(ownerPublicId: String?)
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}")
+    suspend fun removeAll()
 }

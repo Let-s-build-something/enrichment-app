@@ -84,9 +84,9 @@ class HomeViewModel(
     /** flow of current requests */
     val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
         PagingConfig(
-            pageSize = 40,
+            pageSize = 20,
             enablePlaceholders = true,
-            initialLoadSize = 40
+            initialLoadSize = 20
         ),
         ownerPublic = { currentUser.value?.matrixUserId }
     ).flow

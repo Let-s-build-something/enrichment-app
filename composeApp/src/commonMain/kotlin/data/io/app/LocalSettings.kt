@@ -15,11 +15,28 @@ data class LocalSettings(
     /** Hexadecimal representations of colors for each category */
     var networkColors: List<String> = listOf(),
 
+    val deviceId: String? = null,
+
+    /** Identifier of the owner of OLM crypto keys */
+    val pickleKey: String? = null,
+
     /** instance pointer */
     val uuid: String? = null
 ) {
     override fun toString(): String {
         return "LocalSettings(theme=$theme, fcmToken=$fcmToken, clientStatus=$clientStatus, networkColors=$networkColors, uuid=$uuid)"
+    }
+
+    fun update(other: LocalSettings): LocalSettings {
+        return this.copy(
+            theme = other.theme,
+            fcmToken = other.fcmToken ?: this.fcmToken,
+            clientStatus = other.clientStatus,
+            networkColors = other.networkColors,
+            uuid = other.uuid ?: this.uuid,
+            deviceId = other.deviceId ?: this.deviceId,
+            pickleKey = other.pickleKey ?: this.pickleKey
+        )
     }
 }
 

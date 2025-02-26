@@ -11,37 +11,55 @@ import database.AppRoomDatabase
 @Dao
 interface ConversationMessageDao {
 
-    /** Returns all items */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId " +
-            "ORDER BY sent_at DESC " +
-            "LIMIT :limit " +
-            "OFFSET :offset")
-    suspend fun getPaginated(
+            "AND current_batch = :batch " +
+            "ORDER BY sent_at DESC ")
+    suspend fun getBatched(
         conversationId: String?,
-        limit: Int,
-        offset: Int
+        batch: String?
     ): List<ConversationMessageIO>
 
     /** Returns anchored items related to a single message */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId " +
+            "AND current_batch = :batch " +
             "AND (anchor_message_id = :anchorMessageId " +
             "OR parent_anchor_message_id = :anchorMessageId)" +
-            "ORDER BY sent_at DESC " +
-            "LIMIT :limit " +
-            "OFFSET :offset")
+            "ORDER BY sent_at DESC ")
     suspend fun getAnchoredPaginated(
         conversationId: String?,
         anchorMessageId: String?,
-        limit: Int,
-        offset: Int
+        batch: String?
     ): List<ConversationMessageIO>
 
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
-            "WHERE conversation_id = :conversationId")
-    suspend fun getCount(conversationId: String?): Int
+            "WHERE conversation_id = :conversationId " +
+            "AND current_batch = :batch")
+    suspend fun getCount(conversationId: String?, batch: String?): Int
+
+    @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
+            "SET current_batch = :batch " +
+            "WHERE conversation_id = :conversationId " +
+            "AND current_batch = :initialBatch")
+    suspend fun setInitialBatch(
+        conversationId: String?,
+        initialBatch: String,
+        batch: String?
+    )
+
+    @Query("""
+    SELECT current_batch
+    FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+    WHERE conversation_id = :conversationId
+    AND (prev_batch = :currentBatch OR next_batch = :currentBatch)
+    LIMIT 1;
+""")
+    suspend fun getPreviousBatch(
+        conversationId: String?,
+        currentBatch: String
+    ): String?
 
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -64,7 +82,6 @@ interface ConversationMessageDao {
     suspend fun insert(item: ConversationMessageIO)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
-            "WHERE conversation_id = :conversationId")
-    suspend fun removeAll(conversationId: String?)
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}")
+    suspend fun removeAll()
 }

@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -56,7 +55,7 @@ object DeveloperUtils {
             try {
                 val jsonElement: JsonElement = Json.parseToJsonElement(jsonString)
                 json.encodeToString(jsonElement)
-            }catch (e: Exception) {
+            }catch (_: Exception) {
                 jsonString
             }
         }
@@ -79,9 +78,9 @@ object DeveloperUtils {
             HttpCall(
                 headers = headers,
                 requestBody = formatJson((request.body as? TextContent)?.text ?: ""),
-                url = request.url.encodedPath,
+                url = request.url.host + request.url.encodedPath,
                 method = request.method,
-                id = id ?: "No id found"
+                id = id
             )
         }
     }

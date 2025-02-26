@@ -193,6 +193,7 @@ kotlin {
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
+            implementation(libs.trixnity.crypto)
         }
     }
 }

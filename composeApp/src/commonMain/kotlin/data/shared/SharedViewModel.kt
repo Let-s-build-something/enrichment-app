@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
@@ -34,16 +35,13 @@ open class SharedViewModel: ViewModel() {
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
-    /** lazily loaded repository for calling API */
-    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
-
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<AppSettings>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             delay(50)
-            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
+            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) != false
         }
 
         viewModelScope.launch {
@@ -151,11 +149,13 @@ open class SharedViewModel: ViewModel() {
     /** Logs out the currently signed in user */
     open fun logoutCurrentUser() {
         runBlocking {
+            authService.clear()
             Firebase.auth.signOut()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
-            authService.clear()
             dataSyncService.stop()
+            sharedDataManager.olmAccount = null
+            unloadKoinModules(cryptoModule(sharedDataManager))
         }
     }
 }
