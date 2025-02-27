@@ -32,6 +32,10 @@ interface ConversationRoomDao {
         ownerPublicId: String?
     ): List<ConversationRoomIO>
 
+    @Query("SELECT id, history_visibility FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE algorithm IS NOT NULL")
+    suspend fun getEncrypted(): Map<String, HistoryVisibilityEventContent.HistoryVisibility>
+
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +

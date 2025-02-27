@@ -7,6 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingMetaIO
+import data.io.matrix.crypto.OutdatedKey
 import data.io.matrix.crypto.StoredInboundMegolmMessageIndexEntity
 import data.io.matrix.crypto.StoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.StoredOlmSessionEntity
@@ -26,6 +27,7 @@ import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
+import database.dao.matrix.OutdatedKeyDao
 import database.dao.matrix.PresenceEventDao
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 
@@ -41,6 +43,7 @@ import net.folivo.trixnity.core.model.events.m.PresenceEventContent
         StoredInboundMegolmSessionEntity::class,
         StoredInboundMegolmMessageIndexEntity::class,
         PresenceData::class,
+        OutdatedKey::class,
         ConversationRoomIO::class
     ],
     version = 48,
@@ -64,6 +67,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun outboundMegolmSessionDao(): OutboundMegolmSessionDao
     abstract fun inboundMegolmSessionDao(): InboundMegolmSessionDao
     abstract fun megolmMessageIndexDao(): MegolmMessageIndexDao
+    abstract fun outdatedKeyDao(): OutdatedKeyDao
 
 
     companion object {
@@ -102,6 +106,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [StoredInboundMegolmSessionEntity] */
         const val TABLE_MEGOLM_MESSAGE_INDEX = "megolm_message_index_table"
+
+        /** Identification of table for [OutdatedKey] */
+        const val TABLE_OUTDATED_KEYS = "outdated_keys_table"
     }
 }
 

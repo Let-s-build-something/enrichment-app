@@ -108,8 +108,7 @@ open class ConversationRepository(
             homeserver = homeserver
         ).success?.data?.let { data ->
             constructMessages(
-                state = data.state.orEmpty(),
-                timeline = data.chunk.orEmpty(),
+                events = data.chunk.orEmpty() + data.state.orEmpty(),
                 roomId = conversationId,
                 prevBatch = data.end,
                 nextBatch = data.start,

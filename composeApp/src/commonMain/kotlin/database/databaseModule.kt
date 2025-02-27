@@ -28,4 +28,5 @@ internal val databaseModule = module {
     factory { get<AppRoomDatabase>().outboundMegolmSessionDao() }
     factory { get<AppRoomDatabase>().inboundMegolmSessionDao() }
     factory { get<AppRoomDatabase>().megolmMessageIndexDao() }
+    factory { get<AppRoomDatabase>().outdatedKeyDao() }
 }

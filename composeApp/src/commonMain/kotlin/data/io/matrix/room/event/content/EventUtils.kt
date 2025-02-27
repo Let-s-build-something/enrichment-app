@@ -3,6 +3,7 @@ package data.io.matrix.room.event.content
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
+import data.shared.crypto.EncryptionServiceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
@@ -11,7 +12,9 @@ import kotlinx.datetime.toLocalDateTime
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
+import net.folivo.trixnity.core.model.events.m.ForwardedRoomKeyEventContent
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
+import net.folivo.trixnity.core.model.events.m.RoomKeyEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
@@ -19,6 +22,7 @@ import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.File
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.crypto.olm.OlmEncryptionService
+import net.folivo.trixnity.crypto.olm.OlmEncryptionService.DecryptMegolmError
 import org.koin.mp.KoinPlatform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -26,53 +30,53 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 suspend fun constructMessages(
-    state: List<ClientEvent<*>>,
-    timeline: List<ClientEvent<*>>,
+    events: List<ClientEvent<*>>,
     roomId: String,
     currentBatch: String?,
     prevBatch: String?,
     nextBatch: String?
 ): List<ConversationMessageIO> {
     val encryptionService: OlmEncryptionService by KoinPlatform.getKoin().inject()
+    val encryptionRepository: EncryptionServiceRepository by KoinPlatform.getKoin().inject()
 
     return withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
         val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
 
-        state.forEach { event ->
+        events.forEach { event ->
             when(val content = event.content) {
+                is RoomKeyEventContent -> {
+                    println("kostka_test, RoomKeyEventContent: $event")
+                }
+                is ForwardedRoomKeyEventContent -> {
+                    println("kostka_test, RoomKeyEventContent: $event")
+                }
                 is ReceiptEventContent -> {
                     (event as? ClientEvent<ReceiptEventContent>)?.let {
                         receipts.add(it)
                     }
                 }
-                else -> {}
-                /*EmptyEventContent -> TODO()
-                is EphemeralDataUnitContent -> TODO()
-                is EphemeralEventContent -> TODO()
-                is GlobalAccountDataEventContent -> TODO()
-                is RoomAccountDataEventContent -> TODO()
-                is MessageEventContent -> TODO()
-                is RedactedEventContent -> TODO()
-                is StateEventContent -> TODO()
-                is UnknownEventContent -> TODO()
-                is ToDeviceEventContent -> TODO()*/
-            }
-        }
-
-        timeline.forEach { event ->
-            when(val content = event.content) {
                 is OlmEncryptedToDeviceEventContent -> {
                     (event as? ClientEvent.ToDeviceEvent<OlmEncryptedToDeviceEventContent>)?.let { encrypted ->
                         encryptionService.decryptOlm(event = encrypted).also {
-                            println("kostka_test, decrypted olm event: $it")
+                            println("kostka_test, decrypted olm event: $it, event: $event")
                         }
                     }
                 }
                 is MegolmEncryptedMessageEventContent -> {
                     (event as? ClientEvent.RoomEvent<MegolmEncryptedMessageEventContent>)?.let { encrypted ->
-                        encryptionService.decryptMegolm(encryptedEvent = encrypted).also {
-                            println("kostka_test, decrypted megolm event: $it")
+                        val attempt = encryptionService.decryptMegolm(encryptedEvent = encrypted)
+                        when(attempt.exceptionOrNull()) {
+                            is DecryptMegolmError.MegolmKeyNotFound -> {
+                                // missing keys -> request them
+                                encryptionRepository.requestRoomKeys(
+                                    roomId = event.roomId,
+                                    sessionId = content.sessionId
+                                )
+                            }
+                            else -> attempt.getOrNull()
+                        }.also { decryptedEvent ->
+                            println("kostka_test, decrypted megolm event: $decryptedEvent, event: $event")
                         }
                     }
                 }
@@ -108,6 +112,16 @@ suspend fun constructMessages(
                     messages.add(newItem)
                 }
                 else -> {}
+                /*EmptyEventContent -> TODO()
+                is EphemeralDataUnitContent -> TODO()
+                is EphemeralEventContent -> TODO()
+                is GlobalAccountDataEventContent -> TODO()
+                is RoomAccountDataEventContent -> TODO()
+                is MessageEventContent -> TODO()
+                is RedactedEventContent -> TODO()
+                is StateEventContent -> TODO()
+                is UnknownEventContent -> TODO()
+                is ToDeviceEventContent -> TODO()*/
             }
         }
 

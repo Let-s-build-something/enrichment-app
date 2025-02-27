@@ -50,6 +50,7 @@ internal suspend fun cryptoModule(
                     Key.Curve25519Key(deviceId, it.identityKeys.curve25519)
         }
 
+
         val userInfo = UserInfo(
             userId = UserId(full = userId),
             deviceId = deviceId,
@@ -59,7 +60,9 @@ internal suspend fun cryptoModule(
         val requestHandler = EncryptionServiceRepository(
             homeserver = {
                 sharedDataManager.currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
-            }
+            },
+            userInfo = userInfo,
+            keyStore = olmStore
         )
         val signServiceStore = object: SignServiceStore {
             override suspend fun getOlmAccount(): String = olmStore.getOlmAccount()

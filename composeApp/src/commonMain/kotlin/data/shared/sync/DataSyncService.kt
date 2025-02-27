@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
@@ -65,7 +65,6 @@ class DataSyncService {
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
-    private val json: Json by KoinPlatform.getKoin().inject()
 
     private val clientEventEmitter: ClientEventEmitter by KoinPlatform.getKoin().inject()
     private val syncResponseEmitter: SyncResponseEmitter by KoinPlatform.getKoin().inject()
@@ -154,11 +153,6 @@ class DataSyncService {
             )
         )
 
-        syncResponseEmitter.emit(SyncEvents(
-            syncResponse = response,
-            allEvents = listOf()
-        ))
-
         withContext(Dispatchers.Default) {
             val matrixRooms = response.rooms?.let { matrixRooms ->
                 mutableListOf<ConversationRoomIO>().apply {
@@ -169,6 +163,23 @@ class DataSyncService {
                 }
             }
 
+            println("kostka_test, toDevice: ${response.toDevice}")
+            syncResponseEmitter.emit(SyncEvents(
+                syncResponse = response,
+                allEvents = buildList {
+                    response.toDevice?.events?.forEach { add(it) }
+                    response.accountData?.events?.forEach { add(it) }
+                    response.presence?.events?.forEach { add(it) }
+                    matrixRooms?.forEach { room ->
+                        addAll(room.accountData?.events.orEmpty())
+                        addAll(room.ephemeral?.events.orEmpty())
+                        addAll(room.state?.events.orEmpty())
+                        addAll(room.timeline?.events.orEmpty())
+                        addAll(room.inviteState?.events.orEmpty())
+                        addAll(room.knockState?.events.orEmpty())
+                    }
+                }
+            ))
 
             val messages = mutableListOf<ConversationMessageIO>()
             val rooms = mutableListOf<ConversationRoomIO>()
@@ -182,13 +193,48 @@ class DataSyncService {
 
                 mutableListOf<ClientEvent<*>>()
                     .apply {
+                        addAll(response.toDevice?.events.orEmpty())
                         addAll(room.accountData?.events.orEmpty())
                         addAll(room.ephemeral?.events.orEmpty())
                         addAll(room.state?.events.orEmpty())
                         addAll(room.timeline?.events.orEmpty())
-                    }.also { events ->
+                    }
+                    .map { event ->
+                        with(event) {
+                            when (this) {
+                                is ClientEvent.RoomEvent.MessageEvent -> {
+                                    this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
+                                }
+                                is ClientEvent.RoomEvent.StateEvent -> {
+                                    this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
+                                }
+                                is ClientEvent.RoomAccountDataEvent -> {
+                                    this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
+                                }
+                                is ClientEvent.StrippedStateEvent -> {
+                                    this.copy(roomId = roomId.takeIf { !it?.full.isNullOrBlank() } ?: RoomId(room.id))
+                                }
+                                is ClientEvent.EphemeralEvent -> {
+                                    this.copy(roomId = roomId.takeIf { !it?.full.isNullOrBlank() } ?: RoomId(room.id))
+                                }
+                                else -> event
+                            }
+                        }
+                    }
+                    .also { events ->
                         clientEventEmitter.emit(events = events)
-                    }.forEach { event ->
+
+                        constructMessages(
+                            events = events,
+                            prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
+                            nextBatch = null,
+                            currentBatch = INITIAL_BATCH,
+                            roomId = room.id
+                        ).also { newMessages ->
+                            messages.addAll(newMessages)
+                        }
+                    }
+                    .forEach { event ->
                         when(val content = event.content) {
                             is PresenceEventContent -> {
                                 event.senderOrNull?.full?.let { userId ->
@@ -206,17 +252,6 @@ class DataSyncService {
                         }
                     }
 
-                val messages = constructMessages(
-                    state = room.state?.events.orEmpty(),
-                    timeline = room.timeline?.events.orEmpty(),
-                    prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
-                    nextBatch = null,
-                    currentBatch = INITIAL_BATCH,
-                    roomId = room.id
-                ).also { newMessages ->
-                    messages.addAll(newMessages)
-                }
-
                 val newItem = room.copy(
                     summary = room.summary?.copy(
                         avatar = avatar?.url?.let {
@@ -227,7 +262,7 @@ class DataSyncService {
                             )
                         },
                         canonicalAlias = alias ?: name,
-                        lastMessage = messages.lastOrNull()
+                        lastMessage = messages.lastOrNull()?.takeIf { it.conversationId == room.id }
                     ),
                     ownerPublicId = owner,
                     primaryKey = "${room.id}_${owner}",

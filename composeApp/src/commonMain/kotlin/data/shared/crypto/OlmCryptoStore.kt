@@ -3,6 +3,7 @@ package data.shared.crypto
 import data.io.app.SecureSettingsKeys.KEY_DEVICE_KEY
 import data.io.app.SecureSettingsKeys.KEY_FALLBACK_INSTANT
 import data.io.app.SecureSettingsKeys.KEY_OLM_ACCOUNT
+import data.io.matrix.crypto.OutdatedKey
 import data.io.matrix.crypto.asStoredInboundMegolmMessageIndexEntity
 import data.io.matrix.crypto.asStoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.asStoredOlmSessionEntity
@@ -13,6 +14,7 @@ import database.dao.matrix.InboundMegolmSessionDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
+import database.dao.matrix.OutdatedKeyDao
 import koin.SecureAppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -48,6 +50,7 @@ class OlmCryptoStore(
     private val outboundMegolmSessionDao: OutboundMegolmSessionDao by KoinPlatform.getKoin().inject()
     private val inboundMegolmSessionDao: InboundMegolmSessionDao by KoinPlatform.getKoin().inject()
     private val megolmMessageIndexDao: MegolmMessageIndexDao by KoinPlatform.getKoin().inject()
+    private val outdatedKeyDao: OutdatedKeyDao by KoinPlatform.getKoin().inject()
 
     val ownerId: String?
         get() = sharedDataManager.currentUser.value?.matrixUserId
@@ -84,6 +87,7 @@ class OlmCryptoStore(
         roomId: RoomId,
         updater: suspend (StoredInboundMegolmSession?) -> StoredInboundMegolmSession?
     ) {
+        println("kostka_test, updateInboundMegolmSession, sessionId: $sessionId, roomId: $roomId")
         withContext(Dispatchers.IO) {
             val res = inboundMegolmSessionDao.get(
                 sessionId = sessionId,
@@ -97,10 +101,28 @@ class OlmCryptoStore(
         }
     }
 
+    suspend fun getOutdatedKeys(): Set<UserId> = withContext(Dispatchers.IO) {
+        outdatedKeyDao.getAll().map { it.userId }.toSet()
+    }
+
+    suspend fun updateOutdatedKeys(updater: suspend (Set<UserId>) -> Set<UserId>) {
+        withContext(Dispatchers.IO) {
+            val res = getOutdatedKeys()
+            withContext(Dispatchers.Default) {
+                updater.invoke(res).also { updated ->
+                    withContext(Dispatchers.IO) {
+                        outdatedKeyDao.insertAll(updated.map { OutdatedKey(it) })
+                    }
+                }
+            }
+        }
+    }
+
     override suspend fun getInboundMegolmSession(
         sessionId: String,
         roomId: RoomId
     ): StoredInboundMegolmSession? {
+        println("kostka_test, getInboundMegolmSession, sessionId: $sessionId, roomId: $roomId")
         return withContext(Dispatchers.IO) {
             inboundMegolmSessionDao.get(
                 sessionId = sessionId,
@@ -218,7 +240,7 @@ class OlmCryptoStore(
     private fun composeKey(key: String): String = "${key}_$ownerId"
 
     private fun getDeviceKey(userId: String, deviceId: String) = getDeviceKeys(userId)[deviceId]
-    private fun getDeviceKeys(userId: String): Map<String, StoredDeviceKeys> {
+    internal fun getDeviceKeys(userId: String): Map<String, StoredDeviceKeys> {
         return secureSettings.getStringOrNull(
             key = composeKey("${KEY_DEVICE_KEY}_$userId")
         )?.let {
