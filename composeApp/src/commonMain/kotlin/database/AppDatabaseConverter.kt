@@ -8,8 +8,6 @@ import data.io.matrix.room.RoomInviteState
 import data.io.matrix.room.RoomNotificationsCount
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomTimeline
-import data.io.matrix.room.event.content.PresenceEventContent
-import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
@@ -23,9 +21,10 @@ import net.folivo.trixnity.core.model.EventIdSerializer
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.RoomIdSerializer
 import net.folivo.trixnity.core.model.UserId
-import net.folivo.trixnity.core.model.events.UnsignedRoomEventData
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import net.folivo.trixnity.core.model.keys.Curve25519KeySerializer
 import net.folivo.trixnity.core.model.keys.Ed25519KeySerializer
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import net.folivo.trixnity.core.model.keys.Key
 import org.koin.mp.KoinPlatform
 
@@ -68,6 +67,18 @@ class AppDatabaseConverter {
     /** Converts string to an object */
     @TypeConverter
     fun toPresenceEventContent(value: String): PresenceEventContent {
+        return json.decodeFromString(value)
+    }
+
+    /** Converts object to string */
+    @TypeConverter
+    fun fromEncryptionAlgorithm(value: EncryptionAlgorithm): String {
+        return json.encodeToString(value)
+    }
+
+    /** Converts string to an object */
+    @TypeConverter
+    fun toEncryptionAlgorithm(value: String): EncryptionAlgorithm {
         return json.decodeFromString(value)
     }
 
@@ -157,18 +168,6 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
-    fun fromUnsignedStateEventData(value: UnsignedRoomEventData.UnsignedStateEventData): String {
-        return json.encodeToString(value)
-    }
-
-    /** Converts string to an object */
-    @TypeConverter
-    fun toUnsignedStateEventData(value: String): UnsignedRoomEventData.UnsignedStateEventData {
-        return json.decodeFromString(value)
-    }
-
-    /** Converts object to string */
-    @TypeConverter
     fun fromRoomNotificationsCount(value: RoomNotificationsCount): String {
         return json.encodeToString(value)
     }
@@ -227,18 +226,6 @@ class AppDatabaseConverter {
 
     /** Converts object to string */
     @TypeConverter
-    fun fromUserId(value: UserId): String {
-        return json.encodeToString(value)
-    }
-
-    /** Converts string to an object */
-    @TypeConverter
-    fun toUserId(value: String): UserId {
-        return json.decodeFromString(value)
-    }
-
-    /** Converts object to string */
-    @TypeConverter
     fun fromMediaIO(value: MediaIO?): String? {
         return if(value == null) null else json.encodeToString(value)
     }
@@ -247,18 +234,6 @@ class AppDatabaseConverter {
     @TypeConverter
     fun toMediaIO(value: String?): MediaIO? {
         return if(value == null) null else json.decodeFromString(value)
-    }
-
-    /** Converts object to string */
-    @TypeConverter
-    fun fromGifAsset(value: GifAsset): String {
-        return json.encodeToString(value)
-    }
-
-    /** Converts string to an object */
-    @TypeConverter
-    fun toGifAsset(value: String): GifAsset {
-        return json.decodeFromString(value)
     }
 
     /** Converts object to string */

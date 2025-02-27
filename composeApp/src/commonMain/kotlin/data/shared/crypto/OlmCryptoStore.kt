@@ -1,6 +1,5 @@
 package data.shared.crypto
 
-import base.utils.Matrix
 import data.io.app.SecureSettingsKeys.KEY_DEVICE_KEY
 import data.io.app.SecureSettingsKeys.KEY_FALLBACK_INSTANT
 import data.io.app.SecureSettingsKeys.KEY_OLM_ACCOUNT
@@ -14,7 +13,6 @@ import database.dao.matrix.InboundMegolmSessionDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
-import database.dao.matrix.RoomEventDao
 import koin.SecureAppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -27,7 +25,6 @@ import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
-import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.keys.DeviceKeys
@@ -47,11 +44,13 @@ class OlmCryptoStore(
     private val secureSettings: SecureAppSettings by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
-    private val roomEventDao: RoomEventDao by KoinPlatform.getKoin().inject()
     private val olmSessionDao: OlmSessionDao by KoinPlatform.getKoin().inject()
     private val outboundMegolmSessionDao: OutboundMegolmSessionDao by KoinPlatform.getKoin().inject()
     private val inboundMegolmSessionDao: InboundMegolmSessionDao by KoinPlatform.getKoin().inject()
     private val megolmMessageIndexDao: MegolmMessageIndexDao by KoinPlatform.getKoin().inject()
+
+    val ownerId: String?
+        get() = sharedDataManager.currentUser.value?.matrixUserId
 
     suspend fun clear() {
         withContext(Dispatchers.IO) {
@@ -161,19 +160,17 @@ class OlmCryptoStore(
     }
 
     override suspend fun getHistoryVisibility(roomId: RoomId): HistoryVisibilityEventContent.HistoryVisibility? {
-        return roomEventDao.getStateItem(
-            roomId = roomId.full,
-            stateKey = "",
-            type = Matrix.Room.HISTORY_VISIBILITY
-        )?.asClientEvent<HistoryVisibilityEventContent>(json)?.content?.historyVisibility
+        return conversationRoomDao.getHistoryVisibility(
+            id = roomId.full,
+            ownerPublicId = ownerId
+        )
     }
 
     override suspend fun getRoomEncryptionAlgorithm(roomId: RoomId): EncryptionAlgorithm? {
-        return roomEventDao.getStateItem(
-            roomId = roomId.full,
-            stateKey = "",
-            type = Matrix.Room.ENCRYPTION
-        )?.asClientEvent<EncryptedMessageEventContent>(json)?.content?.algorithm
+        return conversationRoomDao.getAlgorithm(
+            id = roomId.full,
+            ownerPublicId = ownerId
+        )
     }
 
     override suspend fun findCurve25519Key(userId: UserId, deviceId: String): Key.Curve25519Key? =
@@ -196,7 +193,7 @@ class OlmCryptoStore(
     ): Map<UserId, Set<String>>? {
         return conversationRoomDao.getItem(
             id = roomId.full,
-            ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
+            ownerPublicId = ownerId
         )?.summary?.heroes?.associate { userId ->
             getDeviceKeys(userId).let { UserId(userId) to it.keys }
         }
@@ -218,7 +215,7 @@ class OlmCryptoStore(
 
     override suspend fun getOlmPickleKey(): String = sharedDataManager.localSettings.value?.pickleKey ?: ""
 
-    private fun composeKey(key: String): String = "${key}_${sharedDataManager.currentUser.value?.matrixUserId}"
+    private fun composeKey(key: String): String = "${key}_$ownerId"
 
     private fun getDeviceKey(userId: String, deviceId: String) = getDeviceKeys(userId)[deviceId]
     private fun getDeviceKeys(userId: String): Map<String, StoredDeviceKeys> {

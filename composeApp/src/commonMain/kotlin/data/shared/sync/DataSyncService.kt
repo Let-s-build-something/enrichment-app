@@ -7,21 +7,13 @@ import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingEntityType
 import data.io.matrix.SyncResponse
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.event.content.AvatarEventContent
-import data.io.matrix.room.event.content.CanonicalAliasEventContent
-import data.io.matrix.room.event.content.MatrixClientEvent
-import data.io.matrix.room.event.content.MatrixClientEvent.RoomEvent.MessageEvent
-import data.io.matrix.room.event.content.NameEventContent
-import data.io.matrix.room.event.content.PresenceEventContent
-import data.io.matrix.room.event.content.RoomMessageEventContent
 import data.io.matrix.room.event.content.constructMessages
-import data.io.matrix.room.event.content.senderOrNull
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
-import data.shared.cryptoModule
+import data.shared.crypto.cryptoModule
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
@@ -40,7 +32,14 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.events.ClientEvent
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
+import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
+import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
+import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.events.m.room.NameEventContent
+import net.folivo.trixnity.core.model.events.senderOrNull
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -56,7 +55,7 @@ class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
         private const val PING_EXPIRY_MS = 60_000 * 15
-        private const val START_ANEW = false
+        private const val START_ANEW = true
     }
 
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
@@ -67,6 +66,9 @@ class DataSyncService {
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
+
+    private val clientEventEmitter: ClientEventEmitter by KoinPlatform.getKoin().inject()
+    private val syncResponseEmitter: SyncResponseEmitter by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
@@ -151,6 +153,12 @@ class DataSyncService {
                 prevBatch = prevBatch
             )
         )
+
+        syncResponseEmitter.emit(SyncEvents(
+            syncResponse = response,
+            allEvents = listOf()
+        ))
+
         withContext(Dispatchers.Default) {
             val matrixRooms = response.rooms?.let { matrixRooms ->
                 mutableListOf<ConversationRoomIO>().apply {
@@ -169,53 +177,43 @@ class DataSyncService {
                 var alias: String? = null
                 var name: String? = null
                 var avatar: AvatarEventContent? = null
-                var lastMessage: MessageEvent<RoomMessageEventContent>? = null
+                var historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null
+                var algorithm: EncryptionEventContent? = null
 
-                mutableListOf<MatrixClientEvent<*>>()
+                mutableListOf<ClientEvent<*>>()
                     .apply {
                         addAll(room.accountData?.events.orEmpty())
                         addAll(room.ephemeral?.events.orEmpty())
                         addAll(room.state?.events.orEmpty())
                         addAll(room.timeline?.events.orEmpty())
+                    }.also { events ->
+                        clientEventEmitter.emit(events = events)
                     }.forEach { event ->
-                        with(event) {
-                            when (this) {
-                                is MatrixClientEvent.RoomEvent -> roomId = roomId ?: RoomId(room.id)
-                                is MatrixClientEvent.StrippedStateEvent -> roomId = roomId ?: RoomId(room.id)
-                                is MatrixClientEvent.RoomAccountDataEvent -> roomId = roomId ?: RoomId(room.id)
-                                is MatrixClientEvent.EphemeralEvent -> roomId = roomId ?: RoomId(room.id)
-                                else -> {}
-                            }
-                        }
-
                         when(val content = event.content) {
                             is PresenceEventContent -> {
                                 event.senderOrNull?.full?.let { userId ->
                                     presenceContent.add(PresenceData(userIdFull = userId, content = content))
                                 }
                             }
+                            is HistoryVisibilityEventContent -> historyVisibility = content.historyVisibility
                             is CanonicalAliasEventContent -> {
                                 alias = (content.alias ?: content.aliases?.firstOrNull())?.full
                             }
                             is NameEventContent -> name = content.name
                             is AvatarEventContent -> avatar = content
-                            is RoomMessageEventContent -> {
-                                (event as? MessageEvent<RoomMessageEventContent>)?.let {
-                                    lastMessage = it
-                                }
-                            }
+                            is EncryptionEventContent -> algorithm = content
                             else -> {}
                         }
                     }
 
-                constructMessages(
+                val messages = constructMessages(
                     state = room.state?.events.orEmpty(),
                     timeline = room.timeline?.events.orEmpty(),
                     prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
                     nextBatch = null,
                     currentBatch = INITIAL_BATCH,
                     roomId = room.id
-                ).let { newMessages ->
+                ).also { newMessages ->
                     messages.addAll(newMessages)
                 }
 
@@ -229,12 +227,11 @@ class DataSyncService {
                             )
                         },
                         canonicalAlias = alias ?: name,
-                        lastEventJson = lastMessage?.let {
-                            json.encodeToString(it)
-                        }
+                        lastMessage = messages.lastOrNull()
                     ),
                     ownerPublicId = owner,
-                    primaryKey = "${room.id}_${owner}"
+                    primaryKey = "${room.id}_${owner}",
+                    algorithm = algorithm?.algorithm
                 )
 
                 // either update existing one, or insert new one

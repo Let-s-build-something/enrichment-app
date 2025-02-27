@@ -1,14 +1,25 @@
 package data.io.matrix.room.event.serialization
 
-import data.io.matrix.room.event.content.EphemeralDataUnitContent
-import data.io.matrix.room.event.content.EphemeralEventContent
-import data.io.matrix.room.event.content.GlobalAccountDataEventContent
-import data.io.matrix.room.event.content.MessageEventContent
-import data.io.matrix.room.event.content.RoomAccountDataEventContent
-import data.io.matrix.room.event.content.StateEventContent
-import data.io.matrix.room.event.content.ToDeviceEventContent
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.serializer
+import net.folivo.trixnity.core.model.events.EphemeralDataUnitContent
+import net.folivo.trixnity.core.model.events.EphemeralEventContent
+import net.folivo.trixnity.core.model.events.GlobalAccountDataEventContent
+import net.folivo.trixnity.core.model.events.MessageEventContent
+import net.folivo.trixnity.core.model.events.RoomAccountDataEventContent
+import net.folivo.trixnity.core.model.events.StateEventContent
+import net.folivo.trixnity.core.model.events.ToDeviceEventContent
+import net.folivo.trixnity.core.serialization.events.EventContentSerializerMapping
+import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappingImpl
+import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappings
+import net.folivo.trixnity.core.serialization.events.MessageEventContentSerializerMapping
+import net.folivo.trixnity.core.serialization.events.StateEventContentSerializerMapping
 
 class EventContentSerializerMappingsBuilder {
     val message = mutableSetOf<MessageEventContentSerializerMapping>()
@@ -34,93 +45,120 @@ class EventContentSerializerMappingsBuilder {
 fun createEventContentSerializerMappings(builder: EventContentSerializerMappingsBuilder.() -> Unit): EventContentSerializerMappings =
     EventContentSerializerMappingsBuilder().apply(builder).build()
 
+class RoomIdInjectingSerializer<T>(
+    private val delegate: KSerializer<T>
+) : KSerializer<T> {
+    override val descriptor: SerialDescriptor = delegate.descriptor
+    override fun serialize(encoder: Encoder, value: T) {
+        delegate.serialize(encoder, value)
+    }
+
+    override fun deserialize(decoder: Decoder): T {
+        return (decoder as? JsonDecoder)?.let { input ->
+            val jsonElement = input.decodeJsonElement()
+            if (jsonElement is JsonObject) {
+                // If "roomId" is missing, add it
+                val updatedJson = if ("room_id" in jsonElement) {
+                    jsonElement
+                } else {
+                    jsonElement.toMutableMap().apply {
+                        put("room_id", JsonPrimitive(""))
+                    }.let { JsonObject(it) }
+                }
+
+                input.json.decodeFromJsonElement(delegate, updatedJson)
+            }else delegate.deserialize(decoder)
+        } ?: delegate.deserialize(decoder)
+    }
+}
+
 inline fun <reified C : MessageEventContent> EventContentSerializerMappingsBuilder.messageOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    message.add(MessageEventContentSerializerMapping(type, C::class, serializer))
+    message.add(MessageEventContentSerializerMapping(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : MessageEventContent> EventContentSerializerMappingsBuilder.messageOf(
     type: String
 ) {
-    message.add(MessageEventContentSerializerMapping(type, C::class, serializer<C>()))
+    message.add(MessageEventContentSerializerMapping(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }
 
 inline fun <reified C : StateEventContent> EventContentSerializerMappingsBuilder.stateOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    state.add(StateEventContentSerializerMapping(type, C::class, serializer))
+    state.add(StateEventContentSerializerMapping(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : StateEventContent> EventContentSerializerMappingsBuilder.stateOf(
     type: String
 ) {
-    state.add(StateEventContentSerializerMapping(type, C::class, serializer<C>()))
+    state.add(StateEventContentSerializerMapping(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }
 
 inline fun <reified C : EphemeralEventContent> EventContentSerializerMappingsBuilder.ephemeralOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    ephemeral.add(EventContentSerializerMappingImpl(type, C::class, serializer))
+    ephemeral.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : EphemeralEventContent> EventContentSerializerMappingsBuilder.ephemeralOf(
     type: String
 ) {
-    ephemeral.add(EventContentSerializerMappingImpl(type, C::class, serializer<C>()))
+    ephemeral.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }
 
 inline fun <reified C : EphemeralDataUnitContent> EventContentSerializerMappingsBuilder.ephemeralDataUnitOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    ephemeralDataUnit.add(EventContentSerializerMappingImpl(type, C::class, serializer))
+    ephemeralDataUnit.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : EphemeralDataUnitContent> EventContentSerializerMappingsBuilder.ephemeralDataUnitOf(
     type: String
 ) {
-    ephemeralDataUnit.add(EventContentSerializerMappingImpl(type, C::class, serializer<C>()))
+    ephemeralDataUnit.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }
 
 inline fun <reified C : ToDeviceEventContent> EventContentSerializerMappingsBuilder.toDeviceOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    toDevice.add(EventContentSerializerMappingImpl(type, C::class, serializer))
+    toDevice.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : ToDeviceEventContent> EventContentSerializerMappingsBuilder.toDeviceOf(
     type: String
 ) {
-    toDevice.add(EventContentSerializerMappingImpl(type, C::class, serializer<C>()))
+    toDevice.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }
 
 inline fun <reified C : GlobalAccountDataEventContent> EventContentSerializerMappingsBuilder.globalAccountDataOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    globalAccountData.add(EventContentSerializerMappingImpl(type, C::class, serializer))
+    globalAccountData.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : GlobalAccountDataEventContent> EventContentSerializerMappingsBuilder.globalAccountDataOf(
     type: String
 ) {
-    globalAccountData.add(EventContentSerializerMappingImpl(type, C::class, serializer<C>()))
+    globalAccountData.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }
 
 inline fun <reified C : RoomAccountDataEventContent> EventContentSerializerMappingsBuilder.roomAccountDataOf(
     type: String,
     serializer: KSerializer<C>
 ) {
-    roomAccountData.add(EventContentSerializerMappingImpl(type, C::class, serializer))
+    roomAccountData.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer)))
 }
 
 inline fun <reified C : RoomAccountDataEventContent> EventContentSerializerMappingsBuilder.roomAccountDataOf(
     type: String
 ) {
-    roomAccountData.add(EventContentSerializerMappingImpl(type, C::class, serializer<C>()))
+    roomAccountData.add(EventContentSerializerMappingImpl(type, C::class, RoomIdInjectingSerializer(serializer<C>())))
 }

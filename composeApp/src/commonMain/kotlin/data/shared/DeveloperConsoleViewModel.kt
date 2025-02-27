@@ -13,7 +13,6 @@ import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
 import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomEventDao
 import koin.DeveloperUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +25,6 @@ import kotlin.uuid.Uuid
 internal val developerConsoleModule = module {
     single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
     factory { DeveloperConsoleViewModel(
-        get(),
         get(),
         get(),
         get(),
@@ -63,7 +61,6 @@ class DeveloperConsoleViewModel(
     private val emojiSelectionDao: EmojiSelectionDao,
     private val pagingMetaDao: PagingMetaDao,
     private val conversationRoomDao: ConversationRoomDao,
-    private val roomEventDao: RoomEventDao,
     private val presenceEventDao: PresenceEventDao,
     private val matrixPagingMetaDao: MatrixPagingMetaDao,
     private val olmSessionDao: OlmSessionDao,
@@ -102,7 +99,6 @@ class DeveloperConsoleViewModel(
             emojiSelectionDao.removeAll()
             pagingMetaDao.removeAll()
             conversationRoomDao.removeAll()
-            roomEventDao.removeAll()
             presenceEventDao.removeAll()
             matrixPagingMetaDao.removeAll()
             olmSessionDao.removeAll()

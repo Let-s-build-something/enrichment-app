@@ -12,8 +12,6 @@ import data.io.matrix.crypto.StoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.StoredOlmSessionEntity
 import data.io.matrix.crypto.StoredOutboundMegolmSessionEntity
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.event.content.MatrixEvent
-import data.io.matrix.room.event.content.PresenceEventContent
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
@@ -29,7 +27,7 @@ import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
 import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomEventDao
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 
 @Database(
     entities = [
@@ -38,7 +36,6 @@ import database.dao.matrix.RoomEventDao
         PagingMetaIO::class,
         MatrixPagingMetaIO::class,
         ConversationMessageIO::class,
-        MatrixEvent::class,
         StoredOlmSessionEntity::class,
         StoredOutboundMegolmSessionEntity::class,
         StoredInboundMegolmSessionEntity::class,
@@ -46,7 +43,7 @@ import database.dao.matrix.RoomEventDao
         PresenceData::class,
         ConversationRoomIO::class
     ],
-    version = 47,
+    version = 48,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -59,11 +56,10 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun emojiSelectionDao(): EmojiSelectionDao
     abstract fun pagingMetaDao(): PagingMetaDao
     abstract fun conversationRoomDao(): ConversationRoomDao
-    abstract fun roomEventDao(): RoomEventDao
     abstract fun presenceEventDao(): PresenceEventDao
+    abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
 
     // crypto
-    abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
     abstract fun olmSessionDao(): OlmSessionDao
     abstract fun outboundMegolmSessionDao(): OutboundMegolmSessionDao
     abstract fun inboundMegolmSessionDao(): InboundMegolmSessionDao
@@ -79,9 +75,6 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [ConversationRoomIO] */
         const val TABLE_CONVERSATION_ROOM = "room_conversation_room_table"
-
-        /** Identification of table for [MatrixEvent] */
-        const val TABLE_ROOM_EVENT = "room_event_table"
 
         /** Identification of table for [ConversationMessageIO] */
         const val TABLE_CONVERSATION_MESSAGE = "room_conversation_message_table"

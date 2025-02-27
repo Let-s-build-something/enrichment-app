@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.matrix.room.ConversationRoomIO
 import database.AppRoomDatabase
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 
 /** Interface for communication with local Room database */
 @Dao
@@ -64,12 +66,23 @@ interface ConversationRoomDao {
             "WHERE owner_public_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
-    /** Counts the number of items */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id = :id " +
             "LIMIT 1")
     suspend fun getItem(id: String?, ownerPublicId: String?): ConversationRoomIO?
+
+    @Query("SELECT history_visibility FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND id = :id " +
+            "LIMIT 1")
+    suspend fun getHistoryVisibility(id: String?, ownerPublicId: String?): HistoryVisibilityEventContent.HistoryVisibility?
+
+    @Query("SELECT algorithm FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE owner_public_id = :ownerPublicId " +
+            "AND id = :id " +
+            "LIMIT 1")
+    suspend fun getAlgorithm(id: String?, ownerPublicId: String?): EncryptionAlgorithm?
 
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

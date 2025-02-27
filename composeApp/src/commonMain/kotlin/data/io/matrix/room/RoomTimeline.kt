@@ -1,8 +1,8 @@
 package data.io.matrix.room
 
-import data.io.matrix.room.event.content.MatrixClientEvent.RoomEvent
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 
 /** The timeline of messages and state changes in the room. */
 @Serializable

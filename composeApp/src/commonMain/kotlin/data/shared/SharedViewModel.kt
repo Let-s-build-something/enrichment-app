@@ -8,6 +8,7 @@ import data.io.app.SettingsKeys
 import data.io.base.AppPing
 import data.io.user.UserIO
 import data.shared.auth.AuthService
+import data.shared.crypto.cryptoModule
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth

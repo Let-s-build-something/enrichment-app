@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 47,
-    "identityHash": "e68998cd6e2c589538e8d0d2b492be97",
+    "version": 48,
+    "identityHash": "ed0969e8597fa4f332e32e2406e51f5c",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_matrix_id` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_matrix_id` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
           {
             "fieldPath": "name",
@@ -67,6 +67,11 @@
           {
             "fieldPath": "ownerUserId",
             "columnName": "owner_user_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "presence",
+            "columnName": "presence",
             "affinity": "TEXT"
           },
           {
@@ -648,7 +653,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e68998cd6e2c589538e8d0d2b492be97')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ed0969e8597fa4f332e32e2406e51f5c')"
     ]
   }
 }

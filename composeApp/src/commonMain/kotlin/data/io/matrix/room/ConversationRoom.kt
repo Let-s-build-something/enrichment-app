@@ -6,7 +6,10 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -66,7 +69,12 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val prevBatch: String? = timeline?.prevBatch,
 
     @ColumnInfo("last_message_timestamp")
-    val lastMessageTimestamp: Long? = summary?.lastMessage?.originTimestamp
+    val lastMessageTimestamp: LocalDateTime? = summary?.lastMessage?.sentAt,
+
+    @ColumnInfo("history_visibility")
+    val historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null,
+
+    val algorithm: EncryptionAlgorithm? = null
 ) {
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {
@@ -106,6 +114,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         name = summary?.alias,
         tag = summary?.tag,
         avatar = summary?.avatar,
-        lastMessage = summary?.lastMessage?.content?.body
+        lastMessage = summary?.lastMessage?.content
     )
 }

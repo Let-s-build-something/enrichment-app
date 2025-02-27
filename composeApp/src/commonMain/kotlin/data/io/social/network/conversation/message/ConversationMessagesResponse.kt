@@ -1,9 +1,9 @@
 package data.io.social.network.conversation.message
 
-import data.io.matrix.room.event.content.MatrixClientEvent.EphemeralEvent
-import data.io.matrix.room.event.content.MatrixClientEvent.RoomEvent
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.ClientEvent.EphemeralEvent
+import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 
 /** Response to the request for circling requests */
 @Serializable

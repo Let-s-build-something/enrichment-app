@@ -1,8 +1,8 @@
 package data.io.matrix.room
 
-import data.io.matrix.room.event.content.MatrixClientEvent.RoomAccountDataEvent
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.ClientEvent.RoomAccountDataEvent
 
 /** Typing notification and read receipt events */
 @Serializable

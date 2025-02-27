@@ -3,10 +3,10 @@ package data.io.user
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import data.io.matrix.room.event.content.PresenceEventContent
 import data.io.social.network.conversation.message.MediaIO
 import database.AppRoomDatabase
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
