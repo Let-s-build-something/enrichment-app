@@ -3,6 +3,7 @@ package data.shared.auth
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
+import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
 import data.io.base.BaseResponse
@@ -67,14 +68,18 @@ class AuthService {
         if(mutex.isLocked) mutex.unlock()
     }
 
-    suspend fun setupAutoLogin() {
-        if(isRunning) return
+    suspend fun setupAutoLogin(forceRefresh: Boolean = false) {
+        when {
+            forceRefresh -> stop()
+            isRunning -> return
+        }
 
         withContext(Dispatchers.IO) {
             retrieveCredentials()?.let { credentials ->
                 // we either use existing token or enqueue its refresh which results either in success or new login
                 if((credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
                     && credentials.accessToken != null
+                    && !forceRefresh
                 ) {
                     updateUser(credentials = credentials)
                 }else {
@@ -125,6 +130,7 @@ class AuthService {
         homeserver: String?,
         password: String?,
         identifier: MatrixIdentifierData?,
+        deviceId: String?,
         response: MatrixAuthenticationResponse
     ) {
         withContext(Dispatchers.IO) {
@@ -145,7 +151,7 @@ class AuthService {
                 medium = identifier?.medium ?: previous?.medium,
                 address = identifier?.address ?: previous?.address,
                 pickleKey = previous?.pickleKey ?: Uuid.random().toString(),
-                deviceId = previous?.deviceId ?: currentPlatform.name.plus("_${Uuid.random()}")
+                deviceId = response.deviceId ?: previous?.deviceId ?: deviceId
             )
 
             updateUser(credentials = credentials)
@@ -193,7 +199,8 @@ class AuthService {
                                 response = response.data,
                                 password = null,
                                 identifier = null,
-                                homeserver = homeserver
+                                homeserver = homeserver,
+                                deviceId = null
                             )
                             enqueueRefreshToken(
                                 refreshToken = response.data.refreshToken,
@@ -218,7 +225,8 @@ class AuthService {
                     address = it.address,
                     user = it.userId
                 ),
-                password = it.password
+                password = it.password,
+                deviceId = it.deviceId
             )
         }
     }
@@ -228,6 +236,7 @@ class AuthService {
         homeserver: String,
         identifier: MatrixIdentifierData,
         password: String?,
+        deviceId: String? = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
@@ -235,9 +244,10 @@ class AuthService {
                     setBody(
                         EmailLoginRequest(
                             identifier = identifier,
-                            initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform",
+                            initialDeviceDisplayName = "$currentPlatform-${deviceName()}",
                             password = password,
-                            type = Matrix.LOGIN_PASSWORD
+                            type = Matrix.LOGIN_PASSWORD,
+                            deviceId = deviceId
                         )
                     )
                 }
@@ -247,7 +257,8 @@ class AuthService {
                         response = response,
                         identifier = identifier,
                         homeserver = homeserver,
-                        password = password
+                        password = password,
+                        deviceId = deviceId
                     )
                     enqueueRefreshToken(
                         refreshToken = response.refreshToken,
@@ -272,4 +283,7 @@ class AuthService {
             }
         }
     }
+
+    @OptIn(ExperimentalUuidApi::class)
+    private fun generateDeviceId(): String = "${currentPlatform}_${Uuid.random()}"
 }

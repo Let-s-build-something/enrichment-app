@@ -42,6 +42,8 @@ internal fun httpClientFactory(
     developerViewModel: DeveloperConsoleViewModel?,
     json: Json
 ): HttpClient {
+    var forceRefreshCountdown = 3
+
     return httpClient().config {
         defaultRequest {
             contentType(ContentType.Application.Json)
@@ -101,9 +103,9 @@ internal fun httpClientFactory(
             }
             validateResponse { response ->
                 try {
-                    if (response.status == EXPIRED_TOKEN_CODE) {
-                        sharedViewModel.initUser()
-                    }
+                    if (forceRefreshCountdown-- > 0 && response.status == EXPIRED_TOKEN_CODE) {
+                        sharedViewModel.initUser(true)
+                    }else forceRefreshCountdown = 3
                 }catch (_: Exception) { }
             }
         }

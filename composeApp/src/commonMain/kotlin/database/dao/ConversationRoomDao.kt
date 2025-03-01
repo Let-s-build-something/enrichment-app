@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.EncryptedRoomInfo
 import database.AppRoomDatabase
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
@@ -32,9 +33,9 @@ interface ConversationRoomDao {
         ownerPublicId: String?
     ): List<ConversationRoomIO>
 
-    @Query("SELECT id, history_visibility FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+    @Query("SELECT id, history_visibility, algorithm, type FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE algorithm IS NOT NULL")
-    suspend fun getEncrypted(): Map<String, HistoryVisibilityEventContent.HistoryVisibility>
+    suspend fun getEncrypted(): List<EncryptedRoomInfo>
 
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
@@ -71,6 +72,11 @@ interface ConversationRoomDao {
     suspend fun getCount(ownerPublicId: String?): Int
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE id = :id " +
+            "LIMIT 1")
+    suspend fun get(id: String?): ConversationRoomIO?
+
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id = :id " +
             "LIMIT 1")
@@ -88,9 +94,11 @@ interface ConversationRoomDao {
             "LIMIT 1")
     suspend fun getAlgorithm(id: String?, ownerPublicId: String?): EncryptionAlgorithm?
 
-    /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomIO>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: ConversationRoomIO)
 
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}")
     suspend fun removeAll()

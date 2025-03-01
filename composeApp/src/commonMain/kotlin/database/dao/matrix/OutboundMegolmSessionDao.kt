@@ -17,6 +17,10 @@ interface OutboundMegolmSessionDao {
             "LIMIT 1")
     suspend fun get(roomId: String): StoredOutboundMegolmSessionEntity?
 
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_OUTBOUND_MEGOLM_SESSION} " +
+            "WHERE id = :roomId")
+    suspend fun remove(roomId: String)
+
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(items: StoredOutboundMegolmSessionEntity)

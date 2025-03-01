@@ -10,7 +10,7 @@ import data.io.base.BaseResponse
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.event.content.constructMessages
+import data.io.matrix.room.event.content.processEvents
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -101,19 +101,20 @@ open class ConversationRepository(
     ): List<ConversationMessageIO>? {
         if(conversationId == null) return null
 
+        // TODO should be processed with some service, which will be shared with DataSyncService, there's more than just messages
         return getMessages(
             limit = limit,
             conversationId = conversationId,
             fromBatch = fromBatch,
             homeserver = homeserver
         ).success?.data?.let { data ->
-            constructMessages(
+            processEvents(
                 events = data.chunk.orEmpty() + data.state.orEmpty(),
                 roomId = conversationId,
                 prevBatch = data.end,
                 nextBatch = data.start,
                 currentBatch = fromBatch
-            )
+            ).messages
         }
     }
 

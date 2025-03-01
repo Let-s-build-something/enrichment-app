@@ -89,7 +89,8 @@ open class SharedViewModel: ViewModel() {
         Firebase.auth.currentUser
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
-            initUser()
+            delay(500) // we have to delay the check to give time login flow to catch up
+            initUser(false)
         }
     }
 
@@ -102,24 +103,27 @@ open class SharedViewModel: ViewModel() {
 
     //======================================== functions ==========================================
 
-    suspend fun initUser() {
-        delay(500) // we have to delay the check to give time login flow to catch up
-        Firebase.auth.currentUser?.let { firebaseUser ->
-            if(sharedDataManager.currentUser.value?.idToken == null) {
+    /** Initializes the user and returns whether successful */
+    suspend fun initUser(forceRefresh: Boolean): Boolean {
+        return Firebase.auth.currentUser?.let { firebaseUser ->
+            if(sharedDataManager.currentUser.value?.idToken == null || forceRefresh) {
                 try {
                     firebaseUser.getIdToken(false)?.let { idToken ->
                         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                             idToken = idToken
                         ) ?: UserIO(idToken = idToken)
-                        authService.setupAutoLogin()
-                    }
+                        authService.setupAutoLogin(forceRefresh = forceRefresh)
+
+                        currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
+                    } ?: false
                 }catch (e: Exception) {
                     sharedDataManager.currentUser.value = UserIO()
                     authService.setupAutoLogin()
                     e.printStackTrace()
+                    false
                 }
-            }
-        }
+            }else false
+        } ?: false
     }
 
     fun updateNetworkConnectivity(
@@ -156,7 +160,7 @@ open class SharedViewModel: ViewModel() {
             sharedDataManager.localSettings.value = null
             dataSyncService.stop()
             sharedDataManager.olmAccount = null
-            unloadKoinModules(cryptoModule(sharedDataManager))
+            unloadKoinModules(cryptoModule())
         }
     }
 }

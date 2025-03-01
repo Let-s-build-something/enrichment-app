@@ -1,7 +1,9 @@
 package data.shared.crypto
 
 import data.io.base.BaseResponse
+import data.shared.crypto.model.isVerified
 import io.ktor.client.HttpClient
+import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.util.reflect.instanceOf
@@ -11,6 +13,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
+import net.folivo.trixnity.clientserverapi.model.keys.AddSignatures
 import net.folivo.trixnity.clientserverapi.model.keys.ClaimKeys
 import net.folivo.trixnity.clientserverapi.model.keys.SetKeys
 import net.folivo.trixnity.clientserverapi.model.users.SendToDevice
@@ -21,6 +25,7 @@ import net.folivo.trixnity.core.model.events.ToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.KeyRequestAction
 import net.folivo.trixnity.core.model.events.m.RoomKeyRequestEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
+import net.folivo.trixnity.core.model.keys.Key
 import net.folivo.trixnity.core.model.keys.KeyAlgorithm
 import net.folivo.trixnity.core.model.keys.Keys
 import net.folivo.trixnity.core.model.keys.SignedDeviceKeys
@@ -81,7 +86,7 @@ class EncryptionServiceRepository(
     ): Result<Map<KeyAlgorithm, Int>> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<SetKeys.Response> {
-                put(urlString = "https://${homeserver()}/_matrix/client/v3/keys/upload") {
+                post(urlString = "https://${homeserver()}/_matrix/client/v3/keys/upload") {
                     setBody(
                         SetKeys.Request(
                             oneTimeKeys = oneTimeKeys,
@@ -113,6 +118,26 @@ class EncryptionServiceRepository(
                 if(it is BaseResponse.Success) Result.success(it.data) else Result.failure(Throwable(it.toString()))
             }
         }
+    }
+
+    suspend fun addSignatures(
+        signedDeviceKeys: Set<SignedDeviceKeys>,
+        signedCrossSigningKeys: Set<SignedCrossSigningKeys>
+    ): AddSignatures.Response? {
+        return httpClient.safeRequest<AddSignatures.Response> {
+            put(urlString = "https://${homeserver()}/_matrix/client/v3/keys/signatures/upload") {
+                setBody(
+                    (signedDeviceKeys.associate {
+                        Pair(it.signed.userId, it.signed.deviceId) to json.encodeToJsonElement(it)
+                    } + signedCrossSigningKeys.associate {
+                        Pair(
+                            it.signed.userId, it.signed.keys.keys.filterIsInstance<Key.Ed25519Key>().first().value
+                        ) to json.encodeToJsonElement(it)
+                    }).entries.groupBy { it.key.first }
+                        .map { group -> group.key to group.value.associate { it.key.second to it.value } }.toMap()
+                )
+            }
+        }.success?.data
     }
 
     override suspend fun sendToDevice(events: Map<UserId, Map<String, ToDeviceEventContent>>): Result<Unit> = runCatching {

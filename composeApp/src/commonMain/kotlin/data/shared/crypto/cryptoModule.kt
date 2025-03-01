@@ -1,6 +1,7 @@
 package data.shared.crypto
 
 import data.shared.SharedDataManager
+import data.shared.crypto.model.KeyVerificationState
 import data.shared.sync.ClientEventEmitter
 import data.shared.sync.SyncResponseEmitter
 import kotlinx.datetime.Clock
@@ -17,17 +18,20 @@ import net.folivo.trixnity.crypto.olm.OlmEventHandler
 import net.folivo.trixnity.crypto.olm.OlmEventHandlerRequestHandler
 import net.folivo.trixnity.crypto.olm.OlmKeysChange
 import net.folivo.trixnity.crypto.olm.OlmKeysChangeEmitter
+import net.folivo.trixnity.crypto.sign.SignService
 import net.folivo.trixnity.crypto.sign.SignServiceImpl
 import net.folivo.trixnity.crypto.sign.SignServiceStore
 import net.folivo.trixnity.olm.OlmAccount
 import net.folivo.trixnity.olm.freeAfter
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.koin.mp.KoinPlatform.getKoin
 import ui.login.AUGMY_HOME_SERVER
 
-internal suspend fun cryptoModule(
-    sharedDataManager: SharedDataManager
-): Module {
+internal suspend fun cryptoModule(): Module {
+    val sharedDataManager = getKoin().get<SharedDataManager>()
+    val json = getKoin().get<Json>()
+
     val pickleKey = sharedDataManager.localSettings.value?.pickleKey
     val deviceId = sharedDataManager.localSettings.value?.deviceId
     val userId = sharedDataManager.currentUser.value?.matrixUserId
@@ -68,8 +72,21 @@ internal suspend fun cryptoModule(
             override suspend fun getOlmAccount(): String = olmStore.getOlmAccount()
             override suspend fun getOlmPickleKey(): String = olmStore.getOlmPickleKey()
         }
+        val signService = SignServiceImpl(
+            json = json,
+            userInfo = userInfo,
+            store = signServiceStore
+        )
         val clientEventEmitter = ClientEventEmitter()
         val syncResponseEmitter = SyncResponseEmitter()
+
+        val selfSignedDeviceKeys = signService.getSelfSignedDeviceKeys()
+        selfSignedDeviceKeys.signed.keys.forEach { key ->
+            olmStore.saveKeyVerificationState(
+                key = key,
+                state = KeyVerificationState.Verified(key.value)
+            )
+        }
 
         module {
             single<OlmCryptoStore> { olmStore }
@@ -79,15 +96,29 @@ internal suspend fun cryptoModule(
             single<ClientEventEmitter> { clientEventEmitter }
             single<SyncResponseEmitter> { syncResponseEmitter }
 
+            single<SignService> { signService }
+            single<KeyTrustService> {
+                KeyTrustService(
+                    keyStore = olmStore,
+                    userInfo = userInfo,
+                    signService = signService
+                )
+            }
+            single<OutdatedKeyHandler> {
+                OutdatedKeyHandler(
+                    userInfo = userInfo,
+                    homeserver = { sharedDataManager.currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER },
+                    keyStore = olmStore,
+                    signService = signService,
+                    keyTrustService = get<KeyTrustService>()
+                )
+            }
+
             single<OlmEncryptionService> {
                 OlmEncryptionServiceImpl(
-                    json = get<Json>(),
+                    json = json,
                     clock = Clock.System,
-                    signService = SignServiceImpl(
-                        json = get<Json>(),
-                        userInfo = userInfo,
-                        store = signServiceStore
-                    ),
+                    signService = signService,
                     requests = requestHandler,
                     store = olmStore,
                     userInfo = userInfo
@@ -109,7 +140,7 @@ internal suspend fun cryptoModule(
                     ),
                     signService = SignServiceImpl(
                         store = signServiceStore,
-                        json = get<Json>(),
+                        json = json,
                         userInfo = userInfo
                     ),
                     requestHandler = object: OlmEventHandlerRequestHandler {
@@ -128,6 +159,14 @@ internal suspend fun cryptoModule(
                     clock = Clock.System
                 )
             }
+        }.also {
+            // finishing touches
+            requestHandler.setOneTimeKeys(
+                deviceKeys = selfSignedDeviceKeys,
+                oneTimeKeys = null,
+                fallbackKeys = null
+            )
+            olmStore.updateOutdatedKeys { it + userInfo.userId }
         }
     }else module {  }
 }

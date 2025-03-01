@@ -8,5 +8,6 @@ data class EmailLoginRequest(
     val identifier: MatrixIdentifierData,
     val initialDeviceDisplayName: String,
     val password: String?,
-    val type: String
+    val type: String,
+    val deviceId: String?
 )

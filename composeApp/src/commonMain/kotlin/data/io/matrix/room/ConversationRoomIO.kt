@@ -74,7 +74,15 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("history_visibility")
     val historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null,
 
-    val algorithm: EncryptionAlgorithm? = null
+    val algorithm: EncryptionAlgorithm? = null,
+
+    /** Type of the room */
+    val type: RoomType = when {
+        inviteState != null -> RoomType.Invited
+        knockState != null -> RoomType.Knocked
+        state != null -> RoomType.Left
+        else -> RoomType.Joined
+    }
 ) {
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {
@@ -94,15 +102,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             timeline = other.timeline ?: this.timeline
         )
     }
-
-    /** Type of the room */
-    val type: RoomType
-        get() = when {
-            inviteState != null -> RoomType.Invited
-            knockState != null -> RoomType.Knocked
-            state != null -> RoomType.Left
-            else -> RoomType.Joined
-        }
 
     /** Users participating in the conversation */
     @Ignore

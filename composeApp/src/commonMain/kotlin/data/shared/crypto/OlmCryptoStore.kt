@@ -1,16 +1,24 @@
 package data.shared.crypto
 
+import data.io.app.SecureSettingsKeys.KEY_CROSS_SIGNING_KEY
 import data.io.app.SecureSettingsKeys.KEY_DEVICE_KEY
 import data.io.app.SecureSettingsKeys.KEY_FALLBACK_INSTANT
 import data.io.app.SecureSettingsKeys.KEY_OLM_ACCOUNT
+import data.io.app.SecureSettingsKeys.KEY_SECRETS
 import data.io.matrix.crypto.OutdatedKey
 import data.io.matrix.crypto.asStoredInboundMegolmMessageIndexEntity
 import data.io.matrix.crypto.asStoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.asStoredOlmSessionEntity
 import data.io.matrix.crypto.asStoredOutboundMegolmSessionEntity
 import data.shared.SharedDataManager
+import data.shared.crypto.model.KeyChainLink
+import data.shared.crypto.model.KeyVerificationState
+import data.shared.crypto.model.StoredCrossSigningKeys
+import data.shared.crypto.model.StoredDeviceKeys
+import data.shared.crypto.model.StoredSecret
 import database.dao.ConversationRoomDao
 import database.dao.matrix.InboundMegolmSessionDao
+import database.dao.matrix.KeyChainLinkDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
@@ -29,10 +37,12 @@ import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
+import net.folivo.trixnity.core.model.keys.CrossSigningKeysUsage
 import net.folivo.trixnity.core.model.keys.DeviceKeys
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import net.folivo.trixnity.core.model.keys.Key
 import net.folivo.trixnity.core.model.keys.SignedDeviceKeys
+import net.folivo.trixnity.crypto.SecretType
 import net.folivo.trixnity.crypto.olm.OlmStore
 import net.folivo.trixnity.crypto.olm.StoredInboundMegolmMessageIndex
 import net.folivo.trixnity.crypto.olm.StoredInboundMegolmSession
@@ -51,8 +61,9 @@ class OlmCryptoStore(
     private val inboundMegolmSessionDao: InboundMegolmSessionDao by KoinPlatform.getKoin().inject()
     private val megolmMessageIndexDao: MegolmMessageIndexDao by KoinPlatform.getKoin().inject()
     private val outdatedKeyDao: OutdatedKeyDao by KoinPlatform.getKoin().inject()
+    private val keyChainLinkDao: KeyChainLinkDao by KoinPlatform.getKoin().inject()
 
-    val ownerId: String?
+    private val ownerId: String?
         get() = sharedDataManager.currentUser.value?.matrixUserId
 
     suspend fun clear() {
@@ -101,6 +112,19 @@ class OlmCryptoStore(
         }
     }
 
+    override suspend fun getInboundMegolmSession(
+        sessionId: String,
+        roomId: RoomId
+    ): StoredInboundMegolmSession? {
+        println("kostka_test, getInboundMegolmSession, sessionId: $sessionId, roomId: $roomId")
+        return withContext(Dispatchers.IO) {
+            inboundMegolmSessionDao.get(
+                sessionId = sessionId,
+                roomId = roomId
+            )?.asStoredInboundMegolmSession
+        }
+    }
+
     suspend fun getOutdatedKeys(): Set<UserId> = withContext(Dispatchers.IO) {
         outdatedKeyDao.getAll().map { it.userId }.toSet()
     }
@@ -118,19 +142,6 @@ class OlmCryptoStore(
         }
     }
 
-    override suspend fun getInboundMegolmSession(
-        sessionId: String,
-        roomId: RoomId
-    ): StoredInboundMegolmSession? {
-        println("kostka_test, getInboundMegolmSession, sessionId: $sessionId, roomId: $roomId")
-        return withContext(Dispatchers.IO) {
-            inboundMegolmSessionDao.get(
-                sessionId = sessionId,
-                roomId = roomId
-            )?.asStoredInboundMegolmSession
-        }
-    }
-
     override suspend fun updateOutboundMegolmSession(
         roomId: RoomId,
         updater: suspend (StoredOutboundMegolmSession?) -> StoredOutboundMegolmSession?
@@ -138,8 +149,10 @@ class OlmCryptoStore(
         withContext(Dispatchers.IO) {
             val res = outboundMegolmSessionDao.get(roomId = roomId.full)
             withContext(Dispatchers.Default) {
-                updater.invoke(res?.asStoredOutboundMegolmSession)?.also { updated ->
-                    outboundMegolmSessionDao.insert(updated.asStoredOutboundMegolmSessionEntity)
+                updater.invoke(res?.asStoredOutboundMegolmSession).also { updated ->
+                    if(updated != null) {
+                        outboundMegolmSessionDao.insert(updated.asStoredOutboundMegolmSessionEntity)
+                    }else outboundMegolmSessionDao.remove(roomId.full)
                 }
             }
         }
@@ -161,11 +174,13 @@ class OlmCryptoStore(
 
     override suspend fun getForgetFallbackKeyAfter(): Flow<Instant?> {
         return flow {
-            secureSettings.getStringOrNull(
-                key = composeKey(KEY_FALLBACK_INSTANT),
-            )?.takeIf { it.isNotBlank() }?.let { value ->
-                json.decodeFromString(value)
-            }
+            emit(
+                secureSettings.getStringOrNull(
+                    key = composeKey(KEY_FALLBACK_INSTANT),
+                )?.takeIf { it.isNotBlank() }?.let { value ->
+                    json.decodeFromString(value)
+                }
+            )
         }
     }
 
@@ -201,12 +216,164 @@ class OlmCryptoStore(
     override suspend fun findEd25519Key(userId: UserId, deviceId: String): Key.Ed25519Key? =
         getDeviceKey(userId.full, deviceId)?.value?.get<Key.Ed25519Key>()
 
-    override suspend fun findDeviceKeys(userId: UserId, senderKey: Key.Curve25519Key): DeviceKeys? =
-        getDeviceKeys(userId.full).values.map { it.value.signed }
-            .find { it.keys.keys.any { key -> key.value == senderKey.value } }
+    suspend fun getSecrets(): Map<SecretType, StoredSecret>  = withContext(Dispatchers.IO) {
+        secureSettings.getStringOrNull(
+            key = composeKey(KEY_SECRETS)
+        )?.let {
+            json.decodeFromString<Map<SecretType, StoredSecret>>(it)
+        } ?: emptyMap()
+    }
+
+    suspend fun updateSecrets(//TODO how does it get updated?
+        updater: suspend (Map<SecretType, StoredSecret>) -> Map<SecretType, StoredSecret>
+    ) = withContext(Dispatchers.IO) {
+        secureSettings.putString(
+            key = composeKey(KEY_SECRETS),
+            value = json.encodeToString(updater.invoke(getSecrets()))
+        )
+    }
+
+    override suspend fun findDeviceKeys(userId: UserId, senderKey: Key.Curve25519Key): DeviceKeys? {
+        return withContext(Dispatchers.Default) {
+            getDeviceKeys(userId.full).values
+                .map { it.value.signed }
+                .find { it.keys.keys.any { key -> key.value == senderKey.value } }
+        }
+    }
+
+    internal suspend fun getDeviceKeys(userId: String): Map<String, StoredDeviceKeys> {
+        return withContext(Dispatchers.IO) {
+            secureSettings.getStringOrNull(
+                key = composeKey("${KEY_DEVICE_KEY}_$userId")
+            )?.let {
+                json.decodeFromString<Map<String, StoredDeviceKeys>>(it)
+            } ?: emptyMap()
+        }
+    }
 
     override suspend fun getDevices(roomId: RoomId, userId: UserId): Set<String> {
         return getDeviceKeys(userId.full).keys
+    }
+
+    suspend fun updateDeviceKeys(
+        userId: UserId,
+        updater: suspend (Map<String, StoredDeviceKeys>?) -> Map<String, StoredDeviceKeys>?
+    ) {
+        saveDeviceKeys(
+            userId = userId,
+            deviceKeys = updater.invoke(getDeviceKeys(userId.full))
+        )
+    }
+
+    suspend fun saveDeviceKeys(
+        userId: UserId,
+        deviceKeys: Map<String, StoredDeviceKeys>?
+    ) {
+        if(deviceKeys == null) {
+            deleteDeviceKeys(userId)
+        } else {
+            withContext(Dispatchers.IO) {
+                secureSettings.putString(
+                    key = composeKey("${KEY_DEVICE_KEY}_$userId"),
+                    value = json.encodeToString(deviceKeys)
+                )
+            }
+        }
+    }
+
+    suspend fun deleteDeviceKeys(userId: UserId) = withContext(Dispatchers.IO) {
+        secureSettings.remove(composeKey("${KEY_DEVICE_KEY}_$userId"))
+    }
+
+    suspend fun getCrossSigningKeys(
+        userId: UserId,
+    ): Set<StoredCrossSigningKeys>? {
+        return withContext(Dispatchers.Default) {
+            secureSettings.getStringOrNull(
+                key = composeKey("${KEY_CROSS_SIGNING_KEY}_$userId")
+            )?.let {
+                json.decodeFromString<Set<StoredCrossSigningKeys>>(it)
+            }
+        }
+    }
+
+    suspend fun updateCrossSigningKeys(
+        userId: UserId,
+        updater: suspend (Set<StoredCrossSigningKeys>?) -> Set<StoredCrossSigningKeys>?
+    ) {
+        withContext(Dispatchers.IO) {
+            updater.invoke(getCrossSigningKeys(userId)).also { updated ->
+                if (updated == null) deleteDeviceKeys(userId)
+                else secureSettings.putString(
+                    key = composeKey("${KEY_CROSS_SIGNING_KEY}_$userId"),
+                    value = json.encodeToString(updated)
+                )
+            }
+        }
+    }
+
+    suspend fun getKeyVerificationState(
+        key: Key,
+    ): KeyVerificationState? {
+        return withContext(Dispatchers.IO) {
+            key.keyId?.let { keyId ->
+                secureSettings.getStringOrNull(
+                    key = "${keyId}_${key.algorithm.name}"
+                )?.let {
+                    json.decodeFromString<KeyVerificationState>(it)
+                }?.let { state ->
+                    if (state.keyValue == key.value) state
+                    else KeyVerificationState.Blocked(state.keyValue)
+                }
+            }
+        }
+    }
+
+    suspend fun saveKeyVerificationState(
+        key: Key,
+        state: KeyVerificationState
+    ) {
+        withContext(Dispatchers.IO) {
+            key.keyId?.let { keyId ->
+                secureSettings.putString(
+                    key = "$${keyId}_${key.algorithm.name}",
+                    value = withContext(Dispatchers.Default) { json.encodeToString(state) }
+                )
+            }
+        }
+    }
+
+    suspend fun saveKeyChainLink(keyChainLink: KeyChainLink) {
+        withContext(Dispatchers.IO) {
+            keyChainLinkDao.insert(keyChainLink)
+        }
+    }
+
+    suspend fun getKeyChainLinksBySigningKey(userId: UserId, signingKey: Key.Ed25519Key): Set<KeyChainLink> {
+        return withContext(Dispatchers.Default) {
+            keyChainLinkDao.getByUserId(userId = userId.full)
+                .filter {
+                    it.signingKey.keyId == signingKey.keyId
+                            && it.signingKey.value == signingKey.value
+                }
+                .toSet()
+        }
+    }
+
+    suspend fun deleteKeyChainLinksBySignedKey(userId: UserId, signedKey: Key.Ed25519Key) {
+        withContext(Dispatchers.IO) {
+            keyChainLinkDao.getByUserId(userId = userId.full)
+                .filter {
+                    it.signedKey.keyId == signedKey.keyId
+                            && it.signedKey.value == signedKey.value
+                }.also { chains ->
+                    keyChainLinkDao.removeWhere(chains.map { it.id })
+                }
+        }
+    }
+
+    suspend fun deleteCrossSigningKeys(userId: UserId) = withContext(Dispatchers.IO) {
+        secureSettings.remove(composeKey("${KEY_CROSS_SIGNING_KEY}_$userId"))
     }
 
     override suspend fun getDevices(
@@ -239,14 +406,29 @@ class OlmCryptoStore(
 
     private fun composeKey(key: String): String = "${key}_$ownerId"
 
-    private fun getDeviceKey(userId: String, deviceId: String) = getDeviceKeys(userId)[deviceId]
-    internal fun getDeviceKeys(userId: String): Map<String, StoredDeviceKeys> {
-        return secureSettings.getStringOrNull(
-            key = composeKey("${KEY_DEVICE_KEY}_$userId")
-        )?.let {
-            json.decodeFromString<Map<String, StoredDeviceKeys>>(it)
-        } ?: emptyMap()
+    internal suspend inline fun getCrossSigningKey(
+        userId: UserId,
+        usage: CrossSigningKeysUsage,
+    ): StoredCrossSigningKeys? {
+        return withContext(Dispatchers.Default) {
+            getCrossSigningKeys(userId)?.firstOrNull {
+                it.value.signed.usage.contains(usage)
+            }
+        }
     }
+
+    internal suspend inline fun getCrossSigningKey(
+        userId: UserId,
+        keyId: String,
+    ): StoredCrossSigningKeys? {
+        return withContext(Dispatchers.Default) {
+            getCrossSigningKeys(userId)?.firstOrNull {
+                it.value.signed.keys.any { it.keyId == keyId }
+            }
+        }
+    }
+
+    suspend fun getDeviceKey(userId: String, deviceId: String) = getDeviceKeys(userId)[deviceId]
     internal inline fun <reified T : Key> SignedDeviceKeys.get(): T? {
         return signed.keys.keys.filterIsInstance<T>().firstOrNull()
     }

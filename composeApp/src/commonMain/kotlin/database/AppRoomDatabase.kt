@@ -13,22 +13,26 @@ import data.io.matrix.crypto.StoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.StoredOlmSessionEntity
 import data.io.matrix.crypto.StoredOutboundMegolmSessionEntity
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
 import data.io.user.PresenceData
+import data.shared.crypto.model.KeyChainLink
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.dao.matrix.InboundMegolmSessionDao
+import database.dao.matrix.KeyChainLinkDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
 import database.dao.matrix.OutdatedKeyDao
 import database.dao.matrix.PresenceEventDao
+import database.dao.matrix.RoomMemberDao
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 
 @Database(
@@ -43,10 +47,12 @@ import net.folivo.trixnity.core.model.events.m.PresenceEventContent
         StoredInboundMegolmSessionEntity::class,
         StoredInboundMegolmMessageIndexEntity::class,
         PresenceData::class,
+        ConversationRoomMember::class,
         OutdatedKey::class,
+        KeyChainLink::class,
         ConversationRoomIO::class
     ],
-    version = 48,
+    version = 49,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -68,6 +74,8 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun inboundMegolmSessionDao(): InboundMegolmSessionDao
     abstract fun megolmMessageIndexDao(): MegolmMessageIndexDao
     abstract fun outdatedKeyDao(): OutdatedKeyDao
+    abstract fun roomMemberDao(): RoomMemberDao
+    abstract fun keyChainLinkDao(): KeyChainLinkDao
 
 
     companion object {
@@ -109,6 +117,12 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [OutdatedKey] */
         const val TABLE_OUTDATED_KEYS = "outdated_keys_table"
+
+        /** Identification of table for [ConversationRoomMember] */
+        const val TABLE_ROOM_MEMBER = "room_member_table"
+
+        /** Identification of table for [KeyChainLink] */
+        const val TABLE_KEY_CHAIN_LINK = "key_chain_link"
     }
 }
 

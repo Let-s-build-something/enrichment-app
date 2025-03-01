@@ -1,4 +1,4 @@
-package data.shared.crypto
+package data.shared.crypto.model
 
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.keys.SignedDeviceKeys

@@ -1,4 +1,4 @@
-package data.shared.crypto
+package data.shared.crypto.model
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
