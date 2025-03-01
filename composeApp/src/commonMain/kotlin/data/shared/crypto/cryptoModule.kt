@@ -101,7 +101,8 @@ internal suspend fun cryptoModule(): Module {
                 KeyTrustService(
                     keyStore = olmStore,
                     userInfo = userInfo,
-                    signService = signService
+                    signService = signService,
+                    repository = requestHandler
                 )
             }
             single<OutdatedKeyHandler> {
