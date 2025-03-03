@@ -134,7 +134,20 @@ internal fun httpClientFactory(
             developerViewModel?.appendHttpLog(
                 DeveloperUtils.processRequest(request)
             )
-            execute(request)
+            val call = execute(request)
+
+            // retry for 401 response
+            if (call.response.status == EXPIRED_TOKEN_CODE
+                && request.url.toString().contains("/_matrix/")
+                && forceRefreshCountdown-- > 0
+            ) {
+                if(sharedViewModel.initUser(true)) {
+                    request.headers[HttpHeaders.Authorization] = "Bearer ${sharedViewModel.currentUser.value?.accessToken}"
+                    return@intercept execute(request)
+                }
+            }else forceRefreshCountdown = 3
+
+            call
         }
     }
 }
