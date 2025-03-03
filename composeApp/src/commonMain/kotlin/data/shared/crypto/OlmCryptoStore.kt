@@ -356,18 +356,18 @@ class OlmCryptoStore(
         }
     }
 
-    suspend fun getSecretKeyEvent(key: String = "") = withContext(Dispatchers.IO) {
+    suspend inline fun <reified T: SecretKeyEventContent>getSecretKeyEvent(key: String = "") = withContext(Dispatchers.IO) {
         secureSettings.getStringOrNull(
-            key = composeKey("${KEY_SECRET_KEY_EVENT}_$key")
+            key = composeKey("${KEY_SECRET_KEY_EVENT}_${key.takeIf { it.isNotBlank() } ?: T::class.toString()}")
         )?.let {
             json.decodeFromString<SecretKeyEventContent>(it)
         }
     }
 
-    suspend fun saveSecretKeyEvent(content: ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>) {
+    suspend inline fun <reified T: SecretKeyEventContent>saveSecretKeyEvent(content: ClientEvent.GlobalAccountDataEvent<T>) {
         withContext(Dispatchers.IO) {
             secureSettings.putString(
-                key = composeKey("${KEY_SECRET_KEY_EVENT}_${content.key}"),
+                key = composeKey("${KEY_SECRET_KEY_EVENT}_${content.key.takeIf { it.isNotBlank() } ?: T::class.toString()}"),
                 value = json.encodeToString(content)
             )
         }
@@ -424,7 +424,7 @@ class OlmCryptoStore(
 
     override suspend fun getOlmPickleKey(): String = sharedDataManager.localSettings.value?.pickleKey ?: ""
 
-    private fun composeKey(key: String): String = "${key}_$ownerId"
+    fun composeKey(key: String): String = "${key}_$ownerId"
 
     internal suspend inline fun getCrossSigningKey(
         userId: UserId,

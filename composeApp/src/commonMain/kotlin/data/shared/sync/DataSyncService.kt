@@ -181,16 +181,47 @@ class DataSyncService {
                     addAll(matrixRooms.leave?.map { it.value.copy(id = it.key) }.orEmpty())
                 }
             }
+            val messages = mutableListOf<ConversationMessageIO>()
+            val rooms = mutableListOf<ConversationRoomIO>()
+            val presenceContent = mutableListOf<PresenceData>()
 
             println("kostka_test, toDevice: ${response.toDevice}, deviceLists: ${response.deviceLists}")
+
+            val globalEvents = buildList {
+                addAll(response.toDevice?.events.orEmpty())
+                addAll(response.toDevice?.events.orEmpty())
+                addAll(response.accountData?.events.orEmpty())
+                addAll(response.presence?.events.orEmpty())
+            } .onEach { event ->
+                when(val content = event.content) {
+                    is PresenceEventContent -> {
+                        event.senderOrNull?.full?.let { userId ->
+                            presenceContent.add(
+                                PresenceData(
+                                    userIdFull = userId,
+                                    content = content
+                                )
+                            )
+                        }
+                    }
+
+                    is SecretKeyEventContent -> {
+                        if (event is ClientEvent.GlobalAccountDataEvent) {
+                            @Suppress("UNCHECKED_CAST")
+                            (event as? ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>)?.let {
+                                KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            }
 
             keyHandler.handleDeviceLists(response.deviceLists)
             syncResponseEmitter.emit(SyncEvents(
                 syncResponse = response,
                 allEvents = buildList {
-                    response.toDevice?.events?.forEach { add(it) }
-                    response.accountData?.events?.forEach { add(it) }
-                    response.presence?.events?.forEach { add(it) }
+                    addAll(globalEvents)
                     matrixRooms?.forEach { room ->
                         addAll(room.accountData?.events.orEmpty())
                         addAll(room.ephemeral?.events.orEmpty())
@@ -202,9 +233,6 @@ class DataSyncService {
                 }
             ))
 
-            val messages = mutableListOf<ConversationMessageIO>()
-            val rooms = mutableListOf<ConversationRoomIO>()
-            val presenceContent = mutableListOf<PresenceData>()
             matrixRooms?.forEach { room ->
                 var alias: String? = null
                 var name: String? = null
@@ -214,11 +242,12 @@ class DataSyncService {
 
                 val events = mutableListOf<ClientEvent<*>>()
                     .apply {
-                        addAll(response.toDevice?.events.orEmpty())
                         addAll(room.accountData?.events.orEmpty())
                         addAll(room.ephemeral?.events.orEmpty())
                         addAll(room.state?.events.orEmpty())
                         addAll(room.timeline?.events.orEmpty())
+                        addAll(room.inviteState?.events.orEmpty())
+                        addAll(room.knockState?.events.orEmpty())
                     }
                     .map { event ->
                         with(event) {
@@ -245,19 +274,6 @@ class DataSyncService {
                     // preprocessing of the room and adding info for further processing
                     .onEach { event ->
                         when(val content = event.content) {
-                            is PresenceEventContent -> {
-                                event.senderOrNull?.full?.let { userId ->
-                                    presenceContent.add(PresenceData(userIdFull = userId, content = content))
-                                }
-                            }
-                            is SecretKeyEventContent -> {
-                                if(event is ClientEvent.GlobalAccountDataEvent) {
-                                    @Suppress("UNCHECKED_CAST")
-                                    (event as? ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>)?.let {
-                                        KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
-                                    }
-                                }
-                            }
                             is HistoryVisibilityEventContent -> historyVisibility = content.historyVisibility
                             is CanonicalAliasEventContent -> {
                                 alias = (content.alias ?: content.aliases?.firstOrNull())?.full

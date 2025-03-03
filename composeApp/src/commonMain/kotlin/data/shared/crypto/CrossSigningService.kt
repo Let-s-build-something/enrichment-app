@@ -49,7 +49,7 @@ class CrossSigningService(
         val keyId = generateSequence {
             val alphabet = 'a'..'z'
             generateSequence { alphabet.random() }.take(24).joinToString("")
-        }.first { keyStore.getSecretKeyEvent(key = it) == null }
+        }.first { keyStore.getSecretKeyEvent<SecretKeyEventContent>(key = it) == null }
 
         return BootstrapCrossSigning(
             recoveryKey = encodeRecoveryKey(recoveryKey),

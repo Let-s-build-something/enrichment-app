@@ -103,7 +103,7 @@ suspend fun processEvents(
                                 )
                                 encryptionService.decryptMegolm(encryptedEvent = encrypted).getOrNull()
                             }
-                            else -> attempt.getOrNull()
+                            else -> attempt.getOrThrow()
                         }.also { decryptedEvent ->
                             println("kostka_test, decrypted megolm event: $decryptedEvent, event: $event")
                         }

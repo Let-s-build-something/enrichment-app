@@ -101,13 +101,6 @@ internal fun httpClientFactory(
                     }
                 }
             }
-            validateResponse { response ->
-                try {
-                    if (forceRefreshCountdown-- > 0 && response.status == EXPIRED_TOKEN_CODE) {
-                        sharedViewModel.initUser(true)
-                    }else forceRefreshCountdown = 3
-                }catch (_: Exception) { }
-            }
         }
     }.apply {
         plugin(HttpSend).intercept { request ->
