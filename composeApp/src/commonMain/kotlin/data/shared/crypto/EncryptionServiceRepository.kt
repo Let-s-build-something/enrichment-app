@@ -128,7 +128,7 @@ class EncryptionServiceRepository(
         signedCrossSigningKeys: Set<SignedCrossSigningKeys>
     ): AddSignatures.Response? {
         return httpClient.safeRequest<AddSignatures.Response> {
-            put(urlString = "https://${homeserver()}/_matrix/client/v3/keys/signatures/upload") {
+            post(urlString = "https://${homeserver()}/_matrix/client/v3/keys/signatures/upload") {
                 setBody(
                     (signedDeviceKeys.associate {
                         Pair(it.signed.userId, it.signed.deviceId) to json.encodeToJsonElement(it)

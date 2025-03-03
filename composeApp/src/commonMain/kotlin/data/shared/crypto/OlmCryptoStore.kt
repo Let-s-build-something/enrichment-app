@@ -268,6 +268,7 @@ class OlmCryptoStore(
         )
     }
 
+    // TODO: Value too long. Should be a Room table instead
     suspend fun saveDeviceKeys(
         userId: UserId,
         deviceKeys: Map<String, StoredDeviceKeys>?
@@ -304,6 +305,7 @@ class OlmCryptoStore(
         userId: UserId,
         updater: suspend (Set<StoredCrossSigningKeys>?) -> Set<StoredCrossSigningKeys>?
     ) {
+        println("kostka_test, updateCrossSigningKeys, key: ${composeKey("${KEY_CROSS_SIGNING_KEY}_$userId")}")
         withContext(Dispatchers.IO) {
             updater.invoke(getCrossSigningKeys(userId)).also { updated ->
                 if (updated == null) deleteDeviceKeys(userId)
@@ -317,6 +319,28 @@ class OlmCryptoStore(
 
     suspend fun deleteCrossSigningKeys(userId: UserId) = withContext(Dispatchers.IO) {
         secureSettings.remove(composeKey("${KEY_CROSS_SIGNING_KEY}_$userId"))
+    }
+
+    internal suspend inline fun getCrossSigningKey(
+        userId: UserId,
+        usage: CrossSigningKeysUsage,
+    ): StoredCrossSigningKeys? {
+        return withContext(Dispatchers.Default) {
+            getCrossSigningKeys(userId)?.firstOrNull {
+                it.value.signed.usage.contains(usage)
+            }
+        }
+    }
+
+    internal suspend inline fun getCrossSigningKey(
+        userId: UserId,
+        keyId: String,
+    ): StoredCrossSigningKeys? {
+        return withContext(Dispatchers.Default) {
+            getCrossSigningKeys(userId)?.firstOrNull { key ->
+                key.value.signed.keys.any { it.keyId == keyId }
+            }
+        }
     }
 
     suspend fun getKeyVerificationState(
@@ -425,28 +449,6 @@ class OlmCryptoStore(
     override suspend fun getOlmPickleKey(): String = sharedDataManager.localSettings.value?.pickleKey ?: ""
 
     fun composeKey(key: String): String = "${key}_$ownerId"
-
-    internal suspend inline fun getCrossSigningKey(
-        userId: UserId,
-        usage: CrossSigningKeysUsage,
-    ): StoredCrossSigningKeys? {
-        return withContext(Dispatchers.Default) {
-            getCrossSigningKeys(userId)?.firstOrNull {
-                it.value.signed.usage.contains(usage)
-            }
-        }
-    }
-
-    internal suspend inline fun getCrossSigningKey(
-        userId: UserId,
-        keyId: String,
-    ): StoredCrossSigningKeys? {
-        return withContext(Dispatchers.Default) {
-            getCrossSigningKeys(userId)?.firstOrNull {
-                it.value.signed.keys.any { it.keyId == keyId }
-            }
-        }
-    }
 
     suspend fun getDeviceKey(userId: String, deviceId: String) = getDeviceKeys(userId)[deviceId]
     internal inline fun <reified T : Key> SignedDeviceKeys.get(): T? {

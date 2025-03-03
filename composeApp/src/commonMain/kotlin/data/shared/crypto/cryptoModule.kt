@@ -42,7 +42,15 @@ internal suspend fun cryptoModule(): Module {
         val (signingKey, identityKey) = freeAfter(
             sharedDataManager.olmAccount
                 ?: olmStore.getOlmAccount().takeIf { it.isNotBlank() }?.let { pickle ->
-                    OlmAccount.unpickle(key = pickleKey, pickle = pickle)
+                    try {
+                        OlmAccount.unpickle(key = pickleKey, pickle = pickle)
+                    }catch (e: Exception) {
+                        OlmAccount.create().also { olmAccount ->
+                            olmStore.updateOlmAccount {
+                                olmAccount.pickle(key = pickleKey)
+                            }
+                        }
+                    }
                 } ?: OlmAccount.create().also { olmAccount ->
                     olmStore.updateOlmAccount {
                         olmAccount.pickle(key = pickleKey)
@@ -90,6 +98,13 @@ internal suspend fun cryptoModule(): Module {
             repository = requestHandler,
             json = json
         )
+        val keyHandler = OutdatedKeyHandler(
+            userInfo = userInfo,
+            homeserver = { sharedDataManager.currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER },
+            keyStore = olmStore,
+            signService = signService,
+            keyTrustService = keyTrustService
+        )
         val crossSigningService = CrossSigningService(
             userInfo = userInfo,
             signService = signService,
@@ -97,7 +112,8 @@ internal suspend fun cryptoModule(): Module {
             json = json,
             keyStore = olmStore,
             keyTrustService = keyTrustService,
-            keyBackupService = keyBackupService
+            keyBackupService = keyBackupService,
+            keyHandler = keyHandler
         )
         val clientEventEmitter = ClientEventEmitter()
         val syncResponseEmitter = SyncResponseEmitter()
@@ -108,9 +124,6 @@ internal suspend fun cryptoModule(): Module {
                 key = key,
                 state = KeyVerificationState.Verified(key.value)
             )
-        }
-        if(olmStore.getCrossSigningKeys(userInfo.userId).isNullOrEmpty()) {
-            crossSigningService.bootstrapCrossSigning()
         }
 
         module {
@@ -124,15 +137,7 @@ internal suspend fun cryptoModule(): Module {
 
             single<SignService> { signService }
             single<KeyTrustService> { keyTrustService }
-            single<OutdatedKeyHandler> {
-                OutdatedKeyHandler(
-                    userInfo = userInfo,
-                    homeserver = { sharedDataManager.currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER },
-                    keyStore = olmStore,
-                    signService = signService,
-                    keyTrustService = get<KeyTrustService>()
-                )
-            }
+            single<OutdatedKeyHandler> { keyHandler }
 
             single<OlmEncryptionService> {
                 OlmEncryptionServiceImpl(
@@ -187,6 +192,12 @@ internal suspend fun cryptoModule(): Module {
                 fallbackKeys = null
             )
             olmStore.updateOutdatedKeys { it + userInfo.userId }
+            keyHandler.updateOutdatedKeys()
+
+            // setup initial key signature
+            if(olmStore.getCrossSigningKeys(userInfo.userId).isNullOrEmpty()) {
+                crossSigningService.bootstrapCrossSigning()
+            }
         }
     }else module {  }
 }

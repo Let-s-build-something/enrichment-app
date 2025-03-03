@@ -37,7 +37,8 @@ class CrossSigningService(
     private val json: Json,
     private val keyTrustService: KeyTrustService,
     private val keyStore: OlmCryptoStore,
-    private val keyBackupService: KeyBackupService
+    private val keyBackupService: KeyBackupService,
+    private val keyHandler: OutdatedKeyHandler
 ) {
 
     private suspend fun bootstrapCrossSigning(
@@ -54,8 +55,8 @@ class CrossSigningService(
         return BootstrapCrossSigning(
             recoveryKey = encodeRecoveryKey(recoveryKey),
             result = repository.setAccountData(secretKeyEventContent, userInfo.userId, keyId)
-                .map { repository.setAccountData(DefaultSecretKeyEventContent(keyId), userInfo.userId) }
-                .map {
+                .mapCatching { repository.setAccountData(DefaultSecretKeyEventContent(keyId), userInfo.userId) }
+                .mapCatching {
                     val (masterSigningPrivateKey, masterSigningPublicKey) =
                         freeAfter(OlmPkSigning.create(null)) { it.privateKey to it.publicKey }
                     val masterSigningKey = signService.sign(
@@ -146,23 +147,26 @@ class CrossSigningService(
                                 userSigningKey = userSigningKey
                             )
                         }
-                }.mapCatching { res ->
-                    res.getOrThrow().getOrThrow().let {
-                        keyStore.updateOutdatedKeys { oldOutdatedKeys -> oldOutdatedKeys + userInfo.userId }
-                        val masterKey = keyStore.getCrossSigningKey(
-                            userInfo.userId,
-                            MasterKey
-                        )?.value?.signed?.get<Ed25519Key>()
-                        val ownDeviceKey = keyStore.getDeviceKey(
-                            userInfo.userId.full,
-                            userInfo.deviceId
-                        )?.value?.get<Ed25519Key>()
+                }
+                .mapCatching {
+                    println("kostka_test, waiting for keys to be set")
+                    println("kostka_test, bootstrapping keys SUCCESS")
 
-                        keyTrustService.trustAndSignKeys(setOfNotNull(masterKey, ownDeviceKey), userInfo.userId)
-                        println("wait for own device keys to be marked as cross signed and verified")
-                        keyStore.getDeviceKey(userInfo.userId.full, userInfo.deviceId)
-                        println("finished bootstrapping")
-                    }
+                    keyStore.updateOutdatedKeys { oldOutdatedKeys -> oldOutdatedKeys + userInfo.userId }
+                    println("kostka_test, updateOutdatedKeys finished")
+                    val masterKey = keyStore.getCrossSigningKey(
+                        userInfo.userId,
+                        MasterKey
+                    )?.value?.signed?.get<Ed25519Key>()
+                    val ownDeviceKey = keyStore.getDeviceKey(
+                        userInfo.userId.full,
+                        userInfo.deviceId
+                    )?.value?.get<Ed25519Key>()
+
+                    keyTrustService.trustAndSignKeys(setOfNotNull(masterKey, ownDeviceKey), userInfo.userId)
+                    println("wait for own device keys to be marked as cross signed and verified")
+                    keyStore.getDeviceKey(userInfo.userId.full, userInfo.deviceId)
+                    println("finished bootstrapping")
                 }
         )
     }
