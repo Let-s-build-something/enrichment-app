@@ -5,6 +5,7 @@ import data.io.app.SecureSettingsKeys.KEY_DEVICE_KEY
 import data.io.app.SecureSettingsKeys.KEY_FALLBACK_INSTANT
 import data.io.app.SecureSettingsKeys.KEY_OLM_ACCOUNT
 import data.io.app.SecureSettingsKeys.KEY_SECRETS
+import data.io.app.SecureSettingsKeys.KEY_SECRET_KEY_EVENT
 import data.io.matrix.crypto.OutdatedKey
 import data.io.matrix.crypto.asStoredInboundMegolmMessageIndexEntity
 import data.io.matrix.crypto.asStoredInboundMegolmSessionEntity
@@ -35,8 +36,10 @@ import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
+import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent
 import net.folivo.trixnity.core.model.keys.CrossSigningKeysUsage
 import net.folivo.trixnity.core.model.keys.DeviceKeys
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
@@ -53,8 +56,8 @@ import org.koin.mp.KoinPlatform
 class OlmCryptoStore(
     private val sharedDataManager: SharedDataManager
 ): OlmStore {
-    private val secureSettings: SecureAppSettings by KoinPlatform.getKoin().inject()
-    private val json: Json by KoinPlatform.getKoin().inject()
+    val secureSettings: SecureAppSettings by KoinPlatform.getKoin().inject()
+    val json: Json by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val olmSessionDao: OlmSessionDao by KoinPlatform.getKoin().inject()
     private val outboundMegolmSessionDao: OutboundMegolmSessionDao by KoinPlatform.getKoin().inject()
@@ -224,7 +227,7 @@ class OlmCryptoStore(
         } ?: emptyMap()
     }
 
-    suspend fun updateSecrets(//TODO how does it get updated?
+    suspend fun updateSecrets(
         updater: suspend (Map<SecretType, StoredSecret>) -> Map<SecretType, StoredSecret>
     ) = withContext(Dispatchers.IO) {
         secureSettings.putString(
@@ -312,6 +315,10 @@ class OlmCryptoStore(
         }
     }
 
+    suspend fun deleteCrossSigningKeys(userId: UserId) = withContext(Dispatchers.IO) {
+        secureSettings.remove(composeKey("${KEY_CROSS_SIGNING_KEY}_$userId"))
+    }
+
     suspend fun getKeyVerificationState(
         key: Key,
     ): KeyVerificationState? {
@@ -349,6 +356,23 @@ class OlmCryptoStore(
         }
     }
 
+    suspend fun getSecretKeyEvent(key: String = "") = withContext(Dispatchers.IO) {
+        secureSettings.getStringOrNull(
+            key = composeKey("${KEY_SECRET_KEY_EVENT}_$key")
+        )?.let {
+            json.decodeFromString<SecretKeyEventContent>(it)
+        }
+    }
+
+    suspend fun saveSecretKeyEvent(content: ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>) {
+        withContext(Dispatchers.IO) {
+            secureSettings.putString(
+                key = composeKey("${KEY_SECRET_KEY_EVENT}_${content.key}"),
+                value = json.encodeToString(content)
+            )
+        }
+    }
+
     suspend fun getKeyChainLinksBySigningKey(userId: UserId, signingKey: Key.Ed25519Key): Set<KeyChainLink> {
         return withContext(Dispatchers.Default) {
             keyChainLinkDao.getByUserId(userId = userId.full)
@@ -370,10 +394,6 @@ class OlmCryptoStore(
                     keyChainLinkDao.removeWhere(chains.map { it.id })
                 }
         }
-    }
-
-    suspend fun deleteCrossSigningKeys(userId: UserId) = withContext(Dispatchers.IO) {
-        secureSettings.remove(composeKey("${KEY_CROSS_SIGNING_KEY}_$userId"))
     }
 
     override suspend fun getDevices(

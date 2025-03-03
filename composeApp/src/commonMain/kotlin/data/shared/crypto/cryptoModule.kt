@@ -77,6 +77,28 @@ internal suspend fun cryptoModule(): Module {
             userInfo = userInfo,
             store = signServiceStore
         )
+        val keyTrustService = KeyTrustService(
+            keyStore = olmStore,
+            userInfo = userInfo,
+            signService = signService,
+            repository = requestHandler
+        )
+        val keyBackupService = KeyBackupService(
+            keyStore = olmStore,
+            userInfo = userInfo,
+            signService = signService,
+            repository = requestHandler,
+            json = json
+        )
+        val crossSigningService = CrossSigningService(
+            userInfo = userInfo,
+            signService = signService,
+            repository = requestHandler,
+            json = json,
+            keyStore = olmStore,
+            keyTrustService = keyTrustService,
+            keyBackupService = keyBackupService
+        )
         val clientEventEmitter = ClientEventEmitter()
         val syncResponseEmitter = SyncResponseEmitter()
 
@@ -87,6 +109,9 @@ internal suspend fun cryptoModule(): Module {
                 state = KeyVerificationState.Verified(key.value)
             )
         }
+        if(olmStore.getCrossSigningKeys(userInfo.userId).isNullOrEmpty()) {
+            crossSigningService.bootstrapCrossSigning()
+        }
 
         module {
             single<OlmCryptoStore> { olmStore }
@@ -95,16 +120,10 @@ internal suspend fun cryptoModule(): Module {
             single<UserInfo> { userInfo }
             single<ClientEventEmitter> { clientEventEmitter }
             single<SyncResponseEmitter> { syncResponseEmitter }
+            single<CrossSigningService> { crossSigningService }
 
             single<SignService> { signService }
-            single<KeyTrustService> {
-                KeyTrustService(
-                    keyStore = olmStore,
-                    userInfo = userInfo,
-                    signService = signService,
-                    repository = requestHandler
-                )
-            }
+            single<KeyTrustService> { keyTrustService }
             single<OutdatedKeyHandler> {
                 OutdatedKeyHandler(
                     userInfo = userInfo,

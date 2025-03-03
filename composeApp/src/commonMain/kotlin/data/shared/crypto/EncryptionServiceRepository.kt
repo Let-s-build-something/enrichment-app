@@ -3,6 +3,7 @@ package data.shared.crypto
 import data.io.base.BaseResponse
 import data.shared.crypto.model.isVerified
 import io.ktor.client.HttpClient
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -16,11 +17,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import net.folivo.trixnity.clientserverapi.model.keys.AddSignatures
 import net.folivo.trixnity.clientserverapi.model.keys.ClaimKeys
+import net.folivo.trixnity.clientserverapi.model.keys.SetCrossSigningKeys
 import net.folivo.trixnity.clientserverapi.model.keys.SetKeys
+import net.folivo.trixnity.clientserverapi.model.keys.SetRoomKeyBackupVersion
+import net.folivo.trixnity.clientserverapi.model.keys.SetRoomKeyBackupVersionRequest
 import net.folivo.trixnity.clientserverapi.model.users.SendToDevice
 import net.folivo.trixnity.core.UserInfo
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.GlobalAccountDataEventContent
 import net.folivo.trixnity.core.model.events.ToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.KeyRequestAction
 import net.folivo.trixnity.core.model.events.m.RoomKeyRequestEventContent
@@ -114,9 +119,7 @@ class EncryptionServiceRepository(
                         )
                     )
                 }
-            }.let {
-                if(it is BaseResponse.Success) Result.success(it.data) else Result.failure(Throwable(it.toString()))
-            }
+            }.asResult()
         }
     }
 
@@ -191,6 +194,69 @@ class EncryptionServiceRepository(
         )
     }
 
+    suspend fun getAccountData(
+        type: String,
+        userId: UserId,
+        key: String,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        val actualType = if (key.isEmpty()) type else type + key
+
+        httpClient.safeRequest<Unit> {
+            get(urlString = "https://${homeserver()}/_matrix/client/v3/user/${userId}/account_data/${actualType}")
+        }.asResult()
+    }
+
+    suspend fun setAccountData(
+        content: GlobalAccountDataEventContent,
+        userId: UserId,
+        key: String = "",
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        val eventType = contentMappings.globalAccountData.contentType(content)
+            .let { type -> if (key.isEmpty()) type else type + key }
+
+        httpClient.safeRequest<Unit> {
+            put(urlString = "https://${homeserver()}/_matrix/client/v3/user/${userId}/account_data/${eventType}") {
+                setBody(content)
+            }
+        }.asResult()
+    }
+
+    suspend fun setCrossSigningKeys(
+        masterKey: SignedCrossSigningKeys?,
+        selfSigningKey: SignedCrossSigningKeys?,
+        userSigningKey: SignedCrossSigningKeys?
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        httpClient.safeRequest<Unit> {
+            post(urlString = "https://${homeserver()}/_matrix/client/v3/keys/device_signing/upload") {
+                setBody(SetCrossSigningKeys.Request(
+                    masterKey = masterKey,
+                    selfSigningKey = selfSigningKey,
+                    userSigningKey = userSigningKey
+                ))
+            }
+        }.asResult()
+    }
+
+    suspend fun setRoomKeysVersion(
+        request: SetRoomKeyBackupVersionRequest
+    ): Result<String> = withContext(Dispatchers.IO) {
+        val version = request.version
+
+        if (version == null) {
+            httpClient.safeRequest<SetRoomKeyBackupVersion.Response> {
+                post(urlString = "https://${homeserver()}/_matrix/client/v3/room_keys/version") {
+                    setBody(request)
+                }
+            }.asResult().map { it.version }
+        } else {
+            httpClient.safeRequest<SetRoomKeyBackupVersion.Response> {
+                post(urlString = "https://${homeserver()}/_matrix/client/v3/room_keys/version/${version}") {
+                    setBody(request)
+                }
+            }.asResult().map { version }
+        }
+    }
+
     private suspend fun sendToDevice(
         eventType: String,
         events: Map<UserId, Map<String, ToDeviceEventContent>>,
@@ -198,7 +264,7 @@ class EncryptionServiceRepository(
     ): Result<Unit> {
         val request = SendToDevice.Request(messages = events)
 
-        httpClient.safeRequest<Unit> {
+        return httpClient.safeRequest<Unit> {
             put(urlString = "https://${homeserver()}/_matrix/client/v3/sendToDevice/${eventType}/${transactionId}") {
                 setBody(
                     json.encodeToJsonElement(
@@ -215,8 +281,12 @@ class EncryptionServiceRepository(
                     )
                 )
             }
-        }.let {
-            return if(it is BaseResponse.Success) Result.success(it.data) else Result.failure(Throwable(it.toString()))
-        }
+        }.asResult()
     }
+}
+
+fun <T>BaseResponse<T>.asResult(): Result<T> {
+    return if(this is BaseResponse.Success) Result.success(data) else Result.failure(
+        Throwable(toString())
+    )
 }

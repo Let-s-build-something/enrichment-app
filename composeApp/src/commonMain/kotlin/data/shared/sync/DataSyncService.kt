@@ -14,6 +14,7 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
+import data.shared.crypto.OlmCryptoStore
 import data.shared.crypto.OutdatedKeyHandler
 import data.shared.crypto.cryptoModule
 import database.dao.ConversationMessageDao
@@ -46,6 +47,7 @@ import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventConten
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
+import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
@@ -248,6 +250,14 @@ class DataSyncService {
                                     presenceContent.add(PresenceData(userIdFull = userId, content = content))
                                 }
                             }
+                            is SecretKeyEventContent -> {
+                                if(event is ClientEvent.GlobalAccountDataEvent) {
+                                    @Suppress("UNCHECKED_CAST")
+                                    (event as? ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>)?.let {
+                                        KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
+                                    }
+                                }
+                            }
                             is HistoryVisibilityEventContent -> historyVisibility = content.historyVisibility
                             is CanonicalAliasEventContent -> {
                                 alias = (content.alias ?: content.aliases?.firstOrNull())?.full
@@ -264,8 +274,8 @@ class DataSyncService {
                         avatar = avatar?.url?.let {
                             MediaIO(
                                 url = it,
-                                mimetype = avatar.info?.mimeType,
-                                size = avatar.info?.size
+                                mimetype = avatar?.info?.mimeType,
+                                size = avatar?.info?.size
                             )
                         },
                         canonicalAlias = alias ?: name,

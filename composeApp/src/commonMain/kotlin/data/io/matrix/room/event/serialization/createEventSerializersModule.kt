@@ -14,10 +14,18 @@ import kotlinx.serialization.modules.contextual
 import net.folivo.trixnity.core.model.events.EventContent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.StateEventContent
+import net.folivo.trixnity.core.model.events.m.DirectEventContent
+import net.folivo.trixnity.core.model.events.m.IdentityServerEventContent
+import net.folivo.trixnity.core.model.events.m.IgnoredUserListEventContent
+import net.folivo.trixnity.core.model.events.m.MegolmBackupV1EventContent
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
+import net.folivo.trixnity.core.model.events.m.PushRulesEventContent
 import net.folivo.trixnity.core.model.events.m.ReactionEventContent
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
 import net.folivo.trixnity.core.model.events.m.TypingEventContent
+import net.folivo.trixnity.core.model.events.m.crosssigning.MasterKeyEventContent
+import net.folivo.trixnity.core.model.events.m.crosssigning.SelfSigningKeyEventContent
+import net.folivo.trixnity.core.model.events.m.crosssigning.UserSigningKeyEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.SasAcceptEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.SasKeyEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.SasMacEventContent
@@ -46,6 +54,8 @@ import net.folivo.trixnity.core.model.events.m.room.ServerACLEventContent
 import net.folivo.trixnity.core.model.events.m.room.ThirdPartyInviteEventContent
 import net.folivo.trixnity.core.model.events.m.room.TombstoneEventContent
 import net.folivo.trixnity.core.model.events.m.room.TopicEventContent
+import net.folivo.trixnity.core.model.events.m.secretstorage.DefaultSecretKeyEventContent
+import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent
 import net.folivo.trixnity.core.model.events.m.space.ChildEventContent
 import net.folivo.trixnity.core.model.events.m.space.ParentEventContent
 import net.folivo.trixnity.core.serialization.canonicalJson
@@ -150,6 +160,17 @@ internal val DefaultLocalSerializerMappings = createEventSerializersModule(
         ephemeralOf<PresenceEventContent>("m.presence")
         ephemeralOf<TypingEventContent>("m.typing")
         ephemeralOf<ReceiptEventContent>("m.receipt")
+
+        globalAccountDataOf<IdentityServerEventContent>("m.identity_server")
+        globalAccountDataOf<DirectEventContent>("m.direct")
+        globalAccountDataOf<PushRulesEventContent>("m.push_rules")
+        globalAccountDataOf<DefaultSecretKeyEventContent>("m.secret_storage.default_key")
+        globalAccountDataOf<SecretKeyEventContent>("m.secret_storage.key.")
+        globalAccountDataOf<MasterKeyEventContent>("m.cross_signing.master")
+        globalAccountDataOf<SelfSigningKeyEventContent>("m.cross_signing.self_signing")
+        globalAccountDataOf<UserSigningKeyEventContent>("m.cross_signing.user_signing")
+        globalAccountDataOf<MegolmBackupV1EventContent>("m.megolm_backup.v1")
+        globalAccountDataOf<IgnoredUserListEventContent>("m.ignored_user_list")
     }
 )
 

@@ -38,7 +38,7 @@ internal val commonModule = module {
     single { FileAccess() }
     single { SharedDataManager() }
     single<EventContentSerializerMappings> { DefaultEventContentSerializerMappings }
-    single {
+    single<Json> {
         Json {
             ignoreUnknownKeys = true
             isLenient = true

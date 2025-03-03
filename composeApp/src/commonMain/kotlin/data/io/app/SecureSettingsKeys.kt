@@ -9,4 +9,5 @@ object SecureSettingsKeys {
     const val KEY_DEVICE_KEY = "device_key"
     const val KEY_SECRETS = "secrets"
     const val KEY_CROSS_SIGNING_KEY = "cross_signing_key"
+    const val KEY_SECRET_KEY_EVENT = "secret_key_event"
 }
