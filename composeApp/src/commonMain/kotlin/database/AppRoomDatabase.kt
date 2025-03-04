@@ -18,12 +18,14 @@ import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
 import data.io.user.PresenceData
+import data.shared.crypto.model.DeviceKey
 import data.shared.crypto.model.KeyChainLink
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
+import database.dao.matrix.DeviceKeyDao
 import database.dao.matrix.InboundMegolmSessionDao
 import database.dao.matrix.KeyChainLinkDao
 import database.dao.matrix.MatrixPagingMetaDao
@@ -49,10 +51,11 @@ import net.folivo.trixnity.core.model.events.m.PresenceEventContent
         PresenceData::class,
         ConversationRoomMember::class,
         OutdatedKey::class,
+        DeviceKey::class,
         KeyChainLink::class,
         ConversationRoomIO::class
     ],
-    version = 49,
+    version = 50,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -76,6 +79,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun outdatedKeyDao(): OutdatedKeyDao
     abstract fun roomMemberDao(): RoomMemberDao
     abstract fun keyChainLinkDao(): KeyChainLinkDao
+    abstract fun deviceKeyDao(): DeviceKeyDao
 
 
     companion object {
@@ -122,7 +126,10 @@ abstract class AppRoomDatabase: RoomDatabase() {
         const val TABLE_ROOM_MEMBER = "room_member_table"
 
         /** Identification of table for [KeyChainLink] */
-        const val TABLE_KEY_CHAIN_LINK = "key_chain_link"
+        const val TABLE_KEY_CHAIN_LINK = "key_chain_link_table"
+
+        /** Identification of table for [DeviceKey] */
+        const val TABLE_DEVICE_KEY = "device_key_tablet"
     }
 }
 

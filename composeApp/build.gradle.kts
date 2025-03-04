@@ -153,6 +153,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
+            implementation(libs.oshai.logging)
 
             implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)

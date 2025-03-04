@@ -11,6 +11,7 @@ import data.io.matrix.room.RoomTimeline
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
+import data.shared.crypto.model.StoredDeviceKeys
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
@@ -119,6 +120,16 @@ class AppDatabaseConverter {
     
     @TypeConverter
     fun toCurve25519List(value: String): List<Key.Curve25519Key> {
+        return json.decodeFromString(string = value)
+    }
+
+    @TypeConverter
+    fun fromStoredDeviceKeys(value: StoredDeviceKeys): String {
+        return json.encodeToString(value = value)
+    }
+
+    @TypeConverter
+    fun toStoredDeviceKeys(value: String): StoredDeviceKeys {
         return json.decodeFromString(string = value)
     }
     

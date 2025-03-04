@@ -14,6 +14,8 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.storage.Data
 import koin.AppSettings
+import koin.commonModule
+import koin.secureSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 
@@ -48,6 +51,7 @@ open class SharedViewModel: ViewModel() {
         viewModelScope.launch {
             delay(1000)
             currentUser.collectLatest { user ->
+                println("kostka_test, accessToken: ${user?.accessToken}, homeserver: ${user?.matrixHomeserver}")
                 if(user?.accessToken != null && user.matrixHomeserver != null) {
                     dataSyncService.sync(homeserver = user.matrixHomeserver)
                 }else dataSyncService.stop()
@@ -155,12 +159,15 @@ open class SharedViewModel: ViewModel() {
     open fun logoutCurrentUser() {
         runBlocking {
             authService.clear()
+            secureSettings.clear()
             Firebase.auth.signOut()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
             dataSyncService.stop()
             sharedDataManager.olmAccount = null
             unloadKoinModules(cryptoModule())
+            unloadKoinModules(commonModule)
+            loadKoinModules(commonModule)
         }
     }
 }

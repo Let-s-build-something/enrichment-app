@@ -61,11 +61,14 @@ class AuthService {
         stop()
         KoinPlatform.getKoin().getOrNull<OlmCryptoStore>()?.clear()
         secureSettings.remove(SecureSettingsKeys.KEY_CREDENTIALS)
+        secureSettings.clear()
     }
 
     fun stop() {
-        isRunning = false
-        if(mutex.isLocked) mutex.unlock()
+        if(isRunning) {
+            isRunning = false
+            if(mutex.isLocked) mutex.unlock()
+        }
     }
 
     suspend fun setupAutoLogin(forceRefresh: Boolean = false) {
@@ -135,6 +138,7 @@ class AuthService {
     ) {
         withContext(Dispatchers.IO) {
             val previous = retrieveCredentials()
+            println("kostka_test, cacheCredentials, deviceId: ${response.deviceId ?: previous?.deviceId ?: deviceId}")
             val userId = response.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
@@ -236,8 +240,9 @@ class AuthService {
         homeserver: String,
         identifier: MatrixIdentifierData,
         password: String?,
-        deviceId: String? = generateDeviceId()
+        deviceId: String? = null// = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
+        println("kostka_test, login with deviceId: $deviceId")
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
                 httpClient.post(url = Url("https://${homeserver}/_matrix/client/v3/login")) {
@@ -285,5 +290,5 @@ class AuthService {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    private fun generateDeviceId(): String = "${currentPlatform}_${Uuid.random()}"
+    private fun generateDeviceId(): String = "${currentPlatform}_${Uuid.random().toHexString()}"
 }

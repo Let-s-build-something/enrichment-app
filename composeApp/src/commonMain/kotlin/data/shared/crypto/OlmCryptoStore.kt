@@ -1,7 +1,6 @@
 package data.shared.crypto
 
 import data.io.app.SecureSettingsKeys.KEY_CROSS_SIGNING_KEY
-import data.io.app.SecureSettingsKeys.KEY_DEVICE_KEY
 import data.io.app.SecureSettingsKeys.KEY_FALLBACK_INSTANT
 import data.io.app.SecureSettingsKeys.KEY_OLM_ACCOUNT
 import data.io.app.SecureSettingsKeys.KEY_SECRETS
@@ -12,12 +11,14 @@ import data.io.matrix.crypto.asStoredInboundMegolmSessionEntity
 import data.io.matrix.crypto.asStoredOlmSessionEntity
 import data.io.matrix.crypto.asStoredOutboundMegolmSessionEntity
 import data.shared.SharedDataManager
+import data.shared.crypto.model.DeviceKey
 import data.shared.crypto.model.KeyChainLink
 import data.shared.crypto.model.KeyVerificationState
 import data.shared.crypto.model.StoredCrossSigningKeys
 import data.shared.crypto.model.StoredDeviceKeys
 import data.shared.crypto.model.StoredSecret
 import database.dao.ConversationRoomDao
+import database.dao.matrix.DeviceKeyDao
 import database.dao.matrix.InboundMegolmSessionDao
 import database.dao.matrix.KeyChainLinkDao
 import database.dao.matrix.MegolmMessageIndexDao
@@ -37,9 +38,9 @@ import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
+import net.folivo.trixnity.core.model.events.GlobalAccountDataEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
-import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent
 import net.folivo.trixnity.core.model.keys.CrossSigningKeysUsage
 import net.folivo.trixnity.core.model.keys.DeviceKeys
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
@@ -65,6 +66,7 @@ class OlmCryptoStore(
     private val megolmMessageIndexDao: MegolmMessageIndexDao by KoinPlatform.getKoin().inject()
     private val outdatedKeyDao: OutdatedKeyDao by KoinPlatform.getKoin().inject()
     private val keyChainLinkDao: KeyChainLinkDao by KoinPlatform.getKoin().inject()
+    private val deviceKeyDao: DeviceKeyDao by KoinPlatform.getKoin().inject()
 
     private val ownerId: String?
         get() = sharedDataManager.currentUser.value?.matrixUserId
@@ -246,11 +248,9 @@ class OlmCryptoStore(
 
     internal suspend fun getDeviceKeys(userId: String): Map<String, StoredDeviceKeys> {
         return withContext(Dispatchers.IO) {
-            secureSettings.getStringOrNull(
-                key = composeKey("${KEY_DEVICE_KEY}_$userId")
-            )?.let {
-                json.decodeFromString<Map<String, StoredDeviceKeys>>(it)
-            } ?: emptyMap()
+            val keys = deviceKeyDao.getAllByUserId(userId).associate { it.key to it.value }
+            println("kostka_test, getDeviceKeys, keys for user $userId: $keys")
+            keys
         }
     }
 
@@ -268,7 +268,6 @@ class OlmCryptoStore(
         )
     }
 
-    // TODO: Value too long. Should be a Room table instead
     suspend fun saveDeviceKeys(
         userId: UserId,
         deviceKeys: Map<String, StoredDeviceKeys>?
@@ -276,17 +275,23 @@ class OlmCryptoStore(
         if(deviceKeys == null) {
             deleteDeviceKeys(userId)
         } else {
-            withContext(Dispatchers.IO) {
-                secureSettings.putString(
-                    key = composeKey("${KEY_DEVICE_KEY}_$userId"),
-                    value = json.encodeToString(deviceKeys)
+            val keys = deviceKeys.map {
+                DeviceKey(
+                    userId = userId.full,
+                    key = it.key,
+                    value = it.value
                 )
+            }
+            println("kostka_test, saveDeviceKeys, keys: $keys")
+
+            withContext(Dispatchers.IO) {
+                deviceKeyDao.insertAll(keys)
             }
         }
     }
 
     suspend fun deleteDeviceKeys(userId: UserId) = withContext(Dispatchers.IO) {
-        secureSettings.remove(composeKey("${KEY_DEVICE_KEY}_$userId"))
+        deviceKeyDao.removeWhere(userId = userId.full)
     }
 
     suspend fun getCrossSigningKeys(
@@ -380,18 +385,18 @@ class OlmCryptoStore(
         }
     }
 
-    suspend inline fun <reified T: SecretKeyEventContent>getSecretKeyEvent(key: String = "") = withContext(Dispatchers.IO) {
+    suspend inline fun <reified T: GlobalAccountDataEventContent>getSecretKeyEvent(key: String = "") = withContext(Dispatchers.IO) {
         secureSettings.getStringOrNull(
-            key = composeKey("${KEY_SECRET_KEY_EVENT}_${key.takeIf { it.isNotBlank() } ?: T::class.toString()}")
+            key = composeKey("${KEY_SECRET_KEY_EVENT}_${key.takeIf { it.isNotBlank() } ?: T::class.simpleName ?: T::class.toString()}")
         )?.let {
-            json.decodeFromString<SecretKeyEventContent>(it)
+            json.decodeFromString<ClientEvent.GlobalAccountDataEvent<T>>(it)
         }
     }
 
-    suspend inline fun <reified T: SecretKeyEventContent>saveSecretKeyEvent(content: ClientEvent.GlobalAccountDataEvent<T>) {
+    suspend inline fun <reified T: GlobalAccountDataEventContent>saveSecretKeyEvent(content: ClientEvent.GlobalAccountDataEvent<T>) {
         withContext(Dispatchers.IO) {
             secureSettings.putString(
-                key = composeKey("${KEY_SECRET_KEY_EVENT}_${content.key.takeIf { it.isNotBlank() } ?: T::class.toString()}"),
+                key = composeKey("${KEY_SECRET_KEY_EVENT}_${content.key.takeIf { it.isNotBlank() } ?: T::class.simpleName ?: T::class.toString()}"),
                 value = json.encodeToString(content)
             )
         }

@@ -7,11 +7,14 @@ import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
+import database.dao.matrix.DeviceKeyDao
 import database.dao.matrix.InboundMegolmSessionDao
+import database.dao.matrix.KeyChainLinkDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.MegolmMessageIndexDao
 import database.dao.matrix.OlmSessionDao
 import database.dao.matrix.OutboundMegolmSessionDao
+import database.dao.matrix.OutdatedKeyDao
 import database.dao.matrix.PresenceEventDao
 import koin.DeveloperUtils
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +28,9 @@ import kotlin.uuid.Uuid
 internal val developerConsoleModule = module {
     single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
     factory { DeveloperConsoleViewModel(
+        get(),
+        get(),
+        get(),
         get(),
         get(),
         get(),
@@ -66,7 +72,10 @@ class DeveloperConsoleViewModel(
     private val olmSessionDao: OlmSessionDao,
     private val outboundMegolmSessionDao: OutboundMegolmSessionDao,
     private val inboundMegolmSessionDao: InboundMegolmSessionDao,
-    private val megolmMessageIndexDao: MegolmMessageIndexDao
+    private val megolmMessageIndexDao: MegolmMessageIndexDao,
+    private val outdatedKeyDao: OutdatedKeyDao,
+    private val keyChainLinkDao: KeyChainLinkDao,
+    private val deviceKeyDao: DeviceKeyDao,
 ): SharedViewModel() {
 
     /** developer console size */
@@ -105,6 +114,9 @@ class DeveloperConsoleViewModel(
             outboundMegolmSessionDao.removeAll()
             inboundMegolmSessionDao.removeAll()
             megolmMessageIndexDao.removeAll()
+            outdatedKeyDao.removeAll()
+            keyChainLinkDao.removeAll()
+            deviceKeyDao.removeAll()
             super.logoutCurrentUser()
         }
     }

@@ -85,13 +85,18 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     }
 
     private fun decrypt(encryptedData: String, key: SecretKey): String {
-        val decodedData = Base64.getDecoder().decode(encryptedData)
-        val iv = decodedData.copyOfRange(0, 12)
-        val cipherText = decodedData.copyOfRange(12, decodedData.size)
+        return try {
+            val decodedData = Base64.getDecoder().decode(encryptedData)
+            val iv = decodedData.copyOfRange(0, 12)
+            val cipherText = decodedData.copyOfRange(12, decodedData.size)
 
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
-        return String(cipher.doFinal(cipherText))
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
+            String(cipher.doFinal(cipherText))
+        }catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
     }
 
     private fun generateOrLoadKey(): SecretKey {

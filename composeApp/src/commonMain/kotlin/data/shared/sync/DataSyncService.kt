@@ -14,9 +14,12 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
+import data.shared.crypto.CrossSigningService
+import data.shared.crypto.KeyTrustService
 import data.shared.crypto.OlmCryptoStore
 import data.shared.crypto.OutdatedKeyHandler
 import data.shared.crypto.cryptoModule
+import data.shared.crypto.verification.SelfVerificationMethods
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
@@ -25,13 +28,13 @@ import database.dao.matrix.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import korlibs.io.async.onCancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,6 +50,7 @@ import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventConten
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
+import net.folivo.trixnity.core.model.events.m.secretstorage.DefaultSecretKeyEventContent
 import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
@@ -83,6 +87,8 @@ class DataSyncService {
     private val clientEventEmitter: ClientEventEmitter by KoinPlatform.getKoin().inject()
     private val syncResponseEmitter: SyncResponseEmitter by KoinPlatform.getKoin().inject()
     private val olmEventHandler: OlmEventHandler by KoinPlatform.getKoin().inject()
+    private val keyTrustService: KeyTrustService by KoinPlatform.getKoin().inject()
+    private val crossSigningService: CrossSigningService by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
@@ -91,26 +97,66 @@ class DataSyncService {
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
+        println("kostka_test, sync, isRunning: $isRunning")
         this.homeserver = homeserver
         if(!isRunning) {
             isRunning = true
+            println("kostka_test, sync, before launch")
             syncScope.launch {
+                println("kostka_test, sync, after launch")
+                this.coroutineContext.onCancel {
+                    isRunning = false
+                }
+
                 delay?.let { delay(it) }
+                println("kostka_test, sync, after delay")
                 (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
-                ))?.let {
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
-                    loadKoinModules(cryptoModule())
-                    enqueue()
-                    olmEventHandler.startInCoroutineScope(this)
+                )).let {
+                    if(it != null) {
+                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
+                        loadKoinModules(cryptoModule())
+                        println("kostka_test, sync, after cryptomodule")
+                        olmEventHandler.startInCoroutineScope(this)
+                        println("kostka_test, sync, after olmeventhandler")
+                        verifyKeys()
+                        println("kostka_test, sync, after verifykeys")
+                        enqueue()
+                        println("kostka_test, sync, after enqueu")
+                    }else stop()
                 }
             }
         }
     }
 
+    // deviceId: EIHCSLNAGK
+    private suspend fun verifyKeys() {
+        val verificationMethods = keyTrustService.getSelfVerificationMethods()
+        println("kostka_test, before bootstrap verification: $verificationMethods")
+        when(verificationMethods) {
+            is SelfVerificationMethods.NoCrossSigningEnabled -> {
+                crossSigningService.bootstrapCrossSigning()
+                println("kostka_test, after bootstrap verification: ${
+                    keyTrustService.getSelfVerificationMethods()
+                }")
+            }
+            is SelfVerificationMethods.PreconditionsNotMet -> {
+                verificationMethods.reasons.forEach {
+                    when(it) {
+                        SelfVerificationMethods.PreconditionsNotMet.Reason.DeviceKeysNotFetchedYet -> {
+                            keyHandler.updateOutdatedKeys()
+                        }
+                    }
+                }
+                if(verificationMethods.reasons.isNotEmpty()) verifyKeys()
+            }
+            else -> {}
+        }
+    }
+
     fun stop() {
-        isRunning = false
-        if(syncScope.isActive) {
+        if(isRunning) {
+            isRunning = false
             syncScope.coroutineContext.cancelChildren()
         }
     }
@@ -119,6 +165,7 @@ class DataSyncService {
         homeserver: String? = this.homeserver,
         nextBatch: String? = this.nextBatch
     ) {
+        println("kostka_test, enqueue, homeserver: $homeserver, matrixUserId: ${sharedDataManager.currentUser.value?.matrixUserId}")
         val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
         if(homeserver == null) return
         val pagingEntity = if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
@@ -126,7 +173,6 @@ class DataSyncService {
         )
         val batch = nextBatch ?: pagingEntity?.nextBatch
 
-        //P43wqUqCsP
         httpClient.safeRequest<SyncResponse> {
             get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
                 parameter("timeout", SYNC_INTERVAL)
@@ -204,11 +250,18 @@ class DataSyncService {
                             )
                         }
                     }
-
                     is SecretKeyEventContent -> {
                         if (event is ClientEvent.GlobalAccountDataEvent) {
                             @Suppress("UNCHECKED_CAST")
                             (event as? ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>)?.let {
+                                KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
+                            }
+                        }
+                    }
+                    is DefaultSecretKeyEventContent -> {
+                        if (event is ClientEvent.GlobalAccountDataEvent) {
+                            @Suppress("UNCHECKED_CAST")
+                            (event as? ClientEvent.GlobalAccountDataEvent<DefaultSecretKeyEventContent>)?.let {
                                 KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
                             }
                         }

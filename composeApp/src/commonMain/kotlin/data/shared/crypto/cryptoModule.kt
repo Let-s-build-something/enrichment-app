@@ -85,11 +85,26 @@ internal suspend fun cryptoModule(): Module {
             userInfo = userInfo,
             store = signServiceStore
         )
+        val encryptionService = OlmEncryptionServiceImpl(
+            json = json,
+            clock = Clock.System,
+            signService = signService,
+            requests = requestHandler,
+            store = olmStore,
+            userInfo = userInfo
+        )
+        val olmDecrypter = OlmDecrypterImpl(
+            olmEncryptionService = encryptionService,
+        )
         val keyTrustService = KeyTrustService(
             keyStore = olmStore,
             userInfo = userInfo,
             signService = signService,
-            repository = requestHandler
+            repository = requestHandler,
+            json = json,
+            clock = Clock.System,
+            encryptionService = encryptionService,
+            olmDecrypter = olmDecrypter
         )
         val keyBackupService = KeyBackupService(
             keyStore = olmStore,
@@ -139,16 +154,7 @@ internal suspend fun cryptoModule(): Module {
             single<KeyTrustService> { keyTrustService }
             single<OutdatedKeyHandler> { keyHandler }
 
-            single<OlmEncryptionService> {
-                OlmEncryptionServiceImpl(
-                    json = json,
-                    clock = Clock.System,
-                    signService = signService,
-                    requests = requestHandler,
-                    store = olmStore,
-                    userInfo = userInfo
-                )
-            }
+            single<OlmEncryptionService> { encryptionService }
             single<OlmEventHandler> {
                 OlmEventHandler(
                     userInfo = userInfo,
@@ -160,9 +166,7 @@ internal suspend fun cryptoModule(): Module {
                             }
                         }
                     },
-                    decrypter = OlmDecrypterImpl(
-                        olmEncryptionService = get<OlmEncryptionService>(),
-                    ),
+                    decrypter = olmDecrypter,
                     signService = SignServiceImpl(
                         store = signServiceStore,
                         json = json,
@@ -192,12 +196,6 @@ internal suspend fun cryptoModule(): Module {
                 fallbackKeys = null
             )
             olmStore.updateOutdatedKeys { it + userInfo.userId }
-            keyHandler.updateOutdatedKeys()
-
-            // setup initial key signature
-            if(olmStore.getCrossSigningKeys(userInfo.userId).isNullOrEmpty()) {
-                crossSigningService.bootstrapCrossSigning()
-            }
         }
     }else module {  }
 }
