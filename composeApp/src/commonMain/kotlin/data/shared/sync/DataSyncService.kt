@@ -70,7 +70,6 @@ internal val dataSyncModule = module {
 class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
-        private const val PING_EXPIRY_MS = 60_000 * 15
         private const val START_ANEW = false
     }
 
@@ -78,85 +77,50 @@ class DataSyncService {
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
     private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
-    private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
-    private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
-    private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
-    private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
-
-    private val keyHandler: OutdatedKeyHandler by KoinPlatform.getKoin().inject()
-    private val clientEventEmitter: ClientEventEmitter by KoinPlatform.getKoin().inject()
-    private val syncResponseEmitter: SyncResponseEmitter by KoinPlatform.getKoin().inject()
-    private val olmEventHandler: OlmEventHandler by KoinPlatform.getKoin().inject()
-    private val keyTrustService: KeyTrustService by KoinPlatform.getKoin().inject()
-    private val crossSigningService: CrossSigningService by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
     private var nextBatch: String? = null
     private var isRunning = false
+    private var handler: DataSyncHandler? = null
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
-        println("kostka_test, sync, isRunning: $isRunning")
-        this.homeserver = homeserver
         if(!isRunning) {
+            this.homeserver = homeserver
             isRunning = true
-            println("kostka_test, sync, before launch")
             syncScope.launch {
-                println("kostka_test, sync, after launch")
                 this.coroutineContext.onCancel {
                     isRunning = false
                 }
 
                 delay?.let { delay(it) }
-                println("kostka_test, sync, after delay")
                 (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
                     localSettings = sharedDataManager.localSettings.value
                 )).let {
-                    if(it != null) {
-                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
-                        loadKoinModules(cryptoModule())
-                        println("kostka_test, sync, after cryptomodule")
-                        olmEventHandler.startInCoroutineScope(this)
-                        println("kostka_test, sync, after olmeventhandler")
-                        verifyKeys()
-                        println("kostka_test, sync, after verifykeys")
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
+                    if(it?.matrixHomeserver != null) {
+                        val cryptoModule = cryptoModule(sharedDataManager)
+                        if(cryptoModule == null) {
+                            stop()
+                            return@launch
+                        }
+
+                        loadKoinModules(cryptoModule)
+                        sharedDataManager.cryptoModuleInstance = cryptoModule
+                        handler = DataSyncHandler(homeserver = it.matrixHomeserver)
+                        KoinPlatform.getKoin().getOrNull<OlmEventHandler>()?.startInCoroutineScope(this)
                         enqueue()
-                        println("kostka_test, sync, after enqueu")
                     }else stop()
                 }
             }
         }
     }
 
-    // deviceId: EIHCSLNAGK
-    private suspend fun verifyKeys() {
-        val verificationMethods = keyTrustService.getSelfVerificationMethods()
-        println("kostka_test, before bootstrap verification: $verificationMethods")
-        when(verificationMethods) {
-            is SelfVerificationMethods.NoCrossSigningEnabled -> {
-                crossSigningService.bootstrapCrossSigning()
-                println("kostka_test, after bootstrap verification: ${
-                    keyTrustService.getSelfVerificationMethods()
-                }")
-            }
-            is SelfVerificationMethods.PreconditionsNotMet -> {
-                verificationMethods.reasons.forEach {
-                    when(it) {
-                        SelfVerificationMethods.PreconditionsNotMet.Reason.DeviceKeysNotFetchedYet -> {
-                            keyHandler.updateOutdatedKeys()
-                        }
-                    }
-                }
-                if(verificationMethods.reasons.isNotEmpty()) verifyKeys()
-            }
-            else -> {}
-        }
-    }
-
     fun stop() {
         if(isRunning) {
             isRunning = false
+            handler = null
             syncScope.coroutineContext.cancelChildren()
         }
     }
@@ -165,7 +129,6 @@ class DataSyncService {
         homeserver: String? = this.homeserver,
         nextBatch: String? = this.nextBatch
     ) {
-        println("kostka_test, enqueue, homeserver: $homeserver, matrixUserId: ${sharedDataManager.currentUser.value?.matrixUserId}")
         val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
         if(homeserver == null) return
         val pagingEntity = if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
@@ -217,6 +180,69 @@ class DataSyncService {
                 prevBatch = prevBatch
             )
         )
+
+        handler?.handle(
+            response = response,
+            prevBatch = prevBatch,
+            owner = owner
+        )
+    }
+}
+
+class DataSyncHandler(private val homeserver: String) {
+
+    companion object {
+        private const val PING_EXPIRY_MS = 60_000 * 15
+    }
+
+    private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
+    private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
+
+    private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
+    private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
+    private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
+
+    private val clientEventEmitter: ClientEventEmitter by KoinPlatform.getKoin().inject()
+    private val syncResponseEmitter: SyncResponseEmitter by KoinPlatform.getKoin().inject()
+    private val keyTrustService: KeyTrustService by KoinPlatform.getKoin().inject()
+    private val crossSigningService: CrossSigningService by KoinPlatform.getKoin().inject()
+    private val keyHandler: OutdatedKeyHandler by KoinPlatform.getKoin().inject()
+
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private suspend fun verifyKeys() {
+        val verificationMethods = keyTrustService.getSelfVerificationMethods()
+        println("kostka_test, before bootstrap verification: $verificationMethods")
+        when(verificationMethods) {
+            is SelfVerificationMethods.NoCrossSigningEnabled -> {
+                crossSigningService.bootstrapCrossSigning()
+                println("kostka_test, after bootstrap verification: ${
+                    keyTrustService.getSelfVerificationMethods()
+                }")
+                verifyKeys()
+            }
+            is SelfVerificationMethods.PreconditionsNotMet -> {
+                verificationMethods.reasons.forEach {
+                    when(it) {
+                        SelfVerificationMethods.PreconditionsNotMet.Reason.DeviceKeysNotFetchedYet,
+                        SelfVerificationMethods.PreconditionsNotMet.Reason.CrossSigningKeysNotFetchedYet -> {
+                            keyHandler.updateOutdatedKeys()
+                            verifyKeys()
+                        }
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+
+    suspend fun handle(
+        response: SyncResponse,
+        prevBatch: String?,
+        owner: String
+    ) {
+        verifyKeys()
 
         withContext(Dispatchers.Default) {
             val matrixRooms = response.rooms?.let { matrixRooms ->

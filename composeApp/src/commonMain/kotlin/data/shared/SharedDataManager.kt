@@ -6,6 +6,7 @@ import data.io.base.AppPing
 import data.io.user.UserIO
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.folivo.trixnity.olm.OlmAccount
+import org.koin.core.module.Module
 
 /** Shared data manager with most common information */
 class SharedDataManager {
@@ -26,4 +27,5 @@ class SharedDataManager {
     val networkConnectivity = MutableStateFlow<NetworkConnectivity?>(null)
 
     var olmAccount: OlmAccount? = null
+    var cryptoModuleInstance: Module? = null
 }

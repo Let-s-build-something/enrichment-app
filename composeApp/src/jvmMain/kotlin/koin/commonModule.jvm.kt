@@ -5,6 +5,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.datastore.DataStoreSettings
+import data.io.app.SecureSettingsKeys.persistentKeys
 import okio.Path.Companion.toPath
 import java.io.File
 import java.security.SecureRandom
@@ -30,7 +31,15 @@ actual val settings: AppSettings = object : AppSettings, FlowSettings by DataSto
 
 actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     private val prefs: Preferences = Preferences.userNodeForPackage(SecureAppSettings::class.java)
-    private val secretKey: SecretKey by lazy { generateOrLoadKey() }
+    private var _secretKey: SecretKey? = null
+    private val secretKey: SecretKey
+        get() {
+            return (if(_secretKey == null) {
+                generateOrLoadKey().also {
+                    _secretKey = it
+                }
+            }else _secretKey) ?: generateOrLoadKey()
+        }
 
     override fun getBoolean(key: String, defaultValue: Boolean): Boolean = getBooleanOrNull(key) ?: defaultValue
     override fun getBooleanOrNull(key: String): Boolean? = getStringOrNull(key)?.toBoolean()
@@ -48,6 +57,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
         val encryptedData = prefs.get(key, null) ?: return null
         return decrypt(encryptedData, secretKey)
     }
+
 
     override fun hasKey(key: String): Boolean = prefs.get(key, null) != null
     override fun putBoolean(key: String, value: Boolean) = putString(key, value.toString())
@@ -72,7 +82,10 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
         get() = keys.size
 
     override fun clear() {
-        prefs.clear()
+        keys.forEach { key ->
+            if(!persistentKeys.none { it.contains(key) }) remove(key)
+        }
+        _secretKey = null
     }
 
     private fun encrypt(plainText: String, key: SecretKey): String {
@@ -93,7 +106,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
             String(cipher.doFinal(cipherText))
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             ""
         }
@@ -102,8 +115,13 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     private fun generateOrLoadKey(): SecretKey {
         val storedKey = prefs.get("SecureAppKey", null)
         return if (storedKey != null) {
-            val decodedKey = Base64.getDecoder().decode(storedKey)
-            SecretKeySpec(decodedKey, "AES")
+            try {
+                val decodedKey = Base64.getDecoder().decode(storedKey)
+                SecretKeySpec(decodedKey, "AES")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw IllegalStateException("Failed to decode stored key")
+            }
         } else {
             val keyGen = KeyGenerator.getInstance("AES")
             keyGen.init(256)

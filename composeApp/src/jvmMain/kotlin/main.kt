@@ -126,7 +126,10 @@ fun main(args: Array<String>) = application {
             add(scrollPane)
             add(
                 Button("I'll report this to info@augmy.org").apply {
-                    addActionListener { dispose() }
+                    addActionListener {
+                        KCEF.disposeBlocking()
+                        dispose()
+                    }
                 }
             )
             setSize(1000, 500)
@@ -177,8 +180,6 @@ fun main(args: Array<String>) = application {
                 })
             } catch (e: Exception) {
                 e.printStackTrace()
-            } finally {
-                KCEF.dispose()
             }
         }
     }

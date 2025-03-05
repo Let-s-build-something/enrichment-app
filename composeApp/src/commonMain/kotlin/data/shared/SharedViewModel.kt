@@ -4,14 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import base.utils.NetworkConnectivity
 import base.utils.NetworkSpeed
+import base.utils.asSimpleString
+import data.NetworkProximityCategory
+import data.io.app.ClientStatus
+import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
+import data.io.app.ThemeChoice
 import data.io.base.AppPing
 import data.io.user.UserIO
 import data.shared.auth.AuthService
-import data.shared.crypto.cryptoModule
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.messaging.messaging
 import dev.gitlive.firebase.storage.Data
 import koin.AppSettings
 import koin.commonModule
@@ -51,8 +56,7 @@ open class SharedViewModel: ViewModel() {
         viewModelScope.launch {
             delay(1000)
             currentUser.collectLatest { user ->
-                println("kostka_test, accessToken: ${user?.accessToken}, homeserver: ${user?.matrixHomeserver}")
-                if(user?.accessToken != null && user.matrixHomeserver != null) {
+                if(user?.accessToken != null && user.matrixHomeserver != null && user.matrixUserId != null) {
                     dataSyncService.sync(homeserver = user.matrixHomeserver)
                 }else dataSyncService.stop()
             }
@@ -116,6 +120,7 @@ open class SharedViewModel: ViewModel() {
                         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                             idToken = idToken
                         ) ?: UserIO(idToken = idToken)
+                        updateClientSettings()
                         authService.setupAutoLogin(forceRefresh = forceRefresh)
 
                         currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
@@ -155,6 +160,32 @@ open class SharedViewModel: ViewModel() {
         }
     }
 
+    suspend fun updateClientSettings() {
+        if (sharedDataManager.localSettings.value == null) {
+            val fcmToken = settings.getStringOrNull(SettingsKeys.KEY_FCM) ?: try {
+                Firebase.messaging.getToken()
+            }catch (_: NotImplementedError) { null }?.apply {
+                settings.putString(SettingsKeys.KEY_FCM, this)
+            }
+            val theme = ThemeChoice.entries.find {
+                it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
+            } ?: ThemeChoice.SYSTEM
+            val clientStatus = ClientStatus.entries.find {
+                it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
+            } ?: ClientStatus.NEW
+            val networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
+                ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
+
+            val update = LocalSettings(
+                theme = theme,
+                fcmToken = fcmToken,
+                clientStatus = clientStatus,
+                networkColors = networkColors
+            )
+            sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
+        }
+    }
+
     /** Logs out the currently signed in user */
     open fun logoutCurrentUser() {
         runBlocking {
@@ -163,9 +194,11 @@ open class SharedViewModel: ViewModel() {
             Firebase.auth.signOut()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
-            dataSyncService.stop()
             sharedDataManager.olmAccount = null
-            unloadKoinModules(cryptoModule())
+            dataSyncService.stop()
+            sharedDataManager.cryptoModuleInstance?.let {
+                unloadKoinModules(it)
+            }
             unloadKoinModules(commonModule)
             loadKoinModules(commonModule)
         }

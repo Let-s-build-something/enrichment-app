@@ -96,13 +96,31 @@ class AuthService {
         }
     }
 
+    private suspend fun getDeviceId(userId: String?): String? = withContext(Dispatchers.IO) {
+        if(userId == null) return@withContext null
+        secureSettings.getString(
+            "${SecureSettingsKeys.KEY_DEVICE_ID}_${userId}", ""
+        ).takeIf { it.isNotBlank() }
+    }
+
+    private suspend fun getPickleKey(userId: String?): String? = withContext(Dispatchers.IO) {
+        if(userId == null) return@withContext null
+        secureSettings.getString(
+            "${SecureSettingsKeys.KEY_PICKLE_KEY}_${userId}", ""
+        ).takeIf { it.isNotBlank() }
+    }
+
     private suspend fun retrieveCredentials(): AuthItem? {
         return withContext(Dispatchers.IO) {
             secureSettings.getString(
                 key = SecureSettingsKeys.KEY_CREDENTIALS,
                 ""
-            ).takeIf { it.isNotBlank() }?.let {
-                json.decodeFromString<AuthItem>(it)
+            ).takeIf { it.isNotBlank() }?.let { res ->
+                val decoded = json.decodeFromString<AuthItem>(res)
+                decoded.copy(
+                    deviceId = getDeviceId(decoded.userId),
+                    pickleKey = getPickleKey(decoded.userId)
+                )
             }
         }
     }
@@ -138,7 +156,7 @@ class AuthService {
     ) {
         withContext(Dispatchers.IO) {
             val previous = retrieveCredentials()
-            println("kostka_test, cacheCredentials, deviceId: ${response.deviceId ?: previous?.deviceId ?: deviceId}")
+            println("kostka_test, cacheCredentials, deviceId: ${response.deviceId ?: deviceId ?: deviceId}")
             val userId = response.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
@@ -154,8 +172,8 @@ class AuthService {
                 loginType = identifier?.type ?: previous?.loginType,
                 medium = identifier?.medium ?: previous?.medium,
                 address = identifier?.address ?: previous?.address,
-                pickleKey = previous?.pickleKey ?: Uuid.random().toString(),
-                deviceId = response.deviceId ?: previous?.deviceId ?: deviceId
+                deviceId = response.deviceId ?: previous?.deviceId ?: deviceId ?: getDeviceId(userId),
+                pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString()
             )
 
             updateUser(credentials = credentials)
@@ -163,6 +181,18 @@ class AuthService {
                 key = SecureSettingsKeys.KEY_CREDENTIALS,
                 json.encodeToString(credentials)
             )
+            if(credentials.deviceId != null) {
+                secureSettings.putString(
+                    key = "${SecureSettingsKeys.KEY_DEVICE_ID}_${credentials.userId}",
+                    value = credentials.deviceId
+                )
+            }
+            if(credentials.pickleKey != null) {
+                secureSettings.putString(
+                    key = "${SecureSettingsKeys.KEY_PICKLE_KEY}_${credentials.userId}",
+                    value = credentials.pickleKey
+                )
+            }
         }
     }
 
@@ -240,7 +270,7 @@ class AuthService {
         homeserver: String,
         identifier: MatrixIdentifierData,
         password: String?,
-        deviceId: String? = null// = generateDeviceId()
+        deviceId: String? = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
         println("kostka_test, login with deviceId: $deviceId")
         return withContext(Dispatchers.IO) {

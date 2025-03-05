@@ -282,7 +282,6 @@ class OlmCryptoStore(
                     value = it.value
                 )
             }
-            println("kostka_test, saveDeviceKeys, keys: $keys")
 
             withContext(Dispatchers.IO) {
                 deviceKeyDao.insertAll(keys)
@@ -451,7 +450,9 @@ class OlmCryptoStore(
         )
     }
 
-    override suspend fun getOlmPickleKey(): String = sharedDataManager.localSettings.value?.pickleKey ?: ""
+    override suspend fun getOlmPickleKey(): String {
+        return sharedDataManager.localSettings.value?.pickleKey ?: ""
+    }
 
     fun composeKey(key: String): String = "${key}_$ownerId"
 

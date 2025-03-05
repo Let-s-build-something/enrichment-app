@@ -89,32 +89,7 @@ class AppServiceViewModel(
                 MimeType("image/svg+xml", listOf("svg")),
                 MimeType("image/webp", listOf("webp"))
             )
-
-            if (sharedDataManager.localSettings.value == null) {
-                val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
-
-                val fcmToken = if(defaultFcm == null) {
-                    val newFcm = try {
-                        Firebase.messaging.getToken()
-                    }catch (_: NotImplementedError) { null }?.apply {
-                        settings.putString(SettingsKeys.KEY_FCM, this)
-                    }
-                    newFcm
-                }else defaultFcm
-
-                val update = LocalSettings(
-                    theme = ThemeChoice.entries.find {
-                        it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
-                    } ?: ThemeChoice.SYSTEM,
-                    fcmToken = fcmToken,
-                    clientStatus = ClientStatus.entries.find {
-                        it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
-                    } ?: ClientStatus.NEW,
-                    networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
-                        ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
-                )
-                sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
-            }
+            updateClientSettings()
         }
     }
 

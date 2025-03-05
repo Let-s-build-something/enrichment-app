@@ -28,8 +28,7 @@ import org.koin.dsl.module
 import org.koin.mp.KoinPlatform.getKoin
 import ui.login.AUGMY_HOME_SERVER
 
-internal suspend fun cryptoModule(): Module {
-    val sharedDataManager = getKoin().get<SharedDataManager>()
+internal suspend fun cryptoModule(sharedDataManager: SharedDataManager): Module? {
     val json = getKoin().get<Json>()
 
     val pickleKey = sharedDataManager.localSettings.value?.pickleKey
@@ -130,6 +129,19 @@ internal suspend fun cryptoModule(): Module {
             keyBackupService = keyBackupService,
             keyHandler = keyHandler
         )
+        val eventHandler = object: OlmEventHandlerRequestHandler {
+            override suspend fun setOneTimeKeys(
+                oneTimeKeys: Keys?,
+                fallbackKeys: Keys?
+            ): Result<Unit> {
+                return requestHandler.setOneTimeKeys(
+                    deviceKeys = null,
+                    oneTimeKeys = oneTimeKeys,
+                    fallbackKeys = fallbackKeys
+                ).map { }
+            }
+        }
+
         val clientEventEmitter = ClientEventEmitter()
         val syncResponseEmitter = SyncResponseEmitter()
 
@@ -172,18 +184,7 @@ internal suspend fun cryptoModule(): Module {
                         json = json,
                         userInfo = userInfo
                     ),
-                    requestHandler = object: OlmEventHandlerRequestHandler {
-                        override suspend fun setOneTimeKeys(
-                            oneTimeKeys: Keys?,
-                            fallbackKeys: Keys?
-                        ): Result<Unit> {
-                            return requestHandler.setOneTimeKeys(
-                                deviceKeys = null,
-                                oneTimeKeys = oneTimeKeys,
-                                fallbackKeys = fallbackKeys
-                            ).map {  }
-                        }
-                    },
+                    requestHandler = eventHandler,
                     store = olmStore,
                     clock = Clock.System
                 )
@@ -197,5 +198,5 @@ internal suspend fun cryptoModule(): Module {
             )
             olmStore.updateOutdatedKeys { it + userInfo.userId }
         }
-    }else module {  }
+    }else null
 }
