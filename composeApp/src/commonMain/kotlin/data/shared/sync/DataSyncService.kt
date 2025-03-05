@@ -86,6 +86,7 @@ class DataSyncService {
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
+        println("kostka_test, sync, isRunning: $isRunning, homeserver: $homeserver")
         if(!isRunning) {
             this.homeserver = homeserver
             isRunning = true
@@ -99,19 +100,18 @@ class DataSyncService {
                     localSettings = sharedDataManager.localSettings.value
                 )).let {
                     sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
-                    if(it?.matrixHomeserver != null) {
-                        val cryptoModule = cryptoModule(sharedDataManager)
-                        if(cryptoModule == null) {
-                            stop()
-                            return@launch
-                        }
+                    val cryptoModule = cryptoModule(sharedDataManager)
+                    println("kostka_test, sync, cryptoModule: $cryptoModule")
+                    if(cryptoModule == null) {
+                        stop()
+                        return@launch
+                    }
 
-                        loadKoinModules(cryptoModule)
-                        sharedDataManager.cryptoModuleInstance = cryptoModule
-                        handler = DataSyncHandler(homeserver = it.matrixHomeserver)
-                        KoinPlatform.getKoin().getOrNull<OlmEventHandler>()?.startInCoroutineScope(this)
-                        enqueue()
-                    }else stop()
+                    loadKoinModules(cryptoModule)
+                    sharedDataManager.cryptoModuleInstance = cryptoModule
+                    handler = DataSyncHandler(homeserver = homeserver)
+                    KoinPlatform.getKoin().getOrNull<OlmEventHandler>()?.startInCoroutineScope(this)
+                    enqueue()
                 }
             }
         }

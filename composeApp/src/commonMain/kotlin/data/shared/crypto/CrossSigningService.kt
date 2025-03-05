@@ -29,6 +29,9 @@ import net.folivo.trixnity.crypto.sign.SignWith
 import net.folivo.trixnity.crypto.sign.sign
 import net.folivo.trixnity.olm.OlmPkSigning
 import net.folivo.trixnity.olm.freeAfter
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 class CrossSigningService(
     private val repository: EncryptionServiceRepository,
@@ -37,8 +40,7 @@ class CrossSigningService(
     private val json: Json,
     private val keyTrustService: KeyTrustService,
     private val keyStore: OlmCryptoStore,
-    private val keyBackupService: KeyBackupService,
-    private val keyHandler: OutdatedKeyHandler
+    private val keyBackupService: KeyBackupService
 ) {
 
     private suspend fun bootstrapCrossSigning(
@@ -55,8 +57,8 @@ class CrossSigningService(
         return BootstrapCrossSigning(
             recoveryKey = encodeRecoveryKey(recoveryKey),
             result = repository.setAccountData(secretKeyEventContent, userInfo.userId, keyId)
-                .mapCatching { repository.setAccountData(DefaultSecretKeyEventContent(keyId), userInfo.userId) }
-                .mapCatching {
+                .flatMap { repository.setAccountData(DefaultSecretKeyEventContent(keyId), userInfo.userId) }
+                .flatMap {
                     val (masterSigningPrivateKey, masterSigningPublicKey) =
                         freeAfter(OlmPkSigning.create(null)) { it.privateKey to it.publicKey }
                     val masterSigningKey = signService.sign(
@@ -130,9 +132,13 @@ class CrossSigningService(
                         )
                     }
                     repository.setAccountData(encryptedMasterSigningKey, userInfo.userId)
-                        .map { repository.setAccountData(encryptedUserSigningKey, userInfo.userId) }
-                        .map { repository.setAccountData(encryptedSelfSigningKey, userInfo.userId) }
-                        .map {
+                        .flatMap {
+                            repository.setAccountData(encryptedUserSigningKey, userInfo.userId)
+                        }
+                        .flatMap {
+                            repository.setAccountData(encryptedSelfSigningKey, userInfo.userId)
+                        }
+                        .flatMap {
                             keyBackupService.bootstrapRoomKeyBackup(
                                 recoveryKey,
                                 keyId,
@@ -140,7 +146,7 @@ class CrossSigningService(
                                 masterSigningPublicKey
                             )
                         }
-                        .map {
+                        .flatMap {
                             repository.setCrossSigningKeys(
                                 masterKey = masterSigningKey,
                                 selfSigningKey = selfSigningKey,
@@ -148,9 +154,8 @@ class CrossSigningService(
                             )
                         }
                 }
-                // TODO support uiaFlow
+                // TODO test whether the following section is called AFTER the /login call response
                 .mapCatching {
-                    println("kostka_test, waiting for keys to be set")
                     println("kostka_test, bootstrapping keys SUCCESS")
 
                     keyStore.updateOutdatedKeys { oldOutdatedKeys -> oldOutdatedKeys + userInfo.userId }
@@ -182,4 +187,12 @@ class CrossSigningService(
 
         return bootstrapCrossSigning(recoveryKey, secretKeyEventContent)
     }
+}
+
+inline fun <A> identity(a: A): A = a
+
+@OptIn(ExperimentalContracts::class)
+inline fun <A, B> Result<A>.flatMap(transform: (value: A) -> Result<B>): Result<B> {
+    contract { callsInPlace(transform, InvocationKind.AT_MOST_ONCE) }
+    return map(transform).fold(::identity, Result.Companion::failure)
 }

@@ -58,7 +58,7 @@ open class SharedViewModel: ViewModel() {
             currentUser.collectLatest { user ->
                 if(user?.accessToken != null && user.matrixHomeserver != null && user.matrixUserId != null) {
                     dataSyncService.sync(homeserver = user.matrixHomeserver)
-                }else dataSyncService.stop()
+                }
             }
         }
         viewModelScope.launch {

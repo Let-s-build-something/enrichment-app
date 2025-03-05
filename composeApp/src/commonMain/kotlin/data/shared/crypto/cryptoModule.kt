@@ -126,8 +126,7 @@ internal suspend fun cryptoModule(sharedDataManager: SharedDataManager): Module?
             json = json,
             keyStore = olmStore,
             keyTrustService = keyTrustService,
-            keyBackupService = keyBackupService,
-            keyHandler = keyHandler
+            keyBackupService = keyBackupService
         )
         val eventHandler = object: OlmEventHandlerRequestHandler {
             override suspend fun setOneTimeKeys(

@@ -49,6 +49,7 @@ class AuthService {
 
     private val mutex = Mutex()
     private var isRunning = false
+    private var lockIdentifier = ""
 
     companion object {
         private const val DEFAULT_TOKEN_LIFESPAN_MS = 30 * 60 * 1000L
@@ -67,13 +68,14 @@ class AuthService {
     fun stop() {
         if(isRunning) {
             isRunning = false
-            if(mutex.isLocked) mutex.unlock()
+            if(mutex.isLocked) mutex.unlock(owner = lockIdentifier)
         }
     }
 
     suspend fun setupAutoLogin(forceRefresh: Boolean = false) {
         when {
             forceRefresh -> stop()
+            mutex.isLocked -> return
             isRunning -> return
         }
 
@@ -126,19 +128,16 @@ class AuthService {
     }
 
     private fun updateUser(credentials: AuthItem) {
-        if(sharedDataManager.currentUser.value != null) {
-            sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-                accessToken = credentials.accessToken ?: sharedDataManager.currentUser.value?.accessToken,
-                matrixHomeserver = credentials.homeserver ?: sharedDataManager.currentUser.value?.matrixHomeserver,
-                matrixUserId = credentials.userId ?: sharedDataManager.currentUser.value?.matrixUserId
-            )
-        }else {
-            sharedDataManager.currentUser.value = UserIO(
-                accessToken = credentials.accessToken,
-                matrixHomeserver = credentials.homeserver,
-                matrixUserId = credentials.userId
-            )
-        }
+        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
+            accessToken = credentials.accessToken ?: sharedDataManager.currentUser.value?.accessToken,
+            matrixHomeserver = credentials.homeserver ?: sharedDataManager.currentUser.value?.matrixHomeserver,
+            matrixUserId = credentials.userId ?: sharedDataManager.currentUser.value?.matrixUserId
+        ) ?: UserIO(
+            accessToken = credentials.accessToken,
+            matrixHomeserver = credentials.homeserver,
+            matrixUserId = credentials.userId
+        )
+
         val update = LocalSettings(
             deviceId = credentials.deviceId ?: sharedDataManager.localSettings.value?.deviceId,
             pickleKey = credentials.pickleKey ?: sharedDataManager.localSettings.value?.pickleKey
@@ -156,7 +155,7 @@ class AuthService {
     ) {
         withContext(Dispatchers.IO) {
             val previous = retrieveCredentials()
-            println("kostka_test, cacheCredentials, deviceId: ${response.deviceId ?: deviceId ?: deviceId}")
+            println("kostka_test, cacheCredentials, deviceId: ${response.deviceId ?: deviceId ?: getDeviceId(response.userId)}")
             val userId = response.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
@@ -196,6 +195,7 @@ class AuthService {
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     private suspend fun enqueueRefreshToken(
         refreshToken: String?,
         homeserver: String?,
@@ -203,11 +203,18 @@ class AuthService {
     ) {
         if(!isRunning) {
             isRunning = true
-            refreshToken(
-                refreshToken = refreshToken,
-                homeserver = homeserver,
-                expiresAtMsEpoch = expiresAtMsEpoch
-            )
+
+            if(mutex.tryLock(owner = Uuid.random().toHexString().also {
+                lockIdentifier = it
+            })) {
+                mutex.withLock {
+                    refreshToken(
+                        refreshToken = refreshToken,
+                        homeserver = homeserver,
+                        expiresAtMsEpoch = expiresAtMsEpoch
+                    )
+                }
+            }
         }
     }
 
@@ -216,37 +223,37 @@ class AuthService {
         homeserver: String?,
         expiresAtMsEpoch: Long?
     ) {
-        mutex.withLock {
-            if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
-                withContext(Dispatchers.IO) {
-                    val delay = DateUtils.now.toEpochMilliseconds() - expiresAtMsEpoch
-                    if(delay > 0) delay(delay)
-                    httpClient.safeRequest<MatrixAuthenticationResponse> {
-                        httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
-                            setBody(
-                                RefreshTokenRequest(refreshToken = refreshToken)
-                            )
-                        }
-                    }.let { response ->
-                        if(response is BaseResponse.Success && isRunning) {
-                            cacheCredentials(
-                                response = response.data,
-                                password = null,
-                                identifier = null,
-                                homeserver = homeserver,
-                                deviceId = null
-                            )
-                            enqueueRefreshToken(
-                                refreshToken = response.data.refreshToken,
-                                expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
-                                    .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
-                                homeserver = homeserver
-                            )
-                        }else loginWithCredentials()
+        println("kostka_test, refreshToken, homeserver: $homeserver, refreshToken: $refreshToken, expiresAtMsEpoch: $expiresAtMsEpoch")
+        if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
+            withContext(Dispatchers.IO) {
+                val delay = DateUtils.now.toEpochMilliseconds() - expiresAtMsEpoch
+                if(delay > 0) delay(delay)
+                httpClient.safeRequest<MatrixAuthenticationResponse> {
+                    httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
+                        setBody(
+                            RefreshTokenRequest(refreshToken = refreshToken)
+                        )
                     }
+                }.let { response ->
+                    println("kostka_test, is success: ${response is BaseResponse.Success}, isRunning: $isRunning")
+                    if(response is BaseResponse.Success && isRunning) {
+                        cacheCredentials(
+                            response = response.data,
+                            password = null,
+                            identifier = null,
+                            homeserver = homeserver,
+                            deviceId = null
+                        )
+                        enqueueRefreshToken(
+                            refreshToken = response.data.refreshToken,
+                            expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
+                                .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
+                            homeserver = homeserver
+                        )
+                    }else loginWithCredentials()
                 }
-            }else loginWithCredentials()
-        }
+            }
+        }else loginWithCredentials()
     }
 
     private suspend fun loginWithCredentials() {
@@ -272,6 +279,8 @@ class AuthService {
         password: String?,
         deviceId: String? = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
+        // if this is a point of entry
+        if(!isRunning) isRunning = true
         println("kostka_test, login with deviceId: $deviceId")
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
