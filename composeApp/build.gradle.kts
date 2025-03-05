@@ -159,6 +159,7 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
+            implementation(libs.trixnity.client)
 
             implementation(libs.room.runtime)
             //implementation(libs.room.paging)

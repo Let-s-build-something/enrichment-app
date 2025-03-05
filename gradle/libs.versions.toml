@@ -37,7 +37,7 @@ fileKit = "0.8.8"
 multiplatformSettings = "1.3.0"
 datastore = "1.1.3"
 workRuntimeKtx = "2.10.0"
-trixnity = "4.12.2"
+trixnity = "4.13.1"
 oshaiKotlinLogging = "7.0.3" # https://github.com/oshai/kotlin-logging/releases
 
 # Android
@@ -70,12 +70,14 @@ lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-vie
 compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
 compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref = "fileKit" }
 
+trixnity-client = { module = "net.folivo:trixnity-client", version.ref = "trixnity" }
+trixnity-crypto = { module = "net.folivo:trixnity-crypto", version.ref = "trixnity" }
+
 compose-paging-common = { module = "app.cash.paging:paging-compose-common", version.ref = "pagingCompose" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
 
-trixnity-crypto = { module = "net.folivo:trixnity-crypto", version.ref = "trixnity" }
 media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coilCompose" }
