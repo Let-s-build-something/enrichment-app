@@ -148,6 +148,7 @@ class CrossSigningService(
                             )
                         }
                 }
+                // TODO support uiaFlow
                 .mapCatching {
                     println("kostka_test, waiting for keys to be set")
                     println("kostka_test, bootstrapping keys SUCCESS")

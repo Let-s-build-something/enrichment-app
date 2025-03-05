@@ -121,6 +121,7 @@ class DataSyncService {
         if(isRunning) {
             isRunning = false
             handler = null
+            handler?.keysVerificationIteration = 3
             syncScope.coroutineContext.cancelChildren()
         }
     }
@@ -210,30 +211,43 @@ class DataSyncHandler(private val homeserver: String) {
     private val keyHandler: OutdatedKeyHandler by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val keyVerificationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private suspend fun verifyKeys() {
-        val verificationMethods = keyTrustService.getSelfVerificationMethods()
-        println("kostka_test, before bootstrap verification: $verificationMethods")
-        when(verificationMethods) {
-            is SelfVerificationMethods.NoCrossSigningEnabled -> {
-                crossSigningService.bootstrapCrossSigning()
-                println("kostka_test, after bootstrap verification: ${
-                    keyTrustService.getSelfVerificationMethods()
-                }")
-                verifyKeys()
-            }
-            is SelfVerificationMethods.PreconditionsNotMet -> {
-                verificationMethods.reasons.forEach {
-                    when(it) {
-                        SelfVerificationMethods.PreconditionsNotMet.Reason.DeviceKeysNotFetchedYet,
-                        SelfVerificationMethods.PreconditionsNotMet.Reason.CrossSigningKeysNotFetchedYet -> {
-                            keyHandler.updateOutdatedKeys()
-                            verifyKeys()
+    var keysVerificationIteration = 3
+    private fun verifyKeys() {
+        keyVerificationScope.launch {
+            val verificationMethods = keyTrustService.getSelfVerificationMethods()
+            println("kostka_test, before bootstrap verification: $verificationMethods")
+            when(verificationMethods) {
+                is SelfVerificationMethods.NoCrossSigningEnabled -> {
+                    crossSigningService.bootstrapCrossSigning()
+                    println("kostka_test, after bootstrap verification: ${
+                        keyTrustService.getSelfVerificationMethods()
+                    }")
+                    verifyKeys()
+                }
+                is SelfVerificationMethods.PreconditionsNotMet -> {
+                    verificationMethods.reasons.forEach {
+                        when(it) {
+                            SelfVerificationMethods.PreconditionsNotMet.Reason.DeviceKeysNotFetchedYet,
+                            SelfVerificationMethods.PreconditionsNotMet.Reason.CrossSigningKeysNotFetchedYet -> {
+                                keyHandler.updateOutdatedKeys()
+                                verifyKeys()
+                            }
                         }
                     }
                 }
+                is SelfVerificationMethods.CrossSigningEnabled -> {
+                    if(verificationMethods.methods.isEmpty() && keysVerificationIteration-- > 0) {
+                        crossSigningService.bootstrapCrossSigning()
+                        println("kostka_test, after bootstrap verification: ${
+                            keyTrustService.getSelfVerificationMethods()
+                        }")
+                        verifyKeys()
+                    }
+                }
+                else -> {}
             }
-            else -> {}
         }
     }
 
