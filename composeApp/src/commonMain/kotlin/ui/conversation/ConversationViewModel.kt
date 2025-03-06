@@ -105,7 +105,8 @@ open class ConversationViewModel(
             homeserver = {
                 currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
             },
-            conversationId = conversationId
+            conversationId = conversationId,
+            client = sharedDataManager.matrixClient
         ).flow
             .cachedIn(viewModelScope)
             .combine(_conversationDetail) { messages, detail ->

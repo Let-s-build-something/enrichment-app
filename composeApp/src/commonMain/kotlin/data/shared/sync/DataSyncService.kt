@@ -5,21 +5,16 @@ import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingEntityType
-import data.io.matrix.SyncResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.matrix.room.event.content.processEvents
+import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
-import data.shared.crypto.CrossSigningService
-import data.shared.crypto.KeyTrustService
-import data.shared.crypto.OlmCryptoStore
-import data.shared.crypto.OutdatedKeyHandler
-import data.shared.crypto.cryptoModule
-import data.shared.crypto.verification.SelfVerificationMethods
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
@@ -35,14 +30,21 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.client.key
+import net.folivo.trixnity.client.verification
+import net.folivo.trixnity.client.verification.VerificationService
 import net.folivo.trixnity.clientserverapi.model.rooms.GetMembers
+import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
-import net.folivo.trixnity.core.model.events.m.PresenceEventContent
+import net.folivo.trixnity.core.model.events.m.Presence
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
@@ -50,17 +52,15 @@ import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventConten
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
-import net.folivo.trixnity.core.model.events.m.secretstorage.DefaultSecretKeyEventContent
-import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
 import net.folivo.trixnity.crypto.olm.OlmEventHandler
-import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.login.safeRequest
+import kotlin.time.Duration.Companion.milliseconds
 
 internal val dataSyncModule = module {
     factory { DataSyncService() }
@@ -73,7 +73,6 @@ class DataSyncService {
         private const val START_ANEW = false
     }
 
-    private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
     private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
@@ -95,23 +94,16 @@ class DataSyncService {
                     isRunning = false
                 }
 
-                delay?.let { delay(it) }
-                (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
-                    localSettings = sharedDataManager.localSettings.value
-                )).let {
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
-                    val cryptoModule = cryptoModule(sharedDataManager)
-                    println("kostka_test, sync, cryptoModule: $cryptoModule")
-                    if(cryptoModule == null) {
-                        stop()
-                        return@launch
+                sharedDataManager.matrixClient?.let { client ->
+                    delay?.let { delay(it) }
+                    (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
+                        localSettings = sharedDataManager.localSettings.value
+                    )).let {
+                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
+                        handler = DataSyncHandler(homeserver = homeserver)
+                        KoinPlatform.getKoin().getOrNull<OlmEventHandler>()?.startInCoroutineScope(this)
+                        enqueue(client = client)
                     }
-
-                    loadKoinModules(cryptoModule)
-                    sharedDataManager.cryptoModuleInstance = cryptoModule
-                    handler = DataSyncHandler(homeserver = homeserver)
-                    KoinPlatform.getKoin().getOrNull<OlmEventHandler>()?.startInCoroutineScope(this)
-                    enqueue()
                 }
             }
         }
@@ -121,72 +113,64 @@ class DataSyncService {
         if(isRunning) {
             isRunning = false
             handler = null
-            handler?.keysVerificationIteration = 3
             syncScope.coroutineContext.cancelChildren()
         }
     }
 
-    private suspend fun enqueue(
-        homeserver: String? = this.homeserver,
-        nextBatch: String? = this.nextBatch
+    private suspend fun CoroutineScope.enqueue(
+        client: MatrixClient,
+        homeserver: String? = this@DataSyncService.homeserver,
+        since: String? = this@DataSyncService.nextBatch
     ) {
         val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
         if(homeserver == null) return
-        val pagingEntity = if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
+
+        val initialEntity = if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_$owner"
         )
-        val batch = nextBatch ?: pagingEntity?.nextBatch
+        var prevBatch: String? = initialEntity?.currentBatch
+        var currentBatch = since ?: initialEntity?.nextBatch
 
-        httpClient.safeRequest<SyncResponse> {
-            get(urlString = "https://$homeserver/_matrix/client/v3/sync") {
-                parameter("timeout", SYNC_INTERVAL)
-                if(batch != null) {
-                    parameter("since", batch)
-                }
+        client.api.sync.start(
+            filter = null,
+            timeout = SYNC_INTERVAL.milliseconds,
+            asUserId = UserId(owner),
+            setPresence = when(sharedDataManager.currentUser.value?.configuration?.visibility) {
+                UserVisibility.Online -> Presence.ONLINE
+                UserVisibility.Invisible, UserVisibility.Offline -> Presence.OFFLINE
+                else -> Presence.UNAVAILABLE
+            },
+            scope = this,
+            getBatchToken = {
+                since ?: if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
+                    entityId = "${homeserver}_$owner"
+                )?.nextBatch
+            },
+            setBatchToken = { nextBatch ->
+                matrixPagingMetaDao.insert(
+                    MatrixPagingMetaIO(
+                        entityId = "${homeserver}_$owner",
+                        entityType = PagingEntityType.Sync.name,
+                        nextBatch = nextBatch,
+                        currentBatch = currentBatch,
+                        // after getting a response, the currentBatch becomes prevBatch
+                        prevBatch = prevBatch
+                    )
+                )
+
+                prevBatch = "$currentBatch".takeIf { currentBatch != null }
+                currentBatch = nextBatch
             }
-        }.let { syncResponse ->
-            syncResponse.success?.data?.nextBatch?.let { nextBatch ->
-                this@DataSyncService.nextBatch = nextBatch
-                if(isRunning) {
-                    syncResponse.success?.data?.let { data ->
-                        processResponse(
-                            response = data,
-                            homeserver = homeserver,
-                            currentBatch = batch,
-                            // after getting a response, the currentBatch becomes prevBatch
-                            prevBatch = pagingEntity?.currentBatch,
-                            owner = owner
-                        )
-                    }
+        )
 
-                    enqueue()
-                }
-            }
-        }
-    }
-
-    private suspend fun processResponse(
-        response: SyncResponse,
-        homeserver: String,
-        currentBatch: String?,
-        prevBatch: String?,
-        owner: String
-    ) {
-        matrixPagingMetaDao.insert(
-            MatrixPagingMetaIO(
-                entityId = "${homeserver}_$owner",
-                entityType = PagingEntityType.Sync.name,
-                nextBatch = nextBatch,
-                currentBatch = currentBatch,
-                prevBatch = prevBatch
+        client.api.sync.subscribe {
+            handler?.handle(
+                client = client,
+                response = it.syncResponse,
+                prevBatch = prevBatch,
+                owner = owner
             )
-        )
-
-        handler?.handle(
-            response = response,
-            prevBatch = prevBatch,
-            owner = owner
-        )
+        }
     }
 }
 
@@ -204,67 +188,45 @@ class DataSyncHandler(private val homeserver: String) {
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
-    private val clientEventEmitter: ClientEventEmitter by KoinPlatform.getKoin().inject()
-    private val syncResponseEmitter: SyncResponseEmitter by KoinPlatform.getKoin().inject()
-    private val keyTrustService: KeyTrustService by KoinPlatform.getKoin().inject()
-    private val crossSigningService: CrossSigningService by KoinPlatform.getKoin().inject()
-    private val keyHandler: OutdatedKeyHandler by KoinPlatform.getKoin().inject()
-
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val keyVerificationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    var keysVerificationIteration = 3
-    private fun verifyKeys() {
+    private fun verifyKeys(client: MatrixClient) {
         keyVerificationScope.launch {
-            val verificationMethods = keyTrustService.getSelfVerificationMethods()
-            println("kostka_test, before bootstrap verification: $verificationMethods")
-            when(verificationMethods) {
-                is SelfVerificationMethods.NoCrossSigningEnabled -> {
-                    crossSigningService.bootstrapCrossSigning()
-                    println("kostka_test, after bootstrap verification: ${
-                        keyTrustService.getSelfVerificationMethods()
-                    }")
-                    verifyKeys()
-                }
-                is SelfVerificationMethods.PreconditionsNotMet -> {
-                    verificationMethods.reasons.forEach {
-                        when(it) {
-                            SelfVerificationMethods.PreconditionsNotMet.Reason.DeviceKeysNotFetchedYet,
-                            SelfVerificationMethods.PreconditionsNotMet.Reason.CrossSigningKeysNotFetchedYet -> {
-                                keyHandler.updateOutdatedKeys()
-                                verifyKeys()
-                            }
-                        }
+            client.verification.getSelfVerificationMethods().collectLatest { verificationMethods ->
+                println("kostka_test, selfVerificationMethods: $verificationMethods")
+
+                when(verificationMethods) {
+                    is VerificationService.SelfVerificationMethods.NoCrossSigningEnabled -> {
+                        client.key.bootstrapCrossSigning()
                     }
-                }
-                is SelfVerificationMethods.CrossSigningEnabled -> {
-                    if(verificationMethods.methods.isEmpty() && keysVerificationIteration-- > 0) {
-                        crossSigningService.bootstrapCrossSigning()
-                        println("kostka_test, after bootstrap verification: ${
-                            keyTrustService.getSelfVerificationMethods()
-                        }")
-                        verifyKeys()
+                    is VerificationService.SelfVerificationMethods.PreconditionsNotMet -> {
+                        // TODO?
                     }
+                    is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
+                        // super!
+                    }
+                    else -> {}
                 }
-                else -> {}
             }
         }
     }
 
     suspend fun handle(
-        response: SyncResponse,
+        client: MatrixClient,
+        response: Sync.Response,
         prevBatch: String?,
         owner: String
     ) {
-        verifyKeys()
+        verifyKeys(client = client)
 
         withContext(Dispatchers.Default) {
-            val matrixRooms = response.rooms?.let { matrixRooms ->
+            val matrixRooms = response.room?.let { matrixRooms ->
                 mutableListOf<ConversationRoomIO>().apply {
-                    addAll(matrixRooms.join?.map { it.value.copy(id = it.key) }.orEmpty())
-                    addAll(matrixRooms.invite?.map { it.value.copy(id = it.key) }.orEmpty())
-                    addAll(matrixRooms.knock?.map { it.value.copy(id = it.key) }.orEmpty())
-                    addAll(matrixRooms.leave?.map { it.value.copy(id = it.key) }.orEmpty())
+                    addAll(matrixRooms.join?.map { it.value.asConversation(id = it.key) }.orEmpty())
+                    addAll(matrixRooms.invite?.map { it.value.asConversation(id = it.key) }.orEmpty())
+                    addAll(matrixRooms.knock?.map { it.value.asConversation(id = it.key) }.orEmpty())
+                    addAll(matrixRooms.leave?.map { it.value.asConversation(id = it.key) }.orEmpty())
                 }
             }
             val messages = mutableListOf<ConversationMessageIO>()
@@ -272,59 +234,6 @@ class DataSyncHandler(private val homeserver: String) {
             val presenceContent = mutableListOf<PresenceData>()
 
             println("kostka_test, toDevice: ${response.toDevice}, deviceLists: ${response.deviceLists}")
-
-            val globalEvents = buildList {
-                addAll(response.toDevice?.events.orEmpty())
-                addAll(response.toDevice?.events.orEmpty())
-                addAll(response.accountData?.events.orEmpty())
-                addAll(response.presence?.events.orEmpty())
-            } .onEach { event ->
-                when(val content = event.content) {
-                    is PresenceEventContent -> {
-                        event.senderOrNull?.full?.let { userId ->
-                            presenceContent.add(
-                                PresenceData(
-                                    userIdFull = userId,
-                                    content = content
-                                )
-                            )
-                        }
-                    }
-                    is SecretKeyEventContent -> {
-                        if (event is ClientEvent.GlobalAccountDataEvent) {
-                            @Suppress("UNCHECKED_CAST")
-                            (event as? ClientEvent.GlobalAccountDataEvent<SecretKeyEventContent>)?.let {
-                                KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
-                            }
-                        }
-                    }
-                    is DefaultSecretKeyEventContent -> {
-                        if (event is ClientEvent.GlobalAccountDataEvent) {
-                            @Suppress("UNCHECKED_CAST")
-                            (event as? ClientEvent.GlobalAccountDataEvent<DefaultSecretKeyEventContent>)?.let {
-                                KoinPlatform.getKoin().get<OlmCryptoStore>().saveSecretKeyEvent(it)
-                            }
-                        }
-                    }
-                    else -> {}
-                }
-            }
-
-            keyHandler.handleDeviceLists(response.deviceLists)
-            syncResponseEmitter.emit(SyncEvents(
-                syncResponse = response,
-                allEvents = buildList {
-                    addAll(globalEvents)
-                    matrixRooms?.forEach { room ->
-                        addAll(room.accountData?.events.orEmpty())
-                        addAll(room.ephemeral?.events.orEmpty())
-                        addAll(room.state?.events.orEmpty())
-                        addAll(room.timeline?.events.orEmpty())
-                        addAll(room.inviteState?.events.orEmpty())
-                        addAll(room.knockState?.events.orEmpty())
-                    }
-                }
-            ))
 
             matrixRooms?.forEach { room ->
                 var alias: String? = null
@@ -390,6 +299,7 @@ class DataSyncHandler(private val homeserver: String) {
                         canonicalAlias = alias ?: name,
                         lastMessage = messages.lastOrNull()?.takeIf { it.conversationId == room.id }
                     ),
+                    prevBatch = room.timeline?.previousBatch,
                     ownerPublicId = owner,
                     historyVisibility = historyVisibility,
                     primaryKey = "${room.id}_${owner}",
@@ -397,7 +307,7 @@ class DataSyncHandler(private val homeserver: String) {
                 )
 
                 // either update existing one, or insert new one
-                val newRoom = (conversationRoomDao.getItem(
+                (conversationRoomDao.getItem(
                     id = room.id,
                     ownerPublicId = owner
                 )?.update(newItem) ?: newItem).also { newRoom ->
@@ -408,7 +318,6 @@ class DataSyncHandler(private val homeserver: String) {
                 // =======================  The room is saved, it's safe to proceed  ========================= //
                 // ensure we have all the members
                 if(events.isNotEmpty()) {
-                    clientEventEmitter.emit(events = events)
                     getMembers(roomId = room.id, prevBatch = prevBatch)?.let { members ->
                         roomMemberDao.insertAll(
                             members.mapNotNull { event ->
@@ -423,19 +332,11 @@ class DataSyncHandler(private val homeserver: String) {
                                 }
                             }
                         )
-                        if(newRoom.algorithm != null) {
-                            keyHandler.updateDeviceKeysFromChangedMembership(
-                                room = newRoom,
-                                events = members
-                            )
-                        }
-                    }
-                    if(newRoom.algorithm != null) {
-                        keyHandler.updateOutdatedKeys()
                     }
                 }
 
                 processEvents(
+                    client = client,
                     events = events,
                     prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
                     nextBatch = null,
@@ -486,6 +387,39 @@ class DataSyncHandler(private val homeserver: String) {
                 }
             }
         }
+    }
+
+    private fun Sync.Response.Rooms.JoinedRoom.asConversation(id: RoomId) = ConversationRoomIO(
+        id = id.full,
+        unreadNotifications = unreadNotifications,
+        summary = RoomSummary(
+            heroes = summary?.heroes,
+            joinedMemberCount = summary?.joinedMemberCount?.toInt(),
+            invitedMemberCount = summary?.invitedMemberCount?.toInt()
+        )
+    ).also {
+        it.state = state
+        it.timeline = timeline
+        it.accountData = accountData
+        it.ephemeral = ephemeral
+    }
+
+    private fun Sync.Response.Rooms.KnockedRoom.asConversation(id: RoomId) = ConversationRoomIO(
+        id = id.full,
+        knockState = knockState
+    )
+
+    private fun Sync.Response.Rooms.InvitedRoom.asConversation(id: RoomId) =  ConversationRoomIO(
+        id = id.full,
+        inviteState = inviteState
+    )
+
+    private fun Sync.Response.Rooms.LeftRoom.asConversation(id: RoomId) = ConversationRoomIO(
+        id = id.full
+    ).also {
+        it.state = state
+        it.timeline = timeline
+        it.accountData = accountData
     }
 
     private suspend fun getMembers(

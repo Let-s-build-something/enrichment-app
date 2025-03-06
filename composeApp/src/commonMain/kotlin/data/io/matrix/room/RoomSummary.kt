@@ -5,6 +5,7 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.UserId
 
 /**
  * Information about the room which clients may need to correctly render it to users.
@@ -16,7 +17,7 @@ data class RoomSummary(
     /** This should be the first 5 members of the room, ordered by stream ordering, which are joined or invited.
      *  The list must never include the client’s own user ID. */
     @SerialName("m.heroes")
-    val heroes: List<String>? = null,
+    val heroes: List<UserId>? = null,
 
     /** Name of the room. */
     val canonicalAlias: String? = null,
@@ -38,7 +39,7 @@ data class RoomSummary(
 
     /** The number of users with membership of invite. */
     @SerialName("m.invited_member_count")
-    val invitedMembersCount: Int? = null,
+    val invitedMemberCount: Int? = null,
 
     /** The number of users with membership of join, including the client’s own user ID. */
     @SerialName("m.joined_member_count")
@@ -59,7 +60,7 @@ data class RoomSummary(
             lastMessage = other.lastMessage ?: lastMessage,
             isDirect = other.isDirect ?: isDirect,
             invitationMessage = other.invitationMessage ?: invitationMessage,
-            invitedMembersCount = other.invitedMembersCount ?: invitedMembersCount,
+            invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
             joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
         )
     }

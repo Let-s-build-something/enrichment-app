@@ -20,6 +20,7 @@ import database.file.FileAccess
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
@@ -28,6 +29,7 @@ import net.folivo.trixnity.core.serialization.events.DefaultEventContentSerializ
 import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappings
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.mediaProcessorModule
 import ui.home.homeModule
 
@@ -78,13 +80,18 @@ internal val commonModule = module {
         if(it) this@module.includes(developerConsoleModule)
     }
 
-    single {
-        httpClientFactory(
-            sharedViewModel = get<SharedViewModel>(),
-            developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
-            json = get<Json>()
-        )
+    val sharedViewModel = KoinPlatform.getKoin().get<SharedViewModel>()
+    val developerViewModel = (if(isDev) KoinPlatform.getKoin().get<DeveloperConsoleViewModel>() else null)?.also { vm ->
+        single<DeveloperConsoleViewModel> { vm }
     }
+    val json = KoinPlatform.getKoin().get<Json>()
+    val httpClient = httpClientFactory(
+        sharedViewModel = sharedViewModel,
+        developerViewModel = developerViewModel,
+        json = json
+    )
+    single<HttpClient> { httpClient }
+    single<HttpClientEngine> { httpClient.engine }
 
     factory { SharedRepository(get<HttpClient>()) }
 }

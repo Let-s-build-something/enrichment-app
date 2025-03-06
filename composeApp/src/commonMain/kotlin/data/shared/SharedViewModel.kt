@@ -192,13 +192,12 @@ open class SharedViewModel: ViewModel() {
             authService.clear()
             secureSettings.clear()
             Firebase.auth.signOut()
+            sharedDataManager.matrixClient?.logout()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
+            sharedDataManager.matrixClient = null
             sharedDataManager.olmAccount = null
             dataSyncService.stop()
-            sharedDataManager.cryptoModuleInstance?.let {
-                unloadKoinModules(it)
-            }
             unloadKoinModules(commonModule)
             loadKoinModules(commonModule)
         }

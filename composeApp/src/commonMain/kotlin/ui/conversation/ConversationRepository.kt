@@ -1,6 +1,5 @@
 package ui.conversation
 
-import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
@@ -38,6 +37,7 @@ import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
 import org.koin.mp.KoinPlatform
 import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.conversation.components.audio.MediaHttpProgress
@@ -93,7 +93,8 @@ open class ConversationRepository(
         }
     }
 
-    protected suspend fun getProcessedMessages(
+    private suspend fun getProcessedMessages(
+        client: MatrixClient?,
         homeserver: String,
         fromBatch: String? = null,
         limit: Int,
@@ -113,14 +114,15 @@ open class ConversationRepository(
                 roomId = conversationId,
                 prevBatch = data.end,
                 nextBatch = data.start,
-                currentBatch = fromBatch
+                currentBatch = fromBatch,
+                client = client
             ).messages
         }
     }
 
     /** Returns a flow of conversation messages */
-    @OptIn(ExperimentalPagingApi::class)
     fun getMessagesListFlow(
+        client: MatrixClient?,
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
@@ -141,7 +143,8 @@ open class ConversationRepository(
                                     limit = config.pageSize,
                                     conversationId = conversationId,
                                     fromBatch = batch,
-                                    homeserver = homeserver()
+                                    homeserver = homeserver(),
+                                    client = client,
                                 ).orEmpty().also {
                                     conversationMessageDao.insertAll(it)
                                     // end of pagination with different number of items than expected,
@@ -180,7 +183,7 @@ open class ConversationRepository(
         return withContext(Dispatchers.IO) {
             conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
                 summary?.members = networkItemDao.getItems(
-                    userPublicIds = summary.heroes,
+                    userPublicIds = summary?.heroes?.map { it.full },
                     ownerPublicId = ownerPublicId
                 )
             }

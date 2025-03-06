@@ -6,9 +6,12 @@ import base.utils.speedInMbps
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedViewModel
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
@@ -20,6 +23,7 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.plugins.plugin
+import io.ktor.client.statement.request
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -29,9 +33,13 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.core.MatrixServerException
+import org.koin.mp.KoinPlatform
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+private val log = KotlinLogging.logger {}
 
 internal expect fun httpClient(): HttpClient
 
@@ -58,50 +66,26 @@ internal fun httpClientFactory(
             socketTimeoutMillis = SYNC_INTERVAL + 10_000
             connectTimeoutMillis = 5_000
         }
+        install(HttpSend)
         install(ContentNegotiation) {
             json(json)
         }
-        install(Logging) {
-            logger = Logger.SIMPLE
-            level = LogLevel.BODY
-
-            sanitizeHeader { header ->
-                header == HttpHeaders.Authorization
-                        || header == IdToken
-                        || header == AccessToken
+        install(HttpRequestRetry) {
+            retryIf { httpRequest, httpResponse ->
+                (httpResponse.status == HttpStatusCode.TooManyRequests)
+                    .also { if (it) log.warn { "rate limit exceeded for ${httpRequest.method} ${httpRequest.url}" } }
             }
-        }
-        ResponseObserver { response ->
-            developerViewModel?.appendHttpLog(
-                DeveloperUtils.processResponse(response)
-            )
-
-            val speedMbps = response.speedInMbps().roundToInt()
-            sharedViewModel.updateNetworkConnectivity(
-                networkSpeed = when {
-                    speedMbps <= 1.0 -> NetworkSpeed.VerySlow
-                    speedMbps <= 2.0 -> NetworkSpeed.Slow
-                    speedMbps <= 5.0 -> NetworkSpeed.Moderate
-                    speedMbps <= 10.0 -> NetworkSpeed.Good
-                    else -> NetworkSpeed.Fast
-                }.takeIf { speedMbps != 0 },
-                isNetworkAvailable = true
-            )
-        }
-        HttpResponseValidator {
-            handleResponseException { cause, _ ->
-                when (cause) {
-                    is IOException, is UnresolvedAddressException -> {
-                        sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                        println("No network connection or server unreachable")
+            retryOnExceptionIf { _, throwable ->
+                (throwable is MatrixServerException && throwable.statusCode == HttpStatusCode.TooManyRequests)
+                    .also {
+                        if (it) {
+                            log.warn(if (log.isDebugEnabled()) throwable else null) { "rate limit exceeded" }
+                        }
                     }
-                    is ConnectTimeoutException, is SocketTimeoutException -> {
-                        sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                        println("Network timeout")
-                    }
-                }
             }
+            exponentialDelay(maxDelayMs = 30_000, respectRetryAfterHeader = true)
         }
+        httpClientConfig(sharedViewModel)
     }.apply {
         plugin(HttpSend).intercept { request ->
             request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
@@ -141,6 +125,56 @@ internal fun httpClientFactory(
             }else forceRefreshCountdown = 3
 
             call
+        }
+    }
+}
+
+fun HttpClientConfig<*>.httpClientConfig(sharedViewModel: SharedViewModel) {
+    install(Logging) {
+        logger = Logger.SIMPLE
+        level = LogLevel.BODY
+
+        sanitizeHeader { header ->
+            header == HttpHeaders.Authorization
+                    || header == IdToken
+                    || header == AccessToken
+        }
+    }
+    HttpResponseValidator {
+        handleResponseException { cause, _ ->
+            when (cause) {
+                is IOException, is UnresolvedAddressException -> {
+                    sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                    println("No network connection or server unreachable")
+                }
+                is ConnectTimeoutException, is SocketTimeoutException -> {
+                    sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                    println("Network timeout")
+                }
+            }
+        }
+    }
+    install(HttpSend)
+    ResponseObserver { response ->
+        // sync has a very long timeout which would throw off this calculation
+        if(!response.request.url.toString().contains("/sync")) {
+            val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleViewModel>()
+
+            developerViewModel?.appendHttpLog(
+                DeveloperUtils.processResponse(response)
+            )
+
+            val speedMbps = response.speedInMbps().roundToInt()
+            sharedViewModel.updateNetworkConnectivity(
+                networkSpeed = when {
+                    speedMbps <= 1.0 -> NetworkSpeed.VerySlow
+                    speedMbps <= 2.0 -> NetworkSpeed.Slow
+                    speedMbps <= 5.0 -> NetworkSpeed.Moderate
+                    speedMbps <= 10.0 -> NetworkSpeed.Good
+                    else -> NetworkSpeed.Fast
+                }.takeIf { speedMbps != 0 },
+                isNetworkAvailable = true
+            )
         }
     }
 }

@@ -4,12 +4,14 @@ import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
-import data.shared.crypto.EncryptionServiceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.client.room.decrypt
+import net.folivo.trixnity.client.roomEventEncryptionServices
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
@@ -24,9 +26,6 @@ import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.File
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
-import net.folivo.trixnity.crypto.olm.OlmEncryptionService
-import net.folivo.trixnity.crypto.olm.OlmEncryptionService.DecryptMegolmError
-import org.koin.mp.KoinPlatform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -38,15 +37,13 @@ data class ProcessedEvents(
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalUuidApi::class)
 suspend fun processEvents(
+    client: MatrixClient?,
     events: List<ClientEvent<*>>,
     roomId: String,
     currentBatch: String?,
     prevBatch: String?,
     nextBatch: String?
 ): ProcessedEvents {
-    val encryptionService: OlmEncryptionService by KoinPlatform.getKoin().inject()
-    val encryptionRepository: EncryptionServiceRepository by KoinPlatform.getKoin().inject()
-
     return withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
         val members = mutableListOf<ConversationRoomMember>()
@@ -84,27 +81,9 @@ suspend fun processEvents(
                         receipts.add(it)
                     }
                 }
-                is OlmEncryptedToDeviceEventContent -> {
-                    (event as? ClientEvent.ToDeviceEvent<OlmEncryptedToDeviceEventContent>)?.let { encrypted ->
-                        encryptionService.decryptOlm(event = encrypted).also {
-                            println("kostka_test, decrypted olm event: $it, event: $event")
-                        }
-                    }
-                }
-                is MegolmEncryptedMessageEventContent -> {
-                    (event as? ClientEvent.RoomEvent<MegolmEncryptedMessageEventContent>)?.let { encrypted ->
-                        val attempt = encryptionService.decryptMegolm(encryptedEvent = encrypted)
-                        when(attempt.exceptionOrNull()) {
-                            is DecryptMegolmError.MegolmKeyNotFound -> {
-                                // missing keys -> request them
-                                encryptionRepository.requestRoomKeys(
-                                    roomId = event.roomId,
-                                    sessionId = content.sessionId
-                                )
-                                encryptionService.decryptMegolm(encryptedEvent = encrypted).getOrNull()
-                            }
-                            else -> attempt.getOrNull()
-                        }.also { decryptedEvent ->
+                is OlmEncryptedToDeviceEventContent, is MegolmEncryptedMessageEventContent -> {
+                    if(event is ClientEvent.RoomEvent.MessageEvent) {
+                        client?.roomEventEncryptionServices?.decrypt(event).also { decryptedEvent ->
                             println("kostka_test, decrypted megolm event: $decryptedEvent, event: $event")
                         }
                     }

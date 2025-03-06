@@ -14,12 +14,13 @@ import data.io.matrix.auth.RefreshTokenRequest
 import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
-import data.shared.crypto.OlmCryptoStore
+import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Url
 import koin.SecureAppSettings
+import koin.httpClientConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -27,9 +28,22 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.client.MatrixClient.LoginInfo
+import net.folivo.trixnity.client.MatrixClientConfiguration.CacheExpireDurations
+import net.folivo.trixnity.client.MatrixClientConfiguration.SyncLoopDelays
+import net.folivo.trixnity.client.createTrixnityBotModuleFactories
+import net.folivo.trixnity.client.loginWith
+import net.folivo.trixnity.client.media.InMemoryMediaStore
+import net.folivo.trixnity.client.store.repository.createInMemoryRepositoriesModule
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -58,9 +72,8 @@ class AuthService {
     val awaitingAutologin: Boolean
         get() = secureSettings.hasKey(SecureSettingsKeys.KEY_CREDENTIALS)
 
-    suspend fun clear() {
+    fun clear() {
         stop()
-        KoinPlatform.getKoin().getOrNull<OlmCryptoStore>()?.clear()
         secureSettings.remove(SecureSettingsKeys.KEY_CREDENTIALS)
         secureSettings.clear()
     }
@@ -192,6 +205,55 @@ class AuthService {
                     value = credentials.pickleKey
                 )
             }
+
+            if(sharedDataManager.matrixClient == null) {
+                initializeMatrixClient(credentials = credentials)
+            }
+        }
+    }
+
+    private suspend fun initializeMatrixClient(credentials: AuthItem) {
+        if(credentials.userId != null
+            && credentials.deviceId != null
+            && credentials.accessToken != null
+            && credentials.homeserver != null
+        ) {
+            sharedDataManager.matrixClient = MatrixClient.loginWith(
+                baseUrl = Url("https://${credentials.homeserver}"),
+                getLoginInfo = {
+                    Result.success(
+                        LoginInfo(
+                            userId = UserId(credentials.userId),
+                            deviceId = credentials.deviceId,
+                            accessToken = credentials.accessToken,
+                            refreshToken = credentials.refreshToken
+                        )
+                    )
+                },
+                repositoriesModuleFactory = {
+                    createInMemoryRepositoriesModule()
+                },
+                mediaStoreFactory = {
+                    InMemoryMediaStore()
+                }
+            ) {
+                name = credentials.deviceId
+                syncLoopDelays = SyncLoopDelays(
+                    syncLoopDelay = 0L.seconds,
+                    syncLoopErrorDelay = 10.seconds
+                )
+                lastRelevantEventFilter = { roomEvent ->
+                    roomEvent is RoomEvent.MessageEvent<*>
+                }
+                storeTimelineEventContentUnencrypted = false
+                modulesFactories = createTrixnityBotModuleFactories()
+                httpClientEngine = KoinPlatform.getKoin().get()
+                cacheExpireDurations = CacheExpireDurations.default(30.minutes)
+                syncLoopTimeout = SYNC_INTERVAL.milliseconds
+                httpClientConfig = {
+                    httpClientConfig(sharedViewModel = KoinPlatform.getKoin().get())
+                }
+            }.getOrNull()
         }
     }
 

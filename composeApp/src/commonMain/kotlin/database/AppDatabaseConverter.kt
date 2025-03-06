@@ -2,21 +2,18 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
-import data.io.matrix.room.RoomAccountData
-import data.io.matrix.room.RoomEphemeral
-import data.io.matrix.room.RoomInviteState
-import data.io.matrix.room.RoomNotificationsCount
 import data.io.matrix.room.RoomSummary
-import data.io.matrix.room.RoomTimeline
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
-import data.shared.crypto.model.StoredDeviceKeys
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.InvitedRoom
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.JoinedRoom.UnreadNotificationCounts
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.KnockedRoom.InviteState
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.EventIdSerializer
 import net.folivo.trixnity.core.model.RoomId
@@ -24,8 +21,6 @@ import net.folivo.trixnity.core.model.RoomIdSerializer
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
-import net.folivo.trixnity.core.model.keys.Curve25519KeySerializer
-import net.folivo.trixnity.core.model.keys.Ed25519KeySerializer
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import net.folivo.trixnity.core.model.keys.Key
 import org.koin.mp.KoinPlatform
@@ -102,17 +97,7 @@ class AppDatabaseConverter {
     fun toInstant(value: String): Instant {
         return json.decodeFromString(string = value, deserializer = InstantIso8601Serializer)
     }
-    
-    @TypeConverter
-    fun fromCurve25519(value: Key.Curve25519Key): String {
-        return json.encodeToString(value = value, serializer = Curve25519KeySerializer)
-    }
-    
-    @TypeConverter
-    fun toCurve25519(value: String): Key.Curve25519Key {
-        return json.decodeFromString(string = value, deserializer = Curve25519KeySerializer)
-    }
-    
+
     @TypeConverter
     fun fromCurve25519List(value: List<Key.Curve25519Key>): String {
         return json.encodeToString(value = value)
@@ -121,26 +106,6 @@ class AppDatabaseConverter {
     @TypeConverter
     fun toCurve25519List(value: String): List<Key.Curve25519Key> {
         return json.decodeFromString(string = value)
-    }
-
-    @TypeConverter
-    fun fromStoredDeviceKeys(value: StoredDeviceKeys): String {
-        return json.encodeToString(value = value)
-    }
-
-    @TypeConverter
-    fun toStoredDeviceKeys(value: String): StoredDeviceKeys {
-        return json.decodeFromString(string = value)
-    }
-    
-    @TypeConverter
-    fun fromEd25519(value: Key.Ed25519Key): String {
-        return json.encodeToString(value = value, serializer = Ed25519KeySerializer)
-    }
-    
-    @TypeConverter
-    fun toEd25519(value: String): Key.Ed25519Key {
-        return json.decodeFromString(string = value, deserializer = Ed25519KeySerializer)
     }
     
     @TypeConverter
@@ -162,16 +127,6 @@ class AppDatabaseConverter {
     fun toNewDevices(value: String): Map<UserId, Set<String>> {
         return json.decodeFromString(value)
     }
-    
-    @TypeConverter
-    fun fromRoomNotificationsCount(value: RoomNotificationsCount): String {
-        return json.encodeToString(value)
-    }
-    
-    @TypeConverter
-    fun toRoomNotificationsCount(value: String): RoomNotificationsCount {
-        return json.decodeFromString(value)
-    }
 
     @TypeConverter
     fun fromUserId(value: UserId): String {
@@ -184,48 +139,40 @@ class AppDatabaseConverter {
     }
     
     @TypeConverter
-    fun fromRoomEphemeral(value: RoomEphemeral): String {
-        return json.encodeToString(value)
+    fun fromInvitedInviteState(value: InviteState?): String? {
+        return if(value == null) null else json.encodeToString(value)
     }
     
     @TypeConverter
-    fun toRoomEphemeral(value: String): RoomEphemeral {
-        return json.decodeFromString(value)
+    fun toInvitedInviteState(value: String?): InviteState? {
+        return if(value == null) null else json.decodeFromString(value)
     }
-    
+
     @TypeConverter
-    fun fromRoomAccountData(value: RoomAccountData): String {
-        return json.encodeToString(value)
+    fun fromInviteState(value: InvitedRoom.InviteState?): String? {
+        return if(value == null) null else json.encodeToString(value)
     }
-    
+
     @TypeConverter
-    fun toRoomAccountData(value: String): RoomAccountData {
-        return json.decodeFromString(value)
+    fun toInviteState(value: String?): InvitedRoom.InviteState? {
+        return if(value == null) null else json.decodeFromString(value)
     }
-    // empty converters, we don't want it saved, yet we can't ignore it
+
     @TypeConverter
-    fun fromRoomTimeline(value: RoomTimeline): String? {
-        return null
-    }    @TypeConverter
-    fun toRoomTimeline(value: String): RoomTimeline? {
-        return null
+    fun fromUnreadNotificationCounts(value: UnreadNotificationCounts?): String? {
+        return if(value == null) null else json.encodeToString(value)
     }
-    
+
     @TypeConverter
-    fun fromRoomInviteState(value: RoomInviteState): String {
-        return json.encodeToString(value)
+    fun toUnreadNotificationCounts(value: String?): UnreadNotificationCounts? {
+        return if(value == null) null else json.decodeFromString(value)
     }
-    
-    @TypeConverter
-    fun toRoomInviteState(value: String): RoomInviteState {
-        return json.decodeFromString(value)
-    }
-    
+
     @TypeConverter
     fun fromMediaIO(value: MediaIO?): String? {
         return if(value == null) null else json.encodeToString(value)
     }
-    
+
     @TypeConverter
     fun toMediaIO(value: String?): MediaIO? {
         return if(value == null) null else json.decodeFromString(value)
