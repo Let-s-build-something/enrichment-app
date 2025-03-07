@@ -11,6 +11,7 @@ import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
 import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.datastore.DataStoreSettings
+import data.io.app.SecureSettingsKeys.persistentKeys
 import okio.Path.Companion.toPath
 import org.koin.mp.KoinPlatform.getKoin
 
@@ -33,4 +34,11 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings, Obser
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
-) {}
+) {
+
+    override fun clear() {
+        keys.forEach { key ->
+            if(!persistentKeys.none { it.contains(key) }) remove(key)
+        }
+    }
+}

@@ -88,7 +88,7 @@ class MediaProcessorModel(
                 item = 0,
                 progress = null
             )
-            var bytesSentTotal = 0
+            var bytesSentTotal = 0L
             val totalContentSize = media.sumOf { it?.size ?: 0 }
             _resultData.value = media.mapIndexedNotNull { index, unit ->
                 (if(unit == null) null else repository.getFileByteArray(
@@ -101,7 +101,7 @@ class MediaProcessorModel(
                         )
                     }
                 )).let {
-                    bytesSentTotal += unit?.size ?: 0
+                    bytesSentTotal += unit?.size ?: 0L
                     if(it == null || unit == null) null else unit to it.byteArray
                 }
             }.toMap()
@@ -117,7 +117,7 @@ class MediaProcessorModel(
                 item = 0,
                 progress = null
             )
-            var bytesSentTotal = 0
+            var bytesSentTotal = 0L
             val totalContentSize = media.sumOf { it?.size ?: 0 }
             media.forEachIndexed { index, unit ->
                 val downloadUrl = if(unit?.url != null && currentUser.value?.matrixHomeserver != null) {

@@ -340,7 +340,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                         if(room?.summary?.isDirect == true) {
                                             coroutineScope.launch(Dispatchers.Default) {
                                                 selectedUser.value = networkItems.value?.find {
-                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()
+                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()?.full
                                                 }
                                             }
                                         }else {

@@ -153,11 +153,13 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
+            implementation(libs.oshai.logging)
 
             implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
+            implementation(libs.trixnity.client)
 
             implementation(libs.room.runtime)
             //implementation(libs.room.paging)
@@ -193,6 +195,7 @@ kotlin {
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
+            implementation(libs.trixnity.crypto)
         }
     }
 }

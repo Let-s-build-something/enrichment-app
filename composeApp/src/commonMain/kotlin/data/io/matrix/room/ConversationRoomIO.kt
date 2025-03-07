@@ -6,7 +6,18 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.InvitedRoom
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.JoinedRoom.Ephemeral
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.JoinedRoom.UnreadNotificationCounts
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.KnockedRoom.InviteState
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.RoomAccountData
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.State
+import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.Timeline
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -28,25 +39,15 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Counts of unread notifications for this room. */
     @ColumnInfo("unread_notifications")
-    val unreadNotifications: RoomNotificationsCount? = null,
-
-    /** Typing notification and read receipt events */
-    val ephemeral: RoomEphemeral? = null,
-
-    /** The state updates for the room up to the start of the timeline. */
-    val state: RoomEphemeral? = null,
-
-    /** The private data that this user has attached to this room. */
-    @ColumnInfo("account_data")
-    val accountData: RoomAccountData? = null,
+    val unreadNotifications: UnreadNotificationCounts? = null,
 
     /** The stripped state of a room that the user has been invited to. */
     @ColumnInfo("invite_state")
-    val inviteState: RoomInviteState? = null,
+    val inviteState: InvitedRoom.InviteState? = null,
 
     /** The stripped state of a room that the user has knocked upon. */
     @ColumnInfo("knock_state")
-    val knockState: RoomInviteState? = null,
+    val knockState: InviteState? = null,
 
     /** Database flag: an identifier of the owner of this item */
     @ColumnInfo("owner_public_id")
@@ -56,12 +57,45 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("primary_key")
     val primaryKey: String = "${id}_$ownerPublicId",
 
-    /** The timeline of messages and state changes in the room. */
-    val timeline: RoomTimeline? = null,
+    /**
+     * Previous batch of the initially received room. This should never change and, thus, marks the beginning of /messages pagination
+     */
+    @ColumnInfo("prev_batch")
+    var prevBatch: String? = null,
 
     @ColumnInfo("last_message_timestamp")
-    val lastMessageTimestamp: Long? = summary?.lastMessage?.originServerTs
+    val lastMessageTimestamp: LocalDateTime? = summary?.lastMessage?.sentAt,
+
+    @ColumnInfo("history_visibility")
+    val historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null,
+
+    val algorithm: EncryptionAlgorithm? = null,
+
+    /** Type of the room */
+    val type: RoomType = when {
+        inviteState != null -> RoomType.Invited
+        knockState != null -> RoomType.Knocked
+        summary == null -> RoomType.Left
+        else -> RoomType.Joined
+    }
 ) {
+
+    @Ignore
+    @Transient
+    var state: State? = null
+
+    @Ignore
+    @Transient
+    var timeline: Timeline? = null
+
+    @Ignore
+    @Transient
+    var accountData: RoomAccountData? = null
+
+    @Ignore
+    @Transient
+    var ephemeral: Ephemeral? = null
+
 
     fun update(other: ConversationRoomIO?): ConversationRoomIO {
         return if(other == null) this
@@ -70,25 +104,12 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             summary = summary?.update(other.summary) ?: other.summary,
             proximity = other.proximity ?: proximity,
             unreadNotifications = other.unreadNotifications ?: unreadNotifications,
-            ephemeral = other.ephemeral ?: ephemeral,
-            state = other.state ?: state,
-            accountData = other.accountData ?: accountData,
             inviteState = other.inviteState ?: inviteState,
             knockState = other.knockState ?: knockState,
             ownerPublicId = other.ownerPublicId ?: ownerPublicId,
-            primaryKey = other.primaryKey,
-            timeline = other.timeline ?: this.timeline
+            primaryKey = other.primaryKey
         )
     }
-
-    /** Type of the room */
-    val type: RoomType
-        get() = when {
-            inviteState != null -> RoomType.Invited
-            knockState != null -> RoomType.Knocked
-            state != null -> RoomType.Left
-            else -> RoomType.Joined
-        }
 
     /** Users participating in the conversation */
     @Ignore
@@ -100,6 +121,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         name = summary?.alias,
         tag = summary?.tag,
         avatar = summary?.avatar,
-        lastMessage = summary?.lastMessage?.content?.body
+        lastMessage = summary?.lastMessage?.content
     )
 }

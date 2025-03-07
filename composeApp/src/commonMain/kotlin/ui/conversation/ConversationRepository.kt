@@ -1,28 +1,26 @@
 package ui.conversation
 
-import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import augmy.interactive.shared.utils.DateUtils.localNow
 import base.utils.sha256
 import data.io.base.BaseResponse
-import data.io.base.paging.PaginationInfo
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.event.content.processEvents
 import data.io.social.network.conversation.MessageReactionRequest
+import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
-import data.shared.setPaging
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import database.dao.PagingMetaDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.baseName
@@ -36,14 +34,12 @@ import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Url
 import korlibs.io.net.MimeType
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
 import org.koin.mp.KoinPlatform
+import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
@@ -54,8 +50,7 @@ import kotlin.uuid.Uuid
 open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
-    private val conversationRoomDao: ConversationRoomDao,
-    private val pagingMetaDao: PagingMetaDao,
+    internal val conversationRoomDao: ConversationRoomDao,
     private val networkItemDao: NetworkItemDao,
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
@@ -68,80 +63,115 @@ open class ConversationRepository(
         currentPagingSource?.invalidate()
     }
 
-    /** returns a list of network list */
+    /**
+     * returns a list of network list
+     * @param dir - direction of the list
+     * @param fromBatch - The token to start returning events from, usually the "prev_batch" of the timeline.
+     */
     private suspend fun getMessages(
-        page: Int,
-        size: Int,
+        dir: String = "b",
+        homeserver: String,
+        fromBatch: String? = null,
+        limit: Int,
         conversationId: String?
     ): BaseResponse<ConversationMessagesResponse> {
         return withContext(Dispatchers.IO) {
+            if(conversationId == null || fromBatch.takeIf { it != INITIAL_BATCH } == null) {
+                return@withContext BaseResponse.Error()
+            }
+
             httpClient.safeRequest<ConversationMessagesResponse> {
                 get(
-                    urlString = "/api/v1/social/conversation",
+                    urlString = "https://${homeserver}/_matrix/client/v3/rooms/$conversationId/messages",
                     block =  {
-                        setPaging(
-                            size = size,
-                            page = page
-                        ) {
-                            append("conversationId", conversationId.orEmpty())
-                        }
+                        parameter("limit", limit)
+                        parameter("dir", dir)
+                        parameter("from", fromBatch)
                     }
                 )
             }
         }
     }
 
-    /** Returns a flow of conversation messages */
-    @OptIn(ExperimentalPagingApi::class)
-    fun getMessagesListFlow(
-        config: PagingConfig,
-        conversationId: String? = null,
-    ): Pager<Int, ConversationMessageIO> {
-        val scope = CoroutineScope(Dispatchers.Default)
+    private suspend fun getProcessedMessages(
+        client: MatrixClient?,
+        homeserver: String,
+        fromBatch: String? = null,
+        limit: Int,
+        conversationId: String?
+    ): List<ConversationMessageIO>? {
+        if(conversationId == null) return null
 
+        // TODO should be processed with some service, which will be shared with DataSyncService, there's more than just messages
+        return getMessages(
+            limit = limit,
+            conversationId = conversationId,
+            fromBatch = fromBatch,
+            homeserver = homeserver
+        ).success?.data?.let { data ->
+            processEvents(
+                events = data.chunk.orEmpty() + data.state.orEmpty(),
+                roomId = conversationId,
+                prevBatch = data.end,
+                nextBatch = data.start,
+                currentBatch = fromBatch,
+                client = client
+            ).messages
+        }
+    }
+
+    /** Returns a flow of conversation messages */
+    fun getMessagesListFlow(
+        client: MatrixClient?,
+        homeserver: () -> String,
+        config: PagingConfig,
+        conversationId: String? = null
+    ): Pager<String, ConversationMessageIO> {
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
-                    getMessages = { page ->
-                        val res = conversationMessageDao.getPaginated(
-                            conversationId = conversationId,
-                            limit = config.pageSize,
-                            offset = page * config.pageSize
-                        )
+                    getMessages = { batch ->
+                        if(conversationId == null) return@ConversationRoomSource emptyList<ConversationMessageIO>()
 
-                        BaseResponse.Success(
-                            ConversationMessagesResponse(
-                                content = res,
-                                pagination = PaginationInfo(
-                                    page = page,
-                                    size = res.size,
-                                    totalItems = conversationMessageDao.getCount(conversationId)
-                                )
-                            )
+                        withContext(Dispatchers.IO) {
+                            conversationMessageDao.getBatched(
+                                conversationId = conversationId,
+                                batch = batch
+                            ).takeIf { it.isNotEmpty() }
+                                ?: getProcessedMessages(
+                                    limit = config.pageSize,
+                                    conversationId = conversationId,
+                                    fromBatch = batch,
+                                    homeserver = homeserver(),
+                                    client = client,
+                                ).orEmpty().also {
+                                    conversationMessageDao.insertAll(it)
+                                    // end of pagination with different number of items than expected,
+                                    // let's invalidate to recalculate
+                                    if(it.size < config.pageSize && batch != INITIAL_BATCH) {
+                                        invalidateLocalSource()
+                                    }
+                                }
+                        }
+                    },
+                    findPreviousBatch = { currentBatch ->
+                        conversationMessageDao.getPreviousBatch(
+                            conversationId = conversationId,
+                            currentBatch = currentBatch
+                        )
+                    },
+                    countItems = { batch ->
+                        conversationMessageDao.getCount(
+                            conversationId = conversationId,
+                            batch = batch
                         )
                     },
                     size = config.pageSize
                 ).also { pagingSource ->
                     currentPagingSource = pagingSource
                 }
-            },
-            remoteMediator = MessagesRemoteMediator(
-                pagingMetaDao = pagingMetaDao,
-                conversationMessageDao = conversationMessageDao,
-                size = config.pageSize,
-                conversationId = conversationId ?: "",
-                getItems = { page ->
-                    getMessages(page = page, size = config.pageSize, conversationId = conversationId)
-                },
-                invalidatePagingSource = {
-                    scope.coroutineContext.cancelChildren()
-                    scope.launch {
-                        delay(200)
-                        currentPagingSource?.invalidate()
-                    }
-                }
-            )
+            }
         )
     }
 
@@ -153,18 +183,10 @@ open class ConversationRepository(
         return withContext(Dispatchers.IO) {
             conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
                 summary?.members = networkItemDao.getItems(
-                    userPublicIds = summary?.heroes,
+                    userPublicIds = summary?.heroes?.map { it.full },
                     ownerPublicId = ownerPublicId
                 )
             }
-            /*httpClient.safeRequest<NetworkConversationIO> {
-                get(
-                    urlString = "/api/v1/social/conversation/detail",
-                    block = {
-                        parameter("conversationId", conversationId)
-                    }
-                )
-            }*/
         }
     }
 
@@ -175,6 +197,7 @@ open class ConversationRepository(
         homeserver: String,
         message: ConversationMessageIO,
         audioByteArray: ByteArray? = null,
+        gifAsset: GifAsset? = null,
         // TODO upload progress
         onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
         mediaFiles: List<PlatformFile> = listOf(),
@@ -195,10 +218,13 @@ open class ConversationRepository(
                             uuids.add(uuid)
                         }
                     )
-                } + message.media.orEmpty(),
-                audioUrl = if(audioByteArray?.isNotEmpty() == true) {
-                    MESSAGE_AUDIO_URL_PLACEHOLDER
-                }else null,
+                } + message.media.orEmpty() + MediaIO(
+                    url = MESSAGE_AUDIO_URL_PLACEHOLDER
+                ) + MediaIO(
+                    url = gifAsset?.original,
+                    mimetype = MimeType.IMAGE_GIF.mime,
+                    name = gifAsset?.description
+                ),
                 state = MessageState.Pending
             )
             conversationMessageDao.insert(msg)
@@ -227,25 +253,51 @@ open class ConversationRepository(
                     )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
                         MediaIO(
                             url = url,
-                            size = bytes.size,
+                            size = bytes.size.toLong(),
                             name = media.baseName,
                             mimetype = MimeType.getByExtension(media.extension).mime
                         )
                     }
-                } + message.media.orEmpty(),
-                audioUrl = uploadMedia(
-                    mediaByteArray = audioByteArray,
-                    fileName = "${Uuid.random()}.wav",
-                    homeserver = homeserver,
-                    mimetype = MimeType.getByExtension("wav").mime
-                )?.success?.data?.contentUri.also { audioUrl ->
-                    if(!audioUrl.isNullOrBlank()) {
-                        msg = msg.copy(audioUrl = audioUrl)
-                        audioByteArray?.let { data ->
-                            fileAccess.saveFileToCache(data = data, fileName = sha256(audioUrl))
-                        }
-                    }
-                },
+                }.plus(
+                    // existing media and audio media
+                    message.media.orEmpty().plus(
+                        if(audioByteArray != null) {
+                            val size = audioByteArray.size.toLong()
+                            val fileName = "${Uuid.random()}.wav"
+                            val mimetype = MimeType.getByExtension("wav").mime
+
+                            uploadMedia(
+                                mediaByteArray = audioByteArray,
+                                fileName = fileName,
+                                homeserver = homeserver,
+                                mimetype = mimetype
+                            )?.success?.data?.contentUri.let { audioUrl ->
+                                if(!audioUrl.isNullOrBlank()) {
+                                    fileAccess.saveFileToCache(
+                                        data = audioByteArray,
+                                        fileName = sha256(audioUrl)
+                                    )?.let {
+                                        listOf(
+                                            MediaIO(
+                                                url = audioUrl,
+                                                size = size,
+                                                name = fileName,
+                                                mimetype = mimetype,
+                                                path = it.toString()
+                                            )
+                                        )
+                                    }
+                                }else listOf()
+                            } ?: listOf()
+                        } else listOf()
+                    )
+                ).plus(
+                    MediaIO(
+                        url = gifAsset?.original,
+                        mimetype = MimeType.IMAGE_GIF.mime,
+                        name = gifAsset?.description
+                    )
+                ),
                 state = if(response is BaseResponse.Success) MessageState.Sent else MessageState.Failed
             )
             uuids.forEachIndexed { index, s ->
@@ -340,7 +392,7 @@ open class ConversationRepository(
                                     MediaIO(
                                         url = uri,
                                         mimetype = mimetype,
-                                        size = mediaByteArray.size,
+                                        size = mediaByteArray.size.toLong(),
                                         name = fileName
                                     )
                                 )

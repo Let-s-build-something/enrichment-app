@@ -5,6 +5,8 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import coil3.annotation.ExperimentalCoilApi
 import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
+import data.io.matrix.room.event.serialization.DefaultLocalSerializerMappings
+import data.io.matrix.room.event.serialization.createEventSerializersModule
 import data.shared.DeveloperConsoleViewModel
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
@@ -18,9 +20,13 @@ import database.file.FileAccess
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.modules.overwriteWith
+import net.folivo.trixnity.core.serialization.events.DefaultEventContentSerializerMappings
+import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappings
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.audio.mediaProcessorModule
@@ -32,18 +38,22 @@ internal val commonModule = module {
     if(currentPlatform != PlatformType.Jvm) includes(settingsModule)
     single { FileAccess() }
     single { SharedDataManager() }
-    single {
+    single<EventContentSerializerMappings> { DefaultEventContentSerializerMappings }
+    single<Json> {
         Json {
             ignoreUnknownKeys = true
             isLenient = true
             useArrayPolymorphism = true
-
+            coerceInputValues = true
             encodeDefaults = true
             explicitNulls = false
             allowSpecialFloatingPointValues = true
             allowStructuredMapKeys = true
             prettyPrint = true
             namingStrategy = JsonNamingStrategy.SnakeCase
+            serializersModule = createEventSerializersModule(
+                DefaultEventContentSerializerMappings
+            ).overwriteWith(DefaultLocalSerializerMappings)
         }
     }
 
@@ -69,13 +79,14 @@ internal val commonModule = module {
         if(it) this@module.includes(developerConsoleModule)
     }
 
-    single {
+    single<HttpClient> {
         httpClientFactory(
             sharedViewModel = get<SharedViewModel>(),
             developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
             json = get<Json>()
         )
     }
+    single<HttpClientEngine> { get<HttpClient>().engine }
 
     factory { SharedRepository(get<HttpClient>()) }
 }

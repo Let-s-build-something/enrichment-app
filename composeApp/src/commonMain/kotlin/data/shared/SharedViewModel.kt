@@ -4,15 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import base.utils.NetworkConnectivity
 import base.utils.NetworkSpeed
+import base.utils.asSimpleString
+import data.NetworkProximityCategory
+import data.io.app.ClientStatus
+import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
+import data.io.app.ThemeChoice
 import data.io.base.AppPing
 import data.io.user.UserIO
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.messaging.messaging
 import dev.gitlive.firebase.storage.Data
 import koin.AppSettings
+import koin.commonModule
+import koin.secureSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -24,6 +32,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.koin.core.context.loadKoinModules
+import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
@@ -34,24 +44,21 @@ open class SharedViewModel: ViewModel() {
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
-    /** lazily loaded repository for calling API */
-    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
-
     /** persistent settings saved locally to a device */
     protected val settings = KoinPlatform.getKoin().get<AppSettings>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             delay(50)
-            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) ?: true
+            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) != false
         }
 
         viewModelScope.launch {
             delay(1000)
             currentUser.collectLatest { user ->
-                if(user?.accessToken != null && user.matrixHomeserver != null) {
+                if(user?.accessToken != null && user.matrixHomeserver != null && user.matrixUserId != null) {
                     dataSyncService.sync(homeserver = user.matrixHomeserver)
-                }else dataSyncService.stop()
+                }
             }
         }
         viewModelScope.launch {
@@ -90,7 +97,8 @@ open class SharedViewModel: ViewModel() {
         Firebase.auth.currentUser
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
-            initUser()
+            delay(500) // we have to delay the check to give time login flow to catch up
+            initUser(false)
         }
     }
 
@@ -103,24 +111,28 @@ open class SharedViewModel: ViewModel() {
 
     //======================================== functions ==========================================
 
-    suspend fun initUser() {
-        delay(500) // we have to delay the check to give time login flow to catch up
-        Firebase.auth.currentUser?.let { firebaseUser ->
-            if(sharedDataManager.currentUser.value?.idToken == null) {
+    /** Initializes the user and returns whether successful */
+    suspend fun initUser(forceRefresh: Boolean): Boolean {
+        return Firebase.auth.currentUser?.let { firebaseUser ->
+            if(sharedDataManager.currentUser.value?.idToken == null || forceRefresh) {
                 try {
                     firebaseUser.getIdToken(false)?.let { idToken ->
                         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                             idToken = idToken
                         ) ?: UserIO(idToken = idToken)
-                        authService.setupAutoLogin()
-                    }
+                        authService.setupAutoLogin(forceRefresh = forceRefresh)
+                        updateClientSettings()
+
+                        currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
+                    } ?: false
                 }catch (e: Exception) {
                     sharedDataManager.currentUser.value = UserIO()
                     authService.setupAutoLogin()
                     e.printStackTrace()
+                    false
                 }
-            }
-        }
+            }else false
+        } ?: false
     }
 
     fun updateNetworkConnectivity(
@@ -148,14 +160,46 @@ open class SharedViewModel: ViewModel() {
         }
     }
 
+    suspend fun updateClientSettings() {
+        val fcmToken = settings.getStringOrNull(SettingsKeys.KEY_FCM) ?: try {
+            Firebase.messaging.getToken()
+        }catch (_: NotImplementedError) { null }?.apply {
+            settings.putString(SettingsKeys.KEY_FCM, this)
+        }
+        val theme = ThemeChoice.entries.find {
+            it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
+        } ?: ThemeChoice.SYSTEM
+        val clientStatus = ClientStatus.entries.find {
+            it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
+        } ?: ClientStatus.NEW
+        val networkColors = settings.getStringOrNull(
+            "${SettingsKeys.KEY_NETWORK_COLORS}_${currentUser.value?.matrixUserId}"
+        )?.split(",")
+            ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
+
+        val update = LocalSettings(
+            theme = theme,
+            fcmToken = fcmToken,
+            clientStatus = clientStatus,
+            networkColors = networkColors
+        )
+        sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
+    }
+
     /** Logs out the currently signed in user */
     open fun logoutCurrentUser() {
         runBlocking {
+            authService.clear()
+            secureSettings.clear()
             Firebase.auth.signOut()
+            sharedDataManager.matrixClient?.logout()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
-            authService.clear()
+            sharedDataManager.matrixClient = null
+            sharedDataManager.olmAccount = null
             dataSyncService.stop()
+            unloadKoinModules(commonModule)
+            loadKoinModules(commonModule)
         }
     }
 }

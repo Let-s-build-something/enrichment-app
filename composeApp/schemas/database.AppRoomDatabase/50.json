@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 28,
-    "identityHash": "9431e686ef64f358f3f11d5f62684c08",
+    "version": 50,
+    "identityHash": "b007ecd090184e0d444e934e3ccb871b",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_matrix_id` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_public_id` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_matrix_id` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
           {
             "fieldPath": "name",
@@ -65,8 +65,13 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "ownerPublicId",
-            "columnName": "owner_public_id",
+            "fieldPath": "ownerUserId",
+            "columnName": "owner_user_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "presence",
+            "columnName": "presence",
             "affinity": "TEXT"
           },
           {
@@ -169,7 +174,7 @@
       },
       {
         "tableName": "room_matrix_paging_meta_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `batch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `current_batch` TEXT, `prevBatch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
         "fields": [
           {
             "fieldPath": "entityId",
@@ -188,8 +193,13 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "batch",
-            "columnName": "batch",
+            "fieldPath": "currentBatch",
+            "columnName": "current_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "prevBatch",
+            "columnName": "prevBatch",
             "affinity": "TEXT"
           },
           {
@@ -208,7 +218,7 @@
       },
       {
         "tableName": "room_conversation_message_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `audio_url` TEXT, `gif_asset` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `conversation_id` TEXT, `transcribed` INTEGER, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `prev_batch` TEXT, `next_batch` TEXT, `current_batch` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -224,16 +234,6 @@
           {
             "fieldPath": "media",
             "columnName": "media",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "audioUrl",
-            "columnName": "audio_url",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "gifAsset",
-            "columnName": "gif_asset",
             "affinity": "TEXT"
           },
           {
@@ -282,14 +282,98 @@
             "affinity": "TEXT"
           },
           {
+            "fieldPath": "transcribed",
+            "columnName": "transcribed",
+            "affinity": "INTEGER"
+          },
+          {
             "fieldPath": "conversationId",
             "columnName": "conversation_id",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "transcribed",
-            "columnName": "transcribed",
+            "fieldPath": "prevBatch",
+            "columnName": "prev_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nextBatch",
+            "columnName": "next_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentBatch",
+            "columnName": "current_batch",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "presence_event_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id_full` TEXT NOT NULL, `content` TEXT, PRIMARY KEY(`user_id_full`))",
+        "fields": [
+          {
+            "fieldPath": "userIdFull",
+            "columnName": "user_id_full",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "user_id_full"
+          ]
+        }
+      },
+      {
+        "tableName": "room_member_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `content` TEXT NOT NULL, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roomId",
+            "columnName": "room_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sender",
+            "columnName": "sender",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -301,7 +385,7 @@
       },
       {
         "tableName": "room_conversation_room_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `summary` TEXT, `proximity` REAL, `unread_notifications` TEXT, `ephemeral` TEXT, `state` TEXT, `account_data` TEXT, `invite_state` TEXT, `knock_state` TEXT, `owner_public_id` TEXT, `primary_key` TEXT NOT NULL, `timeline` TEXT, `last_message_timestamp` INTEGER, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `summary` TEXT, `proximity` REAL, `unread_notifications` TEXT, `invite_state` TEXT, `knock_state` TEXT, `owner_public_id` TEXT, `primary_key` TEXT NOT NULL, `prev_batch` TEXT, `last_message_timestamp` TEXT, `history_visibility` TEXT, `algorithm` TEXT, `type` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -322,21 +406,6 @@
           {
             "fieldPath": "unreadNotifications",
             "columnName": "unread_notifications",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "ephemeral",
-            "columnName": "ephemeral",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "state",
-            "columnName": "state",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "accountData",
-            "columnName": "account_data",
             "affinity": "TEXT"
           },
           {
@@ -361,14 +430,30 @@
             "notNull": true
           },
           {
-            "fieldPath": "timeline",
-            "columnName": "timeline",
+            "fieldPath": "prevBatch",
+            "columnName": "prev_batch",
             "affinity": "TEXT"
           },
           {
             "fieldPath": "lastMessageTimestamp",
             "columnName": "last_message_timestamp",
-            "affinity": "INTEGER"
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "historyVisibility",
+            "columnName": "history_visibility",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "algorithm",
+            "columnName": "algorithm",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -381,7 +466,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9431e686ef64f358f3f11d5f62684c08')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b007ecd090184e0d444e934e3ccb871b')"
     ]
   }
 }

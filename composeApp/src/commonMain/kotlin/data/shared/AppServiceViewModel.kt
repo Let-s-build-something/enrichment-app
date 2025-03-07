@@ -1,17 +1,8 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package data.shared
 
 import androidx.lifecycle.viewModelScope
-import base.utils.asSimpleString
-import com.russhwolf.settings.ExperimentalSettingsApi
-import data.NetworkProximityCategory
 import data.io.app.ClientStatus
-import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
-import data.io.app.ThemeChoice
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.messaging.messaging
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,33 +83,7 @@ class AppServiceViewModel(
                 MimeType("image/svg+xml", listOf("svg")),
                 MimeType("image/webp", listOf("webp"))
             )
-
-            if (sharedDataManager.localSettings.value == null) {
-                val defaultFcm = settings.getStringOrNull(SettingsKeys.KEY_FCM)
-
-                val fcmToken = if(defaultFcm == null) {
-                    val newFcm = try {
-                        Firebase.messaging.getToken()
-                    }catch (e: NotImplementedError) { null }?.apply {
-                        settings.putString(SettingsKeys.KEY_FCM, this)
-                    }
-                    newFcm
-                }else defaultFcm
-
-                sharedDataManager.localSettings.value = LocalSettings(
-                    theme = ThemeChoice.entries.find {
-                        it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
-                    } ?: ThemeChoice.SYSTEM,
-                    fcmToken = fcmToken,
-                    clientStatus = ClientStatus.entries.find {
-                        it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
-                    } ?: ClientStatus.NEW,
-                    networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
-                        ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
-                )
-            }
-
-            // TODO Matrix autologin
+            updateClientSettings()
         }
     }
 

@@ -1,9 +1,18 @@
 package data.shared
 
+import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import database.dao.ConversationMessageDao
+import database.dao.ConversationRoomDao
+import database.dao.EmojiSelectionDao
+import database.dao.NetworkItemDao
+import database.dao.PagingMetaDao
+import database.dao.matrix.MatrixPagingMetaDao
+import database.dao.matrix.PresenceEventDao
 import koin.DeveloperUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import kotlin.uuid.ExperimentalUuidApi
@@ -11,7 +20,16 @@ import kotlin.uuid.Uuid
 
 internal val developerConsoleModule = module {
     single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
-    factory { DeveloperConsoleViewModel(get()) }
+    factory { DeveloperConsoleViewModel(
+        get(),
+        get(),
+        get(),
+        get(),
+        get(),
+        get(),
+        get(),
+        get()
+    ) }
     viewModelOf(::DeveloperConsoleViewModel)
 }
 
@@ -28,7 +46,16 @@ class DeveloperConsoleDataManager {
 }
 
 /** Shared viewmodel for developer console */
-class DeveloperConsoleViewModel(private val dataManager: DeveloperConsoleDataManager): SharedViewModel() {
+class DeveloperConsoleViewModel(
+    private val dataManager: DeveloperConsoleDataManager,
+    private val networkItemDao: NetworkItemDao,
+    private val conversationMessageDao: ConversationMessageDao,
+    private val emojiSelectionDao: EmojiSelectionDao,
+    private val pagingMetaDao: PagingMetaDao,
+    private val conversationRoomDao: ConversationRoomDao,
+    private val presenceEventDao: PresenceEventDao,
+    private val matrixPagingMetaDao: MatrixPagingMetaDao
+): SharedViewModel() {
 
     /** developer console size */
     val developerConsoleSize = dataManager.developerConsoleSize.asStateFlow()
@@ -51,6 +78,21 @@ class DeveloperConsoleViewModel(private val dataManager: DeveloperConsoleDataMan
     /** Overrides current host */
     fun changeHost(host: String) {
         dataManager.hostOverride.value = host
+    }
+
+    fun deleteLocalData() {
+        viewModelScope.launch {
+            networkItemDao.removeAll()
+            conversationMessageDao.removeAll()
+            emojiSelectionDao.removeAll()
+            pagingMetaDao.removeAll()
+            conversationRoomDao.removeAll()
+            presenceEventDao.removeAll()
+            matrixPagingMetaDao.removeAll()
+            sharedDataManager.matrixClient?.clearCache()
+            sharedDataManager.matrixClient?.clearMediaCache()
+            super.logoutCurrentUser()
+        }
     }
 
     /** appends new or updates existing http log */

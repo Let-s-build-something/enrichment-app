@@ -22,41 +22,29 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.detectMessageInteraction
-import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.utils.DateUtils.formatAsRelative
-import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.openLink
 import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
-import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 import ui.conversation.components.MEDIA_MAX_HEIGHT_DP
 import ui.conversation.components.MessageBubble
 import ui.conversation.components.ReplyIndication
-import ui.conversation.components.audio.AudioMessageBubble
-import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.media.MediaRow
 
@@ -85,8 +73,6 @@ fun LazyItemScope.ConversationMessageContent(
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
-    val navController = LocalNavController.current
-    val coroutineScope = rememberCoroutineScope()
 
     val isCurrentUser = if(data != null) {
         data.authorPublicId == currentUserPublicId
@@ -204,44 +190,6 @@ fun LazyItemScope.ConversationMessageContent(
                             isCurrentUser = anchorData.authorPublicId == currentUserPublicId
                         )
                     }
-                    if(data?.gifAsset != null) {
-                        val date = data.sentAt?.formatAsRelative() ?: ""
-
-                        GifImage(
-                            modifier = heightModifier
-                                .zIndex(1f)
-                                .pointerInput(data.id) {
-                                    detectMessageInteraction(
-                                        onTap = {
-                                            coroutineScope.launch {
-                                                navController?.navigate(
-                                                    NavigationNode.MediaDetail(
-                                                        media = listOf(
-                                                            MediaIO(
-                                                                url = data.gifAsset.original ?: "",
-                                                                mimetype = "image/gif"
-                                                            )
-                                                        ),
-                                                        title = if(isCurrentUser) {
-                                                            getString(Res.string.conversation_detail_you)
-                                                        } else data.user?.name,
-                                                        subtitle = date
-                                                    )
-                                                )
-                                            }
-                                        },
-                                        onLongPress = {
-                                            reactingToMessageId.value = data.id
-                                        },
-                                        onDragChange = onDragChange,
-                                        onDrag = onDrag
-                                    )
-                                },
-                            data = data.gifAsset.original ?: "",
-                            contentDescription = data.gifAsset.description,
-                            contentScale = ContentScale.Fit
-                        )
-                    }
 
                     MediaRow(
                         modifier = heightModifier,
@@ -256,16 +204,6 @@ fun LazyItemScope.ConversationMessageContent(
                             reactingToMessageId.value = data?.id
                         }
                     )
-
-                    if(!data?.audioUrl.isNullOrBlank()) {
-                        AudioMessageBubble(
-                            modifier = Modifier.zIndex(1f),
-                            url = data?.audioUrl ?: "",
-                            isCurrentUser = isCurrentUser,
-                            hasPrevious = isPreviousMessageSameAuthor,
-                            hasNext = isNextMessageSameAuthor
-                        )
-                    }
 
                     if(data?.showPreview == true && data.content?.isNotBlank() == true) {
                         val matches = remember {

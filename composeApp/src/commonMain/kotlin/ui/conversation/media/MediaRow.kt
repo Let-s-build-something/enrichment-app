@@ -37,6 +37,7 @@ import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.navigation.NavigationNode
+import base.theme.Colors
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
@@ -142,6 +143,7 @@ fun MediaRow(
                             }
                         }
                     }else modifier).padding(horizontal = LocalTheme.current.shapes.betweenItemsSpace),
+                    tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary,
                     media = cachedMedia.value[media.url] ?: media,
                     localMedia = temporaryMedia,
                     enabled = false,

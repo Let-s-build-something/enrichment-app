@@ -25,14 +25,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_play
-import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.theme.Colors
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.audio.rememberAudioPlayer
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -49,13 +49,9 @@ import kotlin.math.ceil
 fun AudioMessageBubble(
     modifier: Modifier = Modifier,
     url: String,
-    isCurrentUser: Boolean,
-    hasPrevious: Boolean,
-    hasNext: Boolean
+    tintColor: Color
 ) {
     val processorModel: MediaProcessorModel = koinViewModel(key = url)
-
-    val tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary
     val cancellableCoroutineScope = rememberCoroutineScope()
 
     val resultByteArray = processorModel.resultByteArray.collectAsState()
@@ -114,79 +110,53 @@ fun AudioMessageBubble(
         }
     }
 
-    Box(
+    Row(
         modifier = modifier
-            .background(
-                color = if(isCurrentUser) {
-                    LocalTheme.current.colors.brandMainDark
-                } else LocalTheme.current.colors.backgroundContrast,
-                shape = if(isCurrentUser) {
-                    RoundedCornerShape(
-                        topStart = 24.dp,
-                        bottomStart = 24.dp,
-                        topEnd = if(hasPrevious) 1.dp else 24.dp,
-                        bottomEnd = if(hasNext) 1.dp else 24.dp
-                    )
-                }else {
-                    RoundedCornerShape(
-                        topEnd = 24.dp,
-                        bottomEnd = 24.dp,
-                        topStart = if(hasPrevious) 1.dp else 24.dp,
-                        bottomStart = if(hasNext) 1.dp else 24.dp
-                    )
-                }
-            )
-            .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
+            .height(waveformHeight)
+            .wrapContentWidth()
+            .animateContentSize(),
+        horizontalArrangement = Arrangement.spacedBy(
+            space = 4.dp,
+            alignment = Alignment.CenterHorizontally
+        ),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Text(
             modifier = Modifier
-                .height(waveformHeight)
-                .wrapContentWidth()
+                .padding(end = 16.dp)
                 .animateContentSize(),
-            horizontalArrangement = Arrangement.spacedBy(
-                space = 4.dp,
-                alignment = Alignment.CenterHorizontally
-            ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                modifier = Modifier
-                    .padding(end = 16.dp)
-                    .animateContentSize(),
-                text = "${
-                    DateUtils.formatMillis(millisecondsElapsed.longValue).takeIf {
+            text = "${
+                DateUtils.formatMillis(millisecondsElapsed.longValue).takeIf {
                     it != "00:00"
                 }?.plus("/") ?: ""}${DateUtils.formatMillis(totalLengthMs)}",
-                style = LocalTheme.current.styles.regular.copy(color = tintColor)
-            )
-            player.barPeakAmplitudes.value.takeLast(player.barsCount).forEach { bar ->
-                Box(
-                    modifier = Modifier
-                        .heightIn(min = 6.dp, max = waveformHeight)
-                        .width(4.dp)
-                        .background(
-                            color = tintColor,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .height((bar.first / player.peakMedian.value * waveformHeight.value).dp)
-                        .animateContentSize()
-                )
-            }
-            MinimalisticIcon(
-                modifier = Modifier.padding(start = 4.dp),
-                imageVector = if(isPlaying.value) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
-                tint = tintColor,
-                contentDescription = stringResource(
-                    if(isPlaying.value) Res.string.accessibility_pause else Res.string.accessibility_play
-                ),
-                onTap = {
-                    if(isPlaying.value) {
-                        stopPlaying()
-                    }else startPlaying()
-                }
+            style = LocalTheme.current.styles.regular.copy(color = tintColor)
+        )
+        player.barPeakAmplitudes.value.takeLast(player.barsCount).forEach { bar ->
+            Box(
+                modifier = Modifier
+                    .heightIn(min = 6.dp, max = waveformHeight)
+                    .width(4.dp)
+                    .background(
+                        color = tintColor,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .height((bar.first / player.peakMedian.value * waveformHeight.value).dp)
+                    .animateContentSize()
             )
         }
+        MinimalisticIcon(
+            modifier = Modifier.padding(start = 4.dp),
+            imageVector = if(isPlaying.value) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+            tint = tintColor,
+            contentDescription = stringResource(
+                if(isPlaying.value) Res.string.accessibility_pause else Res.string.accessibility_play
+            ),
+            onTap = {
+                if(isPlaying.value) {
+                    stopPlaying()
+                }else startPlaying()
+            }
+        )
     }
 }
 
