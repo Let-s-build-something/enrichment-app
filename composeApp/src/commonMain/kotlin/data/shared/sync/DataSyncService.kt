@@ -84,7 +84,6 @@ class DataSyncService {
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
-        println("kostka_test, sync, isRunning: $isRunning, homeserver: $homeserver")
         if(!isRunning) {
             this.homeserver = homeserver
             isRunning = true
@@ -94,7 +93,6 @@ class DataSyncService {
                 }
 
                 sharedDataManager.matrixClient?.let { client ->
-                    println("kostka_test, sync, client: $client")
                     delay?.let { delay(it) }
                     (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
                         localSettings = sharedDataManager.localSettings.value
@@ -111,6 +109,7 @@ class DataSyncService {
 
     fun stop() {
         if(isRunning) {
+            println("kostka_test, stopping sync")
             isRunning = false
             handler = null
             syncScope.coroutineContext.cancelChildren()
@@ -122,7 +121,6 @@ class DataSyncService {
         homeserver: String? = this@DataSyncService.homeserver,
         since: String? = this@DataSyncService.nextBatch
     ) {
-        println("kostka_test, enqueue, homeserver: $homeserver, userId: ${sharedDataManager.currentUser.value?.matrixUserId}")
         val owner = sharedDataManager.currentUser.value?.matrixUserId
         if(homeserver == null || owner == null) {
             stop()

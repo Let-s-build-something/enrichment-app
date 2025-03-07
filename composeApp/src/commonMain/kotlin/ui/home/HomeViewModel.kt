@@ -10,8 +10,8 @@ import base.utils.asSimpleString
 import base.utils.tagToColor
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
+import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
-import data.io.app.SettingsKeys.KEY_NETWORK_COLORS
 import data.io.matrix.room.ConversationRoomIO
 import data.shared.SharedViewModel
 import kotlinx.coroutines.Dispatchers
@@ -139,7 +139,7 @@ class HomeViewModel(
                 )
             }
             settings.putString(
-                KEY_NETWORK_COLORS,
+                "${SettingsKeys.KEY_NETWORK_COLORS}_${currentUser.value?.matrixUserId}",
                 sharedDataManager.localSettings.value?.networkColors?.joinToString(",") ?: ""
             )
         }

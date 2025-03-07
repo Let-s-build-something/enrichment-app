@@ -128,6 +128,7 @@ class AuthService {
     }
 
     private suspend fun retrieveCredentials(): AuthItem? {
+        // TODO add init-app information
         return withContext(Dispatchers.IO) {
             secureSettings.getString(
                 key = SecureSettingsKeys.KEY_CREDENTIALS,

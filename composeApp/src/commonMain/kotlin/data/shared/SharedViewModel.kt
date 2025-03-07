@@ -120,8 +120,8 @@ open class SharedViewModel: ViewModel() {
                         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
                             idToken = idToken
                         ) ?: UserIO(idToken = idToken)
-                        updateClientSettings()
                         authService.setupAutoLogin(forceRefresh = forceRefresh)
+                        updateClientSettings()
 
                         currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
                     } ?: false
@@ -161,29 +161,29 @@ open class SharedViewModel: ViewModel() {
     }
 
     suspend fun updateClientSettings() {
-        if (sharedDataManager.localSettings.value == null) {
-            val fcmToken = settings.getStringOrNull(SettingsKeys.KEY_FCM) ?: try {
-                Firebase.messaging.getToken()
-            }catch (_: NotImplementedError) { null }?.apply {
-                settings.putString(SettingsKeys.KEY_FCM, this)
-            }
-            val theme = ThemeChoice.entries.find {
-                it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
-            } ?: ThemeChoice.SYSTEM
-            val clientStatus = ClientStatus.entries.find {
-                it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
-            } ?: ClientStatus.NEW
-            val networkColors = settings.getStringOrNull(SettingsKeys.KEY_NETWORK_COLORS)?.split(",")
-                ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
-
-            val update = LocalSettings(
-                theme = theme,
-                fcmToken = fcmToken,
-                clientStatus = clientStatus,
-                networkColors = networkColors
-            )
-            sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
+        val fcmToken = settings.getStringOrNull(SettingsKeys.KEY_FCM) ?: try {
+            Firebase.messaging.getToken()
+        }catch (_: NotImplementedError) { null }?.apply {
+            settings.putString(SettingsKeys.KEY_FCM, this)
         }
+        val theme = ThemeChoice.entries.find {
+            it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
+        } ?: ThemeChoice.SYSTEM
+        val clientStatus = ClientStatus.entries.find {
+            it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
+        } ?: ClientStatus.NEW
+        val networkColors = settings.getStringOrNull(
+            "${SettingsKeys.KEY_NETWORK_COLORS}_${currentUser.value?.matrixUserId}"
+        )?.split(",")
+            ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
+
+        val update = LocalSettings(
+            theme = theme,
+            fcmToken = fcmToken,
+            clientStatus = clientStatus,
+            networkColors = networkColors
+        )
+        sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
     }
 
     /** Logs out the currently signed in user */

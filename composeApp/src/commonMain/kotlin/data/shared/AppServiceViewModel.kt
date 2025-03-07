@@ -1,14 +1,8 @@
 package data.shared
 
 import androidx.lifecycle.viewModelScope
-import base.utils.asSimpleString
-import data.NetworkProximityCategory
 import data.io.app.ClientStatus
-import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
-import data.io.app.ThemeChoice
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.messaging.messaging
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
