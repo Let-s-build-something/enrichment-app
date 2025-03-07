@@ -55,7 +55,6 @@ import net.folivo.trixnity.core.model.events.m.room.NameEventContent
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
-import net.folivo.trixnity.crypto.olm.OlmEventHandler
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
@@ -95,16 +94,17 @@ class DataSyncService {
                 }
 
                 sharedDataManager.matrixClient?.let { client ->
+                    println("kostka_test, sync, client: $client")
                     delay?.let { delay(it) }
                     (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
                         localSettings = sharedDataManager.localSettings.value
                     )).let {
+                        println("kostka_test, sync, user: $it")
                         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
                         handler = DataSyncHandler(homeserver = homeserver)
-                        KoinPlatform.getKoin().getOrNull<OlmEventHandler>()?.startInCoroutineScope(this)
                         enqueue(client = client)
                     }
-                }
+                } ?: stop()
             }
         }
     }
@@ -122,8 +122,12 @@ class DataSyncService {
         homeserver: String? = this@DataSyncService.homeserver,
         since: String? = this@DataSyncService.nextBatch
     ) {
-        val owner = sharedDataManager.currentUser.value?.matrixUserId ?: return
-        if(homeserver == null) return
+        println("kostka_test, enqueue, homeserver: $homeserver, userId: ${sharedDataManager.currentUser.value?.matrixUserId}")
+        val owner = sharedDataManager.currentUser.value?.matrixUserId
+        if(homeserver == null || owner == null) {
+            stop()
+            return
+        }
 
         val initialEntity = if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_$owner"
@@ -142,9 +146,11 @@ class DataSyncService {
             },
             scope = this,
             getBatchToken = {
-                since ?: if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
+                (since ?: if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
                     entityId = "${homeserver}_$owner"
-                )?.nextBatch
+                )?.nextBatch).also {
+                    println("kostka_test, sync, getBatchToken: $it")
+                }
             },
             setBatchToken = { nextBatch ->
                 matrixPagingMetaDao.insert(
@@ -155,7 +161,9 @@ class DataSyncService {
                         currentBatch = currentBatch,
                         // after getting a response, the currentBatch becomes prevBatch
                         prevBatch = prevBatch
-                    )
+                    ).also {
+                        println("kostka_test, sync, setBatchToken, nextBatch: $nextBatch")
+                    }
                 )
 
                 prevBatch = "$currentBatch".takeIf { currentBatch != null }

@@ -36,6 +36,7 @@ import net.folivo.trixnity.client.createTrixnityBotModuleFactories
 import net.folivo.trixnity.client.loginWith
 import net.folivo.trixnity.client.media.InMemoryMediaStore
 import net.folivo.trixnity.client.store.repository.createInMemoryRepositoriesModule
+import net.folivo.trixnity.client.verification.createVerificationModule
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import org.koin.dsl.module
@@ -94,6 +95,7 @@ class AuthService {
 
         withContext(Dispatchers.IO) {
             retrieveCredentials()?.let { credentials ->
+
                 // we either use existing token or enqueue its refresh which results either in success or new login
                 if((credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
                     && credentials.accessToken != null
@@ -140,7 +142,7 @@ class AuthService {
         }
     }
 
-    private fun updateUser(credentials: AuthItem) {
+    private suspend fun updateUser(credentials: AuthItem) {
         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
             accessToken = credentials.accessToken ?: sharedDataManager.currentUser.value?.accessToken,
             matrixHomeserver = credentials.homeserver ?: sharedDataManager.currentUser.value?.matrixHomeserver,
@@ -156,6 +158,8 @@ class AuthService {
             pickleKey = credentials.pickleKey ?: sharedDataManager.localSettings.value?.pickleKey
         )
         sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
+
+        initializeMatrixClient(credentials = credentials)
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -168,7 +172,6 @@ class AuthService {
     ) {
         withContext(Dispatchers.IO) {
             val previous = retrieveCredentials()
-            println("kostka_test, cacheCredentials, deviceId: ${response.deviceId ?: deviceId ?: getDeviceId(response.userId)}")
             val userId = response.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
@@ -206,58 +209,10 @@ class AuthService {
                 )
             }
 
-            if(sharedDataManager.matrixClient == null) {
-                initializeMatrixClient(credentials = credentials)
-            }
+            initializeMatrixClient(credentials = credentials)
         }
     }
 
-    private suspend fun initializeMatrixClient(credentials: AuthItem) {
-        if(credentials.userId != null
-            && credentials.deviceId != null
-            && credentials.accessToken != null
-            && credentials.homeserver != null
-        ) {
-            sharedDataManager.matrixClient = MatrixClient.loginWith(
-                baseUrl = Url("https://${credentials.homeserver}"),
-                getLoginInfo = {
-                    Result.success(
-                        LoginInfo(
-                            userId = UserId(credentials.userId),
-                            deviceId = credentials.deviceId,
-                            accessToken = credentials.accessToken,
-                            refreshToken = credentials.refreshToken
-                        )
-                    )
-                },
-                repositoriesModuleFactory = {
-                    createInMemoryRepositoriesModule()
-                },
-                mediaStoreFactory = {
-                    InMemoryMediaStore()
-                }
-            ) {
-                name = credentials.deviceId
-                syncLoopDelays = SyncLoopDelays(
-                    syncLoopDelay = 0L.seconds,
-                    syncLoopErrorDelay = 10.seconds
-                )
-                lastRelevantEventFilter = { roomEvent ->
-                    roomEvent is RoomEvent.MessageEvent<*>
-                }
-                storeTimelineEventContentUnencrypted = false
-                modulesFactories = createTrixnityBotModuleFactories()
-                httpClientEngine = KoinPlatform.getKoin().get()
-                cacheExpireDurations = CacheExpireDurations.default(30.minutes)
-                syncLoopTimeout = SYNC_INTERVAL.milliseconds
-                httpClientConfig = {
-                    httpClientConfig(sharedViewModel = KoinPlatform.getKoin().get())
-                }
-            }.getOrNull()
-        }
-    }
-
-    @OptIn(ExperimentalUuidApi::class)
     private suspend fun enqueueRefreshToken(
         refreshToken: String?,
         homeserver: String?,
@@ -266,16 +221,12 @@ class AuthService {
         if(!isRunning) {
             isRunning = true
 
-            if(mutex.tryLock(owner = Uuid.random().toHexString().also {
-                lockIdentifier = it
-            })) {
-                mutex.withLock {
-                    refreshToken(
-                        refreshToken = refreshToken,
-                        homeserver = homeserver,
-                        expiresAtMsEpoch = expiresAtMsEpoch
-                    )
-                }
+            mutex.withLock {
+                refreshToken(
+                    refreshToken = refreshToken,
+                    homeserver = homeserver,
+                    expiresAtMsEpoch = expiresAtMsEpoch
+                )
             }
         }
     }
@@ -285,10 +236,9 @@ class AuthService {
         homeserver: String?,
         expiresAtMsEpoch: Long?
     ) {
-        println("kostka_test, refreshToken, homeserver: $homeserver, refreshToken: $refreshToken, expiresAtMsEpoch: $expiresAtMsEpoch")
         if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
             withContext(Dispatchers.IO) {
-                val delay = DateUtils.now.toEpochMilliseconds() - expiresAtMsEpoch
+                val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
                 if(delay > 0) delay(delay)
                 httpClient.safeRequest<MatrixAuthenticationResponse> {
                     httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
@@ -297,7 +247,6 @@ class AuthService {
                         )
                     }
                 }.let { response ->
-                    println("kostka_test, is success: ${response is BaseResponse.Success}, isRunning: $isRunning")
                     if(response is BaseResponse.Success && isRunning) {
                         cacheCredentials(
                             response = response.data,
@@ -387,6 +336,56 @@ class AuthService {
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun initializeMatrixClient(credentials: AuthItem) {
+        if(sharedDataManager.matrixClient == null) {
+            sharedDataManager.matrixClient = MatrixClient.loginWith(
+                baseUrl = Url("https://${credentials.homeserver}"),
+                getLoginInfo = {
+                    retrieveCredentials()?.let { credentials ->
+                        if(credentials.accessToken != null
+                            && credentials.refreshToken != null
+                            && credentials.expiresAtMsEpoch != null
+                            && credentials.userId != null
+                            && credentials.deviceId != null
+                        ) {
+                            Result.success(
+                                LoginInfo(
+                                    userId = UserId(credentials.userId),
+                                    deviceId = credentials.deviceId,
+                                    accessToken = credentials.accessToken,
+                                    refreshToken = credentials.refreshToken
+                                )
+                            )
+                        }else Result.failure(Throwable())
+                    } ?: Result.failure(Throwable())
+                },
+                repositoriesModuleFactory = {
+                    createInMemoryRepositoriesModule()
+                },
+                mediaStoreFactory = {
+                    InMemoryMediaStore()
+                }
+            ) {
+                name = credentials.deviceId
+                syncLoopDelays = SyncLoopDelays(
+                    syncLoopDelay = 0L.seconds,
+                    syncLoopErrorDelay = 10.seconds
+                )
+                lastRelevantEventFilter = { roomEvent ->
+                    roomEvent is RoomEvent.MessageEvent<*>
+                }
+                storeTimelineEventContentUnencrypted = false
+                modulesFactories = createTrixnityBotModuleFactories() + ::createVerificationModule
+                httpClientEngine = KoinPlatform.getKoin().get()
+                cacheExpireDurations = CacheExpireDurations.default(30.minutes)
+                syncLoopTimeout = SYNC_INTERVAL.milliseconds
+                httpClientConfig = {
+                    httpClientConfig(sharedViewModel = KoinPlatform.getKoin().get())
+                }
+            }.getOrNull()
         }
     }
 

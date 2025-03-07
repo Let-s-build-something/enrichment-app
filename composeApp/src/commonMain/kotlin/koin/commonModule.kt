@@ -29,7 +29,6 @@ import net.folivo.trixnity.core.serialization.events.DefaultEventContentSerializ
 import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappings
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.mediaProcessorModule
 import ui.home.homeModule
 
@@ -80,18 +79,14 @@ internal val commonModule = module {
         if(it) this@module.includes(developerConsoleModule)
     }
 
-    val sharedViewModel = KoinPlatform.getKoin().get<SharedViewModel>()
-    val developerViewModel = (if(isDev) KoinPlatform.getKoin().get<DeveloperConsoleViewModel>() else null)?.also { vm ->
-        single<DeveloperConsoleViewModel> { vm }
+    single<HttpClient> {
+        httpClientFactory(
+            sharedViewModel = get<SharedViewModel>(),
+            developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
+            json = get<Json>()
+        )
     }
-    val json = KoinPlatform.getKoin().get<Json>()
-    val httpClient = httpClientFactory(
-        sharedViewModel = sharedViewModel,
-        developerViewModel = developerViewModel,
-        json = json
-    )
-    single<HttpClient> { httpClient }
-    single<HttpClientEngine> { httpClient.engine }
+    single<HttpClientEngine> { get<HttpClient>().engine }
 
     factory { SharedRepository(get<HttpClient>()) }
 }

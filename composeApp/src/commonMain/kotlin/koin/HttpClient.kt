@@ -156,14 +156,14 @@ fun HttpClientConfig<*>.httpClientConfig(sharedViewModel: SharedViewModel) {
     }
     install(HttpSend)
     ResponseObserver { response ->
+        val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleViewModel>()
+
+        developerViewModel?.appendHttpLog(
+            DeveloperUtils.processResponse(response)
+        )
+
         // sync has a very long timeout which would throw off this calculation
         if(!response.request.url.toString().contains("/sync")) {
-            val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleViewModel>()
-
-            developerViewModel?.appendHttpLog(
-                DeveloperUtils.processResponse(response)
-            )
-
             val speedMbps = response.speedInMbps().roundToInt()
             sharedViewModel.updateNetworkConnectivity(
                 networkSpeed = when {
