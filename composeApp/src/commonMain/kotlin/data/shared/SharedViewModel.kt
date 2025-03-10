@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -55,22 +56,39 @@ open class SharedViewModel: ViewModel() {
 
         viewModelScope.launch {
             delay(1000)
-            currentUser.collectLatest { user ->
-                if(user?.accessToken != null && user.matrixHomeserver != null && user.matrixUserId != null) {
-                    dataSyncService.sync(homeserver = user.matrixHomeserver)
+            sharedDataManager.matrixClient.combine(currentUser) { client, user ->
+                client to user
+            }.collectLatest { client ->
+                if(client.first != null && client.second?.isFullyValid == true) {
+                    client.second?.matrixHomeserver?.let { homeserver ->
+                        dataSyncService.sync(homeserver = homeserver)
+                    }
                 }
             }
         }
         viewModelScope.launch {
             delay(1000)
+            // TODO there should be a variant for unsigned invalid clients as well, probably only a ping of sorts
             networkConnectivity.collectLatest {
-                while(it?.isNetworkAvailable == false) {
-                    sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
+                sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
+                    while(it?.isNetworkAvailable == false) {
                         dataSyncService.stop()
                         dataSyncService.sync(homeserver = homeserver, delay = 2000)
                         delay(3000)
                     }
                 }
+            }
+        }
+
+        // update idToken whenever it changes
+        Firebase.auth.idTokenChanged.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            Firebase.auth.currentUser
+        ).onEach { firebaseUser ->
+            if(firebaseUser != null) {
+                val update = UserIO(idToken = firebaseUser.getIdToken(false))
+                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(update) ?: update
             }
         }
     }
@@ -126,10 +144,11 @@ open class SharedViewModel: ViewModel() {
                         currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
                     } ?: false
                 }catch (e: Exception) {
-                    sharedDataManager.currentUser.value = UserIO()
+                    println("kostka_test, initUser exception: ${e.message}")
+                    authService.stop()
                     authService.setupAutoLogin()
                     e.printStackTrace()
-                    false
+                    currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
                 }
             }else false
         } ?: false
@@ -192,10 +211,10 @@ open class SharedViewModel: ViewModel() {
             authService.clear()
             secureSettings.clear()
             Firebase.auth.signOut()
-            sharedDataManager.matrixClient?.logout()
+            sharedDataManager.matrixClient.value?.logout()
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
-            sharedDataManager.matrixClient = null
+            sharedDataManager.matrixClient.value = null
             sharedDataManager.olmAccount = null
             dataSyncService.stop()
             unloadKoinModules(commonModule)

@@ -8,21 +8,17 @@ import data.io.base.paging.PagingEntityType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.event.ConversationRoomMember
-import data.io.matrix.room.event.content.processEvents
 import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageState
 import data.io.user.PresenceData
 import data.shared.SharedDataManager
-import data.shared.SharedRepository
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
 import database.dao.matrix.RoomMemberDao
-import io.ktor.client.HttpClient
-import io.ktor.client.request.get
-import io.ktor.client.request.parameter
 import korlibs.io.async.onCancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,31 +31,43 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.key
+import net.folivo.trixnity.client.room.decrypt
+import net.folivo.trixnity.client.roomEventEncryptionServices
 import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.client.verification.VerificationService
-import net.folivo.trixnity.clientserverapi.model.rooms.GetMembers
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
+import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
+import net.folivo.trixnity.core.model.events.MessageEventContent
+import net.folivo.trixnity.core.model.events.idOrNull
 import net.folivo.trixnity.core.model.events.m.Presence
+import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
+import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
+import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
-import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
+import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
+import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.FileBased
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
-import ui.login.safeRequest
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 internal val dataSyncModule = module {
     factory { DataSyncService() }
@@ -69,12 +77,11 @@ internal val dataSyncModule = module {
 class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
-        private const val START_ANEW = false
+        private const val START_ANEW = true
     }
 
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
-    private val sharedRepository: SharedRepository by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
@@ -88,27 +95,33 @@ class DataSyncService {
             this.homeserver = homeserver
             isRunning = true
             syncScope.launch {
+                if(START_ANEW) {
+                    matrixPagingMetaDao.removeAll()
+                }
+
                 this.coroutineContext.onCancel {
                     isRunning = false
                 }
 
-                sharedDataManager.matrixClient?.let { client ->
+                sharedDataManager.matrixClient.value?.let { client ->
                     delay?.let { delay(it) }
-                    (sharedDataManager.currentUser.value?.takeIf { it.publicId != null } ?: sharedRepository.authenticateUser(
-                        localSettings = sharedDataManager.localSettings.value
-                    )).let {
-                        println("kostka_test, sync, user: $it")
+                    sharedDataManager.currentUser.value?.takeIf { it.tag != null }?.let {
                         sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
-                        handler = DataSyncHandler(homeserver = homeserver)
+                        handler = DataSyncHandler()
                         enqueue(client = client)
+                    } ?: stop().also {
+                        println("kostka_test, sync stop, user tag is null")
                     }
-                } ?: stop()
+                } ?: stop().also {
+                    println("kostka_test, sync stop, client is null")
+                }
             }
         }
     }
 
     fun stop() {
         if(isRunning) {
+            handler?.stop()
             println("kostka_test, stopping sync")
             isRunning = false
             handler = null
@@ -123,15 +136,28 @@ class DataSyncService {
     ) {
         val owner = sharedDataManager.currentUser.value?.matrixUserId
         if(homeserver == null || owner == null) {
+            println("kostka_test, enqueue stop, owner: $owner")
             stop()
             return
         }
 
-        val initialEntity = if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
+        val initialEntity = matrixPagingMetaDao.getByEntityId(
             entityId = "${homeserver}_$owner"
         )
         var prevBatch: String? = initialEntity?.currentBatch
-        var currentBatch = since ?: initialEntity?.nextBatch
+        var currentBatch = since ?: initialEntity?.nextBatch ?: INITIAL_BATCH
+
+        client.api.sync.subscribe {
+            nextBatch = it.syncResponse.nextBatch
+
+            handler?.handle(
+                client = client,
+                response = it.syncResponse,
+                nextBatch = nextBatch,
+                currentBatch = currentBatch,
+                owner = owner
+            )
+        }
 
         client.api.sync.start(
             filter = null,
@@ -144,11 +170,7 @@ class DataSyncService {
             },
             scope = this,
             getBatchToken = {
-                (since ?: if(START_ANEW) null else matrixPagingMetaDao.getByEntityId(
-                    entityId = "${homeserver}_$owner"
-                )?.nextBatch).also {
-                    println("kostka_test, sync, getBatchToken: $it")
-                }
+                (since ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch)
             },
             setBatchToken = { nextBatch ->
                 matrixPagingMetaDao.insert(
@@ -159,34 +181,22 @@ class DataSyncService {
                         currentBatch = currentBatch,
                         // after getting a response, the currentBatch becomes prevBatch
                         prevBatch = prevBatch
-                    ).also {
-                        println("kostka_test, sync, setBatchToken, nextBatch: $nextBatch")
-                    }
+                    )
                 )
 
-                prevBatch = "$currentBatch".takeIf { currentBatch != null }
+                prevBatch = currentBatch
                 currentBatch = nextBatch
             }
         )
-
-        client.api.sync.subscribe {
-            handler?.handle(
-                client = client,
-                response = it.syncResponse,
-                prevBatch = prevBatch,
-                owner = owner
-            )
-        }
     }
 }
 
-class DataSyncHandler(private val homeserver: String) {
+class DataSyncHandler {
 
     companion object {
         private const val PING_EXPIRY_MS = 60_000 * 15
     }
 
-    private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
@@ -218,10 +228,17 @@ class DataSyncHandler(private val homeserver: String) {
         }
     }
 
+    fun stop() {
+        syncScope.coroutineContext.cancelChildren()
+        decryptionScope.coroutineContext.cancelChildren()
+        keyVerificationScope.coroutineContext.cancelChildren()
+    }
+
     suspend fun handle(
         client: MatrixClient,
         response: Sync.Response,
-        prevBatch: String?,
+        nextBatch: String?,
+        currentBatch: String,
         owner: String
     ) {
         verifyKeys(client = client)
@@ -235,11 +252,8 @@ class DataSyncHandler(private val homeserver: String) {
                     addAll(matrixRooms.leave?.map { it.value.asConversation(id = it.key) }.orEmpty())
                 }
             }
-            val messages = mutableListOf<ConversationMessageIO>()
             val rooms = mutableListOf<ConversationRoomIO>()
             val presenceContent = mutableListOf<PresenceData>()
-
-            println("kostka_test, toDevice: ${response.toDevice}, deviceLists: ${response.deviceLists}")
 
             matrixRooms?.forEach { room ->
                 var alias: String? = null
@@ -260,10 +274,10 @@ class DataSyncHandler(private val homeserver: String) {
                     .map { event ->
                         with(event) {
                             when (this) {
-                                is ClientEvent.RoomEvent.MessageEvent -> {
+                                is RoomEvent.MessageEvent -> {
                                     this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
                                 }
-                                is ClientEvent.RoomEvent.StateEvent -> {
+                                is RoomEvent.StateEvent -> {
                                     this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
                                 }
                                 is ClientEvent.RoomAccountDataEvent -> {
@@ -302,8 +316,7 @@ class DataSyncHandler(private val homeserver: String) {
                                 size = avatar?.info?.size
                             )
                         },
-                        canonicalAlias = alias ?: name,
-                        lastMessage = messages.lastOrNull()?.takeIf { it.conversationId == room.id }
+                        canonicalAlias = alias ?: name
                     ),
                     prevBatch = room.timeline?.previousBatch,
                     ownerPublicId = owner,
@@ -321,39 +334,13 @@ class DataSyncHandler(private val homeserver: String) {
                     rooms.add(newRoom)
                 }
 
-                // =======================  The room is saved, it's safe to proceed  ========================= //
-                // ensure we have all the members
-                if(events.isNotEmpty()) {
-                    getMembers(roomId = room.id, prevBatch = prevBatch)?.let { members ->
-                        roomMemberDao.insertAll(
-                            members.mapNotNull { event ->
-                                (event.stateKeyOrNull ?: event.content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
-                                    ConversationRoomMember(
-                                        content = event.content,
-                                        roomId = room.id,
-                                        timestamp = event.originTimestampOrNull,
-                                        sender = event.senderOrNull,
-                                        userId = userId
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-
                 processEvents(
-                    client = client,
                     events = events,
-                    prevBatch = room.prevBatch?.takeIf { room.timeline?.limited == true },
-                    nextBatch = null,
-                    currentBatch = INITIAL_BATCH,
-                    roomId = room.id
-                ).also { processedEvents ->
-                    messages.addAll(processedEvents.messages)
-                    /*withContext(Dispatchers.IO) {
-                        roomMemberDao.insertAll(processedEvents.members)
-                    }*/
-                }
+                    prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
+                    nextBatch = nextBatch,
+                    currentBatch = currentBatch,
+                    roomId = newItem.id
+                )
             }
 
             // Save presence locally
@@ -363,8 +350,165 @@ class DataSyncHandler(private val homeserver: String) {
                 }
             }
 
-            // Save messages locally
             withContext(Dispatchers.IO) {
+                if(rooms.isNotEmpty()) {
+                    appendPing(AppPing(type = AppPingType.ConversationDashboard))
+                }
+            }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    @OptIn(ExperimentalUuidApi::class)
+    suspend fun processEvents(
+        events: List<ClientEvent<*>>,
+        roomId: String,
+        currentBatch: String?,
+        prevBatch: String?,
+        nextBatch: String?
+    ): ProcessedEvents {
+        return withContext(Dispatchers.Default) {
+            val messages = mutableListOf<ConversationMessageIO>()
+            val members = mutableListOf<ConversationRoomMember>()
+            val memberUpdates = mutableListOf<RoomEvent.StateEvent<MemberEventContent>>()
+            val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
+
+            events.forEach { event ->
+                when(val content = event.content) {
+                    is MemberEventContent -> {
+                        (event.stateKeyOrNull ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
+                            members.add(
+                                ConversationRoomMember(
+                                    content = content,
+                                    roomId = roomId,
+                                    timestamp = event.originTimestampOrNull,
+                                    sender = event.senderOrNull,
+                                    userId = userId
+                                )
+                            )
+                        }
+                        if(event is RoomEvent.StateEvent) {
+                            (event as? RoomEvent.StateEvent<MemberEventContent>)?.let {
+                                memberUpdates.add(it)
+                            }
+                        }
+                        messages.add(
+                            ConversationMessageIO(
+                                content = "${content.membership} ${content.displayName}",
+                                sentAt = event.originTimestampOrNull?.let { millis ->
+                                    Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                                },
+                                conversationId = roomId,
+                                state = MessageState.Sent,
+                                authorPublicId = event.senderOrNull?.full,
+                                id = event.idOrNull?.full ?: Uuid.random().toString(),
+                                currentBatch = currentBatch,
+                                prevBatch = prevBatch,
+                                nextBatch = nextBatch
+                            )
+                        )
+                    }
+                    is ReceiptEventContent -> {
+                        (event as? ClientEvent<ReceiptEventContent>)?.let {
+                            receipts.add(it)
+                        }
+                        messages.add(
+                            ConversationMessageIO(
+                                sentAt = event.originTimestampOrNull?.let { millis ->
+                                    Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                                },
+                                conversationId = roomId,
+                                authorPublicId = event.senderOrNull?.full,
+                                id = event.idOrNull?.full ?: Uuid.random().toString(),
+                                state = MessageState.Sent,
+                                currentBatch = currentBatch,
+                                prevBatch = prevBatch,
+                                nextBatch = nextBatch
+                            )
+                        )
+                    }
+                    is OlmEncryptedToDeviceEventContent, is MegolmEncryptedMessageEventContent -> {
+                        if(event is RoomEvent.MessageEvent) {
+                            decryptEvent(event)
+                        }
+                        messages.add(
+                            ConversationMessageIO(
+                                content = "MESSAGE FAILED TO BE DECRYPTED",
+                                sentAt = event.originTimestampOrNull?.let { millis ->
+                                    Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                                },
+                                conversationId = roomId,
+                                state = MessageState.Sent,
+                                authorPublicId = event.senderOrNull?.full,
+                                id = event.idOrNull?.full ?: Uuid.random().toString(),
+                                currentBatch = currentBatch,
+                                prevBatch = prevBatch,
+                                nextBatch = nextBatch
+                            )
+                        )
+                    }
+                    is MessageEventContent -> {
+                        val newItem = ConversationMessageIO(
+                            content = (content as? RoomMessageEventContent)?.body,
+                            media = (content as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
+                                listOf(
+                                    MediaIO(
+                                        url = it.url,
+                                        mimetype = it.info?.mimeType,
+                                        name = it.fileName,
+                                        size = it.info?.size
+                                    )
+                                )
+                            },
+                            sentAt = event.originTimestampOrNull?.let { millis ->
+                                Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                            },
+                            conversationId = roomId,
+                            authorPublicId = event.senderOrNull?.full,
+                            id = event.idOrNull?.full ?: Uuid.random().toString(),
+                            anchorMessageId = content.relatesTo?.replyTo?.eventId?.full,
+                            parentAnchorMessageId = content.relatesTo?.eventId?.full,
+                            state = if(receipts.find { it.idOrNull?.full == event.idOrNull?.full } != null) {
+                                MessageState.Read
+                            }else MessageState.Sent,
+                            currentBatch = currentBatch,
+                            prevBatch = prevBatch,
+                            nextBatch = nextBatch
+                        )
+
+                        messages.add(newItem)
+                    }
+                    else -> {
+                        messages.add(
+                            ConversationMessageIO(
+                                sentAt = event.originTimestampOrNull?.let { millis ->
+                                    Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                                },
+                                conversationId = roomId,
+                                state = MessageState.Sent,
+                                authorPublicId = event.senderOrNull?.full,
+                                id = event.idOrNull?.full ?: Uuid.random().toString(),
+                                currentBatch = currentBatch,
+                                prevBatch = prevBatch,
+                                nextBatch = nextBatch
+                        ))
+                    }
+                    /*EmptyEventContent -> TODO()
+                    is EphemeralDataUnitContent -> TODO()
+                    is EphemeralEventContent -> TODO()
+                    is GlobalAccountDataEventContent -> TODO()
+                    is RoomAccountDataEventContent -> TODO()
+                    is MessageEventContent -> TODO()
+                    is RedactedEventContent -> TODO()
+                    is StateEventContent -> TODO()
+                    is UnknownEventContent -> TODO()
+                    is ToDeviceEventContent -> TODO()*/
+                }
+            }
+
+            withContext(Dispatchers.IO) {
+                roomMemberDao.insertAll(members)
+
                 conversationMessageDao.insertAll(messages)
                 // add the anchor messages
                 val updates = withContext(Dispatchers.Default) {
@@ -386,12 +530,20 @@ class DataSyncHandler(private val homeserver: String) {
                 }
             }
 
-            // Save rooms locally
-            withContext(Dispatchers.IO) {
-                if(rooms.isNotEmpty()) {
-                    appendPing(AppPing(type = AppPingType.ConversationDashboard))
-                }
+            ProcessedEvents(
+                messages = messages,
+                members = members
+            )
+        }
+    }
+
+    private val decryptionScope = CoroutineScope(Dispatchers.Default)
+    private fun decryptEvent(event: RoomEvent.MessageEvent<*>) {
+        decryptionScope.launch {
+            sharedDataManager.matrixClient.value?.roomEventEncryptionServices?.decrypt(event).also { decryptedEvent ->
+                println("kostka_test, decrypted megolm event: ${decryptedEvent?.getOrThrow()}, event: $event")
             }
+            println("kostka_test, decrypting megolm decrypted finished")
         }
     }
 
@@ -426,27 +578,6 @@ class DataSyncHandler(private val homeserver: String) {
         it.state = state
         it.timeline = timeline
         it.accountData = accountData
-    }
-
-    private suspend fun getMembers(
-        roomId: String,
-        prevBatch: String?,
-        ignore: Membership = Membership.LEAVE
-    ): List<ClientEvent.RoomEvent.StateEvent<MemberEventContent>>? {
-        return withContext(Dispatchers.IO) {
-            val res = httpClient.safeRequest<GetMembers.Response> {
-                get(urlString = "https://$homeserver/_matrix/client/v3/rooms/${roomId}/members") {
-                    parameter("at", prevBatch)
-                    parameter("not_membership", ignore)
-                }
-            }.success?.data?.chunk
-            withContext(Dispatchers.Default) {
-                res?.mapNotNull { event ->
-                    @Suppress("UNCHECKED_CAST")
-                    event.takeIf { it.content is MemberEventContent } as? ClientEvent.RoomEvent.StateEvent<MemberEventContent>
-                }
-            }
-        }
     }
 
     private var lastPingTime: Long = 0L

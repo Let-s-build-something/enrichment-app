@@ -31,6 +31,12 @@ data class UserIO(
     val configuration: UserConfiguration? = null
 ) {
 
+    val isFullyValid: Boolean
+        get() = idToken != null
+                && accessToken != null
+                && matrixHomeserver != null
+                && matrixUserId != null
+
     fun update(other: UserIO?): UserIO {
         return this.copy(
             displayName = other?.displayName ?: this.displayName,

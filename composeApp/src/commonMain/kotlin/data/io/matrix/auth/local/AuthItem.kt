@@ -1,5 +1,6 @@
 package data.io.matrix.auth.local
 
+import data.io.social.UserConfiguration
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,5 +20,19 @@ data class AuthItem(
     val address: String? = null,
     val password: String? = null,
     val pickleKey: String? = null,
-    val deviceId: String?
-)
+    val deviceId: String?,
+
+    // init-app info
+    val displayName: String? = null,
+    val tag: String? = null,
+    val publicId: String? = null,
+    val idToken: String?,
+    val configuration: UserConfiguration? = null
+) {
+
+    val isFullyValid: Boolean
+        get() = accessToken != null
+                && idToken != null
+                && homeserver != null
+                && userId != null
+}

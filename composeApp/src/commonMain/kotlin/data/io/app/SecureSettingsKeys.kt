@@ -5,7 +5,7 @@ object SecureSettingsKeys {
 
     const val KEY_CREDENTIALS = "matrix_credentials"
     const val KEY_DEVICE_ID = "device_id"
-    const val KEY_PICKLE_KEY = "device_id"
+    const val KEY_PICKLE_KEY = "pickle_key"
     const val KEY_OLM_ACCOUNT = "olm_account"
     const val KEY_FALLBACK_INSTANT = "fallback_instant"
     const val KEY_SECRETS = "secrets"

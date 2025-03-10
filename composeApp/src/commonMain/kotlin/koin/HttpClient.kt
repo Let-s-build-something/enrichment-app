@@ -88,7 +88,6 @@ internal fun httpClientFactory(
         httpClientConfig(sharedViewModel)
     }.apply {
         plugin(HttpSend).intercept { request ->
-            println("kostka_test, interception, url: ${request.url}")
             request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
 
             // add sensitive information only for trusted domains

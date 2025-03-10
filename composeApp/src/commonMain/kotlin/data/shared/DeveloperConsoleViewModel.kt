@@ -89,8 +89,8 @@ class DeveloperConsoleViewModel(
             conversationRoomDao.removeAll()
             presenceEventDao.removeAll()
             matrixPagingMetaDao.removeAll()
-            sharedDataManager.matrixClient?.clearCache()
-            sharedDataManager.matrixClient?.clearMediaCache()
+            sharedDataManager.matrixClient.value?.clearCache()
+            sharedDataManager.matrixClient.value?.clearMediaCache()
             super.logoutCurrentUser()
         }
     }

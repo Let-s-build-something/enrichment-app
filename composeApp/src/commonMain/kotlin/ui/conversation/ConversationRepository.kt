@@ -9,7 +9,6 @@ import data.io.base.BaseResponse
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.event.content.processEvents
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -18,6 +17,7 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
+import data.shared.sync.DataSyncHandler
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
@@ -37,7 +37,6 @@ import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import net.folivo.trixnity.client.MatrixClient
 import org.koin.mp.KoinPlatform
 import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.conversation.components.audio.MediaHttpProgress
@@ -55,11 +54,12 @@ open class ConversationRepository(
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
 ) {
+    private val dataSyncHandler = DataSyncHandler()
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = hashMapOf<String, PlatformFile?>()
 
     /** Attempts to invalidate local PagingSource with conversation messages */
-    private fun invalidateLocalSource() {
+    protected fun invalidateLocalSource() {
         currentPagingSource?.invalidate()
     }
 
@@ -76,7 +76,7 @@ open class ConversationRepository(
         conversationId: String?
     ): BaseResponse<ConversationMessagesResponse> {
         return withContext(Dispatchers.IO) {
-            if(conversationId == null || fromBatch.takeIf { it != INITIAL_BATCH } == null) {
+            if(conversationId == null) {
                 return@withContext BaseResponse.Error()
             }
 
@@ -94,9 +94,8 @@ open class ConversationRepository(
     }
 
     private suspend fun getProcessedMessages(
-        client: MatrixClient?,
         homeserver: String,
-        fromBatch: String? = null,
+        fromBatch: String?,
         limit: Int,
         conversationId: String?
     ): List<ConversationMessageIO>? {
@@ -109,20 +108,20 @@ open class ConversationRepository(
             fromBatch = fromBatch,
             homeserver = homeserver
         ).success?.data?.let { data ->
-            processEvents(
+            dataSyncHandler.processEvents(
                 events = data.chunk.orEmpty() + data.state.orEmpty(),
                 roomId = conversationId,
                 prevBatch = data.end,
                 nextBatch = data.start,
-                currentBatch = fromBatch,
-                client = client
+                currentBatch = fromBatch
             ).messages
         }
     }
 
+    private var lastBatch: String? = null
+
     /** Returns a flow of conversation messages */
     fun getMessagesListFlow(
-        client: MatrixClient?,
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
@@ -131,11 +130,12 @@ open class ConversationRepository(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
+                    lastBatch = lastBatch,
                     getMessages = { batch ->
                         if(conversationId == null) return@ConversationRoomSource emptyList<ConversationMessageIO>()
 
                         withContext(Dispatchers.IO) {
-                            conversationMessageDao.getBatched(
+                            (conversationMessageDao.getBatched(
                                 conversationId = conversationId,
                                 batch = batch
                             ).takeIf { it.isNotEmpty() }
@@ -143,16 +143,20 @@ open class ConversationRepository(
                                     limit = config.pageSize,
                                     conversationId = conversationId,
                                     fromBatch = batch,
-                                    homeserver = homeserver(),
-                                    client = client,
+                                    homeserver = homeserver()
                                 ).orEmpty().also {
-                                    conversationMessageDao.insertAll(it)
+                                    // mark as last batch
+                                    if(it.isEmpty()) {
+                                        lastBatch = batch
+                                        invalidateLocalSource()
+                                    }
+
                                     // end of pagination with different number of items than expected,
                                     // let's invalidate to recalculate
                                     if(it.size < config.pageSize && batch != INITIAL_BATCH) {
                                         invalidateLocalSource()
                                     }
-                                }
+                                })
                         }
                     },
                     findPreviousBatch = { currentBatch ->

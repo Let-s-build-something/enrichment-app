@@ -14,7 +14,10 @@ import data.io.matrix.auth.RefreshTokenRequest
 import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
+import data.shared.SharedRepository
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -24,6 +27,7 @@ import koin.httpClientConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -58,8 +62,9 @@ internal val authModule = module {
  */
 class AuthService {
     private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
-    private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
+    private val dataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val secureSettings: SecureAppSettings by KoinPlatform.getKoin().inject()
+    private val repository: SharedRepository by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
 
     private val mutex = Mutex()
@@ -67,7 +72,8 @@ class AuthService {
     private var lockIdentifier = ""
 
     companion object {
-        private const val DEFAULT_TOKEN_LIFESPAN_MS = 30 * 60 * 1000L
+        private const val DEFAULT_TOKEN_LIFESPAN_MS = 30 * 60 * 1_000L
+        private const val DELAY_REFRESH_TOKEN_START = 5_000L
     }
 
     val awaitingAutologin: Boolean
@@ -97,13 +103,18 @@ class AuthService {
             retrieveCredentials()?.let { credentials ->
 
                 // we either use existing token or enqueue its refresh which results either in success or new login
-                if((credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
-                    && credentials.accessToken != null
-                    && !forceRefresh
-                ) {
-                    updateUser(credentials = credentials)
-                }else {
-                    enqueueRefreshToken(
+                when {
+                    !credentials.isFullyValid || forceRefresh -> {
+                        println("kostka_test, invalid setupAutoLogin, accessToken: ${credentials.accessToken}," +
+                                " idToken: ${credentials.idToken}")
+                        if(loginWithCredentials()) setupAutoLogin(forceRefresh = false)
+                    }
+                    (credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
+                            && credentials.accessToken != null
+                            && !forceRefresh -> {
+                        updateUser(credentials = credentials)
+                    }
+                    else -> enqueueRefreshToken(
                         refreshToken = credentials.refreshToken,
                         expiresAtMsEpoch = credentials.expiresAtMsEpoch,
                         homeserver = credentials.homeserver
@@ -128,7 +139,6 @@ class AuthService {
     }
 
     private suspend fun retrieveCredentials(): AuthItem? {
-        // TODO add init-app information
         return withContext(Dispatchers.IO) {
             secureSettings.getString(
                 key = SecureSettingsKeys.KEY_CREDENTIALS,
@@ -144,21 +154,24 @@ class AuthService {
     }
 
     private suspend fun updateUser(credentials: AuthItem) {
-        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-            accessToken = credentials.accessToken ?: sharedDataManager.currentUser.value?.accessToken,
-            matrixHomeserver = credentials.homeserver ?: sharedDataManager.currentUser.value?.matrixHomeserver,
-            matrixUserId = credentials.userId ?: sharedDataManager.currentUser.value?.matrixUserId
-        ) ?: UserIO(
-            accessToken = credentials.accessToken,
-            matrixHomeserver = credentials.homeserver,
-            matrixUserId = credentials.userId
+        val userUpdate = UserIO(
+            accessToken = credentials.accessToken ?: dataManager.currentUser.value?.accessToken,
+            matrixHomeserver = credentials.homeserver ?: dataManager.currentUser.value?.matrixHomeserver,
+            matrixUserId = credentials.userId ?: dataManager.currentUser.value?.matrixUserId,
+            publicId = credentials.publicId ?: dataManager.currentUser.value?.publicId,
+            configuration = credentials.configuration ?: dataManager.currentUser.value?.configuration,
+            tag = credentials.tag ?: dataManager.currentUser.value?.tag,
+            displayName = credentials.displayName ?: dataManager.currentUser.value?.displayName,
+            idToken = credentials.idToken ?: dataManager.currentUser.value?.idToken
         )
 
-        val update = LocalSettings(
-            deviceId = credentials.deviceId ?: sharedDataManager.localSettings.value?.deviceId,
-            pickleKey = credentials.pickleKey ?: sharedDataManager.localSettings.value?.pickleKey
+        dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
+
+        val settingsUpdate = LocalSettings(
+            deviceId = credentials.deviceId ?: dataManager.localSettings.value?.deviceId,
+            pickleKey = credentials.pickleKey ?: dataManager.localSettings.value?.pickleKey
         )
-        sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
+        dataManager.localSettings.value = dataManager.localSettings.value?.update(settingsUpdate) ?: settingsUpdate
 
         initializeMatrixClient(credentials = credentials)
     }
@@ -169,6 +182,7 @@ class AuthService {
         password: String?,
         identifier: MatrixIdentifierData?,
         deviceId: String?,
+        user: UserIO?,
         response: MatrixAuthenticationResponse
     ) {
         withContext(Dispatchers.IO) {
@@ -189,7 +203,12 @@ class AuthService {
                 medium = identifier?.medium ?: previous?.medium,
                 address = identifier?.address ?: previous?.address,
                 deviceId = response.deviceId ?: previous?.deviceId ?: deviceId ?: getDeviceId(userId),
-                pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString()
+                pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString(),
+                displayName = user?.displayName ?: previous?.displayName,
+                tag = user?.tag ?: previous?.tag,
+                publicId = user?.publicId ?: previous?.publicId,
+                configuration = user?.configuration ?: previous?.configuration,
+                idToken = user?.idToken ?: previous?.idToken
             )
 
             updateUser(credentials = credentials)
@@ -237,7 +256,10 @@ class AuthService {
         homeserver: String?,
         expiresAtMsEpoch: Long?
     ) {
-        if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
+        if(refreshToken != null && expiresAtMsEpoch != null
+            && homeserver != null
+            && dataManager.currentUser.value?.idToken != null
+        ) {
             withContext(Dispatchers.IO) {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
                 if(delay > 0) delay(delay)
@@ -254,7 +276,8 @@ class AuthService {
                             password = null,
                             identifier = null,
                             homeserver = homeserver,
-                            deviceId = null
+                            deviceId = null,
+                            user = null
                         )
                         enqueueRefreshToken(
                             refreshToken = response.data.refreshToken,
@@ -262,15 +285,23 @@ class AuthService {
                                 .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
                             homeserver = homeserver
                         )
-                    }else loginWithCredentials()
+                    }else if(loginWithCredentials()) refreshToken(
+                        refreshToken = refreshToken,
+                        homeserver = homeserver,
+                        expiresAtMsEpoch = expiresAtMsEpoch
+                    )
                 }
             }
-        }else loginWithCredentials()
+        }else if(loginWithCredentials()) refreshToken(
+            refreshToken = refreshToken,
+            homeserver = homeserver,
+            expiresAtMsEpoch = expiresAtMsEpoch
+        )
     }
 
-    private suspend fun loginWithCredentials() {
+    private suspend fun loginWithCredentials(): Boolean {
         retrieveCredentials()?.let {
-            loginWithIdentifier(
+            return loginWithIdentifier(
                 homeserver = it.homeserver ?: "",
                 identifier = MatrixIdentifierData(
                     type = it.loginType,
@@ -279,9 +310,10 @@ class AuthService {
                     user = it.userId
                 ),
                 password = it.password,
-                deviceId = it.deviceId
-            )
+                deviceId = it.deviceId ?: generateDeviceId()
+            ).success?.data != null
         }
+        return false
     }
 
     /** Matrix login via email and username */
@@ -289,7 +321,7 @@ class AuthService {
         homeserver: String,
         identifier: MatrixIdentifierData,
         password: String?,
-        deviceId: String? = generateDeviceId()
+        deviceId: String = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
         // if this is a point of entry
         if(!isRunning) isRunning = true
@@ -300,7 +332,7 @@ class AuthService {
                     setBody(
                         EmailLoginRequest(
                             identifier = identifier,
-                            initialDeviceDisplayName = "$currentPlatform-${deviceName()}",
+                            initialDeviceDisplayName = deviceName() ?: deviceId,
                             password = password,
                             type = Matrix.LOGIN_PASSWORD,
                             deviceId = deviceId
@@ -309,12 +341,38 @@ class AuthService {
                 }
             }.also {
                 it.success?.data?.let { response ->
+                    var user = dataManager.currentUser.value
+
+                    if(dataManager.currentUser.value?.tag == null) {
+                        // the init-app would fail due to missing idToken and accessToken
+                        if(user?.idToken == null || user.accessToken == null) {
+                            dataManager.currentUser.update { prev ->
+                                val update = UserIO(
+                                    idToken = Firebase.auth.currentUser?.getIdToken(false),
+                                    accessToken = response.accessToken
+                                )
+                                prev?.update(update) ?: update
+                            }
+                        }
+
+                        user = repository.authenticateUser(
+                            refreshToken = response.refreshToken,
+                            expiresInMs = response.expiresInMs,
+                            localSettings = dataManager.localSettings.value?.copy(
+                                deviceId = deviceId
+                            )
+                        )
+                        println("kostka_test, new user: $user")
+                        dataManager.currentUser.value = dataManager.currentUser.value?.update(user) ?: user
+                    }
+
                     cacheCredentials(
                         response = response,
                         identifier = identifier,
                         homeserver = homeserver,
                         password = password,
-                        deviceId = deviceId
+                        deviceId = deviceId,
+                        user = user
                     )
                     enqueueRefreshToken(
                         refreshToken = response.refreshToken,
@@ -323,12 +381,13 @@ class AuthService {
                         homeserver = homeserver
                     )
                 }
-                if(sharedDataManager.networkConnectivity.value?.isNetworkAvailable == false) {
+
+                if(dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
                     retrieveCredentials()?.let { credentials ->
-                        if(sharedDataManager.currentUser.value?.matrixUserId == null) {
+                        if(dataManager.currentUser.value?.matrixUserId == null) {
                             updateUser(credentials = credentials)
                         }
-                        delay(5000)
+                        delay(DELAY_REFRESH_TOKEN_START)
                         enqueueRefreshToken(
                             refreshToken = credentials.refreshToken,
                             expiresAtMsEpoch = credentials.expiresAtMsEpoch,
@@ -341,8 +400,8 @@ class AuthService {
     }
 
     private suspend fun initializeMatrixClient(credentials: AuthItem) {
-        if(sharedDataManager.matrixClient == null) {
-            sharedDataManager.matrixClient = MatrixClient.loginWith(
+        if(dataManager.matrixClient.value == null) {
+            dataManager.matrixClient.value = MatrixClient.loginWith(
                 baseUrl = Url("https://${credentials.homeserver}"),
                 getLoginInfo = {
                     retrieveCredentials()?.let { credentials ->

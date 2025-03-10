@@ -426,18 +426,23 @@ class LoginViewModel(
     private suspend fun FirebaseUser.authenticateUser(email: String?, attempt: Int = 1) {
         withContext(Dispatchers.IO) {
             this@authenticateUser.getIdToken(false)?.let { idToken ->
-                sharedDataManager.currentUser.value = UserIO(
-                    idToken = idToken,
-                    accessToken = _matrixAuthResponse.value?.accessToken,
-                    matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
-                )
-                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                    repository.authenticateUser(
-                        localSettings = sharedDataManager.localSettings.value,
-                        refreshToken = _matrixAuthResponse.value?.refreshToken,
-                        expiresInMs = _matrixAuthResponse.value?.expiresInMs
+                if(sharedDataManager.currentUser.value?.idToken == null) {
+                    val initialUser = UserIO(
+                        idToken = idToken,
+                        accessToken = _matrixAuthResponse.value?.accessToken,
+                        matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                     )
-                )
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
+                }
+                if(sharedDataManager.currentUser.value?.tag == null) {
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                        repository.authenticateUser(
+                            localSettings = sharedDataManager.localSettings.value,
+                            refreshToken = _matrixAuthResponse.value?.refreshToken,
+                            expiresInMs = _matrixAuthResponse.value?.expiresInMs
+                        )
+                    )
+                }
                 if(attempt < 3) {
                     this@authenticateUser.finalizeSignIn(email, attempt = attempt)
                 }else _loginResult.emit(LoginResultType.FAILURE)

@@ -55,6 +55,8 @@ class MessageDetailRepository(
         }
     }
 
+    private var lastBatch: String? = null
+
     /** Returns a flow of conversation reply messages */
     fun getMessagesListFlow(
         config: PagingConfig,
@@ -70,7 +72,12 @@ class MessageDetailRepository(
                             conversationId = conversationId,
                             anchorMessageId = anchorMessageId,
                             batch = batch
-                        )
+                        ).also {
+                            if(it.isEmpty()) {
+                                lastBatch = batch
+                                invalidateLocalSource()
+                            }
+                        }
                     },
                     findPreviousBatch = { currentBatch ->
                         conversationMessageDao.getPreviousBatch(
@@ -84,7 +91,8 @@ class MessageDetailRepository(
                             batch = batch
                         )
                     },
-                    size = config.pageSize
+                    size = config.pageSize,
+                    lastBatch = lastBatch
                 ).also {
                     currentPagingSource = it
                 }

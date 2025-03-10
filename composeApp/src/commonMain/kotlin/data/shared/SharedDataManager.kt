@@ -27,5 +27,5 @@ class SharedDataManager {
     val networkConnectivity = MutableStateFlow<NetworkConnectivity?>(null)
 
     var olmAccount: OlmAccount? = null
-    var matrixClient: MatrixClient? = null
+    var matrixClient = MutableStateFlow<MatrixClient?>(null)
 }
