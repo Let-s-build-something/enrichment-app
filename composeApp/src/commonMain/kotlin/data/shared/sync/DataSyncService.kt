@@ -148,8 +148,6 @@ class DataSyncService {
         var currentBatch = since ?: initialEntity?.nextBatch ?: INITIAL_BATCH
 
         client.api.sync.subscribe {
-            nextBatch = it.syncResponse.nextBatch
-
             handler?.handle(
                 client = client,
                 response = it.syncResponse,
@@ -170,9 +168,10 @@ class DataSyncService {
             },
             scope = this,
             getBatchToken = {
-                (since ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch)
+                (since ?: nextBatch ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch)
             },
             setBatchToken = { nextBatch ->
+                this@DataSyncService.nextBatch = nextBatch
                 matrixPagingMetaDao.insert(
                     MatrixPagingMetaIO(
                         entityId = "${homeserver}_$owner",
