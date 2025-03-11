@@ -72,7 +72,7 @@ import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import data.shared.DeveloperConsoleViewModel
+import data.shared.DeveloperConsoleModel
 import data.shared.developerConsoleModule
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
@@ -87,7 +87,7 @@ import org.koin.core.context.loadKoinModules
 @Composable
 fun DeveloperContent(modifier: Modifier = Modifier) {
     loadKoinModules(developerConsoleModule)
-    val viewModel: DeveloperConsoleViewModel = koinViewModel()
+    val viewModel: DeveloperConsoleModel = koinViewModel()
 
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -160,7 +160,7 @@ fun DeveloperContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel, isCompact: Boolean) {
+private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleModel, isCompact: Boolean) {
     val currentUser = viewModel.currentUser.collectAsState()
     //val firebaseUser = viewModel.firebaseUser.collectAsState()
     val localSettings = viewModel.localSettings.collectAsState()

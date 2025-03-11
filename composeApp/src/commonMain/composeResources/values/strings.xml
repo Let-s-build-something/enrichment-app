@@ -22,7 +22,7 @@
   <string name="username_change_launcher_confirm">Save</string>
   <string name="error_google_sign_in_unavailable">There are no accounts on your device, use other methods, please.</string>
   <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
-  <string name="login_error_invalid_credential">Either field is incorrect 😵. Double check your information and try again 🤞</string>
+  <string name="login_error_invalid_credential">Some of the info is incorrect 😵. Double check your information and try again 🤞</string>
   <string name="login_error_no_windows">Something's broke 😵‍💫, try yeeting the app away and opening again.</string>
   <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
@@ -160,6 +160,24 @@
   <string name="conversation_reply_heading">Replying to...</string>
   <string name="conversation_reply_prefix_self">You:</string>
   <string name="conversation_detail_you">You</string>
+
+  <string name="message_room_invite">got invited.</string>
+  <string name="message_room_join">joined the room.</string>
+  <string name="message_room_knock">knocked on this room.</string>
+  <string name="message_room_leave">left.</string>
+  <string name="message_room_ban">got banned.</string>
+  <string name="message_decryption_failed">Failed to decrypt this message, try again.</string>
+
+  <string name="device_verification_title_passphrase">Enter a passphrase to verify yourself</string>
+  <string name="device_verification_title_other_device">Use your other device to verify yourself</string>
+  <string name="device_verification_title_emojis">Do the emojis match your other device?</string>
+  <string name="device_verification_title_decimal">Do the numbers match your other device?</string>
+  <string name="device_verification_no_match">No</string>
+  <string name="device_verification_match">They match</string>
+  <string name="device_verification_confirm">Verify</string>
+  <string name="device_verification_send">Prompt the other device</string>
+  <string name="device_verification_other_device">Verify with other device</string>
+  <string name="device_verification_passphrase">User your PIN instead</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>

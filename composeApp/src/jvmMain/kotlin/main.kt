@@ -32,7 +32,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.coroutines.SuspendSettings
 import com.russhwolf.settings.coroutines.toBlockingSettings
 import data.io.app.ThemeChoice
-import data.shared.AppServiceViewModel
+import data.shared.AppServiceModel
 import dev.datlag.kcef.KCEF
 import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
@@ -88,11 +88,12 @@ fun main(args: Array<String>) = application {
             )
             modules(commonModule)
             coroutineScope.launch {
-                KoinPlatform.getKoin().get<AppServiceViewModel>().localSettings.collectLatest {
+                KoinPlatform.getKoin().get<AppServiceModel>().localSettings.collectLatest {
                     isDarkTheme.value = when(it?.theme) {
                         ThemeChoice.DARK -> true
                         ThemeChoice.LIGHT -> false
-                        else -> isDarkTheme.value
+                        ThemeChoice.SYSTEM -> systemDarkTheme
+                        null -> true
                     }
                 }
             }
@@ -231,7 +232,7 @@ fun main(args: Array<String>) = application {
                 width = with(density) { containerSize.width.toDp() }.value.toInt()
             )
         ) {
-            val viewModel: AppServiceViewModel = koinViewModel()
+            val viewModel: AppServiceModel = koinViewModel()
 
             App(viewModel)
 

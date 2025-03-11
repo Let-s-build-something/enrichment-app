@@ -20,7 +20,7 @@ import kotlin.uuid.Uuid
 
 internal val developerConsoleModule = module {
     single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
-    factory { DeveloperConsoleViewModel(
+    factory { DeveloperConsoleModel(
         get(),
         get(),
         get(),
@@ -30,7 +30,7 @@ internal val developerConsoleModule = module {
         get(),
         get()
     ) }
-    viewModelOf(::DeveloperConsoleViewModel)
+    viewModelOf(::DeveloperConsoleModel)
 }
 
 class DeveloperConsoleDataManager {
@@ -46,7 +46,7 @@ class DeveloperConsoleDataManager {
 }
 
 /** Shared viewmodel for developer console */
-class DeveloperConsoleViewModel(
+class DeveloperConsoleModel(
     private val dataManager: DeveloperConsoleDataManager,
     private val networkItemDao: NetworkItemDao,
     private val conversationMessageDao: ConversationMessageDao,
@@ -55,7 +55,7 @@ class DeveloperConsoleViewModel(
     private val conversationRoomDao: ConversationRoomDao,
     private val presenceEventDao: PresenceEventDao,
     private val matrixPagingMetaDao: MatrixPagingMetaDao
-): SharedViewModel() {
+): SharedModel() {
 
     /** developer console size */
     val developerConsoleSize = dataManager.developerConsoleSize.asStateFlow()

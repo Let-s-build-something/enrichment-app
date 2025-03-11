@@ -3,7 +3,7 @@ package ui.account.profile
 import androidx.lifecycle.viewModelScope
 import data.io.base.BaseResponse
 import data.io.social.username.ResponseDisplayNameChange
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
@@ -18,9 +18,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ProfileChangeViewModel (
+class ProfileChangeModel (
     private val repository: DisplayNameChangeRepository
-): SharedViewModel() {
+): SharedModel() {
 
     private val _isLoading = MutableStateFlow(false)
     private val _isPictureChangeSuccess = MutableSharedFlow<Boolean?>()

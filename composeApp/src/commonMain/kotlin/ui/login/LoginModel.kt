@@ -15,7 +15,7 @@ import data.io.matrix.auth.MatrixAuthenticationResponse
 import data.io.matrix.auth.MatrixIdentifierData
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import data.shared.auth.AuthService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthEmailException
@@ -38,11 +38,11 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Communication between the UI, the control layers, and control and data layers */
-class LoginViewModel(
+class LoginModel(
     private val serviceProvider: UserOperationService,
     private val repository: LoginRepository,
     private val authService: AuthService
-): SharedViewModel() {
+): SharedModel() {
     data class HomeServerResponse(
         val state: HomeServerState,
         val plan: MatrixAuthenticationPlan? = null,
@@ -138,6 +138,7 @@ class LoginViewModel(
                     address = address,
                     supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
                         (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
+                            setupAutoLogin = false,
                             homeserver = address,
                             identifier = MatrixIdentifierData(
                                 type = Matrix.Id.THIRD_PARTY,
@@ -366,6 +367,7 @@ class LoginViewModel(
     ) {
         val res = if(isMatrix && _matrixAuthResponse.value?.userId == null) {
             authService.loginWithIdentifier(
+                setupAutoLogin = false,
                 homeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
                     type = Matrix.Id.THIRD_PARTY,

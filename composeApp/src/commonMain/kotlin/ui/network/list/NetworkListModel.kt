@@ -9,7 +9,7 @@ import base.utils.tagToColor
 import components.pull_refresh.RefreshableViewModel
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.transform
@@ -17,10 +17,10 @@ import kotlinx.coroutines.launch
 import ui.home.utils.NetworkItemUseCase
 
 /** Communication between the UI, the control layers, and control and data layers */
-class NetworkListViewModel(
+class NetworkListModel(
     repository: NetworkListRepository,
     private val networkItemUseCase: NetworkItemUseCase
-): SharedViewModel(), RefreshableViewModel {
+): SharedModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L

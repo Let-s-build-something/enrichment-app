@@ -7,10 +7,10 @@ import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
 import data.io.matrix.room.event.serialization.DefaultLocalSerializerMappings
 import data.io.matrix.room.event.serialization.createEventSerializersModule
-import data.shared.DeveloperConsoleViewModel
+import data.shared.DeveloperConsoleModel
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import data.shared.appServiceModule
 import data.shared.auth.authModule
 import data.shared.developerConsoleModule
@@ -60,7 +60,7 @@ internal val commonModule = module {
     includes(databaseModule)
     includes(dataSyncModule)
     includes(authModule)
-    viewModelOf(::SharedViewModel)
+    viewModelOf(::SharedModel)
     includes(homeModule)
     includes(appServiceModule)
     includes(mediaProcessorModule)
@@ -81,8 +81,8 @@ internal val commonModule = module {
 
     single<HttpClient> {
         httpClientFactory(
-            sharedViewModel = get<SharedViewModel>(),
-            developerViewModel = if(isDev) get<DeveloperConsoleViewModel>() else null,
+            sharedModel = get<SharedModel>(),
+            developerViewModel = if(isDev) get<DeveloperConsoleModel>() else null,
             json = get<Json>()
         )
     }

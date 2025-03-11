@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.conversation.components.KeyboardViewModel
+import ui.conversation.components.KeyboardModel
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
@@ -43,7 +43,7 @@ internal val conversationModule = module {
 
     factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
     factory {
-        ConversationViewModel(
+        ConversationModel(
             get<String>(),
             get<Boolean>(),
             get<ConversationRepository>(),
@@ -51,17 +51,17 @@ internal val conversationModule = module {
             get<GifUseCase>()
         )
     }
-    viewModelOf(::ConversationViewModel)
+    viewModelOf(::ConversationModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-open class ConversationViewModel(
+open class ConversationModel(
     private val conversationId: String,
     enableMessages: Boolean,
     private val repository: ConversationRepository,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase
-): KeyboardViewModel(
+): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
     conversationId = conversationId

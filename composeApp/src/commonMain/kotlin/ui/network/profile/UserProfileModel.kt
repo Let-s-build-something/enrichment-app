@@ -5,7 +5,7 @@ import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
 import data.io.user.NetworkItemIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -17,13 +17,13 @@ import org.koin.dsl.module
 
 internal val userProfileModule = module {
     factory { UserProfileRepository(get()) }
-    viewModelOf(::UserProfileViewModel)
+    viewModelOf(::UserProfileModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-class UserProfileViewModel(
+class UserProfileModel(
     private val repository: UserProfileRepository
-): SharedViewModel() {
+): SharedModel() {
 
     private val _responseProfile = MutableStateFlow<BaseResponse<NetworkItemIO>>(BaseResponse.Idle)
 

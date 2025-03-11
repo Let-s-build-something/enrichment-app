@@ -79,7 +79,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.EmojiUseCase.Companion.EMOJIS_HISTORY_GROUP
 
 /** Component displaying emojis with the ability to select one and filter them */
@@ -87,7 +87,7 @@ import ui.conversation.components.emoji.EmojiUseCase.Companion.EMOJIS_HISTORY_GR
 @Composable
 fun EmojiPicker(
     modifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     onEmojiSelected: (String) -> Unit,
     isFilterFocused: MutableState<Boolean> = remember { mutableStateOf(false) },
     gridState: LazyGridState = rememberLazyGridState()

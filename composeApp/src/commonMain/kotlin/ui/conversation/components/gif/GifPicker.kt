@@ -67,7 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.components.KeyboardViewModel
+import ui.conversation.components.KeyboardModel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -76,7 +76,7 @@ import kotlin.uuid.Uuid
 @Composable
 fun GifPicker(
     modifier: Modifier = Modifier,
-    viewModel: KeyboardViewModel,
+    viewModel: KeyboardModel,
     gridState: LazyStaggeredGridState,
     isFilterFocused: MutableState<Boolean>,
     onGifSelected: (GifAsset) -> Unit

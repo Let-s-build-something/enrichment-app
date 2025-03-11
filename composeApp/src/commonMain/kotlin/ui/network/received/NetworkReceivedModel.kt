@@ -10,7 +10,7 @@ import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_RESPONSE_D
 import data.io.base.BaseResponse
 import data.io.social.network.request.CirclingRequest
 import data.io.user.NetworkItemIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +22,12 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.home.utils.networkItemModule
 import ui.network.list.NetworkListRepository
-import ui.network.list.NetworkListViewModel
+import ui.network.list.NetworkListModel
 
 /** Communication between the UI, the control layers, and control and data layers */
-class NetworkReceivedViewModel(
+class NetworkReceivedModel(
     private val repository: NetworkReceivedRepository
-): SharedViewModel(), RefreshableViewModel {
+): SharedModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
@@ -97,9 +97,9 @@ class NetworkReceivedViewModel(
 
 internal val networkManagementModule = module {
     factory { NetworkReceivedRepository(get(), get()) }
-    viewModelOf(::NetworkReceivedViewModel)
+    viewModelOf(::NetworkReceivedModel)
 
     includes(networkItemModule)
     factory { NetworkListRepository(get(), get(), get()) }
-    viewModelOf(::NetworkListViewModel)
+    viewModelOf(::NetworkListModel)
 }

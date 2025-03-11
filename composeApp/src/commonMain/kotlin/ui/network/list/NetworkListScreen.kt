@@ -71,7 +71,7 @@ import kotlin.uuid.Uuid
 fun NetworkListContent(
     openAddNewModal: () -> Unit,
     refreshHandler: RefreshHandler,
-    viewModel: NetworkListViewModel = koinViewModel()
+    viewModel: NetworkListModel = koinViewModel()
 ) {
     val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
@@ -218,7 +218,7 @@ fun NetworkListContent(
 @Composable
 private fun NetworkItem(
     modifier: Modifier = Modifier,
-    viewModel: NetworkListViewModel,
+    viewModel: NetworkListModel,
     selectedItem: String?,
     data: NetworkItemIO?,
     customColors: Map<NetworkProximityCategory, Color>,

@@ -19,8 +19,8 @@ import org.koin.dsl.module
 internal val appServiceModule = module {
     single<AppServiceDataManager> { AppServiceDataManager() }
     factory { AppServiceRepository(get()) }
-    factory { AppServiceViewModel(get(), get()) }
-    viewModelOf(::AppServiceViewModel)
+    factory { AppServiceModel(get(), get()) }
+    viewModelOf(::AppServiceModel)
 }
 
 class AppServiceDataManager {
@@ -30,10 +30,10 @@ class AppServiceDataManager {
 }
 
 /** Shared viewmodel for services specific to the runtime of the application */
-class AppServiceViewModel(
+class AppServiceModel(
     private val repository: AppServiceRepository,
     private val dataManager: AppServiceDataManager
-): SharedViewModel() {
+): SharedModel() {
 
     /** Newly emitted deep link which should be handled */
     val newDeeplink = dataManager.newDeeplink.asSharedFlow()

@@ -12,14 +12,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
     factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
     factory {
-        MessageDetailViewModel(
+        MessageDetailModel(
             get<String>(),
             get<String>(),
             get<MessageDetailRepository>(),
@@ -27,16 +27,16 @@ internal val messageDetailModule = module {
             get()
         )
     }
-    viewModelOf(::MessageDetailViewModel)
+    viewModelOf(::MessageDetailModel)
 }
 
-class MessageDetailViewModel(
+class MessageDetailModel(
     private val messageId: String?,
     conversationId: String?,
     private val repository: MessageDetailRepository,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase
-): ConversationViewModel(
+): ConversationModel(
     conversationId = conversationId ?: "",
     enableMessages = false,
     repository = repository,

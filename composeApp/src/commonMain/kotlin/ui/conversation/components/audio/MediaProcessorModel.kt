@@ -5,7 +5,7 @@ import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getExtensionFromMimeType
 import com.fleeksoft.ksoup.Ksoup
 import data.io.social.network.conversation.message.MediaIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import database.file.FileAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +33,7 @@ data class MediaHttpProgress(
 class MediaProcessorModel(
     private val repository: MediaProcessorRepository,
     private val dataManager: MediaProcessorDataManager
-): SharedViewModel() {
+): SharedModel() {
     private val _resultByteArray = MutableStateFlow<ByteArray?>(null)
     private val _resultData = MutableStateFlow<Map<MediaIO, ByteArray>>(mapOf())
     private val _downloadProgress = MutableStateFlow<MediaHttpProgress?>(null)

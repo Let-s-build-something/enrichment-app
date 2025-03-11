@@ -38,7 +38,7 @@ import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
-open class SharedViewModel: ViewModel() {
+open class SharedModel: ViewModel() {
     private val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
     private val authService = KoinPlatform.getKoin().get<AuthService>()
 
@@ -187,7 +187,7 @@ open class SharedViewModel: ViewModel() {
         }
         val theme = ThemeChoice.entries.find {
             it.name == settings.getStringOrNull(SettingsKeys.KEY_THEME)
-        } ?: ThemeChoice.SYSTEM
+        } ?: ThemeChoice.DARK
         val clientStatus = ClientStatus.entries.find {
             it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
         } ?: ClientStatus.NEW

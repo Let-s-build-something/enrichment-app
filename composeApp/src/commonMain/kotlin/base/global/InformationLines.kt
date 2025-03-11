@@ -1,4 +1,4 @@
-package base
+package base.global
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -37,7 +37,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
 import components.notification.InfoHintBox
 import data.io.user.UserIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import io.github.alexzhirkevich.compottie.rememberLottieComposition
@@ -49,10 +49,10 @@ import ui.account.profile.DisplayNameChangeLauncher
 
 @Composable
 fun ColumnScope.InformationLines(
-    sharedViewModel: SharedViewModel = koinViewModel(),
+    sharedModel: SharedModel = koinViewModel(),
     currentUser: UserIO?
 ) {
-    val networkConnectivity = sharedViewModel.networkConnectivity.collectAsState()
+    val networkConnectivity = sharedModel.networkConnectivity.collectAsState()
 
 
     // no stable internet connection
@@ -64,7 +64,7 @@ fun ColumnScope.InformationLines(
     AnimatedVisibility(
         currentUser != null
                 && currentUser.displayName == null
-                && !sharedViewModel.awaitingAutologin
+                && !sharedModel.awaitingAutologin
     ) {
         MissingDisplayNameLine()
     }

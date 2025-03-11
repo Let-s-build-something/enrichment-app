@@ -66,7 +66,7 @@ fun CustomTextField(
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
-    textObfuscationMode: TextObfuscationMode = TextObfuscationMode.RevealLastTyped,
+    textObfuscationMode: TextObfuscationMode = TextObfuscationMode.Hidden,
     inputTransformation: InputTransformation? = null,
     prefixIcon: ImageVector? = null,
     focusRequester: FocusRequester = remember(state) { FocusRequester() },

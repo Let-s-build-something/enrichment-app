@@ -13,7 +13,7 @@ import data.NetworkProximityCategory
 import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.matrix.room.ConversationRoomIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -32,16 +32,16 @@ import ui.home.utils.networkItemModule
 internal val homeModule = module {
     includes(networkItemModule)
     factory { HomeRepository(get()) }
-    factory { HomeViewModel(get<HomeRepository>(), get()) }
-    viewModelOf(::HomeViewModel)
+    factory { HomeModel(get<HomeRepository>(), get()) }
+    viewModelOf(::HomeModel)
 }
 
 
 /** Communication between the UI, the control layers, and control and data layers */
-class HomeViewModel(
+class HomeModel(
     repository: HomeRepository,
     private val networkItemUseCase: NetworkItemUseCase
-): SharedViewModel(), RefreshableViewModel {
+): SharedModel(), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L

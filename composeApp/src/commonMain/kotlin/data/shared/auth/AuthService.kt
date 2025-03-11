@@ -36,11 +36,10 @@ import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.MatrixClient.LoginInfo
 import net.folivo.trixnity.client.MatrixClientConfiguration.CacheExpireDurations
 import net.folivo.trixnity.client.MatrixClientConfiguration.SyncLoopDelays
-import net.folivo.trixnity.client.createTrixnityBotModuleFactories
+import net.folivo.trixnity.client.createTrixnityDefaultModuleFactories
 import net.folivo.trixnity.client.loginWith
 import net.folivo.trixnity.client.media.InMemoryMediaStore
 import net.folivo.trixnity.client.store.repository.createInMemoryRepositoriesModule
-import net.folivo.trixnity.client.verification.createVerificationModule
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import org.koin.dsl.module
@@ -69,7 +68,6 @@ class AuthService {
 
     private val mutex = Mutex()
     private var isRunning = false
-    private var lockIdentifier = ""
 
     companion object {
         private const val DEFAULT_TOKEN_LIFESPAN_MS = 30 * 60 * 1_000L
@@ -88,7 +86,7 @@ class AuthService {
     fun stop() {
         if(isRunning) {
             isRunning = false
-            if(mutex.isLocked) mutex.unlock(owner = lockIdentifier)
+            if(mutex.isLocked) mutex.unlock()
         }
     }
 
@@ -101,6 +99,8 @@ class AuthService {
 
         withContext(Dispatchers.IO) {
             retrieveCredentials()?.let { credentials ->
+                val currentTime = DateUtils.now.toEpochMilliseconds()
+                println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - currentTime}")
 
                 // we either use existing token or enqueue its refresh which results either in success or new login
                 when {
@@ -109,10 +109,15 @@ class AuthService {
                                 " idToken: ${credentials.idToken}")
                         if(loginWithCredentials()) setupAutoLogin(forceRefresh = false)
                     }
-                    (credentials.expiresAtMsEpoch ?: 0) > DateUtils.now.toEpochMilliseconds()
+                    (credentials.expiresAtMsEpoch?.plus(2_000) ?: 0) > currentTime
                             && credentials.accessToken != null
                             && !forceRefresh -> {
                         updateUser(credentials = credentials)
+                        enqueueRefreshToken(
+                            refreshToken = credentials.refreshToken,
+                            expiresAtMsEpoch = currentTime,
+                            homeserver = credentials.homeserver
+                        )
                     }
                     else -> enqueueRefreshToken(
                         refreshToken = credentials.refreshToken,
@@ -190,6 +195,7 @@ class AuthService {
             val userId = response.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response.homeserver ?: previous?.homeserver
             val accessToken = response.accessToken ?: previous?.accessToken
+            println("kostka_test, cacheCredentials, new accessToken: $accessToken, previous: ${previous?.accessToken}")
 
             val credentials = AuthItem(
                 accessToken = accessToken,
@@ -256,10 +262,7 @@ class AuthService {
         homeserver: String?,
         expiresAtMsEpoch: Long?
     ) {
-        if(refreshToken != null && expiresAtMsEpoch != null
-            && homeserver != null
-            && dataManager.currentUser.value?.idToken != null
-        ) {
+        if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
             withContext(Dispatchers.IO) {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
                 if(delay > 0) delay(delay)
@@ -279,24 +282,16 @@ class AuthService {
                             deviceId = null,
                             user = null
                         )
-                        enqueueRefreshToken(
+                        refreshToken(
                             refreshToken = response.data.refreshToken,
                             expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
                                 .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
                             homeserver = homeserver
                         )
-                    }else if(loginWithCredentials()) refreshToken(
-                        refreshToken = refreshToken,
-                        homeserver = homeserver,
-                        expiresAtMsEpoch = expiresAtMsEpoch
-                    )
+                    }else loginWithCredentials()
                 }
             }
-        }else if(loginWithCredentials()) refreshToken(
-            refreshToken = refreshToken,
-            homeserver = homeserver,
-            expiresAtMsEpoch = expiresAtMsEpoch
-        )
+        }else loginWithCredentials()
     }
 
     private suspend fun loginWithCredentials(): Boolean {
@@ -318,13 +313,14 @@ class AuthService {
 
     /** Matrix login via email and username */
     suspend fun loginWithIdentifier(
+        setupAutoLogin: Boolean = true,
         homeserver: String,
         identifier: MatrixIdentifierData,
         password: String?,
         deviceId: String = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
         // if this is a point of entry
-        if(!isRunning) isRunning = true
+
         println("kostka_test, login with deviceId: $deviceId")
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
@@ -372,27 +368,18 @@ class AuthService {
                         homeserver = homeserver,
                         password = password,
                         deviceId = deviceId,
-                        user = user
+                        user = dataManager.currentUser.value
                     )
-                    enqueueRefreshToken(
-                        refreshToken = response.refreshToken,
-                        expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
-                            .plus(response.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS),
-                        homeserver = homeserver
-                    )
+                    if(setupAutoLogin) setupAutoLogin()
                 }
 
-                if(dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
+                if(setupAutoLogin && dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
                     retrieveCredentials()?.let { credentials ->
                         if(dataManager.currentUser.value?.matrixUserId == null) {
                             updateUser(credentials = credentials)
                         }
                         delay(DELAY_REFRESH_TOKEN_START)
-                        enqueueRefreshToken(
-                            refreshToken = credentials.refreshToken,
-                            expiresAtMsEpoch = credentials.expiresAtMsEpoch,
-                            homeserver = credentials.homeserver
-                        )
+                        setupAutoLogin()
                     }
                 }
             }
@@ -438,12 +425,12 @@ class AuthService {
                     roomEvent is RoomEvent.MessageEvent<*>
                 }
                 storeTimelineEventContentUnencrypted = false
-                modulesFactories = createTrixnityBotModuleFactories() + ::createVerificationModule
+                modulesFactories = createTrixnityDefaultModuleFactories()
                 httpClientEngine = KoinPlatform.getKoin().get()
                 cacheExpireDurations = CacheExpireDurations.default(30.minutes)
                 syncLoopTimeout = SYNC_INTERVAL.milliseconds
                 httpClientConfig = {
-                    httpClientConfig(sharedViewModel = KoinPlatform.getKoin().get())
+                    httpClientConfig(sharedModel = KoinPlatform.getKoin().get())
                 }
             }.getOrNull()
         }

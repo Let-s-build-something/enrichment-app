@@ -57,7 +57,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 @Composable
 fun NetworkReceivedContent(
-    viewModel: NetworkReceivedViewModel = koinViewModel(),
+    viewModel: NetworkReceivedModel = koinViewModel(),
     refreshHandler: RefreshHandler
 ) {
     val requests = viewModel.requests.collectAsLazyPagingItems()

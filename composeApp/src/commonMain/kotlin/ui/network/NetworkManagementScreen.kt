@@ -35,7 +35,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.list.NetworkListContent
 import ui.network.received.NetworkReceivedContent
-import ui.network.received.NetworkReceivedViewModel
+import ui.network.received.NetworkReceivedModel
 
 interface RefreshHandler {
     val callbackListeners: MutableList<() -> Unit>
@@ -56,7 +56,7 @@ interface RefreshHandler {
 fun NetworkManagementScreen(
     displayName: String? = null,
     tag: String? = null,
-    viewModel: NetworkReceivedViewModel = koinViewModel()
+    viewModel: NetworkReceivedModel = koinViewModel()
 ) {
     val currentUser = viewModel.currentUser.collectAsState()
     val refreshHandler = remember {

@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.EmojiData
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,11 +27,11 @@ internal val keyboardModule = module {
 }
 
 /** Controller and provider of data specific to the conversation keyboard */
-open class KeyboardViewModel(
+open class KeyboardModel(
     private val emojiUseCase: EmojiUseCase,
     private val gifUseCase: GifUseCase,
     private val conversationId: String?,
-): SharedViewModel() {
+): SharedModel() {
 
     val additionalBottomPadding = Animatable(0f)
 

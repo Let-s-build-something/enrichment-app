@@ -85,7 +85,7 @@ import org.koin.core.context.loadKoinModules
 @Composable
 fun DialogPictureChange(onDismissRequest: () -> Unit) {
     loadKoinModules(profileChangeModule)
-    val viewModel: ProfileChangeViewModel = koinViewModel()
+    val viewModel: ProfileChangeModel = koinViewModel()
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 

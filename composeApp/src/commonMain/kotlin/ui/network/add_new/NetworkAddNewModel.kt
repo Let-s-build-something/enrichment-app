@@ -8,7 +8,7 @@ import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
 import data.io.user.NetworkItemIO
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -23,9 +23,9 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /** Communication between the UI, the control layers, and control and data layers */
-class NetworkAddNewViewModel(
+class NetworkAddNewModel(
     private val repository: NetworkAddNewRepository
-): SharedViewModel() {
+): SharedModel() {
 
     private val _response: MutableSharedFlow<BaseResponse<CircleRequestResponse>?> = MutableSharedFlow()
     private val _isLoading: MutableStateFlow<Boolean> = MutableStateFlow(false)
@@ -93,5 +93,5 @@ class NetworkAddNewViewModel(
 
 internal val networkAddNewModule = module {
     factory { NetworkAddNewRepository(get(), get(), get()) }
-    viewModelOf(::NetworkAddNewViewModel)
+    viewModelOf(::NetworkAddNewModel)
 }

@@ -8,7 +8,7 @@ import data.io.base.BaseResponse
 import data.io.social.UserConfiguration
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
@@ -24,13 +24,13 @@ import org.koin.dsl.module
 
 internal val accountDashboardModule = module {
     factory { AccountDashboardRepository(get()) }
-    viewModelOf(::AccountDashboardViewModel)
+    viewModelOf(::AccountDashboardModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
-class AccountDashboardViewModel(
+class AccountDashboardModel(
     private val repository: AccountDashboardRepository
-): SharedViewModel() {
+): SharedModel() {
 
     private val _signOutResponse = MutableStateFlow(false)
     private val _privacyResponse = MutableStateFlow<BaseResponse<Any>?>(null)

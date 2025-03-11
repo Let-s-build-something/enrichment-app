@@ -59,7 +59,7 @@ fun ConversationScreen(
     name: String? = null
 ) {
     loadKoinModules(conversationModule)
-    val viewModel: ConversationViewModel = koinViewModel(
+    val viewModel: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
             parametersOf(conversationId ?: "", true)

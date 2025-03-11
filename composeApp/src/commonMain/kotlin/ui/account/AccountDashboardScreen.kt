@@ -100,7 +100,7 @@ import ui.account.profile.DisplayNameChangeLauncher
  * Screen for the home page
  */
 @Composable
-fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel()) {
+fun AccountDashboardScreen(viewModel: AccountDashboardModel = koinViewModel()) {
     val navController = LocalNavController.current
 
     val currentUser = viewModel.currentUser.collectAsState(null)
@@ -180,7 +180,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 }
 
 @Composable
-private fun SettingsSection(viewModel: AccountDashboardViewModel) {
+private fun SettingsSection(viewModel: AccountDashboardModel) {
     val localSettings = viewModel.localSettings.collectAsState()
     val currentUser = viewModel.currentUser.collectAsState()
     val privacyResponse = viewModel.privacyResponse.collectAsState()
@@ -270,7 +270,7 @@ private fun SettingsSection(viewModel: AccountDashboardViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
+private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
     val firebaseUser = viewModel.firebaseUser.collectAsState(null)
     val currentUser = viewModel.currentUser.collectAsState(null)
 

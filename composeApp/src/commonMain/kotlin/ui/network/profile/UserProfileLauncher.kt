@@ -75,7 +75,7 @@ fun UserProfileLauncher(
     userProfile: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
-    val viewModel: UserProfileViewModel = koinViewModel()
+    val viewModel: UserProfileModel = koinViewModel()
 
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
@@ -242,7 +242,7 @@ private fun ShimmerContent(pictureSize: Dp) {
 private fun DataContent(
     userProfile: NetworkItemIO,
     pictureSize: Dp,
-    viewModel: UserProfileViewModel,
+    viewModel: UserProfileModel,
     onDismissRequest: () -> Unit
 ) {
     val navController = LocalNavController.current

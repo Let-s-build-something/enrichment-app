@@ -95,7 +95,7 @@ import kotlin.uuid.Uuid
  */
 @OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
+fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
 
@@ -383,7 +383,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 @Composable
 private fun ConversationRoomItem(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel,
+    viewModel: HomeModel,
     selectedItem: String?,
     room: ConversationRoomIO?,
     customColors: Map<NetworkProximityCategory, Color>,

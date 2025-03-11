@@ -164,7 +164,7 @@ import ui.conversation.components.gif.GifImage
  * email + password, Google, and Apple ID
  */
 @Composable
-fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
+fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
@@ -370,7 +370,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 
 @Composable
 private fun ColumnScope.LoginScreenContent(
-    viewModel: LoginViewModel,
+    viewModel: LoginModel,
     screenStateIndex: MutableState<Int>,
     passwordValidations: List<FieldValidation>,
     usernameValidations: List<FieldValidation>,
@@ -674,7 +674,7 @@ private fun ColumnScope.LoginScreenContent(
 @Composable
 private fun MatrixProgressStage(
     stage: String,
-    viewModel: LoginViewModel
+    viewModel: LoginModel
 ) {
     val progress = viewModel.matrixProgress.collectAsState()
 

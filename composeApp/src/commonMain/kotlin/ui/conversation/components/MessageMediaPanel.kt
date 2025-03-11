@@ -47,7 +47,7 @@ import data.io.social.network.conversation.giphy.GifAsset
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.MessageEmojiPanel
 import ui.conversation.components.gif.MessageGifPanel
 
@@ -56,7 +56,7 @@ import ui.conversation.components.gif.MessageGifPanel
 fun MessageMediaPanel(
     modifier: Modifier = Modifier,
     mode: MutableState<Int>,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     showBackSpace: Boolean,
     onGifSelected: (GifAsset) -> Unit,
     onEmojiSelected: (String) -> Unit,
