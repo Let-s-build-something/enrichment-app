@@ -15,7 +15,7 @@ import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
-import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
+import database.factory.SecretByteArray
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
@@ -24,7 +24,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.Url
 import koin.InterceptingEngine
 import koin.SecureAppSettings
-import koin.httpClientConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.coroutineScope
@@ -33,27 +32,18 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.MatrixClient.LoginInfo
-import net.folivo.trixnity.client.MatrixClientConfiguration.CacheExpireDurations
-import net.folivo.trixnity.client.createTrixnityDefaultModuleFactories
-import net.folivo.trixnity.client.loginWith
-import net.folivo.trixnity.client.media.InMemoryMediaStore
-import net.folivo.trixnity.client.store.repository.createInMemoryRepositoriesModule
 import net.folivo.trixnity.clientserverapi.model.authentication.IdentifierType
 import net.folivo.trixnity.clientserverapi.model.uia.AuthenticationRequest
 import net.folivo.trixnity.core.model.UserId
-import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val authModule = module {
-    factory { AuthService() }
+    single { AuthService() }
 }
 
 /**
@@ -78,6 +68,39 @@ class AuthService {
 
     val awaitingAutologin: Boolean
         get() = secureSettings.hasKey(SecureSettingsKeys.KEY_CREDENTIALS)
+
+    private val matrixClientFactory by lazy {
+        MatrixClientFactory(
+            getLoginInfo = {
+                (retrieveCredentials()?.let { credentials ->
+                    if (credentials.accessToken != null
+                        && credentials.refreshToken != null
+                        && credentials.userId != null
+                        && credentials.deviceId != null
+                    ) {
+                        Result.success(
+                            LoginInfo(
+                                userId = UserId(credentials.userId),
+                                deviceId = credentials.deviceId,
+                                accessToken = credentials.accessToken,
+                                refreshToken = credentials.refreshToken
+                            )
+                        )
+                    } else Result.failure(Throwable())
+                } ?: Result.failure(Throwable())).also {
+                    println("kostka_test, getLoginInfo: $it")
+                }
+            },
+            httpClientEngine = InterceptingEngine(
+                engine = KoinPlatform.getKoin().get(),
+                authService = this@AuthService,
+                dataManager = dataManager
+            ),
+            saveDatabasePassword = { userId, key ->
+                saveDatabasePassword(userId = userId, key = key)
+            }
+        )
+    }
 
     fun clear() {
         stop()
@@ -152,6 +175,7 @@ class AuthService {
                 decoded.copy(
                     deviceId = getDeviceId(decoded.userId),
                     pickleKey = getPickleKey(decoded.userId),
+                    databasePassword = getDatabasePassword(decoded.userId),
                     userId = secureSettings.getStringOrNull(
                         key = SecureSettingsKeys.KEY_USER_ID
                     )
@@ -218,7 +242,8 @@ class AuthService {
                 tag = user?.tag ?: previous?.tag,
                 publicId = user?.publicId ?: previous?.publicId,
                 configuration = user?.configuration ?: previous?.configuration,
-                idToken = user?.idToken ?: previous?.idToken
+                idToken = user?.idToken ?: previous?.idToken,
+                databasePassword = previous?.databasePassword
             )
 
             updateUser(credentials = credentials)
@@ -463,52 +488,36 @@ class AuthService {
         val credentials = auth ?: retrieveCredentials() ?: return
 
         if(dataManager.matrixClient.value == null) {
-            dataManager.matrixClient.value = MatrixClient.loginWith(
-                baseUrl = Url("https://${credentials.homeserver}"),
-                getLoginInfo = {
-                    (retrieveCredentials()?.let { credentials ->
-                        if(credentials.accessToken != null
-                            && credentials.refreshToken != null
-                            && credentials.userId != null
-                            && credentials.deviceId != null
-                        ) {
-                            Result.success(
-                                LoginInfo(
-                                    userId = UserId(credentials.userId),
-                                    deviceId = credentials.deviceId,
-                                    accessToken = credentials.accessToken,
-                                    refreshToken = credentials.refreshToken
-                                )
-                            )
-                        }else Result.failure(Throwable())
-                    } ?: Result.failure(Throwable())).also {
-                        println("kostka_test, getLoginInfo: $it")
-                    }
-                },
-                repositoriesModuleFactory = {
-                    createInMemoryRepositoriesModule()
-                },
-                mediaStoreFactory = {
-                    InMemoryMediaStore()
+            dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
+                credentials = credentials
+            )
+        }
+    }
+
+    private fun saveDatabasePassword(
+        userId: String? = null,
+        key: SecretByteArray?
+    ) {
+        (userId ?: dataManager.currentUser.value?.matrixUserId)?.let { id ->
+            when (key) {
+                is SecretByteArray.AesHmacSha2 -> {
+                    secureSettings.putString(
+                        key = "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}",
+                        value = json.encodeToString(key)
+                    )
                 }
-            ) {
-                name = credentials.deviceId
-                lastRelevantEventFilter = { roomEvent ->
-                    roomEvent is RoomEvent.MessageEvent<*>
-                }
-                storeTimelineEventContentUnencrypted = false
-                modulesFactories = createTrixnityDefaultModuleFactories()
-                httpClientEngine = InterceptingEngine(
-                    engine = KoinPlatform.getKoin().get(),
-                    authService = this@AuthService,
-                    dataManager = dataManager
-                )
-                cacheExpireDurations = CacheExpireDurations.default(30.minutes)
-                syncLoopTimeout = SYNC_INTERVAL.milliseconds
-                httpClientConfig = {
-                    httpClientConfig(sharedModel = KoinPlatform.getKoin().get())
-                }
-            }.getOrNull()
+                else -> {}
+            }
+        }
+    }
+
+    private fun getDatabasePassword(userId: String? = null): SecretByteArray? {
+        return (userId ?: dataManager.currentUser.value?.matrixUserId)?.let { id ->
+            secureSettings.getString(
+                "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}", ""
+            ).takeIf { it.isNotBlank() }?.let {
+                json.decodeFromString<SecretByteArray.AesHmacSha2>(it)
+            }
         }
     }
 

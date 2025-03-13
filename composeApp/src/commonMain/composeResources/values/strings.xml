@@ -94,9 +94,9 @@
   <string name="account_settings_title_online">You're online</string>
   <string name="account_settings_content_online">There are no limits, enjoy the ride!</string>
   <string name="account_settings_title_invisible">You're invisible</string>
-  <string name="account_settings_content_invisible">You can't be seen by other users.</string>
-  <string name="account_settings_title_offline">You're offline :-(</string>
-  <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
+  <string name="account_settings_content_invisible">Others see you as offline.</string>
+  <string name="account_settings_title_offline">You're offline</string>
+  <string name="account_settings_content_offline">No interruption and no network is being used.</string>
 
   <string name="message_read_more">Read more</string>
   <string name="invite_new_item_conversation">Name of the conversation</string>

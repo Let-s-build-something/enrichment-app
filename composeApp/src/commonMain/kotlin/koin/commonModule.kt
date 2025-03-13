@@ -14,6 +14,7 @@ import data.shared.SharedRepository
 import data.shared.appServiceModule
 import data.shared.auth.AuthService
 import data.shared.auth.authModule
+import data.shared.auth.matrixRepositoryModule
 import data.shared.developerConsoleModule
 import data.shared.sync.dataSyncModule
 import database.databaseModule
@@ -60,6 +61,7 @@ internal val commonModule = module {
 
     includes(databaseModule)
     includes(dataSyncModule)
+    includes(matrixRepositoryModule)
     includes(authModule)
     viewModelOf(::SharedModel)
     includes(homeModule)
