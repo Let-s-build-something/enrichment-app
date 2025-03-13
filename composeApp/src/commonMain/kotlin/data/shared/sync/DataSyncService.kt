@@ -21,15 +21,11 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
-import net.folivo.trixnity.client.key
-import net.folivo.trixnity.client.verification
-import net.folivo.trixnity.client.verification.VerificationService
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
@@ -82,15 +78,10 @@ class DataSyncService {
 
                 sharedDataManager.matrixClient.value?.let { client ->
                     delay?.let { delay(it) }
-                    sharedDataManager.currentUser.value?.takeIf { it.tag != null }?.let {
-                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(it) ?: it
+                    if(sharedDataManager.currentUser.value?.isFullyValid == true) {
                         enqueue(client = client)
-                    } ?: stop().also {
-                        println("kostka_test, sync stop, user tag is null")
-                    }
-                } ?: stop().also {
-                    println("kostka_test, sync stop, client is null")
-                }
+                    }else stop()
+                } ?: stop()
             }
         }
     }
@@ -124,7 +115,6 @@ class DataSyncService {
 
         client.api.sync.subscribe {
             handler.handle(
-                client = client,
                 response = it.syncResponse,
                 nextBatch = nextBatch,
                 currentBatch = currentBatch,
@@ -175,47 +165,18 @@ internal class DataSyncHandler: MessageProcessor() {
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val keyVerificationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    private fun verifyKeys(client: MatrixClient) {
-        // check whether cross-signing has been bootstrapped
-        keyVerificationScope.launch {
-            client.verification.getSelfVerificationMethods().collectLatest { verificationMethods ->
-                when(verificationMethods) {
-                    is VerificationService.SelfVerificationMethods.NoCrossSigningEnabled -> {
-                        client.key.bootstrapCrossSigning()
-                        println("kostka_test, bootstrapCrossSigning")
-                    }
-                    is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
-                        if(verificationMethods.methods.isEmpty()) {
-                            client.key.bootstrapCrossSigning()
-                            println("kostka_test, bootstrapCrossSigning 2")
-                        }
-                    }
-                    // PreconditionsNotMet
-                    else -> {
-                        // Do nothing, waiting for sync to run
-                    }
-                }
-            }
-        }
-    }
 
     fun stop() {
         syncScope.coroutineContext.cancelChildren()
         decryptionScope.coroutineContext.cancelChildren()
-        keyVerificationScope.coroutineContext.cancelChildren()
     }
 
     suspend fun handle(
-        client: MatrixClient,
         response: Sync.Response,
         nextBatch: String?,
         currentBatch: String,
         owner: String
     ) {
-        verifyKeys(client = client)
-
         withContext(Dispatchers.Default) {
             val matrixRooms = response.room?.let { matrixRooms ->
                 mutableListOf<ConversationRoomIO>().apply {

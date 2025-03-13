@@ -139,6 +139,7 @@ kotlin {
             implementation(libs.bundles.kamel)
             implementation(libs.java.cloud.storage)
             implementation(libs.credential.store)
+            implementation(libs.logback.classic)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
@@ -160,6 +161,7 @@ kotlin {
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
             implementation(libs.trixnity.client)
+            implementation(libs.trixnity.repository.room)
 
             implementation(libs.room.runtime)
             //implementation(libs.room.paging)
@@ -195,7 +197,6 @@ kotlin {
 
             implementation(libs.lifecycle.runtime)
             implementation(libs.lifecycle.viewmodel)
-            implementation(libs.trixnity.crypto)
         }
     }
 }

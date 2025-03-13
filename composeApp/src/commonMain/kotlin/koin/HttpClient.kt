@@ -5,6 +5,7 @@ import base.utils.NetworkSpeed
 import base.utils.speedInMbps
 import data.shared.DeveloperConsoleModel
 import data.shared.SharedModel
+import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
@@ -29,6 +30,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.io.IOException
@@ -48,6 +50,7 @@ internal expect fun httpClient(): HttpClient
 internal fun httpClientFactory(
     sharedModel: SharedModel,
     developerViewModel: DeveloperConsoleModel?,
+    authService: AuthService,
     json: Json
 ): HttpClient {
     var forceRefreshCountdown = 3
@@ -85,7 +88,7 @@ internal fun httpClientFactory(
             }
             exponentialDelay(maxDelayMs = 30_000, respectRetryAfterHeader = true)
         }
-        httpClientConfig(sharedModel = sharedModel, autologin = false)
+        httpClientConfig(sharedModel = sharedModel)
         install(HttpSend)
     }.apply {
         plugin(HttpSend).intercept { request ->
@@ -99,9 +102,11 @@ internal fun httpClientFactory(
             // retry for 401 response
             if (call.response.status == EXPIRED_TOKEN_CODE
                 && request.url.toString().contains("/_matrix/")
+                && !request.url.encodedPath.contains("/refresh")
                 && forceRefreshCountdown-- > 0
             ) {
-                if(sharedModel.initUser(true)) {
+                authService.setupAutoLogin(forceRefresh = true)
+                if(sharedModel.currentUser.value?.accessToken != null) {
                     request.headers[HttpHeaders.Authorization] = "Bearer ${sharedModel.currentUser.value?.accessToken}"
                     return@intercept execute(request)
                 }
@@ -112,10 +117,7 @@ internal fun httpClientFactory(
     }
 }
 
-fun HttpClientConfig<*>.httpClientConfig(
-    sharedModel: SharedModel,
-    autologin: Boolean = true
-) {
+fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
 
     install(Logging) {
@@ -126,65 +128,6 @@ fun HttpClientConfig<*>.httpClientConfig(
             header == HttpHeaders.Authorization
                     || header == IdToken
                     || header == AccessToken
-        }
-    }
-    install(HttpRequestRetry) {
-        this.retryIf { request, response ->
-            !request.headers.contains(RetryAttempt) && response.status == EXPIRED_TOKEN_CODE
-        }
-        modifyRequest { request ->
-            when {
-                request.url.toString().contains("/_matrix/") -> {
-                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                        request.headers.append(HttpHeaders.Authorization, "Bearer $accessToken")
-                    }
-                }
-                request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
-                    request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                    sharedModel.currentUser.value?.idToken?.let { idToken ->
-                        request.headers.append(IdToken, idToken)
-                    }
-                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                        request.headers.append(AccessToken, accessToken)
-                    }
-                }
-            }
-            request.headers.append(
-                RetryAttempt,
-                (request.headers[RetryAttempt]?.toIntOrNull()?.plus(1) ?: 1).toString()
-            )
-        }
-    }
-    HttpResponseValidator {
-        handleResponseException { cause, _ ->
-            when (cause) {
-                is IOException, is UnresolvedAddressException -> {
-                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                    println("No network connection or server unreachable")
-                }
-                is ConnectTimeoutException, is SocketTimeoutException -> {
-                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                    println("Network timeout")
-                }
-            }
-        }
-    }
-    defaultRequest {
-        when {
-            url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.") -> {
-                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                    headers.append(HttpHeaders.Authorization, "Bearer $accessToken")
-                }
-            }
-            url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
-                headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                sharedModel.currentUser.value?.idToken?.let { idToken ->
-                    headers.append(IdToken, idToken)
-                }
-                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                    headers.append(AccessToken, accessToken)
-                }
-            }
         }
     }
     ResponseObserver { response ->
@@ -207,6 +150,38 @@ fun HttpClientConfig<*>.httpClientConfig(
             )
         }
     }
+    HttpResponseValidator {
+        handleResponseException { cause, _ ->
+            when (cause) {
+                is IOException, is UnresolvedAddressException -> {
+                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                    println("No network connection or server unreachable")
+                }
+                is ConnectTimeoutException, is SocketTimeoutException -> {
+                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                    println("Network timeout")
+                }
+            }
+        }
+    }
+    defaultRequest {
+        when {
+            url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.") -> {
+                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                    headers[HttpHeaders.Authorization] = "Bearer $accessToken"
+                }
+            }
+            url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
+                headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                sharedModel.currentUser.value?.idToken?.let { idToken ->
+                    headers[IdToken] = idToken
+                }
+                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                    headers[AccessToken] = accessToken
+                }
+            }
+        }
+    }
 }
 
 /** Authorization type header with Firebase identification token */
@@ -216,9 +191,6 @@ val IdToken: String
 /** Authorization type header with Firebase identification token */
 val AccessToken: String
     get() = "Access-Token"
-
-val RetryAttempt: String
-    get() = "Retry-Attempt"
 
 /** http response code indicating expired token */
 internal val EXPIRED_TOKEN_CODE = HttpStatusCode.Unauthorized

@@ -9,9 +9,10 @@ import data.io.matrix.room.event.serialization.DefaultLocalSerializerMappings
 import data.io.matrix.room.event.serialization.createEventSerializersModule
 import data.shared.DeveloperConsoleModel
 import data.shared.SharedDataManager
-import data.shared.SharedRepository
 import data.shared.SharedModel
+import data.shared.SharedRepository
 import data.shared.appServiceModule
+import data.shared.auth.AuthService
 import data.shared.auth.authModule
 import data.shared.developerConsoleModule
 import data.shared.sync.dataSyncModule
@@ -83,7 +84,8 @@ internal val commonModule = module {
         httpClientFactory(
             sharedModel = get<SharedModel>(),
             developerViewModel = if(isDev) get<DeveloperConsoleModel>() else null,
-            json = get<Json>()
+            json = get<Json>(),
+            authService = get<AuthService>()
         )
     }
     single<HttpClientEngine> { get<HttpClient>().engine }

@@ -2,6 +2,7 @@ package augmy.interactive.shared.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,9 +23,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -94,6 +95,7 @@ private fun HeaderButton(
         if(text.isNotEmpty()) {
             Text(
                 modifier = Modifier
+                    .animateContentSize()
                     .padding(end = 6.dp),
                 text = text,
                 style = textStyle.copy(color = animContentColor)
@@ -184,7 +186,7 @@ fun BrandHeaderButton(
     HeaderButton(
         modifier = modifier,
         text = text,
-        isEnabled = isEnabled && isLoading.not(),
+        isEnabled = isEnabled,
         onClick = onClick,
         showBorder = isEnabled,
         additionalContent = {
@@ -203,7 +205,9 @@ fun BrandHeaderButton(
             }
         },
         contentColor = LocalTheme.current.colors.tetrial,
-        containerColor = LocalTheme.current.colors.brandMainDark
+        containerColor = if(isLoading) {
+            LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
+        }else LocalTheme.current.colors.brandMainDark
     )
 }
 

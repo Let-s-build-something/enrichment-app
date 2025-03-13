@@ -1,5 +1,6 @@
 package data.io.matrix.auth.local
 
+import augmy.interactive.shared.utils.DateUtils
 import data.io.social.UserConfiguration
 import kotlinx.serialization.Serializable
 
@@ -29,6 +30,9 @@ data class AuthItem(
     val idToken: String?,
     val configuration: UserConfiguration? = null
 ) {
+
+    val isExpired: Boolean
+        get() = accessToken == null || (expiresAtMsEpoch?.minus(1_000L) ?: 0) < DateUtils.now.toEpochMilliseconds()
 
     val isFullyValid: Boolean
         get() = accessToken != null

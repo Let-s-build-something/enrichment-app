@@ -82,7 +82,7 @@ fun NetworkManagementScreen(
         initialPage = selectedTabIndex.value
     )
     val switchThemeState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             stringResource(Res.string.network_list),
             stringResource(Res.string.network_received)
         ),

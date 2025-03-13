@@ -72,7 +72,7 @@ fun MessageReactionsDialog(
     val switchState = rememberMultiChoiceState(
         selectedTabIndex = selectedIndex,
         onSelectionChange = {},
-        tabs = tabs
+        items = tabs
     )
 
     LaunchedEffect(pagerState) {

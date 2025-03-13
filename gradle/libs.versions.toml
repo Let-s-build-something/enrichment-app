@@ -51,6 +51,7 @@ androidFirebaseMessaging = "24.1.0"
 # Java
 jvmGoogleCloudStorage = "2.46.0"
 jvmCredentialStore = "243.23654.166"
+jvmLogback = "1.5.17"
 securityCryptoKtx = "1.1.0-alpha06"
 
 
@@ -71,7 +72,7 @@ compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref
 compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref = "fileKit" }
 
 trixnity-client = { module = "net.folivo:trixnity-client", version.ref = "trixnity" }
-trixnity-crypto = { module = "net.folivo:trixnity-crypto", version.ref = "trixnity" }
+trixnity-repository-room = { module = "net.folivo:trixnity-client-repository-room", version.ref = "trixnity" }# TODO replace with own implementation
 
 compose-paging-common = { module = "app.cash.paging:paging-compose-common", version.ref = "pagingCompose" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
@@ -140,6 +141,7 @@ androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx
 #------------------- JVM -------------------
 java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
 credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "jvmLogback" }
 
 
 [bundles]

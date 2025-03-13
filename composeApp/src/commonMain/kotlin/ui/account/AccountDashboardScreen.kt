@@ -190,7 +190,7 @@ private fun SettingsSection(viewModel: AccountDashboardModel) {
     val visibility = currentUser.value?.configuration?.visibility ?: UserVisibility.Online
 
     val switchThemeState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             stringResource(Res.string.account_dashboard_theme_light),
             stringResource(Res.string.account_dashboard_theme_dark),
             stringResource(Res.string.account_dashboard_theme_device)

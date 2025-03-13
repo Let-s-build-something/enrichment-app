@@ -188,7 +188,7 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
 
     val coroutineScope = rememberCoroutineScope()
     val switchScreenState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             stringResource(Res.string.login_screen_type_sign_up),
             stringResource(Res.string.login_screen_type_sign_in)
         ),

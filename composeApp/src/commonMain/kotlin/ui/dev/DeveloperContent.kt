@@ -176,7 +176,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleModel, isC
         initialPage = selectedTabIndex.value
     )
     val switchThemeState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             "Information",
             "HTTP"
         ),

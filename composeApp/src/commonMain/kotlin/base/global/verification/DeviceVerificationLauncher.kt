@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
-import androidx.compose.foundation.text.input.delete
+import androidx.compose.foundation.text.input.byValue
+import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,14 +26,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.device_verification_confirm
@@ -39,24 +44,33 @@ import augmy.composeapp.generated.resources.device_verification_match
 import augmy.composeapp.generated.resources.device_verification_no_match
 import augmy.composeapp.generated.resources.device_verification_other_device
 import augmy.composeapp.generated.resources.device_verification_passphrase
+import augmy.composeapp.generated.resources.device_verification_passphrase_error
+import augmy.composeapp.generated.resources.device_verification_passphrase_hint
 import augmy.composeapp.generated.resources.device_verification_send
+import augmy.composeapp.generated.resources.device_verification_send_info
+import augmy.composeapp.generated.resources.device_verification_title
 import augmy.composeapp.generated.resources.device_verification_title_decimal
 import augmy.composeapp.generated.resources.device_verification_title_emojis
-import augmy.composeapp.generated.resources.device_verification_title_other_device
-import augmy.composeapp.generated.resources.device_verification_title_passphrase
-import augmy.composeapp.generated.resources.login_password_password_hint
 import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticIcon
+import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.input.CustomTextField
+import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
+
+sealed class VerificationState {
+    data object ComparisonByUser: VerificationState()
+    data object OtherDevice: VerificationState()
+    data object Passphrase: VerificationState()
+}
 
 // TODO should be full screen
 /**
@@ -72,81 +86,125 @@ fun DeviceVerificationLauncher(
 ) {
     loadKoinModules(verificationModule)
     val model: VerificationModel = koinViewModel()
-    val verificationMethods = model.verificationMethods.collectAsState()
+    val showLauncher = model.showLauncher.collectAsState()
     val comparisonByUser = model.comparisonByUser.collectAsState()
     val isLoading = model.isLoading.collectAsState()
+    val verificationResult = model.verificationResult.collectAsState()
 
-    if(verificationMethods.value.isEmpty()) return
-
-    val passphraseMethod = remember(verificationMethods) {
-        mutableStateOf(verificationMethods.value.none { it is SelfVerificationMethod.CrossSignedDeviceVerification })
+    val multiChoiceState = rememberMultiChoiceState(
+        items = mutableListOf(
+            stringResource(Res.string.device_verification_other_device),
+            stringResource(Res.string.device_verification_passphrase)
+        )
+    )
+    val verificationState = remember {
+        derivedStateOf {
+            when {
+                comparisonByUser.value != null -> VerificationState.ComparisonByUser
+                multiChoiceState.selectedTabIndex.value == 0 -> VerificationState.OtherDevice
+                else -> VerificationState.Passphrase
+            }
+        }
     }
+
+    if(!showLauncher.value) return
+
     val passphraseState = remember { TextFieldState() }
     val showPassphrase = remember { mutableStateOf(false) }
+
+    val verify = {
+        model.verify(
+            state = verificationState.value,
+            passphrase = passphraseState.text.toString()
+        )
+    }
 
     SimpleModalBottomSheet(
         modifier = modifier,
         sheetState = sheetState,
-        onDismissRequest = {  }
+        onDismissRequest = {
+            model.clear()
+        }
     ) {
         Text(
-            modifier = Modifier.padding(bottom = 16.dp),
-            text = stringResource(
-                when {
-                    comparisonByUser.value != null -> {
-                        if(!comparisonByUser.value?.emojis.isNullOrEmpty()) {
-                            Res.string.device_verification_title_emojis
-                        }else Res.string.device_verification_title_decimal
-                    }
-                    passphraseMethod.value -> Res.string.device_verification_title_passphrase
-                    else -> Res.string.device_verification_title_other_device
-                }
-            ),
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 24.dp),
+            text = stringResource(Res.string.device_verification_title),
             style = LocalTheme.current.styles.heading
         )
+
+        AnimatedVisibility(comparisonByUser.value == null) {
+            MultiChoiceSwitch(
+                shape = LocalTheme.current.shapes.rectangularActionShape,
+                state = multiChoiceState
+            )
+        }
 
         AnimatedVisibility(comparisonByUser.value != null) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 16.dp),
+                    text = stringResource(
+                        if(!comparisonByUser.value?.emojis.isNullOrEmpty()) {
+                            Res.string.device_verification_title_emojis
+                        }else Res.string.device_verification_title_decimal
+                    ),
+                    style = LocalTheme.current.styles.subheading
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    comparisonByUser.value?.decimal?.forEach { decimal ->
-                        Text(
-                            modifier = Modifier
-                                .padding(vertical = 4.dp)
-                                .background(color = LocalTheme.current.colors.backgroundLight)
-                                .padding(vertical = 6.dp, horizontal = 8.dp),
-                            text = decimal.toString(),
-                            style = LocalTheme.current.styles.subheading
-                        )
-                    }
-                    comparisonByUser.value?.emojis?.forEach { emoji ->
+                    comparisonByUser.value?.emojis?.takeIf { it.isNotEmpty() }?.forEach { emoji ->
                         EmojiEntity(
                             modifier = Modifier
                                 .padding(vertical = 4.dp)
-                                .background(color = LocalTheme.current.colors.backgroundLight)
-                                .padding(vertical = 6.dp, horizontal = 8.dp),
+                                .background(
+                                    color = LocalTheme.current.colors.backgroundLight
+                                )
+                                .padding(vertical = 8.dp, horizontal = 10.dp),
                             emoji = emoji
                         )
+                    }?.ifNull {
+                        comparisonByUser.value?.decimals?.forEach { decimal ->
+                            Text(
+                                modifier = Modifier
+                                    .padding(vertical = 4.dp)
+                                    .background(color = LocalTheme.current.colors.backgroundLight)
+                                    .padding(vertical = 6.dp, horizontal = 8.dp),
+                                text = decimal.toString(),
+                                style = LocalTheme.current.styles.subheading
+                            )
+                        }
                     }
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(vertical = 12.dp, horizontal = 16.dp)
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 4.dp),
                         text = stringResource(Res.string.device_verification_no_match),
                         onClick = {
                             model.matchChallenge(false)
                         },
-                        activeColor = SharedColors.RED_ERROR_50
+                        activeColor = SharedColors.RED_ERROR
                     )
                     BrandHeaderButton(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 4.dp),
                         text = stringResource(Res.string.device_verification_match),
                         onClick = {
                             model.matchChallenge(true)
@@ -156,29 +214,34 @@ fun DeviceVerificationLauncher(
             }
         }
 
-        AnimatedVisibility(passphraseMethod.value) {
-            Column {
+        Crossfade(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            targetState = verificationState.value == VerificationState.Passphrase
+                    && comparisonByUser.value == null
+        ) { isPassphrase ->
+            if(isPassphrase) {
                 CustomTextField(
                     modifier = Modifier
-                        .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                        .fillMaxWidth(),
-                    hint = stringResource(Res.string.login_password_password_hint),
-                    prefixIcon = Icons.Outlined.Key,
+                        .align(Alignment.CenterHorizontally)
+                        .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
+                        .fillMaxWidth(.7f),
+                    hint = stringResource(Res.string.device_verification_passphrase_hint),
+                    prefixIcon = Icons.Outlined.Pin,
                     state = passphraseState,
-                    errorText = null,
+                    errorText = if(verificationResult.value?.isFailure == true) {
+                        stringResource(Res.string.device_verification_passphrase_error)
+                    }else null,
                     textObfuscationMode = if(showPassphrase.value) {
                         TextObfuscationMode.Visible
-                    }else TextObfuscationMode.Hidden,
+                    }else TextObfuscationMode.RevealLastTyped,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
+                        keyboardType = KeyboardType.NumberPassword,
+                        imeAction = ImeAction.Send
                     ),
-                    onKeyboardAction = {
-                        model.verify(passphraseState.text.toString().takeIf { passphraseMethod.value })
-                    },
+                    onKeyboardAction = { verify() },
                     trailingIcon = {
                         Crossfade(
-                            targetState = showPassphrase.value, label = "",
+                            targetState = showPassphrase.value
                         ) { isPasswordVisible ->
                             MinimalisticIcon(
                                 contentDescription = stringResource(
@@ -195,41 +258,39 @@ fun DeviceVerificationLauncher(
                             }
                         }
                     },
-                    inputTransformation = {
-                        this.delete(PASSPHRASE_MAX_LENGTH, this.length)
+                    inputTransformation = InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
+                        proposed.replace(Regex("[^0-9]"), "")
                     },
                     paddingValues = PaddingValues(start = 16.dp)
                 )
+            }else {
+                Text(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally),
+                    text = stringResource(Res.string.device_verification_send_info),
+                    style = LocalTheme.current.styles.regular
+                )
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedButton(
-                modifier = Modifier.padding(horizontal = 4.dp),
-                text = stringResource(
-                    if(passphraseMethod.value) Res.string.device_verification_other_device
-                    else Res.string.device_verification_passphrase
-                ),
-                onClick = {
-                    passphraseMethod.value = !passphraseMethod.value
-                },
-                activeColor = LocalTheme.current.colors.secondary
-            )
+
+        AnimatedVisibility(verificationState.value !is VerificationState.ComparisonByUser) {
             BrandHeaderButton(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp, end = 16.dp),
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 text = stringResource(
-                    if(passphraseMethod.value) Res.string.device_verification_confirm
-                    else Res.string.device_verification_send
+                    when {
+                        isLoading.value -> Res.string.accessibility_cancel
+                        verificationState.value is VerificationState.Passphrase -> Res.string.device_verification_confirm
+                        else -> Res.string.device_verification_send
+                    }
                 ),
-                isEnabled = isLoading.value.not(),
                 isLoading = isLoading.value,
                 onClick = {
-                    model.verify(passphraseState.text.toString().takeIf { passphraseMethod.value })
+                    if(isLoading.value) {
+                        model.cancel()
+                    }else verify()
                 }
             )
         }
@@ -239,7 +300,7 @@ fun DeviceVerificationLauncher(
 @Composable
 private fun EmojiEntity(
     modifier: Modifier,
-    emoji: Pair<Int, String>
+    emoji: Pair<String, Map<String, String>>
 ) {
     Column(
         modifier = modifier,
@@ -247,14 +308,14 @@ private fun EmojiEntity(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = emoji.second,
+            text = emoji.second[Locale.current.language.lowercase()] ?: emoji.second.values.first(),
             style = LocalTheme.current.styles.subheading
         )
         Text(
-            text = emoji.first.toString(),
+            text = emoji.first,
             style = LocalTheme.current.styles.title
         )
     }
 }
 
-private const val PASSPHRASE_MAX_LENGTH = 256
+private const val PASSPHRASE_MAX_LENGTH = 8

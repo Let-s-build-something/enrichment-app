@@ -71,7 +71,7 @@ fun BrandBaseScreen(
     val dispatcher = LocalBackPressDispatcher.current
 
     val firebaseUser = sharedModel.firebaseUser.collectAsState(null)
-    val currentUser = sharedModel.currentUser.collectAsState(null)
+    val currentUser = sharedModel.currentUser.collectAsState()
 
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
             || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)
@@ -95,7 +95,7 @@ fun BrandBaseScreen(
 
         if(showDefaultActions) {
             DefaultAppBarActions(
-                isUserSignedIn = firebaseUser.value != null,
+                isUserSignedIn = firebaseUser.value != null || currentUser.value != null,
                 userPhotoUrl = try { firebaseUser.value?.photoURL } catch (e: NotImplementedError) { null },
                 expanded = expanded,
                 userTag = currentUser.value?.tag

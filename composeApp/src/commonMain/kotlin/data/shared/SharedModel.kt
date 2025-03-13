@@ -55,7 +55,7 @@ open class SharedModel: ViewModel() {
         }
 
         viewModelScope.launch {
-            delay(1000)
+            delay(200)
             sharedDataManager.matrixClient.combine(currentUser) { client, user ->
                 client to user
             }.collectLatest { client ->
@@ -67,7 +67,7 @@ open class SharedModel: ViewModel() {
             }
         }
         viewModelScope.launch {
-            delay(1000)
+            delay(200)
             // TODO there should be a variant for unsigned invalid clients as well, probably only a ping of sorts
             networkConnectivity.collectLatest {
                 sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
@@ -116,7 +116,7 @@ open class SharedModel: ViewModel() {
     ).onEach { firebaseUser ->
         if(firebaseUser != null) {
             delay(500) // we have to delay the check to give time login flow to catch up
-            initUser(false)
+            initUser()
         }
     }
 
@@ -130,19 +130,14 @@ open class SharedModel: ViewModel() {
     //======================================== functions ==========================================
 
     /** Initializes the user and returns whether successful */
-    suspend fun initUser(forceRefresh: Boolean): Boolean {
-        return Firebase.auth.currentUser?.let { firebaseUser ->
-            if(sharedDataManager.currentUser.value?.idToken == null || forceRefresh) {
+    private suspend fun initUser(): Boolean {
+        return Firebase.auth.currentUser?.let {
+            if(sharedDataManager.currentUser.value?.idToken == null) {
                 try {
-                    firebaseUser.getIdToken(false)?.let { idToken ->
-                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-                            idToken = idToken
-                        ) ?: UserIO(idToken = idToken)
-                        authService.setupAutoLogin(forceRefresh = forceRefresh)
-                        updateClientSettings()
+                    authService.setupAutoLogin(forceRefresh = true)
+                    updateClientSettings()
 
-                        currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
-                    } ?: false
+                    currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
                 }catch (e: Exception) {
                     println("kostka_test, initUser exception: ${e.message}")
                     authService.stop()
