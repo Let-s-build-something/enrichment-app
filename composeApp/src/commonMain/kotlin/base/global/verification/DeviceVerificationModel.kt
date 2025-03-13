@@ -100,10 +100,10 @@ class VerificationModel(
 
     fun cancel(restart: Boolean = true) {
         hasActiveSubscribers = false
-        keyVerificationScope.coroutineContext.cancelChildren()
         viewModelScope.launch {
             sharedDataManager.matrixClient.value?.verification?.activeDeviceVerification?.value?.cancel()
         }
+        keyVerificationScope.coroutineContext.cancelChildren()
         _comparisonByUser.value = null
         isLoading.value = false
 

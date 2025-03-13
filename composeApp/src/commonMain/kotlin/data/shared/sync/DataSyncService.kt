@@ -26,6 +26,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
@@ -114,6 +115,9 @@ class DataSyncService {
         var currentBatch = since ?: initialEntity?.nextBatch ?: INITIAL_BATCH
 
         client.api.sync.subscribe {
+            println("kostka_test, new sync data, activeDeviceVerification: ${
+                client.verification.activeDeviceVerification.value?.state?.value
+            }")
             handler.handle(
                 response = it.syncResponse,
                 nextBatch = nextBatch,
