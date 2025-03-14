@@ -83,4 +83,17 @@ private class EncryptedSQLiteDriver(key: ByteArray) : SQLiteDriver {
             }
         }
     }
+    /*
+    * TODO database.factory.MatrixClientInitializationException$DatabaseAccessException: Database does not support Encryption
+	at database.factory.EncryptedSQLiteDriver$open$1.invokeSuspend(CreateRepositoriesModule.jvm.kt:81)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at database.factory.EncryptedSQLiteDriver.open(CreateRepositoriesModule.jvm.kt:76)
+    * */
 }
