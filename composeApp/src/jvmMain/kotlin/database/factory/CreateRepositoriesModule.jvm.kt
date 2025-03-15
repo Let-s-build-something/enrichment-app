@@ -76,10 +76,10 @@ private class EncryptedSQLiteDriver(key: ByteArray) : SQLiteDriver {
     override fun open(fileName: String): SQLiteConnection = runBlocking {
         mutex.withLock {
             driver.open(fileName).apply {
-                prepare("PRAGMA key = 'raw:$rawKey'").use {
+                /*TODO enable with sqlcipher encryption  prepare("PRAGMA key = 'raw:$rawKey'").use {
                     if (!it.step() || it.getColumnNames().getOrNull(0) != "ok")
                         throw MatrixClientInitializationException.DatabaseAccessException("Database does not support Encryption")
-                }
+                }*/
             }
         }
     }

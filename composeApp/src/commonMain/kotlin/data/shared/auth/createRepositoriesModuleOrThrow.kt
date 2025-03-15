@@ -48,7 +48,6 @@ class MatrixClientFactory(
 
     suspend fun initializeMatrixClient(credentials: AuthItem): MatrixClient? {
         return if(credentials.userId != null) {
-            println("kostka_test, dbpassword: ${credentials.databasePassword}")
             (if(credentials.databasePassword != null) {
                 MatrixClient.fromStore(
                     repositoriesModule = loadRepositoriesModuleOrThrow(
@@ -67,7 +66,6 @@ class MatrixClientFactory(
                 },
                 repositoriesModuleFactory = { loginInfo ->
                     createRepositoriesModuleOrThrow(loginInfo.userId).also {
-                        println("kostka_test, databaseKey: ${it.databaseKey}")
                         saveDatabasePassword(loginInfo.userId.full, it.databaseKey)
                     }.module
                 },

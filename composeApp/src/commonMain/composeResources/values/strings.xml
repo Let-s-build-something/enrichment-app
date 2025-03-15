@@ -172,12 +172,13 @@
   <string name="device_verification_title">You need to verify yourself🗝️👀</string>
   <string name="device_verification_title_passphrase">Create a new PIN</string>
   <string name="device_verification_title_other_device">Use your PIN</string>
-  <string name="device_verification_title_emojis">Do the emojis and how they are ordered match the other device?</string>
-  <string name="device_verification_title_decimal">Do the numbers and how they are ordered match the other device?</string>
+  <string name="device_verification_title_emojis">Do the emoji match the other device, in the same order?</string>
+  <string name="device_verification_title_decimal">Do the numbers match the other device, in the same order?</string>
   <string name="device_verification_no_match">They don't match</string>
   <string name="device_verification_match">They are the same</string>
   <string name="device_verification_confirm">Verify</string>
-  <string name="device_verification_send_info">Sends a verification request to your device 📬 - that, which has already been verified by you ✅.</string>
+  <string name="device_verification_send_info">Sends a verification request to your (✅ verified) device 📬</string>
+  <string name="device_verification_send_info_2">Please confirm the request on the other device</string>
   <string name="device_verification_send">Send</string>
   <string name="device_verification_other_device">Verify with other device</string>
   <string name="device_verification_passphrase">Enter PIN</string>

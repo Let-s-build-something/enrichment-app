@@ -98,7 +98,7 @@ class VerificationModel(
         _comparisonByUser.value = null
     }
 
-    fun cancel(restart: Boolean = true) {
+    fun cancel(restart: Boolean = true, manual: Boolean = true) {
         hasActiveSubscribers = false
         viewModelScope.launch {
             sharedDataManager.matrixClient.value?.verification?.activeDeviceVerification?.value?.cancel()
@@ -277,6 +277,7 @@ class VerificationModel(
                                                             emojisWithTranslation[it.first]
                                                         }
                                                     )
+                                                    _showLauncher.value = true
                                                     println("kostka_test, sasState match")
                                                 }
                                                 is ActiveSasVerificationState.OwnSasStart -> {
@@ -300,6 +301,7 @@ class VerificationModel(
                                     //state.start(method)
                                 }
                             }
+                            is ActiveVerificationState.Cancel -> cancel(manual = false)
                             else -> {}
                         }
                     }

@@ -2,7 +2,8 @@ package base.global.verification
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -48,6 +49,7 @@ import augmy.composeapp.generated.resources.device_verification_passphrase_error
 import augmy.composeapp.generated.resources.device_verification_passphrase_hint
 import augmy.composeapp.generated.resources.device_verification_send
 import augmy.composeapp.generated.resources.device_verification_send_info
+import augmy.composeapp.generated.resources.device_verification_send_info_2
 import augmy.composeapp.generated.resources.device_verification_title
 import augmy.composeapp.generated.resources.device_verification_title_decimal
 import augmy.composeapp.generated.resources.device_verification_title_emojis
@@ -122,9 +124,10 @@ fun DeviceVerificationLauncher(
     SimpleModalBottomSheet(
         modifier = modifier,
         sheetState = sheetState,
-        onDismissRequest = {
-            model.clear()
-        }
+        contentPadding = PaddingValues(
+            start = 16.dp, end = 16.dp, bottom = 12.dp
+        ),
+        onDismissRequest = {}
     ) {
         Text(
             modifier = Modifier
@@ -134,7 +137,9 @@ fun DeviceVerificationLauncher(
             style = LocalTheme.current.styles.heading
         )
 
-        AnimatedVisibility(comparisonByUser.value == null) {
+        AnimatedVisibility(
+            comparisonByUser.value == null && !isLoading.value
+        ) {
             MultiChoiceSwitch(
                 shape = LocalTheme.current.shapes.rectangularActionShape,
                 state = multiChoiceState
@@ -143,13 +148,15 @@ fun DeviceVerificationLauncher(
 
         AnimatedVisibility(comparisonByUser.value != null) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .padding(bottom = 24.dp)
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(top = 16.dp),
+                        .padding(top = 32.dp),
                     text = stringResource(
                         if(!comparisonByUser.value?.emojis.isNullOrEmpty()) {
                             Res.string.device_verification_title_emojis
@@ -157,30 +164,37 @@ fun DeviceVerificationLauncher(
                     ),
                     style = LocalTheme.current.styles.subheading
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+
+                with(Modifier
+                    .padding(4.dp)
+                    .border(
+                        width = 1.dp,
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
+                    .padding(vertical = 8.dp, horizontal = 10.dp)
                 ) {
-                    comparisonByUser.value?.emojis?.takeIf { it.isNotEmpty() }?.forEach { emoji ->
-                        EmojiEntity(
-                            modifier = Modifier
-                                .padding(vertical = 4.dp)
-                                .background(
-                                    color = LocalTheme.current.colors.backgroundLight
+                    comparisonByUser.value?.emojis?.takeIf { it.isNotEmpty() }?.chunked(4)?.forEach { chunks ->
+                        Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                            chunks.forEach { emoji ->
+                                EmojiEntity(
+                                    modifier = this@with,
+                                    emoji = emoji
                                 )
-                                .padding(vertical = 8.dp, horizontal = 10.dp),
-                            emoji = emoji
-                        )
+                            }
+                        }
                     }?.ifNull {
-                        comparisonByUser.value?.decimals?.forEach { decimal ->
-                            Text(
-                                modifier = Modifier
-                                    .padding(vertical = 4.dp)
-                                    .background(color = LocalTheme.current.colors.backgroundLight)
-                                    .padding(vertical = 6.dp, horizontal = 8.dp),
-                                text = decimal.toString(),
-                                style = LocalTheme.current.styles.subheading
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            comparisonByUser.value?.decimals?.forEach { decimal ->
+                                Text(
+                                    modifier = this@with,
+                                    text = decimal.toString(),
+                                    style = LocalTheme.current.styles.subheading
+                                )
+                            }
                         }
                     }
                 }
@@ -192,14 +206,12 @@ fun DeviceVerificationLauncher(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 4.dp),
+                        modifier = Modifier.padding(end = 12.dp),
                         text = stringResource(Res.string.device_verification_no_match),
                         onClick = {
                             model.matchChallenge(false)
                         },
-                        activeColor = SharedColors.RED_ERROR
+                        activeColor = SharedColors.RED_ERROR_50
                     )
                     BrandHeaderButton(
                         modifier = Modifier
@@ -214,85 +226,91 @@ fun DeviceVerificationLauncher(
             }
         }
 
-        Crossfade(
+        AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            targetState = verificationState.value == VerificationState.Passphrase
+            visible = verificationState.value == VerificationState.Passphrase
                     && comparisonByUser.value == null
-        ) { isPassphrase ->
-            if(isPassphrase) {
-                CustomTextField(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
-                        .fillMaxWidth(.7f),
-                    hint = stringResource(Res.string.device_verification_passphrase_hint),
-                    prefixIcon = Icons.Outlined.Pin,
-                    state = passphraseState,
-                    errorText = if(verificationResult.value?.isFailure == true) {
-                        stringResource(Res.string.device_verification_passphrase_error)
-                    }else null,
-                    textObfuscationMode = if(showPassphrase.value) {
-                        TextObfuscationMode.Visible
-                    }else TextObfuscationMode.RevealLastTyped,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.NumberPassword,
-                        imeAction = ImeAction.Send
-                    ),
-                    onKeyboardAction = { verify() },
-                    trailingIcon = {
-                        Crossfade(
-                            targetState = showPassphrase.value
-                        ) { isPasswordVisible ->
-                            MinimalisticIcon(
-                                contentDescription = stringResource(
-                                    if(isPasswordVisible) {
-                                        Res.string.accessibility_hide_password
-                                    }else Res.string.accessibility_show_password
-                                ),
-                                imageVector = if(isPasswordVisible) {
-                                    Icons.Outlined.Visibility
-                                }else Icons.Outlined.VisibilityOff,
-                                tint = LocalTheme.current.colors.secondary
-                            ) {
-                                showPassphrase.value = !showPassphrase.value
-                            }
+        ) {
+            CustomTextField(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
+                    .fillMaxWidth(.7f),
+                hint = stringResource(Res.string.device_verification_passphrase_hint),
+                prefixIcon = Icons.Outlined.Pin,
+                state = passphraseState,
+                errorText = if(verificationResult.value?.isFailure == true) {
+                    stringResource(Res.string.device_verification_passphrase_error)
+                }else null,
+                textObfuscationMode = if(showPassphrase.value) {
+                    TextObfuscationMode.Visible
+                }else TextObfuscationMode.RevealLastTyped,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = ImeAction.Send
+                ),
+                onKeyboardAction = { verify() },
+                trailingIcon = {
+                    Crossfade(
+                        targetState = showPassphrase.value
+                    ) { isPasswordVisible ->
+                        MinimalisticIcon(
+                            contentDescription = stringResource(
+                                if(isPasswordVisible) {
+                                    Res.string.accessibility_hide_password
+                                }else Res.string.accessibility_show_password
+                            ),
+                            imageVector = if(isPasswordVisible) {
+                                Icons.Outlined.Visibility
+                            }else Icons.Outlined.VisibilityOff,
+                            tint = LocalTheme.current.colors.secondary
+                        ) {
+                            showPassphrase.value = !showPassphrase.value
                         }
-                    },
-                    inputTransformation = InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
-                        proposed.replace(Regex("[^0-9]"), "")
-                    },
-                    paddingValues = PaddingValues(start = 16.dp)
-                )
-            }else {
-                Text(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.CenterHorizontally),
-                    text = stringResource(Res.string.device_verification_send_info),
-                    style = LocalTheme.current.styles.regular
-                )
-            }
+                    }
+                },
+                inputTransformation = InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
+                    proposed.replace(Regex("[^0-9]"), "")
+                },
+                paddingValues = PaddingValues(start = 16.dp)
+            )
         }
 
         AnimatedVisibility(verificationState.value !is VerificationState.ComparisonByUser) {
-            BrandHeaderButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                text = stringResource(
-                    when {
-                        isLoading.value -> Res.string.accessibility_cancel
-                        verificationState.value is VerificationState.Passphrase -> Res.string.device_verification_confirm
-                        else -> Res.string.device_verification_send
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                BrandHeaderButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    text = stringResource(
+                        when {
+                            isLoading.value -> Res.string.accessibility_cancel
+                            verificationState.value is VerificationState.Passphrase -> Res.string.device_verification_confirm
+                            else -> Res.string.device_verification_send
+                        }
+                    ),
+                    isLoading = isLoading.value,
+                    onClick = {
+                        if(isLoading.value) {
+                            model.cancel()
+                        }else verify()
                     }
-                ),
-                isLoading = isLoading.value,
-                onClick = {
-                    if(isLoading.value) {
-                        model.cancel()
-                    }else verify()
-                }
-            )
+                )
+                Text(
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, top = 2.dp)
+                        .animateContentSize(),
+                    text = stringResource(
+                        if(isLoading.value) {
+                            Res.string.device_verification_send_info_2
+                        }else Res.string.device_verification_send_info
+                    ),
+                    style = LocalTheme.current.styles.regular
+                )
+            }
         }
     }
 }
@@ -308,11 +326,11 @@ private fun EmojiEntity(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = emoji.second[Locale.current.language.lowercase()] ?: emoji.second.values.first(),
-            style = LocalTheme.current.styles.subheading
+            text = emoji.first,
+            style = LocalTheme.current.styles.heading
         )
         Text(
-            text = emoji.first,
+            text = emoji.second[Locale.current.language.lowercase()] ?: emoji.second.values.first(),
             style = LocalTheme.current.styles.title
         )
     }
