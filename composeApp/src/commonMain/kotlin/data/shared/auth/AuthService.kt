@@ -521,6 +521,8 @@ class AuthService {
         }
     }
 
+    //mac: BkLukuyyfn9OQ2xoQ3c82orML8G0sVdj95NCN04o9b0
+
     @OptIn(ExperimentalUuidApi::class)
     private fun generateDeviceId(): String = "${currentPlatform}_${Uuid.random().toHexString()}"
 }

@@ -22,6 +22,7 @@ koin = "4.0.2"
 pagingCompose = "3.3.0-alpha02-0.5.1"
 room = "2.7.0-rc02"
 sqlite-bundled = "2.5.0-rc02"
+sqlite-sqlcipher = "4.6.0"
 lifecycle = "2.8.4"
 googleId = "1.1.1"
 firebaseJavaSdk = "0.4.6"
@@ -78,6 +79,7 @@ compose-paging-common = { module = "app.cash.paging:paging-compose-common", vers
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
+sqlite-sqlcipher = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-sqlcipher" }
 
 media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }
