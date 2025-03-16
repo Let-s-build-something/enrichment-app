@@ -2,7 +2,9 @@ package base.global.verification
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,21 +19,24 @@ import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.Locale
@@ -55,15 +60,15 @@ import augmy.composeapp.generated.resources.device_verification_title_decimal
 import augmy.composeapp.generated.resources.device_verification_title_emojis
 import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticIcon
-import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.input.CustomTextField
-import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -88,37 +93,36 @@ fun DeviceVerificationLauncher(
 ) {
     loadKoinModules(verificationModule)
     val model: VerificationModel = koinViewModel()
-    val showLauncher = model.showLauncher.collectAsState()
-    val comparisonByUser = model.comparisonByUser.collectAsState()
+    val launcherState = model.launcherState.collectAsState()
     val isLoading = model.isLoading.collectAsState()
     val verificationResult = model.verificationResult.collectAsState()
 
-    val multiChoiceState = rememberMultiChoiceState(
-        items = mutableListOf(
-            stringResource(Res.string.device_verification_other_device),
-            stringResource(Res.string.device_verification_passphrase)
-        )
-    )
-    val verificationState = remember {
-        derivedStateOf {
-            when {
-                comparisonByUser.value != null -> VerificationState.ComparisonByUser
-                multiChoiceState.selectedTabIndex.value == 0 -> VerificationState.OtherDevice
-                else -> VerificationState.Passphrase
-            }
-        }
+    val selectedMethod = remember {
+        mutableStateOf<SelfVerificationMethod?>(null)
     }
 
-    if(!showLauncher.value) return
+    if(launcherState.value is LauncherState.Hidden) return
 
     val passphraseState = remember { TextFieldState() }
     val showPassphrase = remember { mutableStateOf(false) }
 
     val verify = {
-        model.verify(
-            state = verificationState.value,
-            passphrase = passphraseState.text.toString()
-        )
+        selectedMethod.value?.let { method ->
+            model.verifySelf(
+                method = method,
+                passphrase = passphraseState.text.toString()
+            )
+        }
+    }
+
+    LaunchedEffect(launcherState.value) {
+        if(selectedMethod.value == null
+            && launcherState.value is LauncherState.SelfVerification
+        ) {
+            selectedMethod.value = with(launcherState.value as? LauncherState.SelfVerification) {
+                this?.methods?.find { it is SelfVerificationMethod.CrossSignedDeviceVerification } ?: this?.methods?.firstOrNull()
+            }
+        }
     }
 
     SimpleModalBottomSheet(
@@ -138,98 +142,123 @@ fun DeviceVerificationLauncher(
         )
 
         AnimatedVisibility(
-            comparisonByUser.value == null && !isLoading.value
+            visible = launcherState.value is LauncherState.SelfVerification
         ) {
-            MultiChoiceSwitch(
-                shape = LocalTheme.current.shapes.rectangularActionShape,
-                state = multiChoiceState
-            )
+            Row(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val list = (launcherState.value as? LauncherState.SelfVerification)?.methods
+
+                for (i in (list?.size?.plus(1) ?: 0) downTo 0) {
+                    // TODO combine the recovery options to one
+                    list?.getOrNull(i)?.let { method ->
+                        ClickableTile(
+                            text = stringResource(
+                                when(method) {
+                                    is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
+                                    else -> Res.string.device_verification_passphrase
+                                }
+                            ),
+                            icon = when(method) {
+                                is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
+                                else -> Icons.Outlined.Pin
+                            },
+                            isSelected = selectedMethod.value == method,
+                            onClick = {
+                                selectedMethod.value = method
+                            }
+                        )
+                    }
+                }
+            }
         }
 
-        AnimatedVisibility(comparisonByUser.value != null) {
-            Column(
-                modifier = Modifier
-                    .padding(bottom = 24.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
+        AnimatedVisibility(launcherState.value is LauncherState.ComparisonByUser) {
+            (launcherState.value as? LauncherState.ComparisonByUser)?.let { comparisonByUser ->
+                Column(
                     modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 32.dp),
-                    text = stringResource(
-                        if(!comparisonByUser.value?.emojis.isNullOrEmpty()) {
-                            Res.string.device_verification_title_emojis
-                        }else Res.string.device_verification_title_decimal
-                    ),
-                    style = LocalTheme.current.styles.subheading
-                )
-
-                with(Modifier
-                    .padding(4.dp)
-                    .border(
-                        width = 1.dp,
-                        color = LocalTheme.current.colors.backgroundLight,
-                        shape = LocalTheme.current.shapes.rectangularActionShape
-                    )
-                    .padding(vertical = 8.dp, horizontal = 10.dp)
+                        .padding(bottom = 24.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    comparisonByUser.value?.emojis?.takeIf { it.isNotEmpty() }?.chunked(4)?.forEach { chunks ->
-                        Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                            chunks.forEach { emoji ->
-                                EmojiEntity(
-                                    modifier = this@with,
-                                    emoji = emoji
-                                )
+                    Text(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 32.dp),
+                        text = stringResource(
+                            if(comparisonByUser.data.emojis.isNotEmpty()) {
+                                Res.string.device_verification_title_emojis
+                            }else Res.string.device_verification_title_decimal
+                        ),
+                        style = LocalTheme.current.styles.subheading
+                    )
+
+                    with(Modifier
+                        .padding(4.dp)
+                        .border(
+                            width = 1.dp,
+                            color = LocalTheme.current.colors.backgroundLight,
+                            shape = LocalTheme.current.shapes.rectangularActionShape
+                        )
+                        .padding(vertical = 8.dp, horizontal = 10.dp)
+                    ) {
+                        comparisonByUser.data.emojis.takeIf { it.isNotEmpty() }?.chunked(4)?.forEach { chunks ->
+                            Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                                chunks.forEach { emoji ->
+                                    EmojiEntity(
+                                        modifier = this@with,
+                                        emoji = emoji
+                                    )
+                                }
                             }
-                        }
-                    }?.ifNull {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            comparisonByUser.value?.decimals?.forEach { decimal ->
-                                Text(
-                                    modifier = this@with,
-                                    text = decimal.toString(),
-                                    style = LocalTheme.current.styles.subheading
-                                )
+                        }?.ifNull {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                comparisonByUser.data.decimals.forEach { decimal ->
+                                    Text(
+                                        modifier = this@with,
+                                        text = decimal.toString(),
+                                        style = LocalTheme.current.styles.subheading
+                                    )
+                                }
                             }
                         }
                     }
-                }
-                Row(
-                    modifier = Modifier
-                        .padding(vertical = 12.dp, horizontal = 16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        modifier = Modifier.padding(end = 12.dp),
-                        text = stringResource(Res.string.device_verification_no_match),
-                        onClick = {
-                            model.matchChallenge(false)
-                        },
-                        activeColor = SharedColors.RED_ERROR_50
-                    )
-                    BrandHeaderButton(
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 4.dp),
-                        text = stringResource(Res.string.device_verification_match),
-                        onClick = {
-                            model.matchChallenge(true)
-                        }
-                    )
+                            .padding(vertical = 12.dp, horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            modifier = Modifier.padding(end = 12.dp),
+                            text = stringResource(Res.string.device_verification_no_match),
+                            onClick = {
+                                model.matchChallenge(false)
+                            },
+                            activeColor = SharedColors.RED_ERROR_50
+                        )
+                        BrandHeaderButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp),
+                            text = stringResource(Res.string.device_verification_match),
+                            onClick = {
+                                model.matchChallenge(true)
+                            }
+                        )
+                    }
                 }
             }
         }
 
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            visible = verificationState.value == VerificationState.Passphrase
-                    && comparisonByUser.value == null
+            visible = launcherState.value is LauncherState.SelfVerification && selectedMethod.value?.isVerify() == true
         ) {
             CustomTextField(
                 modifier = Modifier
@@ -276,7 +305,7 @@ fun DeviceVerificationLauncher(
             )
         }
 
-        AnimatedVisibility(verificationState.value !is VerificationState.ComparisonByUser) {
+        AnimatedVisibility(launcherState.value !is LauncherState.ComparisonByUser) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -288,7 +317,7 @@ fun DeviceVerificationLauncher(
                     text = stringResource(
                         when {
                             isLoading.value -> Res.string.accessibility_cancel
-                            verificationState.value is VerificationState.Passphrase -> Res.string.device_verification_confirm
+                            selectedMethod.value?.isVerify() == true -> Res.string.device_verification_confirm
                             else -> Res.string.device_verification_send
                         }
                     ),
@@ -314,6 +343,51 @@ fun DeviceVerificationLauncher(
         }
     }
 }
+
+@Composable
+private fun ClickableTile(
+    text: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val color = animateColorAsState(
+        targetValue = if(isSelected) {
+            LocalTheme.current.colors.secondary
+        }else LocalTheme.current.colors.backgroundLight
+    )
+    val width = animateDpAsState(
+        targetValue = if(isSelected) 4.dp else 1.dp
+    )
+
+    Column(
+        modifier = Modifier
+            .border(
+                width = width.value,
+                color = color.value,
+                shape = LocalTheme.current.shapes.rectangularActionShape
+            )
+            .padding(vertical = 10.dp, horizontal = 12.dp)
+            .scalingClickable(hoverEnabled = false) {
+                onClick()
+            },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = LocalTheme.current.colors.disabled
+        )
+        Text(
+            text = text,
+            style = LocalTheme.current.styles.subheading
+        )
+    }
+}
+
+fun SelfVerificationMethod.isVerify() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
+        || this is SelfVerificationMethod.AesHmacSha2RecoveryKey
 
 @Composable
 private fun EmojiEntity(

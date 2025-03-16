@@ -209,10 +209,7 @@ abstract class MessageProcessor {
 
     private fun decryptEvent(event: RoomEvent.MessageEvent<*>) {
         decryptionScope.launch {
-            sharedDataManager.matrixClient.value?.roomEventEncryptionServices?.decrypt(event).also { decryptedEvent ->
-                println("kostka_test, decrypted megolm event: ${decryptedEvent?.getOrThrow()}, event: $event")
-            }
-            println("kostka_test, decrypting megolm decrypted finished")
+            sharedDataManager.matrixClient.value?.roomEventEncryptionServices?.decrypt(event)
         }
     }
 }
