@@ -142,16 +142,13 @@ fun DeviceVerificationLauncher(
         )
 
         AnimatedVisibility(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
             visible = launcherState.value is LauncherState.SelfVerification
         ) {
-            Row(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val list = (launcherState.value as? LauncherState.SelfVerification)?.methods
 
                 for (i in (list?.size?.plus(1) ?: 0) downTo 0) {
-                    // TODO combine the recovery options to one
                     list?.getOrNull(i)?.let { method ->
                         ClickableTile(
                             text = stringResource(
