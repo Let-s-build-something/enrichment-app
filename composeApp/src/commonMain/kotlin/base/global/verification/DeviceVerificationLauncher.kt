@@ -73,13 +73,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 
-sealed class VerificationState {
-    data object ComparisonByUser: VerificationState()
-    data object OtherDevice: VerificationState()
-    data object Passphrase: VerificationState()
-}
-
-// TODO should be full screen
 /**
  * Bottom sheet for verifying current device
  */
