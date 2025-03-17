@@ -19,14 +19,17 @@ data class MatrixPagingMetaIO(
 
     /** Type of paginated entity */
     @ColumnInfo("entity_type")
-    val entityType: PagingEntityType?,
+    val entityType: String?,
 
     /** A flag whether there is another page after this one or not */
     @ColumnInfo("next_batch")
-    val nextBatch: String? = null,
+    val nextBatch: String?,
 
-    /** Identification of current batch */
-    val batch: String? = null,
+    /** The starting batch of all the data in the DB, this serves as a limit for loading older messages */
+    @ColumnInfo("current_batch")
+    val currentBatch: String? = null,
+
+    val prevBatch: String?,
 
     /** At what time was this object created in milliseconds */
     @ColumnInfo("created_at")

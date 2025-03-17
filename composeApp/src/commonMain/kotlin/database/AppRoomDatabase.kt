@@ -8,15 +8,20 @@ import androidx.room.TypeConverters
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingMetaIO
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.user.NetworkItemIO
+import data.io.user.PresenceData
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
-import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
+import database.dao.matrix.MatrixPagingMetaDao
+import database.dao.matrix.PresenceEventDao
+import database.dao.matrix.RoomMemberDao
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 
 @Database(
     entities = [
@@ -25,9 +30,11 @@ import database.dao.PagingMetaDao
         PagingMetaIO::class,
         MatrixPagingMetaIO::class,
         ConversationMessageIO::class,
+        PresenceData::class,
+        ConversationRoomMember::class,
         ConversationRoomIO::class
     ],
-    version = 29,
+    version = 51,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -40,8 +47,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun emojiSelectionDao(): EmojiSelectionDao
     abstract fun pagingMetaDao(): PagingMetaDao
     abstract fun conversationRoomDao(): ConversationRoomDao
+    abstract fun presenceEventDao(): PresenceEventDao
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
-
+    abstract fun roomMemberDao(): RoomMemberDao
 
     companion object {
         /** File name of the main database */
@@ -64,6 +72,12 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [MatrixPagingMetaIO] */
         const val TABLE_MATRIX_PAGING_META = "room_matrix_paging_meta_table"
+
+        /** Identification of table for [PresenceEventContent] */
+        const val TABLE_PRESENCE_EVENT = "presence_event_table"
+
+        /** Identification of table for [ConversationRoomMember] */
+        const val TABLE_ROOM_MEMBER = "room_member_table"
     }
 }
 

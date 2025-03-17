@@ -8,5 +8,8 @@ data class EmailLoginRequest(
     val identifier: MatrixIdentifierData,
     val initialDeviceDisplayName: String,
     val password: String?,
-    val type: String
+    /** Whether our app supports refresh token - should be always true */
+    val refreshToken: Boolean = true,
+    val type: String,
+    val deviceId: String?
 )

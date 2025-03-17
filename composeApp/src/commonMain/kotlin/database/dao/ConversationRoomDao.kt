@@ -44,7 +44,6 @@ interface ConversationRoomDao {
         excludeId: String?
     ): List<ConversationRoomIO>
 
-    /** Counts the number of items */
     @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "SET proximity = :proximity " +
             "WHERE owner_public_id = :ownerPublicId " +
@@ -60,19 +59,23 @@ interface ConversationRoomDao {
             "WHERE owner_public_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
-    /** Counts the number of items */
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
+            "WHERE id = :id " +
+            "LIMIT 1")
+    suspend fun get(id: String?): ConversationRoomIO?
+
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id = :id " +
             "LIMIT 1")
     suspend fun getItem(id: String?, ownerPublicId: String?): ConversationRoomIO?
 
-    /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomIO>)
 
-    /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}" +
-            " WHERE owner_public_id = :ownerPublicId")
-    suspend fun removeAll(ownerPublicId: String?)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: ConversationRoomIO)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}")
+    suspend fun removeAll()
 }

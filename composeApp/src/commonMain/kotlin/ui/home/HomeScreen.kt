@@ -47,6 +47,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -64,7 +65,6 @@ import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -95,7 +95,7 @@ import kotlin.uuid.Uuid
  */
 @OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
+fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
 
@@ -123,12 +123,10 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         mutableStateOf<NetworkItemIO?>(null)
     }
 
-    LifecycleListener {
-        if(it == Lifecycle.Event.ON_RESUME) {
-            if(drawnAsUser.value != viewModel.currentUser.value?.matrixUserId) {
-                drawnAsUser.value = viewModel.currentUser.value?.matrixUserId
-                conversationRooms.refresh()
-            }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if(drawnAsUser.value != viewModel.currentUser.value?.matrixUserId) {
+            drawnAsUser.value = viewModel.currentUser.value?.matrixUserId
+            conversationRooms.refresh()
         }
     }
 
@@ -340,7 +338,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                         if(room?.summary?.isDirect == true) {
                                             coroutineScope.launch(Dispatchers.Default) {
                                                 selectedUser.value = networkItems.value?.find {
-                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()
+                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()?.full
                                                 }
                                             }
                                         }else {
@@ -383,7 +381,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 @Composable
 private fun ConversationRoomItem(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel,
+    viewModel: HomeModel,
     selectedItem: String?,
     room: ConversationRoomIO?,
     customColors: Map<NetworkProximityCategory, Color>,

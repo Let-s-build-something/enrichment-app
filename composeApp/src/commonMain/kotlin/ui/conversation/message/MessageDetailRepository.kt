@@ -2,15 +2,11 @@ package ui.conversation.message
 
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import data.io.base.BaseResponse
-import data.io.base.paging.PaginationInfo
 import data.io.social.network.conversation.message.ConversationMessageIO
-import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.user.NetworkItemIO
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import database.dao.PagingMetaDao
 import database.file.FileAccess
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.Dispatchers
@@ -27,12 +23,10 @@ class MessageDetailRepository(
     httpClient: HttpClient,
     fileAccess: FileAccess,
     conversationRoomDao: ConversationRoomDao,
-    mediaDataManager: MediaProcessorDataManager,
-    pagingMetaDao: PagingMetaDao
+    mediaDataManager: MediaProcessorDataManager
 ): ConversationRepository(
     httpClient = httpClient,
     conversationMessageDao = conversationMessageDao,
-    pagingMetaDao = pagingMetaDao,
     mediaDataManager = mediaDataManager,
     fileAccess = fileAccess,
     networkItemDao = networkItemDao,
@@ -61,36 +55,44 @@ class MessageDetailRepository(
         }
     }
 
+    private var lastBatch: String? = null
+
     /** Returns a flow of conversation reply messages */
     fun getMessagesListFlow(
         config: PagingConfig,
         conversationId: String? = null,
         anchorMessageId: String? = null
-    ): Pager<Int, ConversationMessageIO> {
+    ): Pager<String, ConversationMessageIO> {
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
-                    getMessages = { page ->
-                        val res = conversationMessageDao.getAnchoredPaginated(
+                    getMessages = { batch ->
+                        conversationMessageDao.getAnchoredPaginated(
                             conversationId = conversationId,
                             anchorMessageId = anchorMessageId,
-                            limit = config.pageSize,
-                            offset = page * config.pageSize
-                        )
-
-                        BaseResponse.Success(
-                            ConversationMessagesResponse(
-                                content = res,
-                                pagination = PaginationInfo(
-                                    page = page,
-                                    size = res.size,
-                                    totalItems = conversationMessageDao.getCount(conversationId)
-                                )
-                            )
+                            batch = batch
+                        ).also {
+                            if(it.isEmpty()) {
+                                lastBatch = batch
+                                invalidateLocalSource()
+                            }
+                        }
+                    },
+                    findPreviousBatch = { currentBatch ->
+                        conversationMessageDao.getPreviousBatch(
+                            conversationId = conversationId,
+                            currentBatch = currentBatch
                         )
                     },
-                    size = config.pageSize
+                    countItems = { batch ->
+                        conversationMessageDao.getCount(
+                            conversationId = conversationId,
+                            batch = batch
+                        )
+                    },
+                    size = config.pageSize,
+                    lastBatch = { lastBatch }
                 ).also {
                     currentPagingSource = it
                 }

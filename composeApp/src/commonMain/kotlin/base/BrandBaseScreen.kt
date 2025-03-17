@@ -17,11 +17,13 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.global.InformationLines
+import base.global.InformationPopUps
 import base.navigation.DefaultAppBarActions
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import components.navigation.VerticalAppBar
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -64,12 +66,12 @@ fun BrandBaseScreen(
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable BoxScope.() -> Unit
 ) {
-    val sharedViewModel: SharedViewModel = koinViewModel()
+    val sharedModel: SharedModel = koinViewModel()
     val navController = LocalNavController.current
     val dispatcher = LocalBackPressDispatcher.current
 
-    val firebaseUser = sharedViewModel.firebaseUser.collectAsState(null)
-    val currentUser = sharedViewModel.currentUser.collectAsState(null)
+    val firebaseUser = sharedModel.firebaseUser.collectAsState(null)
+    val currentUser = sharedModel.currentUser.collectAsState()
 
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
             || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)
@@ -93,7 +95,7 @@ fun BrandBaseScreen(
 
         if(showDefaultActions) {
             DefaultAppBarActions(
-                isUserSignedIn = firebaseUser.value != null,
+                isUserSignedIn = firebaseUser.value != null || currentUser.value != null,
                 userPhotoUrl = try { firebaseUser.value?.photoURL } catch (e: NotImplementedError) { null },
                 expanded = expanded,
                 userTag = currentUser.value?.tag
@@ -102,8 +104,9 @@ fun BrandBaseScreen(
     }
 
     Column {
+        InformationPopUps()
         InformationLines(
-            sharedViewModel = sharedViewModel,
+            sharedModel = sharedModel,
             currentUser = currentUser.value
         )
         BaseScreen(

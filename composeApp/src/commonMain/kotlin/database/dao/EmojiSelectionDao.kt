@@ -31,4 +31,7 @@ interface EmojiSelectionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSelection(selection: EmojiSelection)
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_EMOJI_SELECTION}")
+    suspend fun removeAll()
 }

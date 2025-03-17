@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import data.io.social.network.conversation.message.MediaIO
 import database.AppRoomDatabase
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -57,10 +58,12 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     val color: String? = null,
 
     /** Database flag: an identifier of the owner of this item */
-    @ColumnInfo("owner_public_id")
-    val ownerPublicId: String? = null,
+    @ColumnInfo("owner_user_id")
+    val ownerUserId: String? = null,
+
+    val presence: PresenceEventContent? = null,
 
     @PrimaryKey
     @ColumnInfo("primary_key")
-    val primaryKey: String = "${publicId}_$ownerPublicId"
+    val primaryKey: String = "${publicId}_$ownerUserId"
 )

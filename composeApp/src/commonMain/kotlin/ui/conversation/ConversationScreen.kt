@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
@@ -31,7 +32,6 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationArguments
@@ -59,7 +59,7 @@ fun ConversationScreen(
     name: String? = null
 ) {
     loadKoinModules(conversationModule)
-    val viewModel: ConversationViewModel = koinViewModel(
+    val viewModel: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
             parametersOf(conversationId ?: "", true)
@@ -77,11 +77,14 @@ fun ConversationScreen(
         mutableStateOf<String?>(null)
     }
 
-    LifecycleListener {
-        if(it == Lifecycle.Event.ON_RESUME) {
-            messages.refresh()
-        }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        messages.refresh()
     }
+
+    LaunchedEffect(Unit) {
+        if(conversationId != null) viewModel.consumePing(conversationId)
+    }
+
     LaunchedEffect(Unit) {
         viewModel.pingStream.collectLatest { stream ->
             stream.forEach {

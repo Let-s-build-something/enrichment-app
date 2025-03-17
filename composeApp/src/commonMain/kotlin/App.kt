@@ -38,6 +38,7 @@ import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.leave_app_dialog_message
 import augmy.composeapp.generated.resources.leave_app_dialog_show_again
 import augmy.composeapp.generated.resources.leave_app_dialog_title
+import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
@@ -56,7 +57,7 @@ import base.AugmyTheme
 import base.navigation.NavigationNode
 import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
-import data.shared.AppServiceViewModel
+import data.shared.AppServiceModel
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -66,7 +67,7 @@ import ui.dev.DeveloperContent
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 @Preview
-fun App(viewModel: AppServiceViewModel = koinViewModel()) {
+fun App(viewModel: AppServiceModel = koinViewModel()) {
     val localSettings = viewModel.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,7 +98,8 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
         isDarkTheme = when(localSettings.value?.theme) {
             ThemeChoice.DARK -> true
             ThemeChoice.LIGHT -> false
-            else -> isSystemInDarkTheme()
+            ThemeChoice.SYSTEM -> isSystemInDarkTheme()
+            null -> true
         }
     ) {
         Scaffold(
@@ -134,19 +136,14 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
 
 @Composable
 private fun AppContent(
-    viewModel: AppServiceViewModel,
+    viewModel: AppServiceModel,
     navController: androidx.navigation.NavHostController
 ) {
     val backPressDispatcher = LocalBackPressDispatcher.current
     val deviceType = LocalDeviceType.current
-    val currentUser = viewModel.firebaseUser.collectAsState(null)
 
     val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
-    val isInternalUser = try {
-        currentUser.value?.email
-    } catch(e: NotImplementedError) {
-        "@augmy.org" // allow all JVM for now
-    }?.endsWith("@augmy.org") == true
+    val isDevelopment = BuildKonfig.BuildType == "development"
 
     val modalDeepLink = rememberSaveable(viewModel) {
         mutableStateOf<String?>(null)
@@ -244,11 +241,11 @@ private fun AppContent(
     )
 
     CompositionLocalProvider(
-        LocalHeyIamScreen provides (isInternalUser && isPhone),
+        LocalHeyIamScreen provides (isDevelopment && isPhone),
     ) {
         if(isPhone) {
             Column {
-                if(isInternalUser) DeveloperContent(
+                if(isDevelopment) DeveloperContent(
                     modifier = Modifier.statusBarsPadding(),
                 )
                 Box {
@@ -257,7 +254,7 @@ private fun AppContent(
             }
         }else {
             Row {
-                if(isInternalUser) DeveloperContent()
+                if(isDevelopment) DeveloperContent()
                 Box {
                     NavigationHost(navController = navController)
                 }

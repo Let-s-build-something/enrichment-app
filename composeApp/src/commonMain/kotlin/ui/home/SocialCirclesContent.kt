@@ -70,7 +70,7 @@ import kotlin.math.sin
 @Composable
 fun SocialCircleContent(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel
+    viewModel: HomeModel
 ) {
     val density = LocalDensity.current
     val navController = LocalNavController.current

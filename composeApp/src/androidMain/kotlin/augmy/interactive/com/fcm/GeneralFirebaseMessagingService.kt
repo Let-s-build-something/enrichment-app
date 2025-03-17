@@ -21,12 +21,11 @@ import coil3.request.allowHardware
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import data.io.notifications.NotificationTag
-import data.shared.AppServiceViewModel
+import data.shared.AppServiceModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.mp.KoinPlatform
 import kotlin.coroutines.resume
@@ -34,7 +33,7 @@ import kotlin.coroutines.suspendCoroutine
 
 internal class GeneralFirebaseMessagingService : FirebaseMessagingService() {
 
-    private val viewModel: AppServiceViewModel = KoinPlatform.getKoin().get()
+    private val viewModel: AppServiceModel = KoinPlatform.getKoin().get()
 
     companion object {
         /**

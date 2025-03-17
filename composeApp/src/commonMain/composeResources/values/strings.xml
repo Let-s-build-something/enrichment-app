@@ -22,8 +22,8 @@
   <string name="username_change_launcher_confirm">Save</string>
   <string name="error_google_sign_in_unavailable">There are no accounts on your device, use other methods, please.</string>
   <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
-  <string name="login_error_invalid_credential">Sorry, something's incorrect. Use a password manager.</string>
-  <string name="login_error_no_windows">Something's up with the UI, try yeeting the app away and opening again.</string>
+  <string name="login_error_invalid_credential">Some of the info is incorrect 😵. Double check your information and try again 🤞</string>
+  <string name="login_error_no_windows">Something's broke 😵‍💫, try yeeting the app away and opening again.</string>
   <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>
@@ -94,9 +94,9 @@
   <string name="account_settings_title_online">You're online</string>
   <string name="account_settings_content_online">There are no limits, enjoy the ride!</string>
   <string name="account_settings_title_invisible">You're invisible</string>
-  <string name="account_settings_content_invisible">You can't be seen by other users.</string>
-  <string name="account_settings_title_offline">You're offline :-(</string>
-  <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
+  <string name="account_settings_content_invisible">Others see you as offline.</string>
+  <string name="account_settings_title_offline">You're offline</string>
+  <string name="account_settings_content_offline">No interruption and no network is being used.</string>
 
   <string name="message_read_more">Read more</string>
   <string name="invite_new_item_conversation">Name of the conversation</string>
@@ -160,6 +160,30 @@
   <string name="conversation_reply_heading">Replying to...</string>
   <string name="conversation_reply_prefix_self">You:</string>
   <string name="conversation_detail_you">You</string>
+
+  <string name="message_room_invite">got invited.</string>
+  <string name="message_room_join">joined the room.</string>
+  <string name="message_room_knock">knocked on this room.</string>
+  <string name="message_room_leave">left.</string>
+  <string name="message_room_ban">got banned.</string>
+  <string name="message_decryption_failed">Failed to decrypt this message, try again.</string>
+
+  <string name="device_verification_passphrase_hint">PIN code</string>
+  <string name="device_verification_title">You need to verify yourself🗝️👀</string>
+  <string name="device_verification_title_passphrase">Create a new PIN</string>
+  <string name="device_verification_title_other_device">Use your PIN</string>
+  <string name="device_verification_title_emojis">Do the emoji match the other device, in the same order?</string>
+  <string name="device_verification_title_decimal">Do the numbers match the other device, in the same order?</string>
+  <string name="device_verification_no_match">They don't match</string>
+  <string name="device_verification_match">They are the same</string>
+  <string name="device_verification_confirm">Verify</string>
+  <string name="device_verification_send_info">Sends a verification request to your (✅ verified) device 📬</string>
+  <string name="device_verification_send_info_2">Please confirm the request on the other device</string>
+  <string name="device_verification_send">Send</string>
+  <string name="device_verification_other_device">Verify with other device</string>
+  <string name="device_verification_passphrase">Enter PIN</string>
+  <string name="device_verification_success">Successfully verified! 🥳</string>
+  <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>
@@ -236,6 +260,7 @@
   <string name="accessibility_message_action_file">Attach any file to your message</string>
   <string name="accessibility_message_status_loading">Loading</string>
   <string name="accessibility_message_status_sent">Sent</string>
+  <string name="accessibility_message_status_decrypting">Being decrypted</string>
   <string name="accessibility_message_status_failed">Failed</string>
   <string name="accessibility_message_status_received">Received</string>
   <string name="accessibility_message_status_read">Read</string>

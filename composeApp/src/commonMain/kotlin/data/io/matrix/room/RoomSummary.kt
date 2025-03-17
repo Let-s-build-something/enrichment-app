@@ -1,8 +1,11 @@
 package data.io.matrix.room
 
+import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.UserId
 
 /**
  * Information about the room which clients may need to correctly render it to users.
@@ -13,7 +16,8 @@ import kotlinx.serialization.Serializable
 data class RoomSummary(
     /** This should be the first 5 members of the room, ordered by stream ordering, which are joined or invited.
      *  The list must never include the client’s own user ID. */
-    val heroes: List<String>? = null,
+    @SerialName("m.heroes")
+    val heroes: List<UserId>? = null,
 
     /** Name of the room. */
     val canonicalAlias: String? = null,
@@ -27,9 +31,6 @@ data class RoomSummary(
     /** The room’s canonical alias. */
     val proximity: Float? = null,
 
-    /** Last message that happened in this room. */
-    val lastMessage: MatrixEvent? = null,
-
     /** Whether this room is just one on one. */
     val isDirect: Boolean? = null,
 
@@ -37,10 +38,15 @@ data class RoomSummary(
     val invitationMessage: String? = null,
 
     /** The number of users with membership of invite. */
-    val invitedMembersCount: Int? = null,
+    @SerialName("m.invited_member_count")
+    val invitedMemberCount: Int? = null,
 
     /** The number of users with membership of join, including the client’s own user ID. */
-    val joinedMemberCount: Int? = null
+    @SerialName("m.joined_member_count")
+    val joinedMemberCount: Int? = null,
+
+    /** Last message that happened in this room. */
+    val lastMessage: ConversationMessageIO? = null,
 ) {
 
     fun update(other: RoomSummary?): RoomSummary {
@@ -54,7 +60,7 @@ data class RoomSummary(
             lastMessage = other.lastMessage ?: lastMessage,
             isDirect = other.isDirect ?: isDirect,
             invitationMessage = other.invitationMessage ?: invitationMessage,
-            invitedMembersCount = other.invitedMembersCount ?: invitedMembersCount,
+            invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
             joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
         )
     }

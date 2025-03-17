@@ -1,7 +1,5 @@
 package data.shared
 
-import augmy.interactive.shared.ui.base.currentPlatform
-import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.user.RequestInitApp
 import data.io.user.UserIO
@@ -28,18 +26,23 @@ open class SharedRepository(private val httpClient: HttpClient) {
     ): UserIO? {
         return withContext(Dispatchers.IO) {
             if(Firebase.auth.currentUser != null) {
-                httpClient.safeRequest<UserIO> {
+                val res = httpClient.safeRequest<UserIO> {
                     post(urlString = "/api/v1/auth/init-app") {
                         setBody(
                             RequestInitApp(
                                 fcmToken = localSettings?.fcmToken,
-                                deviceName = deviceName() ?: currentPlatform.name,
+                                deviceName = localSettings?.deviceId,
                                 refreshToken = refreshToken,
                                 expiresInMs = expiresInMs
                             )
                         )
                     }
                 }.success?.data
+                // BE can send empty strings
+                res?.copy(
+                    matrixUserId = res.matrixUserId.takeIf { !it.isNullOrBlank() },
+                    accessToken = res.accessToken.takeIf { !it.isNullOrBlank() },
+                )
             }else null
         }
     }

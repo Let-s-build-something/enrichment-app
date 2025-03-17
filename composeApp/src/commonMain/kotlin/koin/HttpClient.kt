@@ -3,12 +3,16 @@ package koin
 import augmy.interactive.com.BuildKonfig
 import base.utils.NetworkSpeed
 import base.utils.speedInMbps
-import data.shared.DeveloperConsoleViewModel
-import data.shared.SharedViewModel
+import data.shared.DeveloperConsoleModel
+import data.shared.SharedModel
+import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
@@ -20,28 +24,37 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.plugins.plugin
+import io.ktor.client.statement.request
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
+import net.folivo.trixnity.core.MatrixServerException
+import org.koin.mp.KoinPlatform
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+private val log = KotlinLogging.logger {}
 
 internal expect fun httpClient(): HttpClient
 
 /** Creates a new instance of http client with interceptor and authentication */
 @OptIn(ExperimentalUuidApi::class)
 internal fun httpClientFactory(
-    sharedViewModel: SharedViewModel,
-    developerViewModel: DeveloperConsoleViewModel?,
+    sharedModel: SharedModel,
+    developerViewModel: DeveloperConsoleModel?,
+    authService: AuthService,
     json: Json
 ): HttpClient {
+    var forceRefreshCountdown = 3
+
     return httpClient().config {
         defaultRequest {
             contentType(ContentType.Application.Json)
@@ -56,26 +69,82 @@ internal fun httpClientFactory(
             socketTimeoutMillis = SYNC_INTERVAL + 10_000
             connectTimeoutMillis = 5_000
         }
+        install(HttpSend)
         install(ContentNegotiation) {
             json(json)
         }
-        install(Logging) {
-            logger = Logger.SIMPLE
-            level = LogLevel.BODY
-
-            sanitizeHeader { header ->
-                header == HttpHeaders.Authorization
-                        || header == IdToken
-                        || header == AccessToken
+        install(HttpRequestRetry) {
+            retryIf { httpRequest, httpResponse ->
+                (httpResponse.status == HttpStatusCode.TooManyRequests)
+                    .also { if (it) log.warn { "rate limit exceeded for ${httpRequest.method} ${httpRequest.url}" } }
             }
+            retryOnExceptionIf { _, throwable ->
+                (throwable is MatrixServerException && throwable.statusCode == HttpStatusCode.TooManyRequests)
+                    .also {
+                        if (it) {
+                            log.warn(if (log.isDebugEnabled()) throwable else null) { "rate limit exceeded" }
+                        }
+                    }
+            }
+            exponentialDelay(maxDelayMs = 30_000, respectRetryAfterHeader = true)
         }
-        ResponseObserver { response ->
-            developerViewModel?.appendHttpLog(
-                DeveloperUtils.processResponse(response)
-            )
+        httpClientConfig(sharedModel = sharedModel)
+        install(HttpSend)
+    }.apply {
+        plugin(HttpSend).intercept { request ->
+            if(request.url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.")) {
+                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                    request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
+                }
+            }
 
+            request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
+
+            developerViewModel?.appendHttpLog(
+                DeveloperUtils.processRequest(request)
+            )
+            val call = execute(request)
+
+            // retry for 401 response
+            if (call.response.status == EXPIRED_TOKEN_CODE
+                && request.url.toString().contains("/_matrix/")
+                && !request.url.encodedPath.contains("/refresh")
+                && forceRefreshCountdown-- > 0
+            ) {
+                authService.setupAutoLogin(forceRefresh = true)
+                if(sharedModel.currentUser.value?.accessToken != null) {
+                    request.headers[HttpHeaders.Authorization] = "Bearer ${sharedModel.currentUser.value?.accessToken}"
+                    return@intercept execute(request)
+                }
+            }else forceRefreshCountdown = 3
+
+            call
+        }
+    }
+}
+
+fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
+    val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
+
+    install(Logging) {
+        logger = Logger.SIMPLE
+        level = LogLevel.BODY
+
+        sanitizeHeader { header ->
+            header == HttpHeaders.Authorization
+                    || header == IdToken
+                    || header == AccessToken
+        }
+    }
+    ResponseObserver { response ->
+        developerViewModel?.appendHttpLog(
+            DeveloperUtils.processResponse(response)
+        )
+
+        // sync has a very long timeout which would throw off this calculation
+        if(!response.request.url.toString().contains("/sync")) {
             val speedMbps = response.speedInMbps().roundToInt()
-            sharedViewModel.updateNetworkConnectivity(
+            sharedModel.updateNetworkConnectivity(
                 networkSpeed = when {
                     speedMbps <= 1.0 -> NetworkSpeed.VerySlow
                     speedMbps <= 2.0 -> NetworkSpeed.Slow
@@ -86,53 +155,39 @@ internal fun httpClientFactory(
                 isNetworkAvailable = true
             )
         }
-        HttpResponseValidator {
-            handleResponseException { cause, _ ->
-                when (cause) {
-                    is IOException, is UnresolvedAddressException -> {
-                        sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                        println("No network connection or server unreachable")
-                    }
-                    is ConnectTimeoutException, is SocketTimeoutException -> {
-                        sharedViewModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                        println("Network timeout")
-                    }
+    }
+    HttpResponseValidator {
+        handleResponseException { cause, _ ->
+            when (cause) {
+                is IOException, is UnresolvedAddressException -> {
+                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                    println("No network connection or server unreachable")
                 }
-            }
-            validateResponse { response ->
-                try {
-                    if (response.status == EXPIRED_TOKEN_CODE) {
-                        sharedViewModel.initUser()
-                    }
-                }catch (_: Exception) { }
+                is ConnectTimeoutException, is SocketTimeoutException -> {
+                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
+                    println("Network timeout")
+                }
             }
         }
-    }.apply {
-        plugin(HttpSend).intercept { request ->
-            request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
-
-            // add sensitive information only for trusted domains
+    }
+    defaultRequest {
+        if(headers[HttpHeaders.Authorization] == null) {
             when {
-                request.url.toString().contains("/_matrix/") -> {
-                    sharedViewModel.currentUser.value?.accessToken?.let { accessToken ->
-                        request.headers.append(HttpHeaders.Authorization, "Bearer $accessToken")
+                url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.") -> {
+                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                        headers[HttpHeaders.Authorization] = "Bearer $accessToken"
                     }
                 }
-                request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
-                    request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                    sharedViewModel.currentUser.value?.idToken?.let { idToken ->
-                        request.headers.append(IdToken, idToken)
+                url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
+                    headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                    sharedModel.currentUser.value?.idToken?.let { idToken ->
+                        headers[IdToken] = idToken
                     }
-                    sharedViewModel.currentUser.value?.accessToken?.let { accessToken ->
-                        request.headers.append(AccessToken, accessToken)
+                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                        headers[AccessToken] = accessToken
                     }
                 }
             }
-
-            developerViewModel?.appendHttpLog(
-                DeveloperUtils.processRequest(request)
-            )
-            execute(request)
         }
     }
 }

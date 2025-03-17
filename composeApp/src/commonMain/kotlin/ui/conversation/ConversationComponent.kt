@@ -67,7 +67,7 @@ import kotlin.uuid.Uuid
 fun ConversationComponent(
     modifier: Modifier = Modifier,
     listModifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     shimmerItemCount: Int = 20,
     verticalArrangement: Arrangement.Vertical,
     messages: LazyPagingItems<ConversationMessageIO>,

@@ -1,7 +1,9 @@
 package data.io.user
 
+import androidx.room.Ignore
 import data.io.social.UserConfiguration
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.UserId
 
 /** user object specific to our database saved in custom DB */
 @Serializable
@@ -31,6 +33,19 @@ data class UserIO(
     val configuration: UserConfiguration? = null
 ) {
 
+    val matrixDisplayName: String?
+        @Ignore
+        get() = if(matrixUserId != null) {
+            UserId(matrixUserId).localpart
+        }else null
+
+    val isFullyValid: Boolean
+        @Ignore
+        get() = idToken != null
+                && accessToken != null
+                && matrixHomeserver != null
+                && matrixUserId != null
+
     fun update(other: UserIO?): UserIO {
         return this.copy(
             displayName = other?.displayName ?: this.displayName,
@@ -42,5 +57,19 @@ data class UserIO(
             publicId = other?.publicId ?: this.publicId,
             configuration = other?.configuration ?: this.configuration
         )
+    }
+
+    override fun toString(): String {
+        return "{" +
+                "displayName: $displayName, " +
+                "tag: $tag, " +
+                "idToken: $idToken, " +
+                "accessToken: $accessToken, " +
+                "matrixHomeserver: $matrixHomeserver, " +
+                "matrixUserId: $matrixUserId, " +
+                "publicId: $publicId, " +
+                "configuration: $configuration" +
+                "isFullyValid: $isFullyValid" +
+                "}"
     }
 }

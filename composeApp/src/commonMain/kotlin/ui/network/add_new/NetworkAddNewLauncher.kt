@@ -82,7 +82,7 @@ fun NetworkAddNewLauncher(
     onDismissRequest: () -> Unit
 ) {
     loadKoinModules(networkAddNewModule)
-    val viewModel: NetworkAddNewViewModel = koinViewModel()
+    val viewModel: NetworkAddNewModel = koinViewModel()
 
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current

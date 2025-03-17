@@ -139,6 +139,7 @@ kotlin {
             implementation(libs.bundles.kamel)
             implementation(libs.java.cloud.storage)
             implementation(libs.credential.store)
+            implementation(libs.logback.classic)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
@@ -153,11 +154,14 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
+            implementation(libs.oshai.logging)
 
             implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
             implementation(libs.compose.file.kit)
+            implementation(libs.trixnity.client)
+            implementation(libs.trixnity.repository.room)
 
             implementation(libs.room.runtime)
             //implementation(libs.room.paging)
@@ -192,6 +196,7 @@ kotlin {
             implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
+            implementation(libs.lifecycle.compose)
             implementation(libs.lifecycle.viewmodel)
         }
     }
@@ -353,6 +358,7 @@ buildkonfig {
 
     // this is the production setting
     defaultConfigs {
+        buildConfigField(STRING, "BuildType", "production")
         buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
         buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
         buildConfigField(STRING, "BearerToken", keystoreProperties["bearerToken"] as String)
@@ -365,6 +371,7 @@ buildkonfig {
 
     // change the setting just for development
     defaultConfigs("development") {
+        buildConfigField(STRING, "BuildType", "development")
         buildConfigField(STRING, "HttpsHostName", debugHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidDebugAppId"] as String)
     }

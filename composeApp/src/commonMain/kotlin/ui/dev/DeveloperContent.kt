@@ -39,6 +39,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -65,12 +66,13 @@ import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import data.shared.DeveloperConsoleViewModel
+import data.shared.DeveloperConsoleModel
 import data.shared.developerConsoleModule
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
@@ -85,7 +87,7 @@ import org.koin.core.context.loadKoinModules
 @Composable
 fun DeveloperContent(modifier: Modifier = Modifier) {
     loadKoinModules(developerConsoleModule)
-    val viewModel: DeveloperConsoleViewModel = koinViewModel()
+    val viewModel: DeveloperConsoleModel = koinViewModel()
 
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -158,7 +160,7 @@ fun DeveloperContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel, isCompact: Boolean) {
+private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleModel, isCompact: Boolean) {
     val currentUser = viewModel.currentUser.collectAsState()
     //val firebaseUser = viewModel.firebaseUser.collectAsState()
     val localSettings = viewModel.localSettings.collectAsState()
@@ -174,7 +176,7 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
         initialPage = selectedTabIndex.value
     )
     val switchThemeState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             "Information",
             "HTTP"
         ),
@@ -228,7 +230,10 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                         style = LocalTheme.current.styles.subheading
                     )
                     RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
-                    RowInformation(title = "accessToken: ", currentUser.value?.accessToken)
+                    RowInformation(title = "user_id: ", currentUser.value?.matrixUserId)
+                    RowInformation(title = "access_token: ", currentUser.value?.accessToken)
+                    RowInformation(title = "device_id: ", localSettings.value?.deviceId)
+                    RowInformation(title = "pickle_key: ", localSettings.value?.pickleKey)
                     Text(
                         modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
                         text = "Firebase",
@@ -236,8 +241,13 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                     )
                     RowInformation(title = "Id token: ", currentUser.value?.idToken)
                     RowInformation(title = "FCM token: ", localSettings.value?.fcmToken)
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // actions and configuration
                     Text(
-                        modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
+                        modifier = Modifier
+                            .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
                         text = "Configuration",
                         style = LocalTheme.current.styles.subheading
                     )
@@ -245,13 +255,26 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleViewModel,
                     RowInformation(title = "Theme: ", localSettings.value?.theme)
 
                     EditFieldInput(
-                        modifier = Modifier.padding(top = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
                         hint = "Host, default: ${BuildKonfig.HttpsHostName}",
                         value = viewModel.hostOverride ?: "",
                         isClearable = true,
                         paddingValues = PaddingValues(start = 16.dp),
                         onValueChange = { value ->
                             viewModel.changeHost(value.text)
+                        }
+                    )
+
+                    ErrorHeaderButton(
+                        modifier = Modifier
+                            .padding(top = 32.dp)
+                            .fillMaxWidth(),
+                        text = "Delete local data and sign out",
+                        endIconVector = Icons.Outlined.Remove,
+                        onClick = {
+                            viewModel.deleteLocalData()
                         }
                     )
                 }

@@ -7,6 +7,7 @@ import com.russhwolf.settings.NSUserDefaultsSettings
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.coroutines.toFlowSettings
+import data.io.app.SecureSettingsKeys.persistentKeys
 import platform.Foundation.NSUserDefaults
 
 @OptIn(ExperimentalSettingsApi::class)
@@ -17,4 +18,11 @@ actual val settings: AppSettings = object : AppSettings, FlowSettings by NSUserD
 @OptIn(ExperimentalSettingsImplementation::class)
 actual val secureSettings: SecureAppSettings = object : SecureAppSettings, Settings by KeychainSettings(
     service = "secure_app_preferences"
-) {}
+) {
+
+    override fun clear() {
+        keys.forEach { key ->
+            if(persistentKeys.none { it.contains(key) }) remove(key)
+        }
+    }
+}

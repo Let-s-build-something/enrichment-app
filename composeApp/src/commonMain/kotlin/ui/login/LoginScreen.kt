@@ -66,6 +66,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
@@ -128,7 +129,6 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
@@ -164,7 +164,7 @@ import ui.conversation.components.gif.GifImage
  * email + password, Google, and Apple ID
  */
 @Composable
-fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
+fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
@@ -188,7 +188,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 
     val coroutineScope = rememberCoroutineScope()
     val switchScreenState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             stringResource(Res.string.login_screen_type_sign_up),
             stringResource(Res.string.login_screen_type_sign_in)
         ),
@@ -370,7 +370,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 
 @Composable
 private fun ColumnScope.LoginScreenContent(
-    viewModel: LoginViewModel,
+    viewModel: LoginModel,
     screenStateIndex: MutableState<Int>,
     passwordValidations: List<FieldValidation>,
     usernameValidations: List<FieldValidation>,
@@ -674,7 +674,7 @@ private fun ColumnScope.LoginScreenContent(
 @Composable
 private fun MatrixProgressStage(
     stage: String,
-    viewModel: LoginViewModel
+    viewModel: LoginModel
 ) {
     val progress = viewModel.matrixProgress.collectAsState()
 
@@ -798,8 +798,8 @@ private fun MatrixProgressStage(
                         }
                     }
                 }
-                LifecycleListener { event ->
-                    if(event == Lifecycle.Event.ON_RESUME && progress.value?.sid != null) {
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    if(progress.value?.sid != null) {
                         viewModel.matrixStepOver(type = currentStage)
                     }
                 }

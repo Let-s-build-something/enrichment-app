@@ -52,7 +52,6 @@ import data.io.DELAY_BETWEEN_REQUESTS_SHORT
 import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -74,7 +73,7 @@ fun DisplayNameChangeLauncher(
     onDismissRequest: () -> Unit
 ) {
     loadKoinModules(profileChangeModule)
-    val viewModel: ProfileChangeViewModel = koinViewModel()
+    val viewModel: ProfileChangeModel = koinViewModel()
 
     val coroutineScope = rememberCoroutineScope()
     val cancellableScope = rememberCoroutineScope()

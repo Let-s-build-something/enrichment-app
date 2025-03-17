@@ -32,13 +32,13 @@ import components.AsyncSvgImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
 import org.jetbrains.compose.resources.stringResource
-import ui.network.add_new.NetworkAddNewViewModel
+import ui.network.add_new.NetworkAddNewModel
 
 @Composable
 fun ProximityPicker(
     modifier: Modifier = Modifier,
     newItem: NetworkItemIO,
-    viewModel: NetworkAddNewViewModel,
+    viewModel: NetworkAddNewModel,
     selectedCategory: NetworkProximityCategory?,
     onSelectionChange: (NetworkProximityCategory) -> Unit
 ) {

@@ -72,7 +72,7 @@ fun MessageDetailScreen(
     conversationId: String?,
     title: String?
 ) {
-    val viewModel: MessageDetailViewModel = koinViewModel(
+    val viewModel: MessageDetailModel = koinViewModel(
         key = messageId,
         parameters = {
             parametersOf(messageId ?: "", conversationId ?: "")

@@ -127,7 +127,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
@@ -140,7 +140,7 @@ internal fun BoxScope.SendMessagePanel(
     overrideAnchorMessage: ConversationMessageIO? = null,
     replyToMessage: MutableState<ConversationMessageIO?>,
     scrollToMessage: (ConversationMessageIO) -> Unit,
-    viewModel: ConversationViewModel
+    viewModel: ConversationModel
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current

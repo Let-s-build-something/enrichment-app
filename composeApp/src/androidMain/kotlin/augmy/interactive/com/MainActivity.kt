@@ -18,7 +18,7 @@ import androidx.core.view.WindowCompat
 import augmy.interactive.shared.ui.base.BackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalScreenSize
-import data.shared.AppServiceViewModel
+import data.shared.AppServiceModel
 import io.github.vinceglb.filekit.core.FileKit
 import koin.commonModule
 import org.koin.android.ext.android.getKoin
@@ -111,7 +111,7 @@ class MainActivity: ComponentActivity() {
 
     private fun handleDeepLink(intent: Intent) {
         if(intent.data != null) {
-            val viewModel: AppServiceViewModel = getKoin().get()
+            val viewModel: AppServiceModel = getKoin().get()
             viewModel.emitDeepLink(intent.data?.path)
         }
     }

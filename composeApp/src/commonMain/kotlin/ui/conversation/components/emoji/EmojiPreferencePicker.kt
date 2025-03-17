@@ -31,7 +31,7 @@ import components.notification.InfoHintBox
 import data.io.social.network.conversation.EmojiData
 import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 
 /**
  * Bottom sheet for displaying a picker and preference modifier of preferred emoji set
@@ -40,7 +40,7 @@ import ui.conversation.ConversationViewModel
 @Composable
 fun EmojiPreferencePicker(
     modifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     onEmojiSelected: (String) -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
     onDismissRequest: () -> Unit

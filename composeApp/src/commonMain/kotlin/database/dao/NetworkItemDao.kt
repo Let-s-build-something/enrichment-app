@@ -12,11 +12,16 @@ import database.AppRoomDatabase
 interface NetworkItemDao {
 
     /** Returns all network items */
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_public_id = :ownerPublicId " +
-            "ORDER BY proximity DESC " +
-            "LIMIT :limit " +
-            "OFFSET :offset")
+    @Query("""
+    SELECT ni.*, p.content AS presence
+    FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} AS ni
+    LEFT JOIN ${AppRoomDatabase.TABLE_PRESENCE_EVENT} AS p
+    ON ni.user_matrix_id = p.user_id_full
+    WHERE owner_user_id = :ownerPublicId
+    ORDER BY proximity DESC
+    LIMIT :limit
+    OFFSET :offset
+""")
     suspend fun getPaginated(
         ownerPublicId: String?,
         limit: Int,
@@ -25,14 +30,14 @@ interface NetworkItemDao {
 
     /** Returns all network items related to an owner as defined by [ownerPublicId] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_public_id = :ownerPublicId ")
+            "WHERE owner_user_id = :ownerPublicId ")
     suspend fun getNonFiltered(
         ownerPublicId: String?
     ): List<NetworkItemIO>
 
     /** Returns all network items within the list [userPublicIds] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_public_id = :ownerPublicId " +
+            "WHERE owner_user_id = :ownerPublicId " +
             "AND user_public_id IN (:userPublicIds)")
     suspend fun getItems(
         userPublicIds: List<String>?,
@@ -42,7 +47,7 @@ interface NetworkItemDao {
     /** Retrieves a single item */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
             "WHERE public_id = :publicId " +
-            "AND owner_public_id = :ownerPublicId " +
+            "AND owner_user_id = :ownerPublicId " +
             "LIMIT 1")
     suspend fun get(
         publicId: String?,
@@ -51,7 +56,7 @@ interface NetworkItemDao {
 
     /** Returns all network items specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_public_id = :ownerPublicId " +
+            "WHERE owner_user_id = :ownerPublicId " +
             "AND user_public_id != :excludeId " +
             "AND proximity BETWEEN :proximityMin AND :proximityMax " +
             "LIMIT :count")
@@ -65,13 +70,13 @@ interface NetworkItemDao {
 
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_public_id = :ownerPublicId")
+            "WHERE owner_user_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
     /** Counts the number of items */
     @Query("UPDATE ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
             "SET proximity = :proximity " +
-            "WHERE owner_public_id = :ownerPublicId " +
+            "WHERE owner_user_id = :ownerPublicId " +
             "AND public_id = :publicId ")
     suspend fun updateProximity(
         ownerPublicId: String?,
@@ -84,7 +89,6 @@ interface NetworkItemDao {
     suspend fun insertAll(items: List<NetworkItemIO>)
 
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE owner_public_id = :ownerPublicId")
-    suspend fun removeAll(ownerPublicId: String?)
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}")
+    suspend fun removeAll()
 }

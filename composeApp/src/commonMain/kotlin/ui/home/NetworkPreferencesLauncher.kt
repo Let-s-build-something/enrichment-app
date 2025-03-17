@@ -58,7 +58,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun NetworkPreferencesLauncher(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel,
+    viewModel: HomeModel,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     onDismissRequest: () -> Unit
 ) {

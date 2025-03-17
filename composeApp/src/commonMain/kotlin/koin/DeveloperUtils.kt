@@ -2,6 +2,7 @@ package koin
 
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.HttpRequestData
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
@@ -12,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -56,13 +56,13 @@ object DeveloperUtils {
             try {
                 val jsonElement: JsonElement = Json.parseToJsonElement(jsonString)
                 json.encodeToString(jsonElement)
-            }catch (e: Exception) {
+            }catch (_: Exception) {
                 jsonString
             }
         }
     }
 
-    suspend fun processRequest(request: HttpRequestBuilder): HttpCall? {
+    suspend fun processRequest(request: HttpRequestBuilder): HttpCall {
         return withContext(Dispatchers.Default) {
             val headers = mutableListOf<String>()
             var id: String? = null
@@ -75,13 +75,35 @@ object DeveloperUtils {
                 if(key == HttpHeaders.XRequestId) id = values.firstOrNull()
             }
 
-            if(id == null) return@withContext null
             HttpCall(
                 headers = headers,
                 requestBody = formatJson((request.body as? TextContent)?.text ?: ""),
-                url = request.url.encodedPath,
+                url = request.url.host + request.url.encodedPath,
                 method = request.method,
-                id = id ?: "No id found"
+                id = id ?: ""
+            )
+        }
+    }
+
+    suspend fun processRequest(request: HttpRequestData): HttpCall {
+        return withContext(Dispatchers.Default) {
+            val headers = mutableListOf<String>()
+            var id: String? = null
+
+            request.headers.entries().toList().sortedBy { it.key }.forEach { (key, values) ->
+                val placeholder = if(key == HttpHeaders.Authorization || key == IdToken) {
+                    values.firstOrNull()?.take(4) + "..." + values.firstOrNull()?.takeLast(4)
+                } else null
+                headers.add("$key: ${placeholder ?: values.joinToString("; ")}")
+                if(key == HttpHeaders.XRequestId) id = values.firstOrNull()
+            }
+
+            HttpCall(
+                headers = headers,
+                requestBody = formatJson((request.body as? TextContent)?.text ?: ""),
+                url = request.url.host + request.url.encodedPath,
+                method = request.method,
+                id = id ?: ""
             )
         }
     }

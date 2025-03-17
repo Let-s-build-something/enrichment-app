@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_message_status_decrypting
 import augmy.composeapp.generated.resources.accessibility_message_status_failed
 import augmy.composeapp.generated.resources.accessibility_message_status_loading
 import augmy.composeapp.generated.resources.accessibility_message_status_read
@@ -26,6 +27,9 @@ enum class MessageState {
     /** Successfully uploaded to the server */
     Sent,
 
+    /** Message currently being decrypted */
+    Decrypting,
+
     /** Received by the other party, in other words, server attempted to notify the receiver */
     Received,
 
@@ -35,7 +39,7 @@ enum class MessageState {
     /** Vector representation of the state */
     val imageVector: ImageVector?
         get() = when(this) {
-            Pending -> null
+            Pending, Decrypting -> null
             Failed -> Icons.Outlined.Warning
             Sent -> Icons.Outlined.Check
             Received -> Icons.Outlined.DoneAll
@@ -48,6 +52,7 @@ enum class MessageState {
             Pending -> Res.string.accessibility_message_status_loading
             Failed -> Res.string.accessibility_message_status_failed
             Sent -> Res.string.accessibility_message_status_sent
+            Decrypting -> Res.string.accessibility_message_status_decrypting
             Received -> Res.string.accessibility_message_status_received
             Read -> Res.string.accessibility_message_status_read
         })
