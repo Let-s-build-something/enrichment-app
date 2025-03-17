@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -43,13 +44,53 @@ fun TypingIndicator(
     onFinish: () -> Unit = {}
 ) {
     val density = LocalDensity.current
+    val userProfileSize = remember {
+        with(density) { 38.sp.toDp() }
+    }
+
+    Row (
+        modifier = modifier
+            .height(48.dp)
+            .widthIn(min = 96.dp + userProfileSize)
+            .background(
+                color = LocalTheme.current.colors.backgroundContrast,
+                shape = RoundedCornerShape(
+                    topEnd = 24.dp,
+                    bottomEnd = 24.dp,
+                    topStart = if(hasPrevious) 1.dp else 24.dp,
+                    bottomStart = if(hasNext) 1.dp else 24.dp
+                )
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        UserProfileImage(
+            modifier = Modifier.size(userProfileSize),
+            media = data.user?.avatar,
+            tag = data.user?.tag
+        )
+        LoadingMessageBubble(
+            key = key,
+            data = data,
+            onFinish = onFinish
+        )
+    }
+}
+
+@Composable
+fun LoadingMessageBubble(
+    modifier: Modifier = Modifier,
+    key: Int,
+    data: ConversationTypingIndicator,
+    onFinish: () -> Unit = {}
+) {
     val coroutineScope = rememberCoroutineScope()
     val cancellableScope = rememberCoroutineScope()
 
-    val dotCount = remember(data.authorPublicId) {
+    val dotCount = rememberSaveable(data.authorPublicId) {
         mutableStateOf(0)
     }
-    val isTicked = remember(data.authorPublicId) {
+    val isTicked = rememberSaveable(data.authorPublicId) {
         mutableStateOf(false)
     }
 
@@ -82,58 +123,34 @@ fun TypingIndicator(
         }
     }
 
-    Row (
+    Row(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        UserProfileImage(
-            modifier = Modifier.size(with(density) { 38.sp.toDp() }),
-            media = data.user?.avatar,
-            tag = data.user?.tag
-        )
+        repeat(3) { index ->
+            val isVisible = index <= (dotCount.value - 1) || dotCount.value == -1
 
-        Row (
-            modifier = Modifier
-                .height(48.dp)
-                .widthIn(min = 96.dp)
-                .background(
-                    color = LocalTheme.current.colors.backgroundContrast,
-                    shape = RoundedCornerShape(
-                        topEnd = 24.dp,
-                        bottomEnd = 24.dp,
-                        topStart = if(hasPrevious) 1.dp else 24.dp,
-                        bottomStart = if(hasNext) 1.dp else 24.dp
+            Box(
+                modifier = Modifier
+                    .animateContentSize()
+                    .padding(start = if(index != 0 && isVisible) 6.dp else 0.dp)
+                    .size(if(isVisible) 10.dp else 0.dp)
+                    .background(
+                        color = LocalTheme.current.colors.disabled,
+                        shape = RoundedCornerShape(3.dp)
                     )
-                )
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(3) { index ->
-                val isVisible = index <= (dotCount.value - 1) || dotCount.value == -1
-
-                Box(
-                    modifier = Modifier
-                        .animateContentSize()
-                        .padding(start = if(index != 0 && isVisible) 6.dp else 0.dp)
-                        .size(if(isVisible) 10.dp else 0.dp)
-                        .background(
-                            color = LocalTheme.current.colors.disabled,
-                            shape = RoundedCornerShape(3.dp)
-                        )
-                )
-            }
-            if(isTicked.value) {
-                Box(
-                    modifier = Modifier
-                        .padding(start = 4.dp)
-                        .size(height = 16.dp, width = 4.dp)
-                        .background(
-                            color = LocalTheme.current.colors.disabled,
-                            shape = RoundedCornerShape(2.dp)
-                        )
-                )
-            }
+            )
+        }
+        if(isTicked.value) {
+            Box(
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(height = 16.dp, width = 4.dp)
+                    .background(
+                        color = LocalTheme.current.colors.disabled,
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
         }
     }
 }

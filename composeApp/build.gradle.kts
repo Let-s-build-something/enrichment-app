@@ -196,6 +196,7 @@ kotlin {
             implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
+            implementation(libs.lifecycle.compose)
             implementation(libs.lifecycle.viewmodel)
         }
     }

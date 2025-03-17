@@ -66,6 +66,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
@@ -128,7 +129,6 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
@@ -798,8 +798,8 @@ private fun MatrixProgressStage(
                         }
                     }
                 }
-                LifecycleListener { event ->
-                    if(event == Lifecycle.Event.ON_RESUME && progress.value?.sid != null) {
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    if(progress.value?.sid != null) {
                         viewModel.matrixStepOver(type = currentStage)
                     }
                 }

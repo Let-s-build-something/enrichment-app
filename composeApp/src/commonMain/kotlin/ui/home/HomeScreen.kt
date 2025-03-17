@@ -47,6 +47,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -64,7 +65,6 @@ import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -123,12 +123,10 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
         mutableStateOf<NetworkItemIO?>(null)
     }
 
-    LifecycleListener {
-        if(it == Lifecycle.Event.ON_RESUME) {
-            if(drawnAsUser.value != viewModel.currentUser.value?.matrixUserId) {
-                drawnAsUser.value = viewModel.currentUser.value?.matrixUserId
-                conversationRooms.refresh()
-            }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if(drawnAsUser.value != viewModel.currentUser.value?.matrixUserId) {
+            drawnAsUser.value = viewModel.currentUser.value?.matrixUserId
+            conversationRooms.refresh()
         }
     }
 

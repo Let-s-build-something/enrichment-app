@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.loadKoinModules
@@ -164,6 +165,14 @@ open class SharedModel: ViewModel() {
 
     fun consumePing(ping: AppPing) {
         sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)
+    }
+
+    fun consumePing(identifier: String) {
+        sharedDataManager.pingStream.update {
+            it.filter { ping ->
+                !ping.identifiers.contains(identifier)
+            }.toSet()
+        }
     }
 
     /** Changes the state of the toolbar */

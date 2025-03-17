@@ -18,6 +18,7 @@ import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
 import data.shared.sync.DataSyncHandler
+import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
@@ -93,29 +94,28 @@ open class ConversationRepository(
         }
     }
 
-    private suspend fun getProcessedMessages(
+    private suspend fun processMessages(
         homeserver: String,
         fromBatch: String?,
         limit: Int,
         conversationId: String?
-    ): List<ConversationMessageIO>? {
-        if(conversationId == null) return null
-
-        // TODO should be processed with some service, which will be shared with DataSyncService, there's more than just messages
-        return getMessages(
-            limit = limit,
-            conversationId = conversationId,
-            fromBatch = fromBatch,
-            homeserver = homeserver
-        ).success?.data?.let { data ->
-            dataSyncHandler.processEvents(
-                events = data.chunk.orEmpty() + data.state.orEmpty(),
-                roomId = conversationId,
-                prevBatch = data.end,
-                nextBatch = data.start,
-                currentBatch = fromBatch
-            ).messages
-        }
+    ): MessageProcessor.SaveEventsResult? {
+        return if(conversationId != null) {
+            getMessages(
+                limit = limit,
+                conversationId = conversationId,
+                fromBatch = fromBatch,
+                homeserver = homeserver
+            ).success?.data?.let { data ->
+                dataSyncHandler.saveEvents(
+                    events = data.chunk.orEmpty() + data.state.orEmpty(),
+                    roomId = conversationId,
+                    prevBatch = data.end,
+                    nextBatch = data.start,
+                    currentBatch = fromBatch
+                )
+            }
+        }else null
     }
 
     private var lastBatch: String? = null
@@ -130,7 +130,7 @@ open class ConversationRepository(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
-                    lastBatch = lastBatch,
+                    lastBatch = { lastBatch },
                     getMessages = { batch ->
                         if(conversationId == null) return@ConversationRoomSource emptyList<ConversationMessageIO>()
 
@@ -139,24 +139,30 @@ open class ConversationRepository(
                                 conversationId = conversationId,
                                 batch = batch
                             ).takeIf { it.isNotEmpty() }
-                                ?: getProcessedMessages(
+                                ?: processMessages(
                                     limit = config.pageSize,
                                     conversationId = conversationId,
                                     fromBatch = batch,
                                     homeserver = homeserver()
-                                ).orEmpty().also {
+                                ).also {
+                                    val size = it?.events ?: 0
+
                                     // mark as last batch
-                                    if(it.isEmpty()) {
+                                    if(size == 0) {
                                         lastBatch = batch
                                         invalidateLocalSource()
                                     }
 
                                     // end of pagination with different number of items than expected,
                                     // let's invalidate to recalculate
-                                    if(it.size < config.pageSize && batch != INITIAL_BATCH) {
+                                    if(size != 0
+                                        && size < config.pageSize
+                                        && batch != INITIAL_BATCH
+                                    ) {
                                         invalidateLocalSource()
                                     }
-                                })
+                                }?.messages.orEmpty()
+                            )
                         }
                     },
                     findPreviousBatch = { currentBatch ->
@@ -215,20 +221,29 @@ open class ConversationRepository(
                 conversationId = conversationId,
                 sentAt = localNow,
                 authorPublicId = dataManager.currentUser.value?.matrixUserId,
-                media = mediaFiles.map { media ->
-                    MediaIO(
-                        url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                            cachedFiles[uuid] = media
-                            uuids.add(uuid)
+                media = withContext(Dispatchers.Default) {
+                    mediaFiles.map { media ->
+                        MediaIO(
+                            url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                                cachedFiles[uuid] = media
+                                uuids.add(uuid)
+                            }
+                        )
+                    }.toMutableList().apply {
+                        addAll(message.media.orEmpty())
+                        if(audioByteArray != null) {
+                            add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
                         }
-                    )
-                } + message.media.orEmpty() + MediaIO(
-                    url = MESSAGE_AUDIO_URL_PLACEHOLDER
-                ) + MediaIO(
-                    url = gifAsset?.original,
-                    mimetype = MimeType.IMAGE_GIF.mime,
-                    name = gifAsset?.description
-                ),
+                        add(
+                            MediaIO(
+                                url = gifAsset?.original,
+                                mimetype = MimeType.IMAGE_GIF.mime,
+                                name = gifAsset?.description
+                            )
+                        )
+                    }.filter { !it.isEmpty }
+                },
+                currentBatch = INITIAL_BATCH,
                 state = MessageState.Pending
             )
             conversationMessageDao.insert(msg)
@@ -247,24 +262,29 @@ open class ConversationRepository(
 
             // real message
             msg = msg.copy(
-                media = mediaFiles.mapNotNull { media ->
-                    val bytes = media.readBytes()
-                    uploadMedia(
-                        mediaByteArray = bytes,
-                        fileName = "${Uuid.random()}.${media.extension.lowercase()}",
-                        homeserver = homeserver,
-                        mimetype = MimeType.getByExtension(media.extension).mime
-                    )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
-                        MediaIO(
-                            url = url,
-                            size = bytes.size.toLong(),
-                            name = media.baseName,
-                            mimetype = MimeType.getByExtension(media.extension).mime
-                        )
-                    }
-                }.plus(
-                    // existing media and audio media
-                    message.media.orEmpty().plus(
+                media = withContext(Dispatchers.Default) {
+                    mediaFiles.mapNotNull { media ->
+                        val bytes = media.readBytes()
+                        if(bytes.isNotEmpty()) {
+                            uploadMedia(
+                                mediaByteArray = bytes,
+                                fileName = "${Uuid.random()}.${media.extension.lowercase()}",
+                                homeserver = homeserver,
+                                mimetype = MimeType.getByExtension(media.extension).mime
+                            )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
+                                MediaIO(
+                                    url = url,
+                                    size = bytes.size.toLong(),
+                                    name = media.baseName,
+                                    mimetype = MimeType.getByExtension(media.extension).mime
+                                )
+                            }
+                        }else null
+                    }.toMutableList().apply {
+                        // existing media
+                        addAll(message.media.orEmpty().toMutableList().filter { !it.isEmpty })
+
+                        // audio file
                         if(audioByteArray != null) {
                             val size = audioByteArray.size.toLong()
                             val fileName = "${Uuid.random()}.wav"
@@ -281,7 +301,8 @@ open class ConversationRepository(
                                         data = audioByteArray,
                                         fileName = sha256(audioUrl)
                                     )?.let {
-                                        listOf(
+                                        remove(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
+                                        add(
                                             MediaIO(
                                                 url = audioUrl,
                                                 size = size,
@@ -291,17 +312,20 @@ open class ConversationRepository(
                                             )
                                         )
                                     }
-                                }else listOf()
-                            } ?: listOf()
-                        } else listOf()
-                    )
-                ).plus(
-                    MediaIO(
-                        url = gifAsset?.original,
-                        mimetype = MimeType.IMAGE_GIF.mime,
-                        name = gifAsset?.description
-                    )
-                ),
+                                }
+                            }
+                        }
+
+                        // GIPHY asset
+                        if(!gifAsset?.original.isNullOrBlank()) {
+                            MediaIO(
+                                url = gifAsset?.original,
+                                mimetype = MimeType.IMAGE_GIF.mime,
+                                name = gifAsset?.description
+                            )
+                        }
+                    }
+                },
                 state = if(response is BaseResponse.Success) MessageState.Sent else MessageState.Failed
             )
             uuids.forEachIndexed { index, s ->
@@ -374,8 +398,8 @@ open class ConversationRepository(
         mimetype: String,
         homeserver: String,
         fileName: String
-    ): BaseResponse<MediaUploadResponse>? {
-        return try {
+    ): BaseResponse<MediaUploadResponse>? = withContext(Dispatchers.IO) {
+        try {
             if(mediaByteArray == null) null
             else {
                 httpClient.safeRequest<MediaUploadResponse> {

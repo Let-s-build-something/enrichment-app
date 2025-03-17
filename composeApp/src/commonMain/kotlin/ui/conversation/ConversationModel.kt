@@ -244,11 +244,11 @@ open class ConversationModel(
                 message = ConversationMessageIO(
                     content = content,
                     anchorMessage = anchorMessage?.toAnchorMessage(),
-                    media = mediaUrls.map { url ->
+                    media = mediaUrls.mapNotNull { url ->
                         MediaIO(
                             url = url,
                             mimetype = MimeType.getByExtension(getUrlExtension(url)).mime
-                        )
+                        ).takeIf { url.isNotBlank() }
                     },
                     showPreview = showPreview,
                     timings = timings

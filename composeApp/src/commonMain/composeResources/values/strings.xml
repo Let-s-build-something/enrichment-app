@@ -182,6 +182,7 @@
   <string name="device_verification_send">Send</string>
   <string name="device_verification_other_device">Verify with other device</string>
   <string name="device_verification_passphrase">Enter PIN</string>
+  <string name="device_verification_success">Successfully verified! 🥳</string>
   <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
@@ -259,6 +260,7 @@
   <string name="accessibility_message_action_file">Attach any file to your message</string>
   <string name="accessibility_message_status_loading">Loading</string>
   <string name="accessibility_message_status_sent">Sent</string>
+  <string name="accessibility_message_status_decrypting">Being decrypted</string>
   <string name="accessibility_message_status_failed">Failed</string>
   <string name="accessibility_message_status_received">Received</string>
   <string name="accessibility_message_status_read">Read</string>

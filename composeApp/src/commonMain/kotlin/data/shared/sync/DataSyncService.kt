@@ -1,6 +1,5 @@
 package data.shared.sync
 
-import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.base.paging.MatrixPagingMetaIO
@@ -22,8 +21,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.verification
@@ -46,6 +43,7 @@ import kotlin.time.Duration.Companion.milliseconds
 internal val dataSyncModule = module {
     factory { DataSyncService() }
     single { DataSyncService() }
+    single { DataService() }
 }
 
 class DataSyncService {
@@ -90,7 +88,6 @@ class DataSyncService {
     fun stop() {
         if(isRunning) {
             handler.stop()
-            println("kostka_test, stopping sync")
             isRunning = false
             syncScope.coroutineContext.cancelChildren()
         }
@@ -103,7 +100,6 @@ class DataSyncService {
     ) {
         val owner = sharedDataManager.currentUser.value?.matrixUserId
         if(homeserver == null || owner == null) {
-            println("kostka_test, enqueue stop, owner: $owner")
             stop()
             return
         }
@@ -160,10 +156,6 @@ class DataSyncService {
 }
 
 internal class DataSyncHandler: MessageProcessor() {
-
-    companion object {
-        private const val PING_EXPIRY_MS = 60_000 * 15
-    }
 
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
@@ -272,22 +264,13 @@ internal class DataSyncHandler: MessageProcessor() {
                     rooms.add(newRoom)
                 }
 
-                processEvents(
+                saveEvents(
                     events = events,
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
                     nextBatch = nextBatch,
                     currentBatch = currentBatch,
                     roomId = newItem.id
-                ).also {
-                    if(it.messages.isNotEmpty()) {
-                        appendPing(
-                            AppPing(
-                                type = AppPingType.Conversation,
-                                identifiers = it.messages.mapNotNull { it.conversationId }.distinct()
-                            )
-                        )
-                    }
-                }
+                )
             }
 
             // Save presence locally
@@ -299,7 +282,7 @@ internal class DataSyncHandler: MessageProcessor() {
 
             withContext(Dispatchers.IO) {
                 if(rooms.isNotEmpty()) {
-                    appendPing(AppPing(type = AppPingType.ConversationDashboard))
+                    dataService.appendPing(AppPing(type = AppPingType.ConversationDashboard))
                 }
             }
         }
@@ -336,25 +319,5 @@ internal class DataSyncHandler: MessageProcessor() {
         it.state = state
         it.timeline = timeline
         it.accountData = accountData
-    }
-
-    private var lastPingTime: Long = 0L
-    private val mutex = Mutex()
-
-    private fun appendPing(ping: AppPing) {
-        syncScope.launch {
-            mutex.withLock {
-                val time = DateUtils.now.toEpochMilliseconds()
-                val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
-                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer
-
-                if(calculatedDelay > 0) delay(calculatedDelay)
-                sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
-                    retainAll {
-                        DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
-                    }
-                }.plus(ping)
-            }
-        }
     }
 }

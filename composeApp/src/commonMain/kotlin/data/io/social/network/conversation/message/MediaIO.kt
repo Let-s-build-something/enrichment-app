@@ -23,4 +23,7 @@ data class MediaIO(
     @Ignore
     @Transient
     val path: String? = null
-)
+) {
+    val isEmpty: Boolean
+        get() = url.isNullOrBlank() || path.isNullOrBlank()
+}

@@ -10,7 +10,7 @@ import kotlinx.io.IOException
 /** factory for making paging requests */
 class ConversationRoomSource(
     private val size: Int,
-    private val lastBatch: String?,
+    private val lastBatch: () -> String?,
     private val findPreviousBatch: suspend (batch: String) -> String?,
     private val countItems: suspend (batch: String) -> Int,
     private val getMessages: suspend (batch: String) -> List<ConversationMessageIO>
@@ -43,8 +43,8 @@ class ConversationRoomSource(
                 }
             }else null
             val itemsAfter = if(response.isNotEmpty() && nextKey != null
-                && paramsKey != lastBatch
-                && nextKey != lastBatch
+                && paramsKey != lastBatch()
+                && nextKey != lastBatch()
             ) {
                 countItems(nextKey).takeIf { it != 0 } ?: size
             } else COUNT_UNDEFINED

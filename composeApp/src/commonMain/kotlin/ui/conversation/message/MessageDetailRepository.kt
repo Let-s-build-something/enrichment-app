@@ -92,7 +92,7 @@ class MessageDetailRepository(
                         )
                     },
                     size = config.pageSize,
-                    lastBatch = lastBatch
+                    lastBatch = { lastBatch }
                 ).also {
                     currentPagingSource = it
                 }

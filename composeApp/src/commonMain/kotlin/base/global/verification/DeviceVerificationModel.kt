@@ -56,6 +56,8 @@ sealed class LauncherState {
         val data: ComparisonByUserData,
         val senderDeviceId: String
     ) : LauncherState()
+
+    data object Success: LauncherState()
     data object Hidden: LauncherState()
 }
 
@@ -226,7 +228,7 @@ class VerificationModel(
                                         ),
                                         senderDeviceId = state.senderDeviceId
                                     )
-                                    println("kostka_test, sasState match")
+                                    isLoading.value = false
                                 }
                                 is ActiveSasVerificationState.TheirSasStart -> {
                                     println("kostka_test, sasState accept")
@@ -250,6 +252,12 @@ class VerificationModel(
                 state.methods.firstOrNull { supportedMethods.contains(it) }?.let { method ->
                     println("kostka_test, NOT starting $method")
                     //state.start(method)
+                }
+            }
+            is ActiveVerificationState.Done -> {
+                if(_launcherState.value is LauncherState.ComparisonByUser) {
+                    isLoading.value = false
+                    _launcherState.value = LauncherState.Success
                 }
             }
             is ActiveVerificationState.Cancel -> cancel(manual = false)

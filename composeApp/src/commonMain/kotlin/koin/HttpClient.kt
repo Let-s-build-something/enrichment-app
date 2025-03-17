@@ -92,6 +92,12 @@ internal fun httpClientFactory(
         install(HttpSend)
     }.apply {
         plugin(HttpSend).intercept { request ->
+            if(request.url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.")) {
+                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                    request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
+                }
+            }
+
             request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
 
             developerViewModel?.appendHttpLog(
@@ -165,19 +171,21 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         }
     }
     defaultRequest {
-        when {
-            url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.") -> {
-                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                    headers[HttpHeaders.Authorization] = "Bearer $accessToken"
+        if(headers[HttpHeaders.Authorization] == null) {
+            when {
+                url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.") -> {
+                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                        headers[HttpHeaders.Authorization] = "Bearer $accessToken"
+                    }
                 }
-            }
-            url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
-                headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                sharedModel.currentUser.value?.idToken?.let { idToken ->
-                    headers[IdToken] = idToken
-                }
-                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                    headers[AccessToken] = accessToken
+                url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
+                    headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                    sharedModel.currentUser.value?.idToken?.let { idToken ->
+                        headers[IdToken] = idToken
+                    }
+                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                        headers[AccessToken] = accessToken
+                    }
                 }
             }
         }

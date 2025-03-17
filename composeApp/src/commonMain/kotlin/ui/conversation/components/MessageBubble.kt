@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -78,6 +79,7 @@ import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.openLink
 import base.utils.tagToColor
 import components.buildAnnotatedLinkString
+import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MessageState
@@ -443,98 +445,125 @@ private fun ContentLayout(
                                     )
                                 }
 
-                                Box {
+                                Box(modifier = Modifier.animateContentSize(
+                                    alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart
+                                )) {
                                     // textual content
-                                    if (!data.content.isNullOrEmpty()) {
-                                        val showReadMore = remember(data.id) {
-                                            mutableStateOf(false)
-                                        }
-                                        val text = @Composable {
-                                            val awaitingTranscription = !isCurrentUser
-                                                    && !transcribe
-                                                    && data.transcribed != true
-                                                    && !data.timings.isNullOrEmpty()
-
-                                            Column(
+                                    when {
+                                        data.state == MessageState.Decrypting -> {
+                                            Box(
                                                 modifier = Modifier
-                                                    .then(
-                                                        if (!data.reactions.isNullOrEmpty()) {
-                                                            Modifier.padding(bottom = with(density) {
-                                                                LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                                            })
-                                                        } else Modifier
+                                                    .width(96.dp)
+                                                    .requiredHeight(
+                                                        20.dp + with(density) { LocalTheme.current.styles.title.fontSize.toDp() }
                                                     )
                                                     .background(
                                                         color = if (isCurrentUser) {
                                                             LocalTheme.current.colors.brandMainDark
                                                         } else LocalTheme.current.colors.backgroundContrast,
                                                         shape = messageShape
-                                                    )
-                                                    .then(
-                                                        tagToColor(data.user?.tag)?.let { color ->
-                                                            Modifier.border(
-                                                                width = 1.dp,
-                                                                color = color,
-                                                                shape = messageShape
-                                                            )
-                                                        } ?: Modifier
-                                                    )
-                                                    .padding(
-                                                        vertical = 10.dp,
-                                                        horizontal = 14.dp
-                                                    )
+                                                    ),
+                                                contentAlignment = Alignment.Center
                                             ) {
-                                                TempoText(
-                                                    modifier = Modifier
-                                                        .widthIn(max = (screenSize.width * .8f).dp)
-                                                        .then(
-                                                            if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                                                        ),
-                                                    key = data.id,
-                                                    enabled = transcribe,
-                                                    text = buildAnnotatedLinkString(
-                                                        text = data.content,
-                                                        onLinkClicked = { openLink(it) }
-                                                    ),
-                                                    style = LocalTheme.current.styles.title.copy(
-                                                        color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
-                                                            .copy(
-                                                                alpha = if(awaitingTranscription) .4f else 1f
-                                                            ),
-                                                        fontFamily = FontFamily(fontQuicksandMedium)
-                                                    ),
-                                                    maxLines = MaximumTextLines,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    timings = data.timings.orEmpty(),
-                                                    onFinish = onTranscribed,
-                                                    onTextLayout = {
-                                                        showReadMore.value = it.didOverflowHeight
-                                                    }
+                                                LoadingMessageBubble(
+                                                    key = data.id.hashCode(),
+                                                    data = ConversationTypingIndicator(
+                                                        authorPublicId = data.authorPublicId
+                                                    )
                                                 )
-                                                AnimatedVisibility(showReadMore.value) {
-                                                    Text(
+                                            }
+                                        }
+                                        !data.content.isNullOrEmpty() -> {
+                                            val showReadMore = remember(data.id) {
+                                                mutableStateOf(false)
+                                            }
+                                            val text = @Composable {
+                                                val awaitingTranscription = !isCurrentUser
+                                                        && !transcribe
+                                                        && data.transcribed != true
+                                                        && !data.timings.isNullOrEmpty()
+
+                                                Column(
+                                                    modifier = Modifier
+                                                        .then(
+                                                            if (!data.reactions.isNullOrEmpty()) {
+                                                                Modifier.padding(bottom = with(density) {
+                                                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                                                })
+                                                            } else Modifier
+                                                        )
+                                                        .background(
+                                                            color = if (isCurrentUser) {
+                                                                LocalTheme.current.colors.brandMainDark
+                                                            } else LocalTheme.current.colors.backgroundContrast,
+                                                            shape = messageShape
+                                                        )
+                                                        .then(
+                                                            tagToColor(data.user?.tag)?.let { color ->
+                                                                Modifier.border(
+                                                                    width = 1.dp,
+                                                                    color = color,
+                                                                    shape = messageShape
+                                                                )
+                                                            } ?: Modifier
+                                                        )
+                                                        .padding(
+                                                            vertical = 10.dp,
+                                                            horizontal = 14.dp
+                                                        )
+                                                ) {
+                                                    TempoText(
                                                         modifier = Modifier
-                                                            .padding(top = 4.dp)
-                                                            .scalingClickable {
-                                                                openDetail()
-                                                            },
-                                                        text = stringResource(Res.string.message_read_more),
+                                                            .widthIn(max = (screenSize.width * .8f).dp)
+                                                            .then(
+                                                                if(hasAttachment) Modifier.fillMaxWidth() else Modifier
+                                                            ),
+                                                        key = data.id,
+                                                        enabled = transcribe,
+                                                        text = buildAnnotatedLinkString(
+                                                            text = data.content,
+                                                            onLinkClicked = { openLink(it) }
+                                                        ),
                                                         style = LocalTheme.current.styles.title.copy(
                                                             color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
                                                                 .copy(
-                                                                    alpha = if(awaitingTranscription) .6f else 1f
+                                                                    alpha = if(awaitingTranscription) .4f else 1f
                                                                 ),
-                                                            fontFamily = FontFamily(fontQuicksandSemiBold)
+                                                            fontFamily = FontFamily(fontQuicksandMedium)
                                                         ),
+                                                        maxLines = MaximumTextLines,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        timings = data.timings.orEmpty(),
+                                                        onFinish = onTranscribed,
+                                                        onTextLayout = {
+                                                            showReadMore.value = it.didOverflowHeight
+                                                        }
                                                     )
+                                                    AnimatedVisibility(showReadMore.value) {
+                                                        Text(
+                                                            modifier = Modifier
+                                                                .padding(top = 4.dp)
+                                                                .scalingClickable {
+                                                                    openDetail()
+                                                                },
+                                                            text = stringResource(Res.string.message_read_more),
+                                                            style = LocalTheme.current.styles.title.copy(
+                                                                color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+                                                                    .copy(
+                                                                        alpha = if(awaitingTranscription) .6f else 1f
+                                                                    ),
+                                                                fontFamily = FontFamily(fontQuicksandSemiBold)
+                                                            ),
+                                                        )
+                                                    }
                                                 }
                                             }
+                                            if(showOptions || isMouseUser) {
+                                                SelectionContainer {
+                                                    text()
+                                                }
+                                            }else text()
                                         }
-                                        if(showOptions || isMouseUser) {
-                                            SelectionContainer {
-                                                text()
-                                            }
-                                        }else text()
                                     }
 
                                     androidx.compose.animation.AnimatedVisibility(
