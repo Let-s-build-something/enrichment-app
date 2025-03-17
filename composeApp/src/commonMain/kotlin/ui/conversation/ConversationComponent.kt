@@ -219,7 +219,7 @@ fun ConversationComponent(
             ) { index ->
                 val data = messages.getOrNull(index)
 
-                val isCurrentUser = data?.authorPublicId == viewModel.currentUser.value?.matrixUserId
+                val isCurrentUser = data?.authorPublicId == viewModel.matrixUserId
                 val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
                 val nextItem = messages.getOrNull(index - 1)
                 val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
@@ -258,7 +258,7 @@ fun ConversationComponent(
                     ),
                     isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
                     isNextMessageSameAuthor = isNextMessageSameAuthor,
-                    currentUserPublicId = viewModel.currentUser.value?.matrixUserId ?: "",
+                    currentUserPublicId = viewModel.matrixUserId ?: "",
                     reactingToMessageId = reactingToMessageId,
                     showEmojiPreferencesId = showEmojiPreferencesId,
                     replyToMessage = replyToMessage,

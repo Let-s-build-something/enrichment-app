@@ -64,6 +64,13 @@ interface ConversationRoomDao {
             "LIMIT 1")
     suspend fun get(id: String?): ConversationRoomIO?
 
+    @Query("""
+           UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+            SET prev_batch = :prevBatch
+            WHERE id = :id
+        """)
+    suspend fun setPrevBatch(id: String?, prevBatch: String?)
+
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id = :id " +

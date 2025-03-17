@@ -72,11 +72,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     var conversationId: String? = null,
 
     @ColumnInfo("prev_batch")
-    val prevBatch: String? = null,
-    @ColumnInfo("next_batch")
-    val nextBatch: String? = null,
-    @ColumnInfo("current_batch")
-    val currentBatch: String? = null,
+    val prevBatch: String? = null
 ) {
 
     /** User attached to this message */

@@ -15,7 +15,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -87,10 +86,10 @@ fun LoadingMessageBubble(
     val coroutineScope = rememberCoroutineScope()
     val cancellableScope = rememberCoroutineScope()
 
-    val dotCount = rememberSaveable(data.authorPublicId) {
+    val dotCount = remember(data.authorPublicId) {
         mutableStateOf(0)
     }
-    val isTicked = rememberSaveable(data.authorPublicId) {
+    val isTicked = remember(data.authorPublicId) {
         mutableStateOf(false)
     }
 

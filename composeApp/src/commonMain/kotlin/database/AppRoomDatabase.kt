@@ -34,7 +34,7 @@ import net.folivo.trixnity.core.model.events.m.PresenceEventContent
         ConversationRoomMember::class,
         ConversationRoomIO::class
     ],
-    version = 51,
+    version = 52,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

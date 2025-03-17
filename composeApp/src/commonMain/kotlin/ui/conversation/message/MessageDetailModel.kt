@@ -94,7 +94,7 @@ class MessageDetailModel(
         if(messageId == null) return
         _message.value = repository.getMessage(
             id = messageId,
-            ownerPublicId = currentUser.value?.matrixUserId
+            ownerPublicId = matrixUserId
         )
     }
 }

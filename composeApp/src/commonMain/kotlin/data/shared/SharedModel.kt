@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
@@ -95,6 +96,9 @@ open class SharedModel: ViewModel() {
     }
 
     //======================================== public variables ==========================================
+
+    val matrixUserId: String?
+        get() = currentUser.value?.matrixUserId ?: authService.storedUserId()
 
     val awaitingAutologin: Boolean
         get() = authService.awaitingAutologin
@@ -167,7 +171,7 @@ open class SharedModel: ViewModel() {
         sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)
     }
 
-    fun consumePing(identifier: String) {
+    suspend fun consumePing(identifier: String) = withContext(Dispatchers.Default) {
         sharedDataManager.pingStream.update {
             it.filter { ping ->
                 !ping.identifiers.contains(identifier)
@@ -196,7 +200,7 @@ open class SharedModel: ViewModel() {
             it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
         } ?: ClientStatus.NEW
         val networkColors = settings.getStringOrNull(
-            "${SettingsKeys.KEY_NETWORK_COLORS}_${currentUser.value?.matrixUserId}"
+            "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId"
         )?.split(",")
             ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
 
