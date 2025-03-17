@@ -24,7 +24,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
-import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
@@ -49,7 +48,7 @@ internal val dataSyncModule = module {
 class DataSyncService {
     companion object {
         const val SYNC_INTERVAL = 60_000L
-        private const val START_ANEW = true
+        private const val START_ANEW = false
     }
 
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
@@ -115,9 +114,6 @@ class DataSyncService {
         var currentBatch = since ?: initialEntity?.nextBatch
 
         client.api.sync.subscribe {
-            println("kostka_test, new sync data, activeDeviceVerification: ${
-                client.verification.activeDeviceVerification.value?.state?.value
-            }")
             handler.handle(
                 response = it.syncResponse,
                 owner = owner
@@ -192,7 +188,7 @@ internal class DataSyncHandler: MessageProcessor() {
                 var historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null
                 var algorithm: EncryptionEventContent? = null
 
-                val events = mutableListOf<ClientEvent<*>>()
+                mutableListOf<ClientEvent<*>>()
                     .apply {
                         addAll(room.accountData?.events.orEmpty())
                         addAll(room.ephemeral?.events.orEmpty())
@@ -264,7 +260,7 @@ internal class DataSyncHandler: MessageProcessor() {
                 }
 
                 saveEvents(
-                    events = events,
+                    events = room.timeline?.events.orEmpty(),
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
                     roomId = newItem.id
                 ).also { res ->

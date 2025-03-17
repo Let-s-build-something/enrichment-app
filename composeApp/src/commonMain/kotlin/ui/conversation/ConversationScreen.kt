@@ -89,7 +89,7 @@ fun ConversationScreen(
         viewModel.pingStream.collectLatest { stream ->
             stream.forEach {
                 if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
-                    //messages.refresh()
+                    messages.refresh()
                     viewModel.consumePing(it)
                 }
             }

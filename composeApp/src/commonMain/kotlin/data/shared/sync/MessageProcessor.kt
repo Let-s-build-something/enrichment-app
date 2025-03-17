@@ -54,8 +54,7 @@ abstract class MessageProcessor {
         val messages: List<ConversationMessageIO>,
         val events: Int,
         val members: Int,
-        val prevBatch: String?,
-        val requiresRefresh: Boolean
+        val prevBatch: String?
     )
 
     suspend fun saveEvents(
@@ -64,7 +63,6 @@ abstract class MessageProcessor {
         prevBatch: String?
     ): SaveEventsResult {
         return withContext(Dispatchers.IO) {
-            var requiresRefresh = false
             val result = processEvents(
                 events = events,
                 roomId = roomId,
@@ -80,7 +78,6 @@ abstract class MessageProcessor {
             roomMemberDao.insertAll(result.members)
 
             if(result.messages.isNotEmpty()) {
-                // TODO check if same message already exists in DB an set requiresRefresh
                 conversationMessageDao.insertAll(result.messages)
 
                 // add the anchor messages
@@ -98,8 +95,7 @@ abstract class MessageProcessor {
                 messages = result.messages,
                 members = result.members.size,
                 events = events.size,
-                prevBatch = prevBatch,
-                requiresRefresh = requiresRefresh
+                prevBatch = prevBatch
             )
         }
     }
