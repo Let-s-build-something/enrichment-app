@@ -14,6 +14,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import ui.conversation.ConversationRepository
 import ui.conversation.ConversationRoomSource
+import ui.conversation.GetMessagesResponse
 import ui.conversation.components.audio.MediaProcessorDataManager
 
 
@@ -55,44 +56,35 @@ class MessageDetailRepository(
         }
     }
 
-    private var lastBatch: String? = null
-
     /** Returns a flow of conversation reply messages */
     fun getMessagesListFlow(
         config: PagingConfig,
         conversationId: String? = null,
         anchorMessageId: String? = null
-    ): Pager<String, ConversationMessageIO> {
+    ): Pager<Int, ConversationMessageIO> {
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
-                    getMessages = { batch ->
+                    getMessages = { page ->
                         conversationMessageDao.getAnchoredPaginated(
                             conversationId = conversationId,
                             anchorMessageId = anchorMessageId,
-                            batch = batch
-                        ).also {
-                            if(it.isEmpty()) {
-                                lastBatch = batch
-                                invalidateLocalSource()
-                            }
+                            limit = config.pageSize,
+                            offset = page * config.pageSize
+                        ).let { res ->
+                            GetMessagesResponse(
+                                data = res,
+                                hasNext = res.size == config.pageSize
+                            )
                         }
                     },
-                    findPreviousBatch = { currentBatch ->
-                        conversationMessageDao.getPreviousBatch(
-                            conversationId = conversationId,
-                            currentBatch = currentBatch
-                        )
+                    getCount = {
+                        certainMessageCount ?: conversationMessageDao.getCount(conversationId = conversationId).also {
+                            certainMessageCount = it
+                        }
                     },
-                    countItems = { batch ->
-                        conversationMessageDao.getCount(
-                            conversationId = conversationId,
-                            batch = batch
-                        )
-                    },
-                    size = config.pageSize,
-                    lastBatch = { lastBatch }
+                    size = config.pageSize
                 ).also {
                     currentPagingSource = it
                 }

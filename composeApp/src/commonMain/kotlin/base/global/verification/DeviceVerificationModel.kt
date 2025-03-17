@@ -255,7 +255,7 @@ class VerificationModel(
                 }
             }
             is ActiveVerificationState.Done -> {
-                if(_launcherState.value is LauncherState.ComparisonByUser) {
+                if(_launcherState.value !is LauncherState.Hidden) {
                     isLoading.value = false
                     _launcherState.value = LauncherState.Success
                 }

@@ -39,7 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform
-import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
@@ -58,9 +57,11 @@ open class ConversationRepository(
     private val dataSyncHandler = DataSyncHandler()
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = hashMapOf<String, PlatformFile?>()
+    protected var certainMessageCount: Int? = null
 
     /** Attempts to invalidate local PagingSource with conversation messages */
     protected fun invalidateLocalSource() {
+        certainMessageCount = null
         currentPagingSource?.invalidate()
     }
 
@@ -94,7 +95,7 @@ open class ConversationRepository(
         }
     }
 
-    private suspend fun processMessages(
+    private suspend fun getAndStoreNewMessages(
         homeserver: String,
         fromBatch: String?,
         limit: Int,
@@ -110,72 +111,65 @@ open class ConversationRepository(
                 dataSyncHandler.saveEvents(
                     events = data.chunk.orEmpty() + data.state.orEmpty(),
                     roomId = conversationId,
-                    prevBatch = data.end,
-                    nextBatch = data.start,
-                    currentBatch = fromBatch
+                    prevBatch = data.end
                 )
             }
         }else null
     }
-
-    private var lastBatch: String? = null
 
     /** Returns a flow of conversation messages */
     fun getMessagesListFlow(
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
-    ): Pager<String, ConversationMessageIO> {
+    ): Pager<Int, ConversationMessageIO> {
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
-                    lastBatch = { lastBatch },
-                    getMessages = { batch ->
-                        if(conversationId == null) return@ConversationRoomSource emptyList<ConversationMessageIO>()
+                    getMessages = { page ->
+                        if(conversationId == null) return@ConversationRoomSource GetMessagesResponse(
+                            data = listOf(), hasNext = false
+                        )
 
                         withContext(Dispatchers.IO) {
-                            (conversationMessageDao.getBatched(
+                            val prevBatch = conversationRoomDao.get(conversationId)?.prevBatch
+
+                            conversationMessageDao.getPaginated(
                                 conversationId = conversationId,
-                                batch = batch
-                            ).takeIf { it.isNotEmpty() }
-                                ?: processMessages(
-                                    limit = config.pageSize,
-                                    conversationId = conversationId,
-                                    fromBatch = batch,
-                                    homeserver = homeserver()
-                                ).also {
-                                    val size = it?.events ?: 0
-
-                                    // mark as last batch
-                                    if(size == 0) {
-                                        lastBatch = batch
-                                        invalidateLocalSource()
+                                limit = config.pageSize,
+                                offset = page * config.pageSize
+                            ).let { res ->
+                                if(res.isNotEmpty()) {
+                                    GetMessagesResponse(
+                                        data = res,
+                                        hasNext = res.size == config.pageSize || prevBatch != null
+                                    ).also {
+                                        println("kostka_test, page: $page, hasNext: ${it.hasNext}, size: ${it.data.size}")
                                     }
-
-                                    // end of pagination with different number of items than expected,
-                                    // let's invalidate to recalculate
-                                    if(size != 0
-                                        && size < config.pageSize
-                                        && batch != INITIAL_BATCH
-                                    ) {
-                                        invalidateLocalSource()
-                                    }
-                                }?.messages.orEmpty()
-                            )
+                                }else null
+                            } ?: getAndStoreNewMessages(
+                                limit = config.pageSize,
+                                conversationId = conversationId,
+                                fromBatch = prevBatch,
+                                homeserver = homeserver()
+                            )?.let { res ->
+                                certainMessageCount = null
+                                conversationRoomDao.setPrevBatch(
+                                    id = conversationId,
+                                    prevBatch = res.prevBatch
+                                )
+                                GetMessagesResponse(
+                                    data = res.messages,
+                                    hasNext = res.prevBatch != null && res.messages.isNotEmpty()
+                                )
+                            }
                         }
                     },
-                    findPreviousBatch = { currentBatch ->
-                        conversationMessageDao.getPreviousBatch(
-                            conversationId = conversationId,
-                            currentBatch = currentBatch
-                        )
-                    },
-                    countItems = { batch ->
-                        conversationMessageDao.getCount(
-                            conversationId = conversationId,
-                            batch = batch
-                        )
+                    getCount = {
+                        certainMessageCount ?: conversationMessageDao.getCount(conversationId = conversationId).also {
+                            certainMessageCount = it
+                        }
                     },
                     size = config.pageSize
                 ).also { pagingSource ->
@@ -243,7 +237,6 @@ open class ConversationRepository(
                         )
                     }.filter { !it.isEmpty }
                 },
-                currentBatch = INITIAL_BATCH,
                 state = MessageState.Pending
             )
             conversationMessageDao.insert(msg)

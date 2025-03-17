@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
@@ -170,7 +171,7 @@ open class SharedModel: ViewModel() {
         sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)
     }
 
-    fun consumePing(identifier: String) {
+    suspend fun consumePing(identifier: String) = withContext(Dispatchers.Default) {
         sharedDataManager.pingStream.update {
             it.filter { ping ->
                 !ping.identifiers.contains(identifier)

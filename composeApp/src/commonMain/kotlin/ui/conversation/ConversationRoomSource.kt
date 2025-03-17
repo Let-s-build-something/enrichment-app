@@ -7,62 +7,45 @@ import coil3.network.HttpException
 import data.io.social.network.conversation.message.ConversationMessageIO
 import kotlinx.io.IOException
 
+data class GetMessagesResponse(
+    val data: List<ConversationMessageIO> = listOf(),
+    val hasNext: Boolean = false
+)
+
 /** factory for making paging requests */
 class ConversationRoomSource(
     private val size: Int,
-    private val lastBatch: () -> String?,
-    private val findPreviousBatch: suspend (batch: String) -> String?,
-    private val countItems: suspend (batch: String) -> Int,
-    private val getMessages: suspend (batch: String) -> List<ConversationMessageIO>
-): PagingSource<String, ConversationMessageIO>() {
+    private val getCount: suspend () -> Int,
+    private val getMessages: suspend (page: Int) -> GetMessagesResponse?
+): PagingSource<Int, ConversationMessageIO>() {
 
-    companion object {
-        const val INITIAL_BATCH = "initial_batch"
-    }
-
-    override fun getRefreshKey(state: PagingState<String, ConversationMessageIO>): String? {
-        return state.anchorPosition?.let { position ->
-            state.closestItemToPosition(position)?.currentBatch ?: INITIAL_BATCH
+    override fun getRefreshKey(state: PagingState<Int, ConversationMessageIO>): Int? {
+        return state.anchorPosition?.let {
+            state.closestPageToPosition(it)?.prevKey?.plus(1)
+                ?: state.closestPageToPosition(it)?.nextKey?.minus(1)
         }
     }
 
-    override suspend fun load(params: LoadParams<String>): LoadResult<String, ConversationMessageIO> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageIO> {
         return try {
-            val paramsKey = params.key ?: INITIAL_BATCH
-
+            val paramsKey = params.key ?: 0
             val response = getMessages(paramsKey)
-            val firstItem = response.firstOrNull()
 
-            val nextKey = firstItem?.prevBatch?.takeIf { it != paramsKey }
-            val prevKey = if(paramsKey != INITIAL_BATCH) {
-                firstItem?.nextBatch?.takeIf {
-                    it != firstItem.prevBatch && it != paramsKey
-                } ?: (if(paramsKey != INITIAL_BATCH) findPreviousBatch(paramsKey) else null)
-                ?: INITIAL_BATCH.takeIf {
-                    paramsKey != INITIAL_BATCH && response.isNotEmpty()
-                }
-            }else null
-            val itemsAfter = if(response.isNotEmpty() && nextKey != null
-                && paramsKey != lastBatch()
-                && nextKey != lastBatch()
-            ) {
-                countItems(nextKey).takeIf { it != 0 } ?: size
-            } else COUNT_UNDEFINED
-            val itemsBefore = if(prevKey != null) {
-                countItems(prevKey).takeIf { it != 0 } ?: size
-            }else COUNT_UNDEFINED
-
-            LoadResult.Page(
-                data = response,
-                prevKey = prevKey.takeIf { paramsKey != INITIAL_BATCH },
-                nextKey = nextKey.takeIf { itemsAfter > 0 },
-                itemsAfter = itemsAfter,
-                itemsBefore = itemsBefore
-            )
+            if(response != null) {
+                LoadResult.Page(
+                    data = response.data,
+                    prevKey = if(paramsKey > 0) paramsKey.minus(1) else null,
+                    nextKey = if(response.hasNext) paramsKey.plus(1) else null,
+                    itemsAfter = if(response.hasNext) {
+                        getCount().minus(paramsKey.plus(1) * size).takeIf { it > 0 } ?: size
+                    }else COUNT_UNDEFINED,
+                    itemsBefore = if(paramsKey > 0) paramsKey.minus(1) * size else COUNT_UNDEFINED
+                )
+            }else LoadResult.Error(Throwable("No response"))
         } catch (exception: IOException) {
-            return LoadResult.Error(exception)
+            LoadResult.Error(exception)
         } catch (exception: HttpException) {
-            return LoadResult.Error(exception)
+            LoadResult.Error(exception)
         }
     }
 }

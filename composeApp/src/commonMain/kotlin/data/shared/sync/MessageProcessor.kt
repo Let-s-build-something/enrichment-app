@@ -37,7 +37,6 @@ import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
 import org.jetbrains.compose.resources.getString
 import org.koin.mp.KoinPlatform
-import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -54,23 +53,22 @@ abstract class MessageProcessor {
     data class SaveEventsResult(
         val messages: List<ConversationMessageIO>,
         val events: Int,
-        val members: Int
+        val members: Int,
+        val prevBatch: String?,
+        val requiresRefresh: Boolean
     )
 
     suspend fun saveEvents(
         events: List<ClientEvent<*>>,
         roomId: String,
-        currentBatch: String?,
-        prevBatch: String?,
-        nextBatch: String?
+        prevBatch: String?
     ): SaveEventsResult {
         return withContext(Dispatchers.IO) {
+            var requiresRefresh = false
             val result = processEvents(
                 events = events,
                 roomId = roomId,
-                currentBatch = currentBatch,
-                prevBatch = prevBatch,
-                nextBatch = nextBatch
+                prevBatch = prevBatch
             )
 
             result.encryptedEvents.forEach { encrypted ->
@@ -82,6 +80,7 @@ abstract class MessageProcessor {
             roomMemberDao.insertAll(result.members)
 
             if(result.messages.isNotEmpty()) {
+                // TODO check if same message already exists in DB an set requiresRefresh
                 conversationMessageDao.insertAll(result.messages)
 
                 // add the anchor messages
@@ -93,19 +92,14 @@ abstract class MessageProcessor {
                     }
                 }
                 conversationMessageDao.insertAll(updates)
-
-                dataService.appendPing(
-                    AppPing(
-                        type = AppPingType.Conversation,
-                        identifiers = result.messages.mapNotNull { it.conversationId }.distinct()
-                    )
-                )
             }
 
             SaveEventsResult(
                 messages = result.messages,
                 members = result.members.size,
-                events = events.size
+                events = events.size,
+                prevBatch = prevBatch,
+                requiresRefresh = requiresRefresh
             )
         }
     }
@@ -115,9 +109,7 @@ abstract class MessageProcessor {
     private suspend fun processEvents(
         events: List<ClientEvent<*>>,
         roomId: String,
-        currentBatch: String?,
-        prevBatch: String?,
-        nextBatch: String?
+        prevBatch: String?
     ): ProcessedEvents = withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
         val members = mutableListOf<ConversationRoomMember>()
@@ -192,9 +184,7 @@ abstract class MessageProcessor {
                             MessageState.Read
                         }else MessageState.Sent,
                         conversationId = roomId,
-                        currentBatch = currentBatch.takeIf { it != nextBatch } ?: INITIAL_BATCH,
-                        prevBatch = prevBatch,
-                        nextBatch = nextBatch
+                        prevBatch = prevBatch
                     )
                 )
             }

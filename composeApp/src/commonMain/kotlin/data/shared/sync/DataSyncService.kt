@@ -10,6 +10,7 @@ import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
 import data.shared.SharedDataManager
+import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
@@ -37,7 +38,6 @@ import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventConten
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
-import ui.conversation.ConversationRoomSource.Companion.INITIAL_BATCH
 import kotlin.time.Duration.Companion.milliseconds
 
 internal val dataSyncModule = module {
@@ -54,6 +54,8 @@ class DataSyncService {
 
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
+    private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
+    private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
@@ -69,6 +71,8 @@ class DataSyncService {
             syncScope.launch {
                 if(START_ANEW) {
                     matrixPagingMetaDao.removeAll()
+                    conversationRoomDao.removeAll()
+                    conversationMessageDao.removeAll()
                 }
 
                 this.coroutineContext.onCancel {
@@ -108,7 +112,7 @@ class DataSyncService {
             entityId = "${homeserver}_$owner"
         )
         var prevBatch: String? = initialEntity?.currentBatch
-        var currentBatch = since ?: initialEntity?.nextBatch ?: INITIAL_BATCH
+        var currentBatch = since ?: initialEntity?.nextBatch
 
         client.api.sync.subscribe {
             println("kostka_test, new sync data, activeDeviceVerification: ${
@@ -116,8 +120,6 @@ class DataSyncService {
             }")
             handler.handle(
                 response = it.syncResponse,
-                nextBatch = nextBatch,
-                currentBatch = currentBatch,
                 owner = owner
             )
         }
@@ -169,8 +171,6 @@ internal class DataSyncHandler: MessageProcessor() {
 
     suspend fun handle(
         response: Sync.Response,
-        nextBatch: String?,
-        currentBatch: String,
         owner: String
     ) {
         withContext(Dispatchers.Default) {
@@ -202,6 +202,18 @@ internal class DataSyncHandler: MessageProcessor() {
                         addAll(room.knockState?.events.orEmpty())
                     }
                     .map { event ->
+                        // preprocessing of the room and adding info for further processing
+                        when(val content = event.content) {
+                            is HistoryVisibilityEventContent -> historyVisibility = content.historyVisibility
+                            is CanonicalAliasEventContent -> {
+                                alias = (content.alias ?: content.aliases?.firstOrNull())?.full
+                            }
+                            is NameEventContent -> name = content.name
+                            is AvatarEventContent -> avatar = content
+                            is EncryptionEventContent -> algorithm = content
+                            else -> {}
+                        }
+
                         with(event) {
                             when (this) {
                                 is RoomEvent.MessageEvent -> {
@@ -221,19 +233,6 @@ internal class DataSyncHandler: MessageProcessor() {
                                 }
                                 else -> event
                             }
-                        }
-                    }
-                    // preprocessing of the room and adding info for further processing
-                    .onEach { event ->
-                        when(val content = event.content) {
-                            is HistoryVisibilityEventContent -> historyVisibility = content.historyVisibility
-                            is CanonicalAliasEventContent -> {
-                                alias = (content.alias ?: content.aliases?.firstOrNull())?.full
-                            }
-                            is NameEventContent -> name = content.name
-                            is AvatarEventContent -> avatar = content
-                            is EncryptionEventContent -> algorithm = content
-                            else -> {}
                         }
                     }
 
@@ -267,10 +266,17 @@ internal class DataSyncHandler: MessageProcessor() {
                 saveEvents(
                     events = events,
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
-                    nextBatch = nextBatch,
-                    currentBatch = currentBatch,
                     roomId = newItem.id
-                )
+                ).also { res ->
+                    if(res.messages.isNotEmpty()) {
+                        dataService.appendPing(
+                            AppPing(
+                                type = AppPingType.Conversation,
+                                identifiers = res.messages.mapNotNull { it.conversationId }.distinct()
+                            )
+                        )
+                    }
+                }
             }
 
             // Save presence locally
@@ -280,10 +286,8 @@ internal class DataSyncHandler: MessageProcessor() {
                 }
             }
 
-            withContext(Dispatchers.IO) {
-                if(rooms.isNotEmpty()) {
-                    dataService.appendPing(AppPing(type = AppPingType.ConversationDashboard))
-                }
+            if(rooms.isNotEmpty()) {
+                dataService.appendPing(AppPing(type = AppPingType.ConversationDashboard))
             }
         }
     }
