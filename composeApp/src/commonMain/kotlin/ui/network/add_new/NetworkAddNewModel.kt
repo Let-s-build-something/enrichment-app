@@ -57,7 +57,7 @@ class NetworkAddNewModel(
             repository.getUserRecommendations(
                 takeCount = TOP_ITEMS,
                 excludeId = excludeId,
-                ownerPublicId = currentUser.value?.matrixUserId
+                ownerPublicId = matrixUserId
             ).success?.data.let { data ->
                 _recommendedUsers.value = data
             }

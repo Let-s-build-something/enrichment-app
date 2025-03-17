@@ -87,9 +87,7 @@ class AuthService {
                             )
                         )
                     } else Result.failure(Throwable())
-                } ?: Result.failure(Throwable())).also {
-                    println("kostka_test, getLoginInfo: $it")
-                }
+                } ?: Result.failure(Throwable()))
             },
             httpClientEngine = InterceptingEngine(
                 engine = KoinPlatform.getKoin().get(),
@@ -126,7 +124,8 @@ class AuthService {
                 println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}")
 
                 when {
-                    !forceRefresh && credentials.isFullyValid -> {
+                    (!forceRefresh && credentials.isFullyValid)
+                            || dataManager.networkConnectivity.value?.isNetworkAvailable == false -> {
                         updateUser(credentials = credentials)
                         if(!credentials.isExpired) {
                             println("kostka_test, setupAutoLogin -> not expired. Initializing matrix.")
@@ -165,6 +164,10 @@ class AuthService {
         ).takeIf { it.isNotBlank() }
     }
 
+    fun storedUserId(): String? = secureSettings.getStringOrNull(
+        key = SecureSettingsKeys.KEY_USER_ID
+    )
+
     private suspend fun retrieveCredentials(): AuthItem? {
         return withContext(Dispatchers.IO) {
             secureSettings.getString(
@@ -172,13 +175,12 @@ class AuthService {
                 ""
             ).takeIf { it.isNotBlank() }?.let { res ->
                 val decoded = json.decodeFromString<AuthItem>(res)
+                val userId = storedUserId()
                 decoded.copy(
-                    deviceId = getDeviceId(decoded.userId),
-                    pickleKey = getPickleKey(decoded.userId),
-                    databasePassword = getDatabasePassword(decoded.userId),
-                    userId = secureSettings.getStringOrNull(
-                        key = SecureSettingsKeys.KEY_USER_ID
-                    )
+                    deviceId = getDeviceId(userId),
+                    pickleKey = getPickleKey(userId),
+                    databasePassword = getDatabasePassword(userId),
+                    userId = userId
                 )
             }
         }

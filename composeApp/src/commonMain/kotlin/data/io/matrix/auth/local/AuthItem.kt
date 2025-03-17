@@ -4,6 +4,7 @@ import augmy.interactive.shared.utils.DateUtils
 import data.io.social.UserConfiguration
 import database.factory.SecretByteArray
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 data class AuthItem(
@@ -18,12 +19,17 @@ data class AuthItem(
 
     val accessToken: String? = null,
     val refreshToken: String? = null,
-    val userId: String? = null,
-    val databasePassword: SecretByteArray?,
     val address: String? = null,
     val password: String? = null,
+
+    @Transient
+    val userId: String? = null,
+    @Transient
+    val deviceId: String? = null,
+    @Transient
+    val databasePassword: SecretByteArray? = null,
+    @Transient
     val pickleKey: String? = null,
-    val deviceId: String?,
 
     // init-app info
     val displayName: String? = null,

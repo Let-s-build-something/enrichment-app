@@ -88,7 +88,7 @@ class HomeModel(
             enablePlaceholders = true,
             initialLoadSize = 20
         ),
-        ownerPublic = { currentUser.value?.matrixUserId }
+        ownerPublic = { matrixUserId }
     ).flow
         .cachedIn(viewModelScope)
         .combine(_categories) { pagingData, categories ->
@@ -110,7 +110,7 @@ class HomeModel(
                 ?: NetworkProximityCategory.entries
         }
         viewModelScope.launch {
-            networkItemUseCase.getNetworkItems(ownerPublicId = currentUser.value?.matrixUserId)
+            networkItemUseCase.getNetworkItems(ownerPublicId = matrixUserId)
         }
     }
 
@@ -139,7 +139,7 @@ class HomeModel(
                 )
             }
             settings.putString(
-                "${SettingsKeys.KEY_NETWORK_COLORS}_${currentUser.value?.matrixUserId}",
+                "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId",
                 sharedDataManager.localSettings.value?.networkColors?.joinToString(",") ?: ""
             )
         }
@@ -148,7 +148,7 @@ class HomeModel(
     /** Makes a request for all open rooms */
     fun requestOpenRooms() {
         viewModelScope.launch {
-            networkItemUseCase.requestOpenRooms(currentUser.value?.matrixUserId)
+            networkItemUseCase.requestOpenRooms(matrixUserId)
         }
     }
 
@@ -165,7 +165,7 @@ class HomeModel(
                 conversationId = conversationId,
                 publicId = publicId,
                 proximity = proximity,
-                ownerPublicId = currentUser.value?.matrixUserId
+                ownerPublicId = matrixUserId
             )
             onOperationDone()
         }
@@ -184,7 +184,7 @@ class HomeModel(
                 userPublicIds = userPublicIds,
                 message = message,
                 newName = newName,
-                ownerPublicId = currentUser.value?.matrixUserId
+                ownerPublicId = matrixUserId
             )
         }
     }

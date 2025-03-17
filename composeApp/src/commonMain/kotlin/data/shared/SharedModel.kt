@@ -96,6 +96,9 @@ open class SharedModel: ViewModel() {
 
     //======================================== public variables ==========================================
 
+    val matrixUserId: String?
+        get() = currentUser.value?.matrixUserId ?: authService.storedUserId()
+
     val awaitingAutologin: Boolean
         get() = authService.awaitingAutologin
 
@@ -196,7 +199,7 @@ open class SharedModel: ViewModel() {
             it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
         } ?: ClientStatus.NEW
         val networkColors = settings.getStringOrNull(
-            "${SettingsKeys.KEY_NETWORK_COLORS}_${currentUser.value?.matrixUserId}"
+            "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId"
         )?.split(",")
             ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
 

@@ -110,9 +110,6 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
     val listState = rememberLazyGridState()
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
-    val drawnAsUser = rememberSaveable {
-        mutableStateOf(viewModel.currentUser.value?.matrixUserId)
-    }
     val selectedItem = rememberSaveable {
         mutableStateOf<String?>(null)
     }
@@ -124,19 +121,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if(drawnAsUser.value != viewModel.currentUser.value?.matrixUserId) {
-            drawnAsUser.value = viewModel.currentUser.value?.matrixUserId
-            conversationRooms.refresh()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.currentUser.collectLatest {
-            if(drawnAsUser.value != it?.matrixUserId) {
-                drawnAsUser.value = it?.matrixUserId
-                conversationRooms.refresh()
-            }
-        }
+        conversationRooms.refresh()
     }
 
     LaunchedEffect(Unit) {
