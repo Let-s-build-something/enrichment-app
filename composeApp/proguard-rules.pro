@@ -73,6 +73,9 @@
 -keep class android.view.** { *; }
 -keep class io.github.alexzhirkevich.compottie.CompottieInitializer.*
 
+# JVM
+-keep class java.awt.*
+
 -keepattributes SourceFile,LineNumberTable,Signature,*Annotation*
 
 -keepclasseswithmembers public class MainKt {
