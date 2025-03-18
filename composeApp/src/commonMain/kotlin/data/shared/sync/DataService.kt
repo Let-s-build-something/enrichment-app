@@ -24,14 +24,25 @@ class DataService {
     private var lastPingTime: Long = 0L
     private val mutex = Mutex()
 
+    private var jobs = mutableListOf<String>()
+
     fun appendPing(ping: AppPing) {
-        pingScope.launch {
-            mutex.withLock {
+        pingScope.launch(Dispatchers.Default) {
+            mutex.withLock(ping.identifiers.hashCode() + ping.type.hashCode()) {
                 val time = DateUtils.now.toEpochMilliseconds()
                 val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
-                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L // buffer
+                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L
 
-                if(calculatedDelay > 0) delay(calculatedDelay)
+                if(calculatedDelay > 0) {
+                    val uniqueIds = ping.identifiers.filter { !jobs.contains(it) }
+                    if(uniqueIds.isEmpty() && ping.identifiers.isNotEmpty()) return@launch // obsolete ping
+                    jobs.addAll(uniqueIds)
+
+                    delay(calculatedDelay)
+
+                    jobs.removeAll(uniqueIds)
+                }
+
                 sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
                     retainAll {
                         DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
