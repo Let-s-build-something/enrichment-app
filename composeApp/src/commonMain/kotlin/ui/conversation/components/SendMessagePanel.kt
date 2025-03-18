@@ -131,6 +131,8 @@ import ui.conversation.ConversationModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
+import ui.conversation.components.message.MessageMediaPanel
+import ui.conversation.components.message.ReplyIndication
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable

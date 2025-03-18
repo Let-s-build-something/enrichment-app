@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.message
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -48,6 +48,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationModel
+import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.emoji.MessageEmojiPanel
 import ui.conversation.components.gif.MessageGifPanel
 

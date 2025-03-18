@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,6 +55,7 @@ import org.jetbrains.compose.resources.getString
 import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.TypingIndicator
+import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.ConversationMessageContent
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -251,6 +253,59 @@ fun ConversationComponent(
                     }
                 }
 
+                val model = remember(data?.id) {
+                    object: MessageBubbleModel {
+                        override val transcribe = derivedStateOf {
+                            !isCurrentUser && transcribedItem.value?.second == data?.id
+                                    && !isTranscribed.value
+                        }
+
+                        override fun onTranscribed() {
+                            isTranscribed.value = true
+                            viewModel.markMessageAsTranscribed(id = data?.id)
+                            transcribedItem.value = if(index > 0) {
+                                index + 1 to nextItem?.id.orEmpty()
+                            }else null
+                        }
+
+                        override fun onReactionRequest(isReacting: Boolean) {
+                            reactingToMessageId.value = if(isReacting) data?.id else null
+                        }
+
+                        override fun onReactionChange(emoji: String) {
+                            viewModel.reactToMessage(content = emoji, messageId = data?.id)
+                            reactingToMessageId.value = null
+                        }
+
+                        override fun onAdditionalReactionRequest() {
+                            showEmojiPreferencesId.value = data?.id
+                        }
+
+                        override fun onReplyRequest() {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(index = 0)
+                            }
+                            replyToMessage.value = data
+                        }
+
+                        override fun openDetail() {
+                            if(thread == null) {
+                                coroutineScope.launch {
+                                    navController?.navigate(
+                                        NavigationNode.MessageDetail(
+                                            messageId = data?.id ?: "",
+                                            conversationId = conversationId,
+                                            title = if(isCurrentUser) {
+                                                getString(Res.string.conversation_detail_you)
+                                            } else data?.user?.name
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 ConversationMessageContent(
                     data = data?.copy(
                         transcribed = data.transcribed == true || isTranscribed.value,
@@ -260,45 +315,12 @@ fun ConversationComponent(
                     isNextMessageSameAuthor = isNextMessageSameAuthor,
                     currentUserPublicId = viewModel.matrixUserId ?: "",
                     reactingToMessageId = reactingToMessageId,
-                    showEmojiPreferencesId = showEmojiPreferencesId,
+                    model = model,
                     replyToMessage = replyToMessage,
                     scrollToMessage = scrollToMessage,
                     preferredEmojis = preferredEmojis.value,
                     temporaryFiles = viewModel.temporaryFiles.toMap(),
-                    isMyLastMessage = lastCurrentUserMessage.value == index,
-                    transcribe = !isCurrentUser && transcribedItem.value?.second == data?.id
-                            && !isTranscribed.value,
-                    openAsThread = {
-                        if(thread == null) {
-                            coroutineScope.launch {
-                                navController?.navigate(
-                                    NavigationNode.MessageDetail(
-                                        messageId = data?.id ?: "",
-                                        conversationId = conversationId,
-                                        title = if(isCurrentUser) {
-                                            getString(Res.string.conversation_detail_you)
-                                        } else data?.user?.name
-                                    )
-                                )
-                            }
-                        }
-                    },
-                    onTranscribed = {
-                        isTranscribed.value = true
-                        viewModel.markMessageAsTranscribed(id = data?.id)
-                        transcribedItem.value = if(index > 0) {
-                            index + 1 to nextItem?.id.orEmpty()
-                        }else null
-                    },
-                    onReactionChange = { emoji ->
-                        viewModel.reactToMessage(content = emoji, messageId = data?.id)
-                    },
-                    onReplyRequest = {
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(index = 0)
-                        }
-                        replyToMessage.value = data
-                    }
+                    isMyLastMessage = lastCurrentUserMessage.value == index
                 )
             }
             lazyScope()

@@ -43,9 +43,10 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.delay
 import ui.conversation.components.MEDIA_MAX_HEIGHT_DP
-import ui.conversation.components.MessageBubble
-import ui.conversation.components.ReplyIndication
 import ui.conversation.components.link.LinkPreview
+import ui.conversation.components.message.MessageBubble
+import ui.conversation.components.message.MessageBubbleModel
+import ui.conversation.components.message.ReplyIndication
 import ui.conversation.media.MediaRow
 
 /**
@@ -60,16 +61,11 @@ fun LazyItemScope.ConversationMessageContent(
     isPreviousMessageSameAuthor: Boolean,
     isNextMessageSameAuthor: Boolean,
     isMyLastMessage: Boolean,
-    transcribe: Boolean,
-    onReactionChange: (String) -> Unit,
-    onTranscribed: () -> Unit,
-    openAsThread: () -> Unit,
+    model: MessageBubbleModel,
     reactingToMessageId: MutableState<String?>,
-    showEmojiPreferencesId: MutableState<String?>,
     replyToMessage: MutableState<ConversationMessageIO?>,
     preferredEmojis: List<EmojiData>,
-    scrollToMessage: (String?, Int?) -> Unit,
-    onReplyRequest: () -> Unit
+    scrollToMessage: (String?, Int?) -> Unit
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
@@ -134,20 +130,7 @@ fun LazyItemScope.ConversationMessageContent(
             isReplying = replyToMessage.value?.id == data?.id,
             isMyLastMessage = isMyLastMessage,
             preferredEmojis = preferredEmojis,
-            onReactionRequest = { show ->
-                reactingToMessageId.value = if(show) data?.id else null
-            },
-            onReactionChange = { emoji ->
-                onReactionChange(emoji)
-                reactingToMessageId.value = null
-            },
-            onAdditionalReactionRequest = {
-                showEmojiPreferencesId.value = data?.id
-            },
-            transcribe = transcribe,
-            onTranscribed = onTranscribed,
-            onReplyRequest = onReplyRequest,
-            openDetail = openAsThread,
+            model = model,
             additionalContent = { onDragChange, onDrag ->
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
