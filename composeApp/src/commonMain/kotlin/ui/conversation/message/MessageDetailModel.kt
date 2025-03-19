@@ -15,6 +15,7 @@ import org.koin.dsl.module
 import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
+import ui.conversation.components.gif.PacingUseCase
 
 internal val messageDetailModule = module {
     factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
@@ -23,6 +24,7 @@ internal val messageDetailModule = module {
             get<String>(),
             get<String>(),
             get<MessageDetailRepository>(),
+            get(),
             get(),
             get()
         )
@@ -35,13 +37,15 @@ class MessageDetailModel(
     conversationId: String?,
     private val repository: MessageDetailRepository,
     emojiUseCase: EmojiUseCase,
-    gifUseCase: GifUseCase
+    gifUseCase: GifUseCase,
+    pacingUseCase: PacingUseCase
 ): ConversationModel(
     conversationId = conversationId ?: "",
     enableMessages = false,
     repository = repository,
     emojiUseCase = emojiUseCase,
-    gifUseCase = gifUseCase
+    gifUseCase = gifUseCase,
+    pacingUseCase = pacingUseCase
 ) {
 
     private val _message = MutableStateFlow<ConversationMessageIO?>(null)

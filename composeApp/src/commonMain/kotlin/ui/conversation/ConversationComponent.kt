@@ -344,7 +344,7 @@ fun ConversationComponent(
                 },
             overrideAnchorMessage = thread,
             keyboardMode = keyboardMode,
-            viewModel = viewModel,
+            model = viewModel,
             replyToMessage = replyToMessage,
             scrollToMessage = {
                 scrollToMessage(it.id, -1)

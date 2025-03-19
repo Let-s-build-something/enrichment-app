@@ -1,6 +1,7 @@
 package ui.conversation.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,6 +12,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -18,12 +23,92 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.PI
+import kotlin.math.sin
+
+enum class Direction {
+    Top, Bottom, Both
+}
+
+@Composable
+fun WaveLine(
+    modifier: Modifier = Modifier,
+    waveHeights: List<Float>,
+    waveColor: Color = Color.LightGray,
+    animationDuration: Int = 400,
+    direction: Direction = Direction.Bottom
+) {
+    val animationProgresses = remember {
+        waveHeights.map {
+            mutableStateOf((0..999).random().div(1000.0).toFloat())
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            animationProgresses.forEach { state ->
+                state.value = (state.value + 0.01f) % 1f
+            }
+            delay((animationDuration / 100).toLong())
+        }
+    }
+
+    Canvas(modifier = modifier) {
+        val width = size.width
+        val height = size.height
+        val centerY = height / 2
+        val waveSegmentWidth = width / (waveHeights.lastIndex).coerceAtLeast(1)
+
+        val path = Path().apply {
+            moveTo(0f, centerY)
+
+            for (i in waveHeights.indices) {
+                val animationProgress = animationProgresses[i].value
+                val waveHeight = waveHeights[i]
+                val startX = i * waveSegmentWidth
+                val endX = (i + 1) * waveSegmentWidth
+
+                val sineValue = sin(animationProgress * 2 * PI).toFloat()
+                val startY = when (direction) {
+                    Direction.Top -> centerY - waveHeight * height * (0.5f + 0.5f * sineValue)
+                    Direction.Bottom -> centerY + waveHeight * height * (0.5f + 0.5f * sineValue)
+                    Direction.Both -> centerY - waveHeight * (height / 2) * sineValue
+                }
+
+                val endY = if (i < waveHeights.lastIndex) {
+                    val nextSineValue = sin(animationProgresses[i + 1].value * 2 * PI).toFloat()
+                    when (direction) {
+                        Direction.Top -> centerY - waveHeights[i + 1] * height * (0.5f + 0.5f * nextSineValue)
+                        Direction.Bottom -> centerY + waveHeights[i + 1] * height * (0.5f + 0.5f * nextSineValue)
+                        Direction.Both -> centerY - waveHeights[i + 1] * (height / 2) * nextSineValue
+                    }
+                } else startY
+
+                val control1X = startX + waveSegmentWidth * 0.45f
+                val control2X = endX - waveSegmentWidth * 0.45f
+
+                cubicTo(
+                    control1X, startY,
+                    control2X, endY,
+                    endX, endY
+                )
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = waveColor,
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+        )
+    }
+}
 
 /**
  * Visualization of person typing their message in the past.

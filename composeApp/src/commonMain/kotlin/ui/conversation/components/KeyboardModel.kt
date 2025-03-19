@@ -1,10 +1,7 @@
-@file:OptIn(ExperimentalSettingsApi::class)
-
 package ui.conversation.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.viewModelScope
-import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.EmojiData
 import data.shared.SharedModel
@@ -20,10 +17,12 @@ import ui.conversation.components.gif.GifRepository.Companion.SEARCH_SECTION
 import ui.conversation.components.gif.GifRepository.Companion.TRENDING_SECTION
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.gif.gifModule
+import ui.conversation.components.gif.pacingModule
 
 internal val keyboardModule = module {
     includes(emojiModule)
     includes(gifModule)
+    includes(pacingModule)
 }
 
 /** Controller and provider of data specific to the conversation keyboard */
