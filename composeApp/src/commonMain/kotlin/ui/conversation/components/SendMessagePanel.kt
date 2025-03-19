@@ -133,6 +133,7 @@ import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageMediaPanel
 import ui.conversation.components.message.ReplyIndication
+import ui.conversation.components.message.WaveLine
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
