@@ -42,9 +42,11 @@ fun WaveLine(
     }
 
     val animationProgresses = remember {
-        waveHeights.map {
-            mutableStateOf((0..999).random().div(1000.0).toFloat())
-        }
+        mutableStateOf(
+            waveHeights.map {
+                mutableStateOf((0..999).random().div(1000.0).toFloat())
+            }
+        )
     }
 
     LaunchedEffect(waveHeights) {
@@ -54,11 +56,16 @@ fun WaveLine(
                 animationSpec = animationSpec
             )
         }
+        if(waveHeights.size != animationProgresses.value.size) {
+            animationProgresses.value = waveHeights.map {
+                mutableStateOf((0..999).random().div(1000.0).toFloat())
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
         while (true) {
-            animationProgresses.forEach { state ->
+            animationProgresses.value.forEach { state ->
                 state.value = (state.value + 0.01f) % 1f
             }
             delay((animationDuration / 100).toLong())
@@ -74,8 +81,8 @@ fun WaveLine(
         val path = Path().apply {
             moveTo(0f, centerY)
 
-            for (i in waveHeights.indices) {
-                val animationProgress = animationProgresses[i].value
+            for (i in animationProgresses.value.indices) {
+                val animationProgress = animationProgresses.value[i].value
 
                 val animatedWaveHeight = waveAnimations[i]?.value ?: waveHeights[i]
                 val startX = i * waveSegmentWidth
@@ -88,8 +95,8 @@ fun WaveLine(
                     Direction.Both -> centerY - animatedWaveHeight * (height / 2) * sineValue
                 }
 
-                val endY = if (i < waveHeights.lastIndex) {
-                    val nextSineValue = sin(animationProgresses[i + 1].value * 2 * PI).toFloat()
+                val endY = if (i < animationProgresses.value.lastIndex && i < waveHeights.lastIndex) {
+                    val nextSineValue = sin(animationProgresses.value[i + 1].value * 2 * PI).toFloat()
                     when (direction) {
                         Direction.Top -> centerY - waveHeights[i + 1] * height * (0.5f + 0.5f * nextSineValue)
                         Direction.Bottom -> centerY + waveHeights[i + 1] * height * (0.5f + 0.5f * nextSineValue)

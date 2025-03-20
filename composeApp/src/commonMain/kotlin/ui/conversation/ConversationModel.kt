@@ -36,6 +36,7 @@ import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.gif.PacingUseCase
+import ui.conversation.components.gif.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.keyboardModule
 import ui.login.AUGMY_HOME_SERVER
 
@@ -173,6 +174,12 @@ open class ConversationModel(
     fun onKeyPressed(char: Char, timingMs: Long) {
         viewModelScope.launch {
             pacingUseCase.onKeyPressed(char, timingMs)
+        }
+    }
+
+    fun initPacing(widthPx: Float) {
+        viewModelScope.launch {
+            pacingUseCase.init(maxWaves = (WAVES_PER_PIXEL * widthPx).toInt())
         }
     }
 

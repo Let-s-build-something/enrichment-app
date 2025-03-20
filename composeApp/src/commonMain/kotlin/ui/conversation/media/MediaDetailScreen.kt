@@ -257,11 +257,11 @@ fun MediaDetailScreen(
 
                                                 scale.animateTo(newScale)
                                                 offset.value = Offset(
-                                                    x = (offset.value.x + panChange.x * scale.value).coerceIn(
+                                                    x = (offset.value.x + panChange.x * newScale).coerceIn(
                                                         minimumValue = -maxOffsetX,
                                                         maximumValue = maxOffsetX
                                                     ),
-                                                    y = (offset.value.y + panChange.y * scale.value).coerceIn(
+                                                    y = (offset.value.y + panChange.y * newScale).coerceIn(
                                                         minimumValue = -maxOffsetY,
                                                         maximumValue = maxOffsetY
                                                     )

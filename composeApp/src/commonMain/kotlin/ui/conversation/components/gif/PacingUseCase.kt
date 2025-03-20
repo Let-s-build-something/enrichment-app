@@ -1,11 +1,11 @@
 package ui.conversation.components.gif
 
-import data.io.app.SettingsKeys.KEY_CLOSE_WIDE_AVG
-import data.io.app.SettingsKeys.KEY_NARROW_WIDE_AVG
+import data.io.app.SettingsKeys.KEY_PACING_NARROW_AVG
 import data.io.app.SettingsKeys.KEY_PACING_WIDE_AVG
 import koin.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -17,44 +17,65 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.dsl.module
+import org.koin.mp.KoinPlatform
 
 internal val pacingModule = module {
-    factory {
-        PacingUseCase(get())
-    }
+    factory { PacingUseCase() }
+    single { PacingDataManager() }
+}
+
+class PacingDataManager {
+    val keyboardRows = listOf(
+        "1234567890",
+        "qwertyuiop",
+        "asdfghjkl",
+        "zxcvbnm"
+    )
 }
 
 /** Bundled functionality of Gifs */
-class PacingUseCase(
-    private val settings: AppSettings
-) {
+class PacingUseCase {
     companion object {
         private const val WIDE_AVG_WEIGHT = 0.33f
         private const val NARROW_AVG_WEIGHT = 0.33f
         private const val CLOSE_AVG_WEIGHT = 0.33f
 
         private const val MIN_WAVES = 8
+        const val WAVES_PER_PIXEL = 0.015f
+        private const val NARROW_AVG_CHARS = 1400
+        private const val CLOSE_AVG_CHARS = 50
+        private const val AVG_SEPARATOR = "_"
+        private val ignoredCharacters = listOf(
+            ' '
+        )
     }
 
-    private val mutex = Mutex()
-    private val keyboardRows = listOf(
-        "1234567890",
-        "qwertyuiop",
-        "asdfghjkl",
-        "zxcvbnm"
-    )
+    var isInitialized = false
+
+    private val settings: AppSettings by KoinPlatform.getKoin().inject()
+    private val dataManager: PacingDataManager by KoinPlatform.getKoin().inject()
+
+    private val keyPressMutex = Mutex()
+    private val appendAvgMutex = Mutex()
     private val _keyWidths = MutableStateFlow(MutableList(MIN_WAVES) { 0.1f })
     private var backStack = MutableList(MIN_WAVES) { it to 0.1f }
     val keyWidths = _keyWidths.asStateFlow()
 
-    private var wideAvg = 300f
-    private var narrowAvg = 300f
-    private var closeAvg = 300f
+    private val settingsScope = CoroutineScope(Job())
+    private val decreaseScope = CoroutineScope(Job())
 
-    suspend fun init(maxWaves: Int) {
-        wideAvg = settings.getFloatOrNull(KEY_PACING_WIDE_AVG) ?: 300f
-        narrowAvg = //TODO from X last messages
-        closeAvg = //TODO current message only
+    private var wideAvg = 0 to 0f
+    private var narrowAvg = 0 to 0f
+    private var closeAvg = 0 to 0f
+
+    suspend fun init(
+        maxWaves: Int,
+        defaultAvg: Float = 300f
+    ) {
+        isInitialized = true
+        wideAvg = retrieveAvg(KEY_PACING_WIDE_AVG) ?: (0 to defaultAvg)
+        narrowAvg = retrieveAvg(KEY_PACING_NARROW_AVG) ?: (0 to defaultAvg) // will come from the constructor in the future
+        closeAvg = 0 to 0f // will come from the constructor in the future
 
         _keyWidths.update {
             MutableList(maxWaves.coerceAtLeast(MIN_WAVES)) { 0.1f }
@@ -62,10 +83,9 @@ class PacingUseCase(
         backStack = MutableList(maxWaves.coerceAtLeast(MIN_WAVES)) { it to 0.1f }
     }
 
-    private val scope = CoroutineScope(Job())
     private fun runDecreaseRepeat() {
-        scope.coroutineContext.cancelChildren()
-        scope.launch {
+        decreaseScope.coroutineContext.cancelChildren()
+        decreaseScope.launch {
             while (true) {
                 delay(200)
                 _keyWidths.update { prev ->
@@ -79,7 +99,9 @@ class PacingUseCase(
 
     // 1. define number of waves for the message
     suspend fun onKeyPressed(char: Char, timingMs: Long) = withContext(Dispatchers.Default) {
-        mutex.withLock {
+        if(ignoredCharacters.contains(char)) return@withContext
+
+        keyPressMutex.withLock {
             while(backStack.size > keyWidths.value.size) {
                 backStack.removeFirst()
             }
@@ -91,16 +113,16 @@ class PacingUseCase(
                 }else it
             }.coerceAtMost(keyWidths.value.lastIndex)
 
-            val wideValance = (if(timingMs < wideAvg) {
-                1 - timingMs / wideAvg
+            val wideValance = (if(timingMs < wideAvg.second) {
+                1 - timingMs / wideAvg.second
             }else 0f).times(WIDE_AVG_WEIGHT)
 
-            val narrowValance = (if(timingMs < narrowAvg) {
-                1 - timingMs / narrowAvg
+            val narrowValance = (if(timingMs < narrowAvg.second) {
+                1 - timingMs / narrowAvg.second
             }else 0f).times(NARROW_AVG_WEIGHT)
 
-            val closeValance = (if(timingMs < closeAvg) {
-                1 - timingMs / closeAvg
+            val closeValance = (if(timingMs < closeAvg.second) {
+                1 - timingMs / closeAvg.second
             }else 0f).times(CLOSE_AVG_WEIGHT)
 
 
@@ -115,11 +137,41 @@ class PacingUseCase(
             }
             backStack.add(position to valance)
             runDecreaseRepeat()
+            settingsScope.launch {
+                wideAvg = wideAvg.appendAvg(KEY_PACING_WIDE_AVG, timingMs)
+                narrowAvg = narrowAvg.appendAvg(KEY_PACING_NARROW_AVG, timingMs, limit = NARROW_AVG_CHARS)
+                closeAvg = closeAvg.appendAvg(key = null, timingMs, limit = CLOSE_AVG_CHARS)
+            }
+        }
+    }
+
+    private suspend fun retrieveAvg(key: String): Pair<Int, Float>? = withContext(Dispatchers.IO) {
+        settings.getStringOrNull(key)?.split(AVG_SEPARATOR)?.let {
+            (it.firstOrNull()?.toIntOrNull() ?: 0) to (it.lastOrNull()?.toFloatOrNull() ?: 0f)
+        }
+    }
+
+    private suspend fun Pair<Int, Float>.appendAvg(
+        key: String?,
+        newValue: Long,
+        limit: Int? = null
+    ): Pair<Int, Float> = withContext(Dispatchers.IO) {
+        appendAvgMutex.withLock {
+            val sum = (second * first)
+                .minus(if(limit != null && first >= limit) (first.plus(1) - limit).times(second) else 0f)
+                .plus(newValue)
+
+            val count = if(limit != null) (first + 1).coerceAtMost(limit) else first + 1
+            val average = sum / count
+            if(key != null) settings.putString(key = key, "$sum$AVG_SEPARATOR$average")
+            (count to average).also {
+                println("kostka_test, value: $newValue, prev: ${this@appendAvg}, res: $it ($key)")
+            }
         }
     }
 
     private suspend fun getKeyScalePosition(key: Char): Double = withContext(Dispatchers.Default) {
-        for (row in keyboardRows) {
+        for (row in dataManager.keyboardRows) {
             val index = row.lastIndexOf(key.lowercaseChar())
             if (index != -1) {
                 return@withContext index.toDouble() / (row.length - 1).toDouble()

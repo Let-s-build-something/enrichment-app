@@ -344,11 +344,14 @@ internal fun BoxScope.SendMessagePanel(
     LaunchedEffect(messageState.text) {
         if(messageState.text.isNotBlank()) {
             showMoreOptions.value = false
+        }else {
+            // temporary init to showcase the behaviour, remove for implementation
+            model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
         }
-        timingSensor.onNewText(messageState.text)?.let { timing ->
+        timingSensor.onNewText(messageState.text)?.let { result ->
             model.onKeyPressed(
-                char = timing.newChar,
-                timingMs = timing.timing
+                char = result.newChar,
+                timingMs = result.timing
             )
         }
         if(showPreview.value) {
