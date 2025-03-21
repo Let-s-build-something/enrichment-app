@@ -6,7 +6,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -501,7 +500,7 @@ private fun ContentLayout(
                                                 mutableStateOf(false)
                                             }
                                             val text = @Composable {
-                                                Column(
+                                                GravityIndicationContainer(
                                                     modifier = Modifier
                                                         .then(
                                                             if (!data.reactions.isNullOrEmpty()) {
@@ -516,46 +515,44 @@ private fun ContentLayout(
                                                             } else LocalTheme.current.colors.backgroundContrast,
                                                             shape = messageShape
                                                         )
-                                                        .then(
-                                                            tagToColor(data.user?.tag)?.let { color ->
-                                                                Modifier.border(
-                                                                    width = 1.dp,
-                                                                    color = color,
-                                                                    shape = messageShape
-                                                                )
-                                                            } ?: Modifier
-                                                        )
                                                         .padding(
                                                             vertical = 10.dp,
                                                             horizontal = 14.dp
-                                                        )
+                                                        ),
+                                                    backgroundColor = if (isCurrentUser) {
+                                                        LocalTheme.current.colors.brandMainDark
+                                                    } else LocalTheme.current.colors.backgroundContrast,
+                                                    indicationColor = tagToColor(data.user?.tag) ?: LocalTheme.current.colors.tetrial,
+                                                    shape = messageShape
                                                 ) {
-                                                    Text(
-                                                        modifier = Modifier
-                                                            .widthIn(max = (screenSize.width * .8f).dp)
-                                                            .then(
-                                                                if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                                                            )
-                                                            .then(if(model.transcribe.value) Modifier.animateContentSize() else Modifier),
-                                                        text = textContent,
-                                                        maxLines = MaximumTextLines,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        onTextLayout = {
-                                                            showReadMore.value = it.didOverflowHeight
-                                                        }
-                                                    )
-                                                    AnimatedVisibility(showReadMore.value) {
+                                                    Column {
                                                         Text(
                                                             modifier = Modifier
-                                                                .padding(top = 4.dp)
-                                                                .scalingClickable {
-                                                                    model.openDetail()
-                                                                },
-                                                            text = stringResource(Res.string.message_read_more),
-                                                            style = LocalTheme.current.styles.title.copy(
-                                                                fontFamily = FontFamily(fontQuicksandSemiBold)
-                                                            ),
+                                                                .widthIn(max = (screenSize.width * .8f).dp)
+                                                                .then(
+                                                                    if(hasAttachment) Modifier.fillMaxWidth() else Modifier
+                                                                )
+                                                                .then(if(model.transcribe.value) Modifier else Modifier),
+                                                            text = textContent,
+                                                            maxLines = MaximumTextLines,
+                                                            overflow = TextOverflow.Ellipsis,
+                                                            onTextLayout = {
+                                                                showReadMore.value = it.didOverflowHeight
+                                                            }
                                                         )
+                                                        AnimatedVisibility(showReadMore.value) {
+                                                            Text(
+                                                                modifier = Modifier
+                                                                    .padding(top = 4.dp)
+                                                                    .scalingClickable {
+                                                                        model.openDetail()
+                                                                    },
+                                                                text = stringResource(Res.string.message_read_more),
+                                                                style = LocalTheme.current.styles.title.copy(
+                                                                    fontFamily = FontFamily(fontQuicksandSemiBold)
+                                                                ),
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
