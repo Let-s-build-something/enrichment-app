@@ -71,7 +71,9 @@ fun buildTempoString(
     }
 
     return when {
-        timings.isEmpty() -> text
+        timings.isEmpty() -> buildAnnotatedString {
+            withStyle(style.toSpanStyle()) { append(text) }
+        }
         !enabled -> {
             buildAnnotatedString {
                 graphemes.value?.toList()?.forEachIndexed { index, matchResult ->
