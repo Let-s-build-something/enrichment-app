@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.message
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

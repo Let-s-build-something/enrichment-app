@@ -100,7 +100,7 @@ fun MediaRow(
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if(isCurrentUser) {
+            if(isCurrentUser && media.size > 1) {
                 AnimatedVisibility(!isHovered.value && showSpacers.value) {
                     Spacer(Modifier.width((LocalScreenSize.current.width * .3f).dp))
                 }
@@ -150,7 +150,7 @@ fun MediaRow(
                     contentScale = ContentScale.FillHeight
                 )
             }
-            if(!isCurrentUser) {
+            if(!isCurrentUser && media.size > 1) {
                 AnimatedVisibility(!isHovered.value && showSpacers.value) {
                     Spacer(Modifier.width((LocalScreenSize.current.width * .3f).dp))
                 }

@@ -35,6 +35,8 @@ import ui.conversation.components.KeyboardModel
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.gif.GifUseCase
+import ui.conversation.components.gif.PacingUseCase
+import ui.conversation.components.gif.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.keyboardModule
 import ui.login.AUGMY_HOME_SERVER
 
@@ -48,7 +50,8 @@ internal val conversationModule = module {
             get<Boolean>(),
             get<ConversationRepository>(),
             get<EmojiUseCase>(),
-            get<GifUseCase>()
+            get<GifUseCase>(),
+            get<PacingUseCase>(),
         )
     }
     viewModelOf(::ConversationModel)
@@ -60,7 +63,8 @@ open class ConversationModel(
     enableMessages: Boolean,
     private val repository: ConversationRepository,
     emojiUseCase: EmojiUseCase,
-    gifUseCase: GifUseCase
+    gifUseCase: GifUseCase,
+    private val pacingUseCase: PacingUseCase
 ): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
@@ -86,6 +90,8 @@ open class ConversationModel(
 
     /** Current configuration of media repository */
     val repositoryConfig = _repositoryConfig.asStateFlow()
+
+    val keyWidths = pacingUseCase.keyWidths
 
     /** Progress of the current upload */
     val uploadProgress = _uploadProgress.asStateFlow()
@@ -165,7 +171,19 @@ open class ConversationModel(
 
     // ==================== functions ===========================
 
-    /** Saves content of a message */
+    fun onKeyPressed(char: Char, timingMs: Long) {
+        viewModelScope.launch {
+            pacingUseCase.onKeyPressed(char, timingMs)
+        }
+    }
+
+    fun initPacing(widthPx: Float) {
+        viewModelScope.launch {
+            pacingUseCase.init(maxWaves = (WAVES_PER_PIXEL * widthPx).toInt())
+        }
+    }
+
+    /** Saves the content of a message */
     fun saveMessage(
         content: String?,
         timings: List<Long> = listOf()

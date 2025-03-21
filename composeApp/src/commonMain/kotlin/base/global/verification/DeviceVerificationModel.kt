@@ -182,7 +182,6 @@ class VerificationModel(
                         if(it == null) isLoading.value = false
                     }
                 }
-                else -> isLoading.value = false
             }
         }
     }

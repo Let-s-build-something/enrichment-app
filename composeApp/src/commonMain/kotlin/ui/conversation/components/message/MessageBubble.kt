@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.message
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -88,11 +89,24 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.components.LoadingMessageBubble
+import ui.conversation.components.TempoText
 import ui.conversation.components.audio.MediaProcessorModel
 import ui.conversation.media.DownloadIndication
 import ui.conversation.media.rememberIndicationState
 import kotlin.math.absoluteValue
 
+
+interface MessageBubbleModel {
+    val transcribe: State<Boolean>
+
+    fun onTranscribed()
+    fun onReactionRequest(isReacting: Boolean)
+    fun onReactionChange(emoji: String)
+    fun onAdditionalReactionRequest()
+    fun onReplyRequest()
+    fun openDetail()
+}
 
 /**
  * Horizontal bubble displaying textual content of a message and its reactions
@@ -102,20 +116,14 @@ import kotlin.math.absoluteValue
 fun MessageBubble(
     modifier: Modifier = Modifier,
     data: ConversationMessageIO?,
+    model: MessageBubbleModel,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     hasNext: Boolean,
     isMyLastMessage: Boolean,
     isReplying: Boolean,
-    transcribe: Boolean,
     currentUserPublicId: String,
-    onTranscribed: () -> Unit,
-    onReactionRequest: (Boolean) -> Unit,
-    onReactionChange: (String) -> Unit,
-    onAdditionalReactionRequest: () -> Unit,
-    onReplyRequest: () -> Unit,
-    openDetail: () -> Unit,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
         onDrag: (Boolean) -> Unit
@@ -129,20 +137,14 @@ fun MessageBubble(
                 modifier = modifier,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
-                openDetail = openDetail,
                 data = data,
+                model = model,
                 preferredEmojis = preferredEmojis,
                 currentUserPublicId = currentUserPublicId,
                 isReacting = isReacting,
                 isReplying = isReplying,
-                transcribe = transcribe,
                 isMyLastMessage = isMyLastMessage,
-                additionalContent = additionalContent,
-                onReactionRequest = onReactionRequest,
-                onReactionChange = onReactionChange,
-                onAdditionalReactionRequest = onAdditionalReactionRequest,
-                onReplyRequest = onReplyRequest,
-                onTranscribed = onTranscribed
+                additionalContent = additionalContent
             )
         }
     }
@@ -156,16 +158,10 @@ private fun ContentLayout(
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
     hasNext: Boolean,
-    transcribe: Boolean,
+    model: MessageBubbleModel,
     isReplying: Boolean,
     currentUserPublicId: String,
     isReacting: Boolean,
-    onTranscribed: () -> Unit,
-    onReactionRequest: (Boolean) -> Unit,
-    onReactionChange: (String) -> Unit,
-    onAdditionalReactionRequest: () -> Unit,
-    onReplyRequest: () -> Unit,
-    openDetail: () -> Unit,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
         onDrag: (Boolean) -> Unit
@@ -232,7 +228,7 @@ private fun ContentLayout(
         if(!dragged) {
             if(animatedOffsetX.value !in replyBounds) {
                 coroutineScope.launch {
-                    onReplyRequest()
+                    model.onReplyRequest()
                     offsetX.value = 0f
                     animatedOffsetX.animateTo(0f)
                 }
@@ -280,11 +276,11 @@ private fun ContentLayout(
             .pointerInput(data.id, isReacting) {
                 detectMessageInteraction(
                     onTap = {
-                        if(isReacting) onReactionRequest(false)
-                        else openDetail()
+                        if(isReacting) model.onReactionRequest(false)
+                        else model.openDetail()
                     },
                     onLongPress = {
-                        onReactionRequest(true)
+                        model.onReactionRequest(true)
                     },
                     onDrag = onDrag,
                     onDragChange = onDragChange
@@ -357,8 +353,8 @@ private fun ContentLayout(
                             visible = !showOptions && isFocused.value,
                             hasMedia = data.media?.isEmpty() == false,
                             onDownloadRequest = onDownloadRequest,
-                            onReplyRequest = onReplyRequest,
-                            onReactionRequest = onReactionRequest
+                            onReplyRequest = { model.onReplyRequest() },
+                            onReactionRequest = { model.onReactionRequest(it) }
                         )
                     }
 
@@ -394,7 +390,7 @@ private fun ContentLayout(
                                         Text(
                                             modifier = Modifier
                                                 .scalingClickable(scaleInto = .7f) {
-                                                    onReactionChange(emojiData.emoji.firstOrNull() ?: "")
+                                                    model.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
                                                 }
                                                 .padding(8.dp),
                                             text = emojiData.emoji.firstOrNull() ?: "",
@@ -405,7 +401,7 @@ private fun ContentLayout(
                                         modifier = Modifier
                                             .size(with(density) { LocalTheme.current.styles.heading.fontSize.toDp() } + 6.dp)
                                             .scalingClickable {
-                                                onAdditionalReactionRequest()
+                                                model.onAdditionalReactionRequest()
                                             },
                                         imageVector = Icons.Outlined.Add,
                                         contentDescription = stringResource(Res.string.accessibility_reaction_other),
@@ -479,7 +475,7 @@ private fun ContentLayout(
                                             }
                                             val text = @Composable {
                                                 val awaitingTranscription = !isCurrentUser
-                                                        && !transcribe
+                                                        && !model.transcribe.value
                                                         && data.transcribed != true
                                                         && !data.timings.isNullOrEmpty()
 
@@ -519,7 +515,7 @@ private fun ContentLayout(
                                                                 if(hasAttachment) Modifier.fillMaxWidth() else Modifier
                                                             ),
                                                         key = data.id,
-                                                        enabled = transcribe,
+                                                        enabled = model.transcribe.value,
                                                         text = buildAnnotatedLinkString(
                                                             text = data.content,
                                                             onLinkClicked = { openLink(it) }
@@ -534,7 +530,7 @@ private fun ContentLayout(
                                                         maxLines = MaximumTextLines,
                                                         overflow = TextOverflow.Ellipsis,
                                                         timings = data.timings.orEmpty(),
-                                                        onFinish = onTranscribed,
+                                                        onFinish = { model.onTranscribed() },
                                                         onTextLayout = {
                                                             showReadMore.value = it.didOverflowHeight
                                                         }
@@ -544,7 +540,7 @@ private fun ContentLayout(
                                                             modifier = Modifier
                                                                 .padding(top = 4.dp)
                                                                 .scalingClickable {
-                                                                    openDetail()
+                                                                    model.openDetail()
                                                                 },
                                                             text = stringResource(Res.string.message_read_more),
                                                             style = LocalTheme.current.styles.title.copy(
@@ -658,8 +654,8 @@ private fun ContentLayout(
                                 visible = showOptions,
                                 hasMedia = data.media?.isEmpty() == false,
                                 onDownloadRequest = onDownloadRequest,
-                                onReplyRequest = onReplyRequest,
-                                onReactionRequest = onReactionRequest
+                                onReplyRequest = { model.onReplyRequest() },
+                                onReactionRequest = { model.onReactionRequest(it) }
                             )
 
                             // bottom spacing
@@ -678,8 +674,8 @@ private fun ContentLayout(
                             visible = !showOptions && isFocused.value,
                             hasMedia = data.media?.isEmpty() == false,
                             onDownloadRequest = onDownloadRequest,
-                            onReplyRequest = onReplyRequest,
-                            onReactionRequest = onReactionRequest
+                            onReplyRequest = { model.onReplyRequest() },
+                            onReactionRequest = { model.onReactionRequest(it) }
                         )
                     }
                 }

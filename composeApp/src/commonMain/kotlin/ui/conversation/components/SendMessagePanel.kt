@@ -131,6 +131,9 @@ import ui.conversation.ConversationModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
+import ui.conversation.components.message.MessageMediaPanel
+import ui.conversation.components.message.ReplyIndication
+import ui.conversation.components.message.WaveLine
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -140,7 +143,7 @@ internal fun BoxScope.SendMessagePanel(
     overrideAnchorMessage: ConversationMessageIO? = null,
     replyToMessage: MutableState<ConversationMessageIO?>,
     scrollToMessage: (ConversationMessageIO) -> Unit,
-    viewModel: ConversationModel
+    model: ConversationModel
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
@@ -155,10 +158,10 @@ internal fun BoxScope.SendMessagePanel(
     val focusRequester = remember { FocusRequester() }
     val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
-    val keyboardHeight = viewModel.keyboardHeight.collectAsState()
-    val savedMessage = viewModel.savedMessage.collectAsState()
-    val savedTimings = viewModel.savedTimings.collectAsState()
-    val repositoryConfig = viewModel.repositoryConfig.collectAsState()
+    val keyboardHeight = model.keyboardHeight.collectAsState()
+    val savedMessage = model.savedMessage.collectAsState()
+    val savedTimings = model.savedTimings.collectAsState()
+    val repositoryConfig = model.repositoryConfig.collectAsState()
     val messageState = remember(savedMessage.value) {
         TextFieldState(
             initialText = savedMessage.value,
@@ -275,7 +278,7 @@ internal fun BoxScope.SendMessagePanel(
             || gifAttached.value != null
             || urlsAttached.isNotEmpty()
         ) {
-            viewModel.sendMessage(
+            model.sendMessage(
                 content = messageState.text.toString(),
                 mediaFiles = mediaAttached.toList(),
                 anchorMessage = replyToMessage.value ?: overrideAnchorMessage,
@@ -288,7 +291,7 @@ internal fun BoxScope.SendMessagePanel(
             mediaAttached.clear()
             keyboardMode.value = ConversationKeyboardMode.Default.ordinal
             messageState.clearText()
-            viewModel.saveMessage(null)
+            model.saveMessage(null)
             replyToMessage.value = null
             gifAttached.value = null
             showPreview.value = true
@@ -305,7 +308,7 @@ internal fun BoxScope.SendMessagePanel(
 
     DisposableEffect(null) {
         onDispose {
-            viewModel.saveMessage(
+            model.saveMessage(
                 content = messageState.text.toString(),
                 timings = timingSensor.timings
             )
@@ -324,7 +327,7 @@ internal fun BoxScope.SendMessagePanel(
             if(missingKeyboardHeight) {
                 imeHeightPadding.let { imeHeight ->
                     if(imeHeight > keyboardHeight.value) {
-                        viewModel.setKeyboardHeight(imeHeight)
+                        model.setKeyboardHeight(imeHeight)
                     }
                 }
             }
@@ -333,7 +336,7 @@ internal fun BoxScope.SendMessagePanel(
 
     LaunchedEffect(keyboardMode.value) {
         when(keyboardMode.value) {
-            ConversationKeyboardMode.Default.ordinal -> viewModel.additionalBottomPadding.animateTo(0f)
+            ConversationKeyboardMode.Default.ordinal -> model.additionalBottomPadding.animateTo(0f)
             else -> keyboardController?.hide()
         }
     }
@@ -341,8 +344,16 @@ internal fun BoxScope.SendMessagePanel(
     LaunchedEffect(messageState.text) {
         if(messageState.text.isNotBlank()) {
             showMoreOptions.value = false
+        }else {
+            // temporary init to showcase the behaviour, remove for implementation
+            model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
         }
-        timingSensor.onNewText(messageState.text)
+        timingSensor.onNewText(messageState.text)?.let { result ->
+            model.onKeyPressed(
+                char = result.newChar,
+                timingMs = result.timing
+            )
+        }
         if(showPreview.value) {
             cancellableScope.coroutineContext.cancelChildren()
             cancellableScope.launch(Dispatchers.Default) {
@@ -366,6 +377,14 @@ internal fun BoxScope.SendMessagePanel(
         ),
         verticalArrangement = Arrangement.Top
     ) {
+        val keyWidths = model.keyWidths.collectAsState()
+        WaveLine(
+            modifier = Modifier
+                .height(20.dp)
+                .fillMaxWidth(),
+            waveHeights = keyWidths.value
+        )
+
         gifAttached.value?.let { gifAsset ->
             Box {
                 GifImage(
@@ -419,7 +438,7 @@ internal fun BoxScope.SendMessagePanel(
                 onRemoveRequest = {
                     replyToMessage.value = null
                 },
-                isCurrentUser = originalMessage.authorPublicId == viewModel.currentUser.value?.matrixUserId,
+                isCurrentUser = originalMessage.authorPublicId == model.currentUser.value?.matrixUserId,
                 removable = true
             )
         }
@@ -584,7 +603,7 @@ internal fun BoxScope.SendMessagePanel(
                             modifier = Modifier.scalingClickable {
                                 if(isMedia) {
                                     coroutineScope.launch {
-                                        viewModel.additionalBottomPadding.animateTo(0f)
+                                        model.additionalBottomPadding.animateTo(0f)
                                     }
                                     focusRequester.requestFocus()
                                     keyboardController?.show()
@@ -592,12 +611,12 @@ internal fun BoxScope.SendMessagePanel(
                                 }else {
                                     // hack to not close the emoji picker right away
                                     if(keyboardHeight.value > 99) {
-                                        viewModel.setKeyboardHeight(keyboardHeight.value + 1)
+                                        model.setKeyboardHeight(keyboardHeight.value + 1)
                                         coroutineScope.launch {
                                             delay(200)
-                                            viewModel.setKeyboardHeight(keyboardHeight.value - 1)
+                                            model.setKeyboardHeight(keyboardHeight.value - 1)
                                         }
-                                    }else viewModel.setKeyboardHeight(screenSize.height / 3)
+                                    }else model.setKeyboardHeight(screenSize.height / 3)
 
                                     keyboardController?.hide()
                                     keyboardMode.value = ConversationKeyboardMode.Emoji.ordinal
@@ -701,7 +720,7 @@ internal fun BoxScope.SendMessagePanel(
         if(keyboardMode.value != ConversationKeyboardMode.Default.ordinal) {
             MessageMediaPanel(
                 mode = keyboardMode,
-                viewModel = viewModel,
+                viewModel = model,
                 showBackSpace = messageState.text.isNotBlank(),
                 onGifSelected = { gif ->
                     gifAttached.value = gif
@@ -780,7 +799,7 @@ internal fun BoxScope.SendMessagePanel(
                 .offset(y = - (screenSize.height.dp - with(density) { actionYCoordinate.value.toDp() } - 44.dp))
                 .align(Alignment.BottomEnd),
             onSaveRequest = { byteArray ->
-                viewModel.sendAudioMessage(byteArray)
+                model.sendAudioMessage(byteArray)
             }
         )
     }

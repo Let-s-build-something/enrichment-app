@@ -58,8 +58,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ui.conversation.ConversationComponent
-import ui.conversation.components.MaximumReactions
-import ui.conversation.components.MessageReactionsDialog
+import ui.conversation.components.message.MaximumReactions
+import ui.conversation.components.message.MessageReactionsDialog
 import ui.conversation.components.TempoText
 
 /** Number of network items within one screen to be shimmered */

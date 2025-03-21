@@ -36,4 +36,7 @@ object SettingsKeys {
 
     /** List of preferred emojis */
     const val KEY_PREFERRED_EMOJIS = "preferred_emojis"
+
+    const val KEY_PACING_WIDE_AVG = "pacing_wide_avg"
+    const val KEY_PACING_NARROW_AVG = "pacing_narrow_avg"
 }
