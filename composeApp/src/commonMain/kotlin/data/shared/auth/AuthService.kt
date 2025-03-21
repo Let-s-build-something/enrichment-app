@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -200,11 +201,12 @@ class AuthService {
 
         dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
 
-        val settingsUpdate = LocalSettings(
-            deviceId = credentials.deviceId ?: dataManager.localSettings.value?.deviceId,
-            pickleKey = credentials.pickleKey ?: dataManager.localSettings.value?.pickleKey
-        )
-        dataManager.localSettings.value = dataManager.localSettings.value?.update(settingsUpdate) ?: settingsUpdate
+        dataManager.localSettings.update {
+            (it ?: LocalSettings()).copy(
+                deviceId = credentials.deviceId ?: dataManager.localSettings.value?.deviceId,
+                pickleKey = credentials.pickleKey ?: dataManager.localSettings.value?.pickleKey
+            )
+        }
     }
 
     @OptIn(ExperimentalUuidApi::class)

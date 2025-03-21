@@ -1,7 +1,5 @@
 package ui.conversation.components
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -10,13 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -30,24 +25,21 @@ import kotlinx.coroutines.withContext
  * It replicates the 1) tempo of typing 2) the stops, and 3) the emphasis
  */
 @Composable
-fun TempoText(
-    modifier: Modifier = Modifier,
+fun buildTempoString(
     key: Any? = null,
     text: AnnotatedString,
     style: TextStyle,
     enabled: Boolean,
     timings: List<Long>,
-    maxLines: Int = Int.MAX_VALUE,
-    overflow: TextOverflow = TextOverflow.Clip,
-    onTextLayout: (TextLayoutResult) -> Unit = {},
     onFinish: () -> Unit
-) {
+): AnnotatedString {
     val aboveMedianIndexes = remember(key, timings) {
         mutableStateOf<MutableSet<Int>?>(null)
     }
     val graphemes = remember(text, key) {
         mutableStateOf<Sequence<MatchResult>?>(null)
     }
+    text.spanStyles
 
     if(timings.isNotEmpty()) {
         LaunchedEffect(Unit) {
@@ -78,7 +70,7 @@ fun TempoText(
         }
     }
 
-    val annotatedText = when {
+    return when {
         timings.isEmpty() -> text
         !enabled -> {
             buildAnnotatedString {
@@ -173,15 +165,6 @@ fun TempoText(
             }
         }
     }
-
-    Text(
-        modifier = if(enabled) modifier.animateContentSize() else modifier,
-        text = annotatedText,
-        style = style,
-        maxLines = maxLines,
-        overflow = overflow,
-        onTextLayout = onTextLayout
-    )
 }
 
 private const val FLICKER_DELAY_LOOSE = 400L

@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,8 +91,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.LoadingMessageBubble
-import ui.conversation.components.TempoText
 import ui.conversation.components.audio.MediaProcessorModel
+import ui.conversation.components.buildTempoString
 import ui.conversation.media.DownloadIndication
 import ui.conversation.media.rememberIndicationState
 import kotlin.math.absoluteValue
@@ -126,7 +127,8 @@ fun MessageBubble(
     currentUserPublicId: String,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
-        onDrag: (Boolean) -> Unit
+        onDrag: (Boolean) -> Unit,
+        messageContent: AnnotatedString
     ) -> Unit
 ) {
     Crossfade(targetState = data == null) { isLoading ->
@@ -164,7 +166,8 @@ private fun ContentLayout(
     isReacting: Boolean,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
-        onDrag: (Boolean) -> Unit
+        onDrag: (Boolean) -> Unit,
+        messageContent: AnnotatedString
     ) -> Unit
 ) {
     val density = LocalDensity.current
@@ -192,6 +195,30 @@ private fun ContentLayout(
     val hasAttachment = remember(data.id) { data.media?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
+    val awaitingTranscription = !isCurrentUser
+            && !model.transcribe.value
+            && data.transcribed != true
+            && !data.timings.isNullOrEmpty()
+
+    val textContent = if(!data.content.isNullOrBlank()) {
+        buildTempoString(
+            key = data.id,
+            timings = data.timings.orEmpty(),
+            text = buildAnnotatedLinkString(
+                text = data.content,
+                onLinkClicked = { openLink(it) }
+            ),
+            onFinish = { model.onTranscribed() },
+            enabled = model.transcribe.value,
+            style = LocalTheme.current.styles.title.copy(
+                color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+                    .copy(
+                        alpha = if(awaitingTranscription) .4f else 1f
+                    ),
+                fontFamily = FontFamily(fontQuicksandMedium)
+            )
+        )
+    }else AnnotatedString("")
 
     val showDetailDialogOf = remember(data.id) {
         mutableStateOf<Pair<String?, String?>?>(null)
@@ -431,7 +458,7 @@ private fun ContentLayout(
                                 horizontalAlignment = alignment
                             ) {
                                 // GIFs, attachments, etc.
-                                additionalContent(onDragChange, onDrag)
+                                additionalContent(onDragChange, onDrag, textContent)
 
                                 if (downloadState != null) {
                                     DownloadIndication(
@@ -474,11 +501,6 @@ private fun ContentLayout(
                                                 mutableStateOf(false)
                                             }
                                             val text = @Composable {
-                                                val awaitingTranscription = !isCurrentUser
-                                                        && !model.transcribe.value
-                                                        && data.transcribed != true
-                                                        && !data.timings.isNullOrEmpty()
-
                                                 Column(
                                                     modifier = Modifier
                                                         .then(
@@ -508,29 +530,16 @@ private fun ContentLayout(
                                                             horizontal = 14.dp
                                                         )
                                                 ) {
-                                                    TempoText(
+                                                    Text(
                                                         modifier = Modifier
                                                             .widthIn(max = (screenSize.width * .8f).dp)
                                                             .then(
                                                                 if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                                                            ),
-                                                        key = data.id,
-                                                        enabled = model.transcribe.value,
-                                                        text = buildAnnotatedLinkString(
-                                                            text = data.content,
-                                                            onLinkClicked = { openLink(it) }
-                                                        ),
-                                                        style = LocalTheme.current.styles.title.copy(
-                                                            color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
-                                                                .copy(
-                                                                    alpha = if(awaitingTranscription) .4f else 1f
-                                                                ),
-                                                            fontFamily = FontFamily(fontQuicksandMedium)
-                                                        ),
+                                                            )
+                                                            .then(if(model.transcribe.value) Modifier.animateContentSize() else Modifier),
+                                                        text = textContent,
                                                         maxLines = MaximumTextLines,
                                                         overflow = TextOverflow.Ellipsis,
-                                                        timings = data.timings.orEmpty(),
-                                                        onFinish = { model.onTranscribed() },
                                                         onTextLayout = {
                                                             showReadMore.value = it.didOverflowHeight
                                                         }
@@ -544,10 +553,6 @@ private fun ContentLayout(
                                                                 },
                                                             text = stringResource(Res.string.message_read_more),
                                                             style = LocalTheme.current.styles.title.copy(
-                                                                color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
-                                                                    .copy(
-                                                                        alpha = if(awaitingTranscription) .6f else 1f
-                                                                    ),
                                                                 fontFamily = FontFamily(fontQuicksandSemiBold)
                                                             ),
                                                         )
