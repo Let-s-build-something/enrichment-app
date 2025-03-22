@@ -237,17 +237,23 @@ abstract class MessageProcessor {
         }
     }
 
-    private fun MessageEventContent.process() = ConversationMessageIO(
-        content = (this as? RoomMessageEventContent)?.body,
-        media = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
-            listOf(
-                MediaIO(
-                    url = it.url,
-                    mimetype = it.info?.mimeType,
-                    name = it.fileName,
-                    size = it.info?.size
-                )
-            )
+    private fun MessageEventContent.process(): ConversationMessageIO {
+        val file = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }
+        val body = (this as? RoomMessageEventContent)?.body?.takeIf {
+            it != file?.body
         }
-    )
+        return ConversationMessageIO(
+            content = body,
+            media = file?.let {
+                listOf(
+                    MediaIO(
+                        url = it.url,
+                        mimetype = it.info?.mimeType,
+                        name = it.fileName,
+                        size = it.info?.size
+                    )
+                )
+            }
+        )
+    }
 }

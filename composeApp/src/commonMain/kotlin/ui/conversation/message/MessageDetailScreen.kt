@@ -58,7 +58,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ui.conversation.ConversationComponent
-import ui.conversation.components.buildTempoString
+import ui.conversation.components.experimental.pacing.buildTempoString
 import ui.conversation.components.message.MaximumReactions
 import ui.conversation.components.message.MessageReactionsDialog
 

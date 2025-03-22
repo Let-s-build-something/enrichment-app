@@ -1,5 +1,6 @@
-package ui.conversation.components.gif
+package ui.conversation.components.experimental.pacing
 
+import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_PACING_NARROW_AVG
 import data.io.app.SettingsKeys.KEY_PACING_WIDE_AVG
 import koin.AppSettings
@@ -50,10 +51,13 @@ class PacingUseCase {
         )
     }
 
-    var isInitialized = false
-
     private val settings: AppSettings by KoinPlatform.getKoin().inject()
     private val dataManager: PacingDataManager by KoinPlatform.getKoin().inject()
+
+    val timingSensor = MutableStateFlow(TimingSensor())
+
+
+    var isInitialized = false
 
     private val keyPressMutex = Mutex()
     private val appendAvgMutex = Mutex()
@@ -68,19 +72,40 @@ class PacingUseCase {
     private var narrowAvg = 0 to 0f
     private var closeAvg = 0 to 0f
 
+    // =============== public functions ===============
+
     suspend fun init(
         maxWaves: Int,
-        defaultAvg: Float = 300f
+        defaultAvg: Float = 300f,
+        conversationId: String,
+        savedMessage: String
     ) {
         isInitialized = true
         wideAvg = retrieveAvg(KEY_PACING_WIDE_AVG) ?: (0 to defaultAvg)
         narrowAvg = retrieveAvg(KEY_PACING_NARROW_AVG) ?: (0 to defaultAvg) // will come from the constructor in the future
         closeAvg = 0 to 0f // will come from the constructor in the future
 
+        timingSensor.value = TimingSensor(
+            initialText = savedMessage,
+            timings = settings
+                .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId")
+                ?.split(",")
+                ?.mapNotNull { it.toLongOrNull() }
+                .orEmpty()
+                .toMutableList()
+        )
         _keyWidths.update {
             MutableList(maxWaves.coerceAtLeast(MIN_WAVES)) { 0.1f }
         }
         backStack = MutableList(maxWaves.coerceAtLeast(MIN_WAVES)) { it to 0.1f }
+    }
+
+    suspend fun save(conversationId: String) = withContext(Dispatchers.Default) {
+        val keyTimings = "${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId"
+        val timings = timingSensor.value.timings
+        if(timings.isNotEmpty()) {
+            settings.putString(keyTimings, timings.joinToString(","))
+        }else settings.remove(keyTimings)
     }
 
     private fun runDecreaseRepeat() {
@@ -145,6 +170,9 @@ class PacingUseCase {
         }
     }
 
+
+    // ================ util functions ================
+
     private suspend fun retrieveAvg(key: String): Pair<Int, Float>? = withContext(Dispatchers.IO) {
         settings.getStringOrNull(key)?.split(AVG_SEPARATOR)?.let {
             (it.firstOrNull()?.toIntOrNull() ?: 0) to (it.lastOrNull()?.toFloatOrNull() ?: 0f)
@@ -164,9 +192,8 @@ class PacingUseCase {
             val count = if(limit != null) (first + 1).coerceAtMost(limit) else first + 1
             val average = sum / count
             if(key != null) settings.putString(key = key, "$sum$AVG_SEPARATOR$average")
-            (count to average).also {
-                println("kostka_test, value: $newValue, prev: ${this@appendAvg}, res: $it ($key)")
-            }
+
+            count to average
         }
     }
 

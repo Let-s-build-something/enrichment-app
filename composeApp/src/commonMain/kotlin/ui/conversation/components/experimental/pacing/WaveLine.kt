@@ -1,4 +1,4 @@
-package ui.conversation.components.message
+package ui.conversation.components.experimental.pacing
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
@@ -84,7 +84,7 @@ fun WaveLine(
             for (i in animationProgresses.value.indices) {
                 val animationProgress = animationProgresses.value[i].value
 
-                val animatedWaveHeight = waveAnimations[i]?.value ?: waveHeights[i]
+                val animatedWaveHeight = waveAnimations[i]?.value ?: waveHeights.getOrNull(i) ?: 0f
                 val startX = i * waveSegmentWidth
                 val endX = (i + 1) * waveSegmentWidth
 

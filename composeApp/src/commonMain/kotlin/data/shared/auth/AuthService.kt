@@ -224,7 +224,6 @@ class AuthService {
             val userId = response?.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response?.homeserver ?: previous?.homeserver
             val accessToken = response?.accessToken ?: previous?.accessToken
-            println("kostka_test, cacheCredentials, new accessToken: $accessToken, previous: ${previous?.accessToken}")
 
             val credentials = AuthItem(
                 accessToken = accessToken,
@@ -302,7 +301,11 @@ class AuthService {
         if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
             withContext(Dispatchers.IO) {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
-                if(delay > 0) delay(delay)
+                if(delay > 0) {
+                    try {
+                        delay(delay)
+                    }catch (_: Exception) {}
+                }
                 httpClient.safeRequest<MatrixAuthenticationResponse> {
                     httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
                         setBody(

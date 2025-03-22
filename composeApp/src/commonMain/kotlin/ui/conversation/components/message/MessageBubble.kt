@@ -91,7 +91,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.LoadingMessageBubble
 import ui.conversation.components.audio.MediaProcessorModel
-import ui.conversation.components.buildTempoString
+import ui.conversation.components.experimental.gravity.GravityIndicationContainer
+import ui.conversation.components.experimental.pacing.buildTempoString
 import ui.conversation.media.DownloadIndication
 import ui.conversation.media.rememberIndicationState
 import kotlin.math.absoluteValue

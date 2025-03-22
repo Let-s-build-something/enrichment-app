@@ -1,4 +1,4 @@
-package ui.conversation.components
+package ui.conversation.components.experimental.pacing
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +19,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ui.conversation.components.REGEX_GRAPHEME
 
 /**
  * Visualization of person typing their message in the past.

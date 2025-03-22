@@ -1,6 +1,7 @@
-package ui.conversation.components
+package ui.conversation.components.experimental.pacing
 
 import augmy.interactive.shared.utils.StopwatchCounter
+import ui.conversation.components.REGEX_GRAPHEME
 
 /** Each keystroke has */
 class TimingSensor(
@@ -21,6 +22,12 @@ class TimingSensor(
     fun pause() {
         counter.stop()
     }
+
+    fun start() {
+        counter.start()
+    }
+
+    fun onTick(ms: Long, callback: () -> Unit) { counter.onTick(ms, callback) }
 
     data class NewTextDifference(
         val newChar: Char,

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,9 +26,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Divider
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Search
@@ -47,8 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
@@ -82,9 +77,6 @@ import data.NetworkProximityCategory
 import data.io.base.AppPingType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.user.NetworkItemIO
-import data.sensor.SensorEvent
-import data.sensor.SensorEventListener
-import data.sensor.registerGravityListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -97,8 +89,6 @@ import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
 import ui.network.profile.UserProfileLauncher
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-
-private const val MAX_VALUE = 9.81f
 
 /**
  * Screen for the home page
@@ -142,29 +132,6 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                 }
             }
         }
-    }
-
-    val currentPosition = remember {
-        mutableStateOf(Triple(1f, 1f, 1f))
-    }
-
-    LaunchedEffect(Unit) {
-        registerGravityListener(
-            object: SensorEventListener {
-                override fun onSensorChanged(event: SensorEvent?) {
-                    event?.values?.let { values ->
-                        val gx = values[0]
-                        val gy = values[1]
-                        val gz = values[2]
-
-                        currentPosition.value = Triple(gx, gy, gz)
-                    }
-                }
-                override fun onAccuracyChanged(accuracy: Int) {
-
-                }
-            }
-        )
     }
 
     if(selectedUser.value != null) {
@@ -243,57 +210,6 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                     viewModel.filterNetworkItems(filter = newList)
                 },
                 selectedItems = categories.value
-            )
-
-            Text(
-                modifier = Modifier
-                    .background(LocalTheme.current.colors.backgroundDark)
-                    .padding(horizontal = 16.dp, vertical = 32.dp)
-                    .fillMaxWidth(),
-                text = "${currentPosition.value.first}, ${currentPosition.value.second}, ${currentPosition.value.third}",
-                style = LocalTheme.current.styles.subheading.copy(
-                    textAlign = TextAlign.Center
-                )
-            )
-
-            val x = currentPosition.value.first
-            val y = currentPosition.value.second
-            val z = currentPosition.value.third
-
-            fun calculateCorner(
-                xDesire: Int,
-                yDesire: Int
-            ): Dp {
-                val maxCorner = 48.dp
-
-                return ((x.times(xDesire).coerceAtLeast(0f) + y.times(yDesire).coerceAtLeast(0f))
-                    .div(MAX_VALUE)
-                    .times(maxCorner.value)
-                    .times(z.times(-.4f).coerceAtLeast(1f))
-                ).coerceAtLeast(0f).dp
-            }
-
-            val shape = RoundedCornerShape(
-                topStart =  calculateCorner(1, -1),
-                topEnd = calculateCorner(-1, -1),
-                bottomStart = calculateCorner(1, 1),
-                bottomEnd = calculateCorner(-1, 1)
-            )
-
-            Box(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-                    .aspectRatio(1f, matchHeightConstraintsFirst = false)
-                    .background(
-                        color = LocalTheme.current.colors.backgroundDark,
-                        shape = shape
-                    )
-                    .border(
-                        color = LocalTheme.current.colors.tetrial,
-                        shape = shape,
-                        width = 2.dp
-                    )
             )
 
             Box(
