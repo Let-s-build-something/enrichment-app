@@ -10,9 +10,11 @@ import android.hardware.SensorManager.SENSOR_DELAY_UI
 import org.koin.mp.KoinPlatform.getKoin
 
 actual fun unregisterGravityListener(listener: SensorEventListener) {
-    (listener.instance as? android.hardware.SensorEventListener)?.let { instance ->
-        with(getKoin().get<Context>()) {
-            (getSystemService(Context.SENSOR_SERVICE) as? SensorManager)?.unregisterListener(instance)
+    if(listener.isInitialized) {
+        (listener.instance as? android.hardware.SensorEventListener)?.let { instance ->
+            with(getKoin().get<Context>()) {
+                (getSystemService(Context.SENSOR_SERVICE) as? SensorManager)?.unregisterListener(instance)
+            }
         }
     }
 }
@@ -41,6 +43,7 @@ actual fun registerGravityListener(
                 }
             }
             listener.instance = eventListener
+            listener.isInitialized = true
             registerListener(
                 eventListener,
                 getDefaultSensor(Sensor.TYPE_GRAVITY),

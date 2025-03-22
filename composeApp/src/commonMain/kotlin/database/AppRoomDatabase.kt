@@ -16,12 +16,14 @@ import data.io.user.PresenceData
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
+import database.dao.GravityDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
 import database.dao.matrix.RoomMemberDao
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
+import ui.conversation.components.experimental.gravity.GravityValue
 
 @Database(
     entities = [
@@ -32,9 +34,10 @@ import net.folivo.trixnity.core.model.events.m.PresenceEventContent
         ConversationMessageIO::class,
         PresenceData::class,
         ConversationRoomMember::class,
+        GravityValue::class,
         ConversationRoomIO::class
     ],
-    version = 52,
+    version = 54,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -50,6 +53,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun presenceEventDao(): PresenceEventDao
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
     abstract fun roomMemberDao(): RoomMemberDao
+    abstract fun gravityDao(): GravityDao
 
     companion object {
         /** File name of the main database */
@@ -78,6 +82,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [ConversationRoomMember] */
         const val TABLE_ROOM_MEMBER = "room_member_table"
+
+        /** Identification of table for [GravityValue] */
+        const val TABLE_GRAVITY = "room_gravity_table"
     }
 }
 

@@ -12,6 +12,7 @@ expect fun unregisterGravityListener(listener: SensorEventListener)
 
 interface SensorEventListener {
     var instance: Any
+    var isInitialized: Boolean
     fun onSensorChanged(event: SensorEvent?)
     fun onAccuracyChanged(accuracy: Int)
 }

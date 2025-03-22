@@ -1,24 +1,22 @@
 package ui.conversation.components.experimental.gravity
 
 import augmy.interactive.shared.ui.base.DeviceOrientation
-import augmy.interactive.shared.utils.DateUtils
-import data.io.app.SettingsKeys
 import data.sensor.SensorDelay
 import data.sensor.SensorEvent
 import data.sensor.SensorEventListener
 import data.sensor.registerGravityListener
 import data.sensor.unregisterGravityListener
-import koin.AppSettings
+import database.dao.GravityDao
 import korlibs.math.roundDecimalPlaces
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import kotlin.math.absoluteValue
@@ -27,36 +25,25 @@ internal val gravityModule = module {
     factory { GravityUseCase() }
 }
 
-@Serializable
-data class GravityData(
-    val values: List<GravityValue>,
-    val tickMs: Long
-)
-
-@Serializable
-data class GravityValue(
-    val fraction: Float,
-    val offset: Float
-)
-
 /** Bundled functionality of Gifs */
 class GravityUseCase {
     companion object {
         const val FULL_GRAVITY = 9.8f
         const val MAX_FRACTION_OFFSET = .25f
-        const val TICK_MILLIS = 200L
+        const val TICK_MILLIS = 100L
     }
+    private val gravityDao: GravityDao by KoinPlatform.getKoin().inject()
 
-    private val settings: AppSettings by KoinPlatform.getKoin().inject()
-    private val json: Json by KoinPlatform.getKoin().inject()
-
-    private val gravityValuesCache = mutableListOf<Pair<GravityValue, Long>>()
+    private var conversationId = ""
+    private val gravityValuesCache = mutableListOf<GravityValue>()
     private val sensorMutex = Mutex()
     private val sensorScope = CoroutineScope(Job())
     var deviceOrientation = DeviceOrientation.Vertical
+    val gravityValues = MutableStateFlow(listOf<GravityValue>())
 
     private var listener = object: SensorEventListener {
         override lateinit var instance: Any
+        override var isInitialized: Boolean = false
 
         override fun onSensorChanged(event: SensorEvent?) {
             sensorScope.launch {
@@ -68,43 +55,44 @@ class GravityUseCase {
                                 gx = values[0].roundDecimalPlaces(3),
                                 gy = values[1].roundDecimalPlaces(3),
                                 gz = values[2].roundDecimalPlaces(3)
-                            ) to DateUtils.now.toEpochMilliseconds().also {
-                                println("kostka_test, GravityUseCase, time it took from last report: " +
-                                        "${it - (gravityValuesCache.lastOrNull()?.second ?: it)}")
-                            }
+                            )
                         )
                     }
                 }
             }
         }
-        override fun onAccuracyChanged(accuracy: Int) {
-
-        }
-    }
-
-    init {
-        registerGravityListener(listener, sensorDelay = SensorDelay.Slow)
+        override fun onAccuracyChanged(accuracy: Int) {}
     }
 
 
     // =============== public functions ===============
 
+    suspend fun init(conversationId: String) {
+        this.conversationId = conversationId
+        gravityValues.value = gravityDao.getAll(conversationId).also {
+            println("kostka_test, cached gravityValues: $it")
+        }
+    }
+
+    fun start() {
+        registerGravityListener(listener, sensorDelay = SensorDelay.Normal)
+    }
+
     fun kill() {
         unregisterGravityListener(listener)
     }
 
-    fun onTick() {
-        println("kostka_test, onTick")
-        //TODO
+    suspend fun onTick() {
+        gravityValuesCache.lastOrNull()?.let { value ->
+            gravityDao.insert(value)
+            gravityValues.update {
+                it + value
+            }
+        }
     }
 
-    // TODO sqlite, data is heavy
-    suspend fun save(conversationId: String) = withContext(Dispatchers.Default) {
-        val key = "${SettingsKeys.KEY_LAST_MESSAGE_GRAVITY}_$conversationId"
-
-        if(gravityValuesCache.isNotEmpty()) {
-            settings.putString(key, json.encodeToString(gravityValuesCache))
-        }else settings.remove(key)
+    suspend fun clearCache(conversationId: String) = withContext(Dispatchers.Default) {
+        gravityDao.removeAll(conversationId)
     }
 
 
@@ -124,7 +112,8 @@ class GravityUseCase {
 
         GravityValue(
             fraction = value,
-            offset = verticalFraction / 2
+            offset = verticalFraction / 2,
+            conversationId = conversationId
         )
     }
 }

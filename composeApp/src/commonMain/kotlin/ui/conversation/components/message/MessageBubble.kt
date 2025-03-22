@@ -524,6 +524,7 @@ private fun ContentLayout(
                                                         LocalTheme.current.colors.brandMainDark
                                                     } else LocalTheme.current.colors.backgroundContrast,
                                                     indicationColor = tagToColor(data.user?.tag) ?: LocalTheme.current.colors.tetrial,
+                                                    gravityData = data.gravityData,
                                                     shape = messageShape
                                                 ) {
                                                     Column {

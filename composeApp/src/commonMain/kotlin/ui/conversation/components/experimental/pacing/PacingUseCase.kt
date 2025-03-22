@@ -54,7 +54,7 @@ class PacingUseCase {
     private val settings: AppSettings by KoinPlatform.getKoin().inject()
     private val dataManager: PacingDataManager by KoinPlatform.getKoin().inject()
 
-    val timingSensor = MutableStateFlow(TimingSensor())
+    val timingSensor = MutableStateFlow(TimingSensor(isLocked = true))
 
 
     var isInitialized = false
@@ -100,12 +100,13 @@ class PacingUseCase {
         backStack = MutableList(maxWaves.coerceAtLeast(MIN_WAVES)) { it to 0.1f }
     }
 
-    suspend fun save(conversationId: String) = withContext(Dispatchers.Default) {
-        val keyTimings = "${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId"
+    suspend fun cache(conversationId: String) = withContext(Dispatchers.Default) {
+        val key = "${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId"
         val timings = timingSensor.value.timings
+
         if(timings.isNotEmpty()) {
-            settings.putString(keyTimings, timings.joinToString(","))
-        }else settings.remove(keyTimings)
+            settings.putString(key, timings.joinToString(","))
+        }else settings.remove(key)
     }
 
     private fun runDecreaseRepeat() {
@@ -120,6 +121,10 @@ class PacingUseCase {
                 }
             }
         }
+    }
+
+    suspend fun clearCache(conversationId: String) {
+        settings.remove("${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId")
     }
 
     // 1. define number of waves for the message

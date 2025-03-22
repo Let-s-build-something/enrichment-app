@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -142,7 +144,22 @@ fun MediaRow(
                                 )
                             }
                         }
-                    }else modifier).padding(horizontal = LocalTheme.current.shapes.betweenItemsSpace),
+                    }else modifier)
+                        .then(if((media.size ?: 0) > 1) {
+                            Modifier.padding(horizontal = LocalTheme.current.shapes.betweenItemsSpace)
+                        } else Modifier)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = LocalTheme.current.shapes.componentCornerRadius,
+                                topEnd = LocalTheme.current.shapes.componentCornerRadius,
+                                bottomStart = if(data.content.isNullOrBlank()) {
+                                    LocalTheme.current.shapes.componentCornerRadius
+                                }else 0.dp,
+                                bottomEnd = if(data.content.isNullOrBlank()) {
+                                    LocalTheme.current.shapes.componentCornerRadius
+                                }else 0.dp
+                            )
+                        ),
                     tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary,
                     media = cachedMedia.value[media.url] ?: media,
                     localMedia = temporaryMedia,

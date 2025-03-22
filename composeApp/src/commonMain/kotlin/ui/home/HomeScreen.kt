@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.Divider
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Search
@@ -44,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
@@ -77,6 +79,10 @@ import data.NetworkProximityCategory
 import data.io.base.AppPingType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.user.NetworkItemIO
+import data.sensor.SensorDelay
+import data.sensor.SensorEvent
+import data.sensor.SensorEventListener
+import data.sensor.registerGravityListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -132,6 +138,32 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                 }
             }
         }
+    }
+
+    val currentPosition = remember {
+        mutableStateOf(Triple(0f, 0f, 0f))
+    }
+
+    LaunchedEffect(Unit) {
+        registerGravityListener(
+            object: SensorEventListener {
+                override lateinit var instance: Any
+                override var isInitialized: Boolean = false
+                override fun onSensorChanged(event: SensorEvent?) {
+                    event?.values?.let { values ->
+                        val gx = values[0]
+                        val gy = values[1]
+                        val gz = values[2]
+
+                        currentPosition.value = Triple(gx, gy, gz)
+                    }
+                }
+                override fun onAccuracyChanged(accuracy: Int) {
+
+                }
+            },
+            sensorDelay = SensorDelay.Slow
+        )
     }
 
     if(selectedUser.value != null) {
@@ -210,6 +242,19 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                     viewModel.filterNetworkItems(filter = newList)
                 },
                 selectedItems = categories.value
+            )
+
+
+            // TODO remove this
+            Text(
+                modifier = Modifier
+                    .background(LocalTheme.current.colors.backgroundDark)
+                    .padding(horizontal = 16.dp, vertical = 32.dp)
+                    .fillMaxWidth(),
+                text = "${currentPosition.value.first}, ${currentPosition.value.second}, ${currentPosition.value.third}",
+                style = LocalTheme.current.styles.subheading.copy(
+                    textAlign = TextAlign.Center
+                )
             )
 
             Box(

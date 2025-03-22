@@ -78,8 +78,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
 import augmy.composeapp.generated.resources.accessibility_action_keyboard
@@ -283,17 +282,19 @@ internal fun BoxScope.SendMessagePanel(
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
                 showPreview = showPreview.value,
-                timings = timingSensor.value.timings.toList()
+                timings = timingSensor.value.timings.toList(),
+                gravityValues = model.gravityValues.value
             )
+            model.cache(null)
             timingSensor.value.flush()
+            typedUrl.value = null
+            model.stopTypingServices()
             mediaAttached.clear()
             keyboardMode.value = ConversationKeyboardMode.Default.ordinal
             messageState.clearText()
-            model.saveMessage(null)
             replyToMessage.value = null
             gifAttached.value = null
             showPreview.value = true
-            typedUrl.value = null
 
             navController?.previousBackStackEntry
                 ?.savedStateHandle
@@ -304,17 +305,15 @@ internal fun BoxScope.SendMessagePanel(
     }
 
 
-    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
-        timingSensor.value.pause()
-        model.saveMessage(content = messageState.text.toString())
-    }
-
-    LaunchedEffect(Unit) {
+    LifecycleResumeEffect(model) {
+        model.setDeviceOrientation(deviceOrientation)
         // temporary init to showcase the behaviour, remove for implementation
         model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
-    }
-    LaunchedEffect(Unit) {
-        model.setDeviceOrientation(deviceOrientation)
+
+        onPauseOrDispose {
+            model.stopTypingServices()
+            model.cache(content = messageState.text.toString())
+        }
     }
     LaunchedEffect(savedMessage.value) {
         if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) {
@@ -344,8 +343,10 @@ internal fun BoxScope.SendMessagePanel(
 
     LaunchedEffect(messageState.text) {
         if(messageState.text.isNotBlank()) {
+            model.startTypingServices()
             showMoreOptions.value = false
-        }
+        }else model.stopTypingServices()
+
         timingSensor.value.onNewText(messageState.text)?.let { result ->
             model.onKeyPressed(
                 char = result.newChar,
@@ -584,9 +585,9 @@ internal fun BoxScope.SendMessagePanel(
                         }
                     }
                     .onFocusChanged {
-                        if(!it.isFocused) {
-                            timingSensor.value.pause()
-                        }else timingSensor.value.start()
+                        if(it.isFocused && messageState.text.isNotBlank()) {
+                            model.startTypingServices()
+                        }else model.stopTypingServices()
                     }
                     .fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(

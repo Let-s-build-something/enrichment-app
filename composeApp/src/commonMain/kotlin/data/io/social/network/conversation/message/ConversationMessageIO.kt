@@ -11,6 +11,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import ui.conversation.components.experimental.gravity.GravityData
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -46,6 +47,8 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
      */
     @ColumnInfo("anchor_message")
     val anchorMessage: ConversationAnchorMessageIO? = null,
+
+    val gravityData: GravityData? = null,
 
     @ColumnInfo("anchor_message_id")
     val anchorMessageId: String? = anchorMessage?.id,

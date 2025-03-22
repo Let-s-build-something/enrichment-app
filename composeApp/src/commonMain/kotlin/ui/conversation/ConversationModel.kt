@@ -36,8 +36,10 @@ import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.emoji.EmojiUseCase
+import ui.conversation.components.experimental.gravity.GravityData
 import ui.conversation.components.experimental.gravity.GravityUseCase
 import ui.conversation.components.experimental.gravity.GravityUseCase.Companion.TICK_MILLIS
+import ui.conversation.components.experimental.gravity.GravityValue
 import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.experimental.pacing.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.gif.GifUseCase
@@ -139,6 +141,7 @@ open class ConversationModel(
     /** Last saved message relevant to this conversation */
     val savedMessage = MutableStateFlow<String?>(null)
     val timingSensor = pacingUseCase.timingSensor
+    val gravityValues = gravityUseCase.gravityValues.asStateFlow()
 
     private val messageMaxLength = 5000
 
@@ -175,6 +178,22 @@ open class ConversationModel(
 
     // ==================== functions ===========================
 
+    fun startTypingServices() {
+        if(!timingSensor.value.isRunning && !timingSensor.value.isLocked) {
+            viewModelScope.launch {
+                timingSensor.value.start()
+                gravityUseCase.start()
+            }
+        }
+    }
+
+    fun stopTypingServices() {
+        if(timingSensor.value.isRunning) {
+            timingSensor.value.pause()
+            gravityUseCase.kill()
+        }
+    }
+
     fun setDeviceOrientation(orientation: DeviceOrientation) {
         gravityUseCase.deviceOrientation = orientation
     }
@@ -188,27 +207,34 @@ open class ConversationModel(
     fun initPacing(widthPx: Float) {
         if(pacingUseCase.isInitialized) return
         viewModelScope.launch {
+            gravityUseCase.init(conversationId)
             pacingUseCase.init(
                 maxWaves = (WAVES_PER_PIXEL * widthPx).toInt(),
                 conversationId = conversationId,
                 savedMessage = savedMessage.value ?: ""
             )
             pacingUseCase.timingSensor.value.onTick(ms = TICK_MILLIS) {
-                gravityUseCase.onTick()
+                viewModelScope.launch { gravityUseCase.onTick() }
             }
+            if(!savedMessage.value.isNullOrBlank()) startTypingServices()
         }
     }
 
     /** Saves the content of a message */
-    fun saveMessage(content: String?) {
+    fun cache(content: String?) {
         CoroutineScope(Job() + Dispatchers.IO).launch {
             val key = "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
             if(content != null) {
                 settings.putString(key, content)
             }else settings.remove(key)
 
-            pacingUseCase.save(conversationId = conversationId)
-            gravityUseCase.save(conversationId = conversationId)
+            if(content != null) {
+                pacingUseCase.cache(conversationId)
+            }else {
+                pacingUseCase.clearCache(conversationId)
+                gravityUseCase.clearCache(conversationId)
+            }
+            savedMessage.value = content
         }
     }
 
@@ -252,9 +278,11 @@ open class ConversationModel(
         mediaFiles: List<PlatformFile>,
         mediaUrls: List<String>,
         timings: List<Long>,
+        gravityValues: List<GravityValue>,
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
+        println("kostka_test, sendMessage, gravityValues: $gravityValues")
         CoroutineScope(Job()).launch {
             var progressId = ""
             repository.sendMessage(
@@ -272,6 +300,10 @@ open class ConversationModel(
                 gifAsset = gifAsset,
                 message = ConversationMessageIO(
                     content = content,
+                    gravityData = GravityData(
+                        values = gravityValues.map { it.copy(conversationId = null) },
+                        tickMs = TICK_MILLIS
+                    ),
                     anchorMessage = anchorMessage?.toAnchorMessage(),
                     media = mediaUrls.mapNotNull { url ->
                         MediaIO(
