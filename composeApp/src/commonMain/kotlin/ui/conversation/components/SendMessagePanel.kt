@@ -48,7 +48,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -76,8 +75,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
 import augmy.composeapp.generated.resources.accessibility_action_keyboard
@@ -95,6 +96,7 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalOrientation
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
@@ -129,11 +131,11 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationModel
 import ui.conversation.components.audio.PanelMicrophone
+import ui.conversation.components.experimental.pacing.WaveLine
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageMediaPanel
 import ui.conversation.components.message.ReplyIndication
-import ui.conversation.components.message.WaveLine
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
@@ -149,6 +151,7 @@ internal fun BoxScope.SendMessagePanel(
     val density = LocalDensity.current
     val navController = LocalNavController.current
     val snackbarHost = LocalSnackbarHost.current
+    val deviceOrientation = LocalOrientation.current
     val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
@@ -160,20 +163,14 @@ internal fun BoxScope.SendMessagePanel(
 
     val keyboardHeight = model.keyboardHeight.collectAsState()
     val savedMessage = model.savedMessage.collectAsState()
-    val savedTimings = model.savedTimings.collectAsState()
     val repositoryConfig = model.repositoryConfig.collectAsState()
     val messageState = remember(savedMessage.value) {
         TextFieldState(
-            initialText = savedMessage.value,
-            initialSelection = TextRange(savedMessage.value.length)
+            initialText = savedMessage.value ?: "",
+            initialSelection = TextRange(savedMessage.value?.length ?: 0)
         )
     }
-    val timingSensor = remember {
-        TimingSensor(
-            initialText = savedMessage.value,
-            timings = savedTimings.value.toMutableList()
-        )
-    }
+    val timingSensor = model.timingSensor.collectAsState()
     val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
     val mediaAttached = remember {
         mutableStateListOf<PlatformFile>()
@@ -285,17 +282,19 @@ internal fun BoxScope.SendMessagePanel(
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
                 showPreview = showPreview.value,
-                timings = timingSensor.timings.toList()
+                timings = timingSensor.value.timings.toList(),
+                gravityValues = model.gravityValues.value
             )
-            timingSensor.flush()
+            model.cache(null)
+            timingSensor.value.flush()
+            typedUrl.value = null
+            model.stopTypingServices()
             mediaAttached.clear()
             keyboardMode.value = ConversationKeyboardMode.Default.ordinal
             messageState.clearText()
-            model.saveMessage(null)
             replyToMessage.value = null
             gifAttached.value = null
             showPreview.value = true
-            typedUrl.value = null
 
             navController?.previousBackStackEntry
                 ?.savedStateHandle
@@ -306,17 +305,18 @@ internal fun BoxScope.SendMessagePanel(
     }
 
 
-    DisposableEffect(null) {
-        onDispose {
-            model.saveMessage(
-                content = messageState.text.toString(),
-                timings = timingSensor.timings
-            )
+    LifecycleResumeEffect(model) {
+        model.setDeviceOrientation(deviceOrientation)
+        // temporary init to showcase the behaviour, remove for implementation
+        model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
+
+        onPauseOrDispose {
+            model.stopTypingServices()
+            model.cache(content = messageState.text.toString())
         }
     }
-
     LaunchedEffect(savedMessage.value) {
-        if(missingKeyboardHeight || savedMessage.value.isNotBlank()) {
+        if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }else focusRequester.captureFocus()
@@ -343,12 +343,11 @@ internal fun BoxScope.SendMessagePanel(
 
     LaunchedEffect(messageState.text) {
         if(messageState.text.isNotBlank()) {
+            model.startTypingServices()
             showMoreOptions.value = false
-        }else {
-            // temporary init to showcase the behaviour, remove for implementation
-            model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
-        }
-        timingSensor.onNewText(messageState.text)?.let { result ->
+        }else model.stopTypingServices()
+
+        timingSensor.value.onNewText(messageState.text)?.let { result ->
             model.onKeyPressed(
                 char = result.newChar,
                 timingMs = result.timing
@@ -377,6 +376,8 @@ internal fun BoxScope.SendMessagePanel(
         ),
         verticalArrangement = Arrangement.Top
     ) {
+
+        // TODO should be within a message, not here
         val keyWidths = model.keyWidths.collectAsState()
         WaveLine(
             modifier = Modifier
@@ -547,7 +548,7 @@ internal fun BoxScope.SendMessagePanel(
                         modifier = Modifier.clip(shape),
                         url = url,
                         textBackground = Color.Transparent,
-                        imageHeight = 140.dp,
+                        imageSize = IntSize(height = 140, width = 0),
                         alignment = Alignment.Start
                     )
                 }
@@ -584,7 +585,9 @@ internal fun BoxScope.SendMessagePanel(
                         }
                     }
                     .onFocusChanged {
-                        if(!it.isFocused) timingSensor.pause()
+                        if(it.isFocused && messageState.text.isNotBlank()) {
+                            model.startTypingServices()
+                        }else model.stopTypingServices()
                     }
                     .fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(

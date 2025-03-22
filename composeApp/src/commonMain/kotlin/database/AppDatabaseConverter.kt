@@ -24,6 +24,7 @@ import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import net.folivo.trixnity.core.model.keys.Key
 import org.koin.mp.KoinPlatform
+import ui.conversation.components.experimental.gravity.GravityData
 
 /** Factory converter for Room database */
 @ProvidedTypeConverter
@@ -58,6 +59,16 @@ class AppDatabaseConverter {
     
     @TypeConverter
     fun toPresenceEventContent(value: String): PresenceEventContent {
+        return json.decodeFromString(value)
+    }
+
+    @TypeConverter
+    fun fromGravityData(value: GravityData): String {
+        return json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toGravityData(value: String): GravityData {
         return json.decodeFromString(value)
     }
     

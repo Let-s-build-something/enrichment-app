@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +34,6 @@ import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.utils.LinkUtils
-import base.utils.openLink
 import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -131,7 +128,7 @@ fun LazyItemScope.ConversationMessageContent(
             isMyLastMessage = isMyLastMessage,
             preferredEmojis = preferredEmojis,
             model = model,
-            additionalContent = { onDragChange, onDrag ->
+            additionalContent = { onDragChange, onDrag, messageContent ->
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
                 }
@@ -189,28 +186,23 @@ fun LazyItemScope.ConversationMessageContent(
                     )
 
                     if(data?.showPreview == true && data.content?.isNotBlank() == true) {
-                        val matches = remember {
-                            LinkUtils.urlRegex.findAll(data.content)
-                        }
-                        if(matches.any()) {
-                            matches.firstOrNull()?.let { firstLink ->
-                                LinkPreview(
-                                    modifier = Modifier
-                                        .widthIn(max = (screenSize.width * .8f).dp)
-                                        .pointerInput(data.id) {
-                                            detectMessageInteraction(
-                                                onTap = {
-                                                    openLink(firstLink.value)
-                                                },
-                                                onDragChange = onDragChange,
-                                                onDrag = onDrag
-                                            )
-                                        }
-                                        .clip(shape = shape),
-                                    url = firstLink.value,
-                                    alignment = if(isCurrentUser) Alignment.Start else Alignment.End
-                                )
-                            }
+                        messageContent.getLinkAnnotations(0, messageContent.length).firstOrNull()?.let { link ->
+                            LinkPreview(
+                                modifier = Modifier
+                                    .widthIn(max = (screenSize.width * .8f).dp)
+                                    .pointerInput(data.id) {
+                                        detectMessageInteraction(
+                                            onTap = {
+                                                link.item.linkInteractionListener?.onClick(link.item)
+                                            },
+                                            onDragChange = onDragChange,
+                                            onDrag = onDrag
+                                        )
+                                    }
+                                    .clip(shape = shape),
+                                url = messageContent.subSequence(link.start, link.end).toString(),
+                                alignment = if(isCurrentUser) Alignment.Start else Alignment.End
+                            )
                         }
                     }
                 }

@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,11 +19,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.link_preview_error
-import augmy.interactive.shared.ui.base.LocalContentSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.AsyncSvgImage
 import org.jetbrains.compose.resources.stringResource
@@ -38,11 +35,10 @@ fun LinkPreview(
     modifier: Modifier = Modifier,
     url: String,
     alignment: Alignment.Horizontal,
-    imageHeight: Dp = 200.dp,
+    imageSize: IntSize = IntSize(height = 200, width = 250),
     textBackground: Color = LocalTheme.current.colors.backgroundDark
 ) {
     val density = LocalDensity.current
-    val contentSize = LocalContentSize.current
     val processorModel: MediaProcessorModel = koinViewModel(key = url)
     val graphProtocol = processorModel.graphProtocol.collectAsState()
 
@@ -60,11 +56,10 @@ fun LinkPreview(
             graphProtocol.value?.imageUrl?.let { image ->
                 AsyncSvgImage(
                     modifier = modifier
-                        .sizeIn(
-                            maxHeight = imageHeight,
-                            minWidth = 250.dp
-                        )
-                        .height((contentSize.height * .3f).dp),
+                        .size(
+                            height = (imageSize.height.takeIf { it != 0 } ?: 200).dp,
+                            width = (imageSize.width.takeIf { it != 0 } ?: 250).dp
+                        ),
                     model = image,
                     contentScale = ContentScale.Fit
                 )

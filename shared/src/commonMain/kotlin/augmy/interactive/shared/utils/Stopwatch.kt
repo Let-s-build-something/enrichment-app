@@ -11,11 +11,21 @@ import kotlinx.coroutines.launch
  * @param tickMillis time in milliseconds between each tick
  */
 class StopwatchCounter(
-    private val tickMillis: Long = 100
+    private val tickMillis: Long = 100L
 ) {
     private val scope = CoroutineScope(Job())
+    private val listeners = mutableListOf<Pair<Long, () -> Unit>>()
 
     private var millis: Long = 0L
+
+    @Throws(IllegalArgumentException::class)
+    fun onTick(ms: Long, callback: () -> Unit) {
+        if(ms % tickMillis != 0L) {
+            throw IllegalArgumentException("$ms must be dividable by $tickMillis")
+        }
+        listeners.remove(ms to callback)
+        listeners.add(ms to callback)
+    }
 
     /** stops the counter */
     fun stop() {
@@ -37,6 +47,11 @@ class StopwatchCounter(
             while (true) {
                 delay(tickMillis)
                 millis += tickMillis
+                listeners.forEach { listener ->
+                    if(millis % listener.first == 0L) {
+                        listener.second.invoke()
+                    }
+                }
             }
         }
     }

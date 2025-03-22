@@ -4,6 +4,7 @@ import App
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,7 +17,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import augmy.interactive.shared.ui.base.BackPressDispatcher
+import augmy.interactive.shared.ui.base.DeviceOrientation
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
+import augmy.interactive.shared.ui.base.LocalOrientation
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import data.shared.AppServiceModel
 import io.github.vinceglb.filekit.core.FileKit
@@ -91,7 +94,10 @@ class MainActivity: ComponentActivity() {
                 LocalScreenSize provides IntSize(
                     height = configuration.screenHeightDp,
                     width = configuration.screenWidthDp
-                )
+                ),
+                LocalOrientation provides if(LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                    DeviceOrientation.Vertical
+                }else DeviceOrientation.Horizontal
             ) {
                 App()
             }

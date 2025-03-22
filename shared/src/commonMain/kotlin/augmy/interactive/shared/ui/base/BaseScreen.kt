@@ -385,6 +385,15 @@ val LocalScreenSize = staticCompositionLocalOf {
     IntSize(0, 0)
 }
 
+enum class DeviceOrientation {
+    Vertical,
+    Horizontal
+}
+
+val LocalOrientation = staticCompositionLocalOf {
+    DeviceOrientation.Vertical
+}
+
 /** Current content size in DP (density pixels) */
 val LocalContentSize = staticCompositionLocalOf {
     IntSize(0, 0)

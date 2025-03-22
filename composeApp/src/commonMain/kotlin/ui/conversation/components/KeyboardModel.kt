@@ -13,16 +13,20 @@ import kotlinx.coroutines.launch
 import org.koin.dsl.module
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.emoji.emojiModule
+import ui.conversation.components.experimental.gravity.gravityModule
+import ui.conversation.components.experimental.pacing.pacingModule
 import ui.conversation.components.gif.GifRepository.Companion.SEARCH_SECTION
 import ui.conversation.components.gif.GifRepository.Companion.TRENDING_SECTION
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.gif.gifModule
-import ui.conversation.components.gif.pacingModule
 
 internal val keyboardModule = module {
     includes(emojiModule)
     includes(gifModule)
+
+    // experimental
     includes(pacingModule)
+    includes(gravityModule)
 }
 
 /** Controller and provider of data specific to the conversation keyboard */
