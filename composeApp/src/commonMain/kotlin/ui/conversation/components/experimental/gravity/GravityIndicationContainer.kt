@@ -2,10 +2,9 @@ package ui.conversation.components.experimental.gravity
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -21,7 +20,13 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import augmy.interactive.shared.ui.theme.LocalTheme
+import data.sensor.SensorDelay
+import data.sensor.SensorEvent
+import data.sensor.SensorEventListener
+import data.sensor.registerGravityListener
+import data.sensor.unregisterGravityListener
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,12 +50,12 @@ private fun calculateIndicationStops(
 ): GravityIndicationStops {
     val verticalFraction = ((gy.absoluteValue / FULL_GRAVITY).minus(1f).absoluteValue * MAX_FRACTION_OFFSET).let {
         if(counterOffset != null) {
-            it / 2 + counterOffset / 2
+            counterOffset.div(8) - (if(it < 0) it else -it).div(2)
         }else it / 2
     }
     val value = ((gx / FULL_GRAVITY / 2 + .5f).minus(1).absoluteValue.coerceAtMost(1f)).let {
         if(counterValue != null) {
-            it + counterValue / 2
+            counterValue.div(8) - if(it < 0) it else -it
         }else it
     }
     //val depthFraction = gz / FULL_GRAVITY * 2
@@ -80,7 +85,7 @@ fun GravityIndicationContainer(
     backgroundColor: Color,
     shape: Shape,
     gravityData: GravityData?,
-    content: @Composable BoxScope.() -> Unit= {}
+    content: @Composable ColumnScope.() -> Unit= {}
 ) {
     val index = if(gravityData != null) {
         rememberSaveable(gravityData) {
@@ -96,25 +101,27 @@ fun GravityIndicationContainer(
         val fraction = remember(gravityData) {
             Animatable(gravityData?.values?.firstOrNull()?.fraction ?: 0f)
         }
+        val gravityValues = remember {
+            mutableStateOf<Triple<Float, Float, Float>?>(null)
+        }
 
-        LaunchedEffect(Unit) {
+        val listener = remember {
+            object: SensorEventListener {
+                override lateinit var instance: Any
+                override var isInitialized: Boolean = false
+
+                override fun onSensorChanged(event: SensorEvent?) {
+                    event?.values?.let {
+                        gravityValues.value = Triple(it[0], it[1], it[2])
+                    }
+                }
+                override fun onAccuracyChanged(accuracy: Int) {}
+            }
+        }
+
+        LifecycleResumeEffect(gravityData) {
             scope.coroutineContext.cancelChildren()
             scope.launch {
-                /*registerGravityListener(
-                    listener = object: SensorEventListener {
-                        override lateinit var instance: Any
-                        override var isInitialized: Boolean = false
-
-                        override fun onSensorChanged(event: SensorEvent?) {
-                            event?.values?.let {
-                                gravityValues.value = Triple(it[0], it[1], it[2])
-                            }
-                        }
-                        override fun onAccuracyChanged(accuracy: Int) {}
-                    },
-                    sensorDelay = SensorDelay.Normal
-                )*/
-
                 while(index?.value != null && index.value < (gravityData?.values?.size ?: 0)) {
                     gravityData?.tickMs?.let { delay(it) }
                     gravityData?.values?.getOrNull(index.value)?.let {
@@ -125,43 +132,57 @@ fun GravityIndicationContainer(
                 }
                 index?.value = gravityData?.values?.size ?: 0
             }
+            registerGravityListener(
+                listener = listener,
+                sensorDelay = SensorDelay.Normal
+            )
+
+            onPauseOrDispose {
+                unregisterGravityListener(listener)
+            }
         }
 
         val customBrush = rememberUpdatedState(
-            fraction.value.let { counterValue ->
-                object: ShaderBrush() {
-                    override fun createShader(size: Size): Shader {
-                        return LinearGradientShader(
-                            colors = listOf(
-                                backgroundColor,
-                                indicationColor,
-                                backgroundColor,
-                            ),
-                            colorStops = listOf(
-                                counterValue - offset.value,
-                                counterValue,
-                                counterValue + offset.value,
-                            ),
-                            tileMode = TileMode.Decal,
-                            from = Offset.Zero,
-                            to = Offset(size.width, size.height / 2)
-                        )
+            gravityValues.value.let { ownValues ->
+                fraction.value.let { counterValue ->
+                    object: ShaderBrush() {
+                        override fun createShader(size: Size): Shader {
+                            val indication = calculateIndicationStops(
+                                size = size,
+                                gx = ownValues?.first ?: 0f,
+                                gy = ownValues?.second ?: 0f,
+                                gz = ownValues?.third ?: 0f,
+                                counterValue = counterValue,
+                                counterOffset = offset.value
+                            )
+
+                            return LinearGradientShader(
+                                colors = listOf(
+                                    backgroundColor,
+                                    indicationColor,
+                                    backgroundColor,
+                                ),
+                                colorStops = indication.stops,
+                                tileMode = TileMode.Decal,
+                                from = Offset.Zero,
+                                to = Offset(size.width, size.height)
+                            )
+                        }
                     }
                 }
             }
         )
 
-        Box(
+        Column(
             modifier = Modifier
                 .border(
                     width = 2.dp,
                     shape = shape,
                     brush = customBrush.value
-                ).then(modifier)
-        ) {
-            content()
-        }
+                ).then(modifier),
+            content = content
+        )
     }else {
-        Box(modifier = modifier, content = content)
+        Column(modifier = modifier, content = content)
     }
 }

@@ -527,34 +527,32 @@ private fun ContentLayout(
                                                     gravityData = data.gravityData,
                                                     shape = messageShape
                                                 ) {
-                                                    Column {
+                                                    Text(
+                                                        modifier = Modifier
+                                                            .widthIn(max = (screenSize.width * .8f).dp)
+                                                            .then(
+                                                                if(hasAttachment) Modifier.fillMaxWidth() else Modifier
+                                                            )
+                                                            .then(if(model.transcribe.value) Modifier else Modifier),
+                                                        text = textContent,
+                                                        maxLines = MaximumTextLines,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        onTextLayout = {
+                                                            showReadMore.value = it.didOverflowHeight
+                                                        }
+                                                    )
+                                                    AnimatedVisibility(showReadMore.value) {
                                                         Text(
                                                             modifier = Modifier
-                                                                .widthIn(max = (screenSize.width * .8f).dp)
-                                                                .then(
-                                                                    if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                                                                )
-                                                                .then(if(model.transcribe.value) Modifier else Modifier),
-                                                            text = textContent,
-                                                            maxLines = MaximumTextLines,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            onTextLayout = {
-                                                                showReadMore.value = it.didOverflowHeight
-                                                            }
+                                                                .padding(top = 4.dp)
+                                                                .scalingClickable {
+                                                                    model.openDetail()
+                                                                },
+                                                            text = stringResource(Res.string.message_read_more),
+                                                            style = LocalTheme.current.styles.title.copy(
+                                                                fontFamily = FontFamily(fontQuicksandSemiBold)
+                                                            ),
                                                         )
-                                                        AnimatedVisibility(showReadMore.value) {
-                                                            Text(
-                                                                modifier = Modifier
-                                                                    .padding(top = 4.dp)
-                                                                    .scalingClickable {
-                                                                        model.openDetail()
-                                                                    },
-                                                                text = stringResource(Res.string.message_read_more),
-                                                                style = LocalTheme.current.styles.title.copy(
-                                                                    fontFamily = FontFamily(fontQuicksandSemiBold)
-                                                                ),
-                                                            )
-                                                        }
                                                     }
                                                 }
                                             }
