@@ -54,7 +54,7 @@ class GravityUseCase {
                                 isVertical = deviceOrientation == DeviceOrientation.Vertical,
                                 gx = values[0].roundDecimalPlaces(3),
                                 gy = values[1].roundDecimalPlaces(3),
-                                gz = values[2].roundDecimalPlaces(3)
+                                //gz = values[2].roundDecimalPlaces(3)
                             )
                         )
                     }
@@ -69,9 +69,7 @@ class GravityUseCase {
 
     suspend fun init(conversationId: String) {
         this.conversationId = conversationId
-        gravityValues.value = gravityDao.getAll(conversationId).also {
-            println("kostka_test, cached gravityValues: $it")
-        }
+        gravityValues.value = gravityDao.getAll(conversationId)
     }
 
     fun start() {
@@ -101,8 +99,7 @@ class GravityUseCase {
     private suspend fun calculateIndicationStops(
         isVertical: Boolean,
         gx: Float,
-        gy: Float,
-        gz: Float
+        gy: Float
     ): GravityValue = withContext(Dispatchers.Default) {
         val x = if(isVertical) gx else gy
         val y = if(isVertical) gy else gx
