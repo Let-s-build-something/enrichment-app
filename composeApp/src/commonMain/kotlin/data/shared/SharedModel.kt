@@ -144,7 +144,7 @@ open class SharedModel: ViewModel() {
 
                     currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
                 }catch (e: Exception) {
-                    println("kostka_test, initUser exception: ${e.message}")
+                    println("Logger, initUser exception: ${e.message}")
                     authService.stop()
                     authService.setupAutoLogin()
                     e.printStackTrace()

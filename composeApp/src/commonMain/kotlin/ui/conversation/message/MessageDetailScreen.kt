@@ -58,9 +58,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ui.conversation.ConversationComponent
+import ui.conversation.components.experimental.pacing.buildTempoString
 import ui.conversation.components.message.MaximumReactions
 import ui.conversation.components.message.MessageReactionsDialog
-import ui.conversation.components.TempoText
 
 /** Number of network items within one screen to be shimmered */
 private const val REPLIES_SHIMMER_ITEM_COUNT = 4
@@ -198,23 +198,25 @@ fun MessageDetailScreen(
 
                         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
                         SelectionContainer {
-                            TempoText(
+                            Text(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 4.dp),
-                                enabled = transcribing.value,
-                                text = buildAnnotatedLinkString(
-                                    text = message.value?.content ?: "",
-                                    onLinkClicked = { openLink(it) }
-                                ),
-                                style = LocalTheme.current.styles.title.copy(
-                                    color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
-                                    fontFamily = FontFamily(fontQuicksandMedium)
-                                ),
-                                timings = message.value?.timings.orEmpty(),
-                                onFinish = {
-                                    transcribing.value = false
-                                }
+                                text = buildTempoString(
+                                    enabled = transcribing.value,
+                                    text = buildAnnotatedLinkString(
+                                        text = message.value?.content ?: "",
+                                        onLinkClicked = { openLink(it) }
+                                    ),
+                                    style = LocalTheme.current.styles.title.copy(
+                                        color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
+                                        fontFamily = FontFamily(fontQuicksandMedium)
+                                    ),
+                                    timings = message.value?.timings.orEmpty(),
+                                    onFinish = {
+                                        transcribing.value = false
+                                    }
+                                )
                             )
                         }
 

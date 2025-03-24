@@ -1,24 +1,28 @@
 Pod::Spec.new do |spec|
-    spec.name                     = 'shared'
+    spec.name                     = 'ComposeApp'
     spec.version                  = '1.0'
-    spec.homepage                 = 'Link to the Shared Module homepage'
+    spec.homepage                 = 'https://augmy.org'
     spec.source                   = { :http=> ''}
     spec.authors                  = ''
     spec.license                  = ''
-    spec.summary                  = 'Some description for the Shared Module'
-    spec.vendored_frameworks      = 'build/cocoapods/framework/shared.framework'
+    spec.summary                  = 'Expressive messenger'
+    spec.vendored_frameworks      = 'build/cocoapods/framework/ComposeApp.framework'
     spec.libraries                = 'c++'
     spec.ios.deployment_target    = '15.3'
     spec.osx.deployment_target    = '14.4'
+    spec.dependency 'FirebaseAuth'
+    spec.dependency 'FirebaseCore'
+    spec.dependency 'FirebaseMessaging'
+    spec.dependency 'FirebaseStorage'
+    spec.dependency 'GoogleSignIn'
                 
-                
-    if !Dir.exist?('build/cocoapods/framework/shared.framework') || Dir.empty?('build/cocoapods/framework/shared.framework')
+    if !Dir.exist?('build/cocoapods/framework/ComposeApp.framework') || Dir.empty?('build/cocoapods/framework/ComposeApp.framework')
         raise "
 
-        Kotlin framework 'shared' doesn't exist yet, so a proper Xcode project can't be generated.
+        Kotlin framework 'ComposeApp' doesn't exist yet, so a proper Xcode project can't be generated.
         'pod install' should be executed after running ':generateDummyFramework' Gradle task:
 
-            ./gradlew :shared:generateDummyFramework
+            ./gradlew :composeApp:generateDummyFramework
 
         Alternatively, proper pod installation is performed during Gradle sync in the IDE (if Podfile location is set)"
     end
@@ -28,13 +32,13 @@ Pod::Spec.new do |spec|
     }
                 
     spec.pod_target_xcconfig = {
-        'KOTLIN_PROJECT_PATH' => ':shared',
-        'PRODUCT_MODULE_NAME' => 'shared',
+        'KOTLIN_PROJECT_PATH' => ':composeApp',
+        'PRODUCT_MODULE_NAME' => 'ComposeApp',
     }
                 
     spec.script_phases = [
         {
-            :name => 'Build shared',
+            :name => 'Build ComposeApp',
             :execution_position => :before_compile,
             :shell_path => '/bin/sh',
             :script => <<-SCRIPT

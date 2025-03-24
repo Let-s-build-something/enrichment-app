@@ -5,6 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import augmy.interactive.shared.ui.base.DeviceOrientation
 import base.utils.getUrlExtension
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
@@ -22,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -34,9 +36,13 @@ import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
 import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.emoji.EmojiUseCase
+import ui.conversation.components.experimental.gravity.GravityData
+import ui.conversation.components.experimental.gravity.GravityUseCase
+import ui.conversation.components.experimental.gravity.GravityUseCase.Companion.TICK_MILLIS
+import ui.conversation.components.experimental.gravity.GravityValue
+import ui.conversation.components.experimental.pacing.PacingUseCase
+import ui.conversation.components.experimental.pacing.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.gif.GifUseCase
-import ui.conversation.components.gif.PacingUseCase
-import ui.conversation.components.gif.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.keyboardModule
 import ui.login.AUGMY_HOME_SERVER
 
@@ -52,6 +58,7 @@ internal val conversationModule = module {
             get<EmojiUseCase>(),
             get<GifUseCase>(),
             get<PacingUseCase>(),
+            get<GravityUseCase>(),
         )
     }
     viewModelOf(::ConversationModel)
@@ -64,7 +71,9 @@ open class ConversationModel(
     private val repository: ConversationRepository,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase,
-    private val pacingUseCase: PacingUseCase
+    // experimental
+    private val pacingUseCase: PacingUseCase,
+    private val gravityUseCase: GravityUseCase
 ): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
@@ -101,7 +110,7 @@ open class ConversationModel(
         get() = repository.cachedFiles
 
     /** flow of current messages */
-    val conversationMessages = if(enableMessages) {
+    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if(enableMessages) {
         repository.getMessagesListFlow(
             config = PagingConfig(
                 pageSize = 30,
@@ -130,10 +139,9 @@ open class ConversationModel(
     }else flow { PagingData.empty<ConversationMessageIO>() }
 
     /** Last saved message relevant to this conversation */
-    val savedMessage = MutableStateFlow("")
-
-    /** Last saved message timings relevant to this conversation */
-    val savedTimings = MutableStateFlow(listOf<Long>())
+    val savedMessage = MutableStateFlow<String?>(null)
+    val timingSensor = pacingUseCase.timingSensor
+    val gravityValues = gravityUseCase.gravityValues.asStateFlow()
 
     private val messageMaxLength = 5000
 
@@ -153,11 +161,6 @@ open class ConversationModel(
                 .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId")
                 ?.take(messageMaxLength)
                 ?: ""
-            savedTimings.value = settings
-                .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId")
-                ?.split(",")
-                ?.mapNotNull { it.toLongOrNull() }
-                .orEmpty()
 
             currentUser.value?.matrixHomeserver?.let { homeserver ->
                 _repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
@@ -168,8 +171,32 @@ open class ConversationModel(
         //appendTypingIndicator()
     }
 
+    override fun onCleared() {
+        gravityUseCase.kill()
+        super.onCleared()
+    }
 
     // ==================== functions ===========================
+
+    fun startTypingServices() {
+        if(!timingSensor.value.isRunning && !timingSensor.value.isLocked) {
+            viewModelScope.launch {
+                timingSensor.value.start()
+                gravityUseCase.start()
+            }
+        }
+    }
+
+    fun stopTypingServices() {
+        if(timingSensor.value.isRunning) {
+            timingSensor.value.pause()
+            gravityUseCase.kill()
+        }
+    }
+
+    fun setDeviceOrientation(orientation: DeviceOrientation) {
+        gravityUseCase.deviceOrientation = orientation
+    }
 
     fun onKeyPressed(char: Char, timingMs: Long) {
         viewModelScope.launch {
@@ -178,26 +205,36 @@ open class ConversationModel(
     }
 
     fun initPacing(widthPx: Float) {
+        if(pacingUseCase.isInitialized) return
         viewModelScope.launch {
-            pacingUseCase.init(maxWaves = (WAVES_PER_PIXEL * widthPx).toInt())
+            gravityUseCase.init(conversationId)
+            pacingUseCase.init(
+                maxWaves = (WAVES_PER_PIXEL * widthPx).toInt(),
+                conversationId = conversationId,
+                savedMessage = savedMessage.value ?: ""
+            )
+            pacingUseCase.timingSensor.value.onTick(ms = TICK_MILLIS) {
+                viewModelScope.launch { gravityUseCase.onTick() }
+            }
+            if(!savedMessage.value.isNullOrBlank()) startTypingServices()
         }
     }
 
     /** Saves the content of a message */
-    fun saveMessage(
-        content: String?,
-        timings: List<Long> = listOf()
-    ) {
+    fun cache(content: String?) {
         CoroutineScope(Job() + Dispatchers.IO).launch {
             val key = "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
             if(content != null) {
                 settings.putString(key, content)
             }else settings.remove(key)
 
-            val keyTimings = "${SettingsKeys.KEY_LAST_MESSAGE_TIMINGS}_$conversationId"
-            if(timings.isNotEmpty()) {
-                settings.putString(keyTimings, timings.joinToString(","))
-            }else settings.remove(keyTimings)
+            if(content != null) {
+                pacingUseCase.cache(conversationId)
+            }else {
+                pacingUseCase.clearCache(conversationId)
+                gravityUseCase.clearCache(conversationId)
+            }
+            savedMessage.value = content
         }
     }
 
@@ -241,9 +278,11 @@ open class ConversationModel(
         mediaFiles: List<PlatformFile>,
         mediaUrls: List<String>,
         timings: List<Long>,
+        gravityValues: List<GravityValue>,
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
+        println("kostka_test, sendMessage, gravityValues: $gravityValues")
         CoroutineScope(Job()).launch {
             var progressId = ""
             repository.sendMessage(
@@ -261,6 +300,10 @@ open class ConversationModel(
                 gifAsset = gifAsset,
                 message = ConversationMessageIO(
                     content = content,
+                    gravityData = GravityData(
+                        values = gravityValues.map { it.copy(conversationId = null) },
+                        tickMs = TICK_MILLIS
+                    ),
                     anchorMessage = anchorMessage?.toAnchorMessage(),
                     media = mediaUrls.mapNotNull { url ->
                         MediaIO(

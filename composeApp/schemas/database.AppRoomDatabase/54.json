@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 52,
-    "identityHash": "69039cec4c352a0c376930100f7660e8",
+    "version": 54,
+    "identityHash": "e3b544f7a6672d9267bb0685a59ec19d",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -380,7 +380,7 @@
       },
       {
         "tableName": "room_gravity_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversation_id` TEXT NOT NULL, `fraction` REAL NOT NULL, `offset` REAL NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversation_id` TEXT, `fraction` REAL NOT NULL, `offset` REAL NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -391,8 +391,7 @@
           {
             "fieldPath": "conversationId",
             "columnName": "conversation_id",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "fraction",
@@ -497,7 +496,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '69039cec4c352a0c376930100f7660e8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e3b544f7a6672d9267bb0685a59ec19d')"
     ]
   }
 }
