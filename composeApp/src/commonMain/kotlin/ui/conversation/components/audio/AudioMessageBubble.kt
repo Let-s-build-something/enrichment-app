@@ -1,5 +1,6 @@
 package ui.conversation.components.audio
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -8,12 +9,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +26,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +45,14 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.components.experimental.robotalk.RobotalkVisualization
 import kotlin.math.ceil
+
+enum class AudioMessageState {
+    Loading,
+    Playing,
+    Paused
+}
 
 /**
  * Message bubble that has embedded player and is automatically downloaded and cached via [url].
@@ -57,15 +69,14 @@ fun AudioMessageBubble(
     val resultByteArray = processorModel.resultByteArray.collectAsState()
 
     val waveformHeight = remember { 50.dp }
-    val totalLengthMs = remember(resultByteArray.value) {
-        // get info from .wav once we support multi channel etc.
+    val totalLengthMs = rememberUpdatedState(
         calculateAudioLength(
-            resultByteArray.value?.size ?: 0,
-            sampleRate = 44100,
+            byteArraySize = resultByteArray.value?.size ?: 0,
+            sampleRate = 44100, // get info from .wav once we support multi channel etc.
             bytesPerSample = 2,
             channels = 1
         )
-    }
+    )
     val startTime = rememberSaveable { mutableLongStateOf(0L) }
     val millisecondsElapsed = remember {
         mutableLongStateOf(0L)
@@ -121,6 +132,11 @@ fun AudioMessageBubble(
         ),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        RobotalkVisualization(
+            modifier = Modifier.size(50.dp),
+            amplitudes = player.barPeakAmplitudes.value,
+            median = player.peakMedian.value
+        )
         Text(
             modifier = Modifier
                 .padding(end = 16.dp)
@@ -128,7 +144,7 @@ fun AudioMessageBubble(
             text = "${
                 DateUtils.formatMillis(millisecondsElapsed.longValue).takeIf {
                     it != "00:00"
-                }?.plus("/") ?: ""}${DateUtils.formatMillis(totalLengthMs)}",
+                }?.plus("/") ?: ""}${DateUtils.formatMillis(totalLengthMs.value)}",
             style = LocalTheme.current.styles.regular.copy(color = tintColor)
         )
         player.barPeakAmplitudes.value.takeLast(player.barsCount).forEach { bar ->
@@ -144,19 +160,38 @@ fun AudioMessageBubble(
                     .animateContentSize()
             )
         }
-        MinimalisticIcon(
-            modifier = Modifier.padding(start = 4.dp),
-            imageVector = if(isPlaying.value) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
-            tint = tintColor,
-            contentDescription = stringResource(
-                if(isPlaying.value) Res.string.accessibility_pause else Res.string.accessibility_play
-            ),
-            onTap = {
-                if(isPlaying.value) {
-                    stopPlaying()
-                }else startPlaying()
+        Crossfade(
+            targetState = when {
+                isPlaying.value -> AudioMessageState.Playing
+                resultByteArray.value == null -> AudioMessageState.Loading
+                else -> AudioMessageState.Paused
             }
-        )
+        ) { state ->
+            when(state) {
+                AudioMessageState.Loading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.requiredSize(24.dp),
+                        color = LocalTheme.current.colors.brandMainDark,
+                        trackColor = LocalTheme.current.colors.tetrial
+                    )
+                }
+                else -> {
+                    MinimalisticIcon(
+                        modifier = Modifier.padding(start = 4.dp),
+                        imageVector = if(state == AudioMessageState.Playing) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
+                        tint = tintColor,
+                        contentDescription = stringResource(
+                            if(state == AudioMessageState.Playing) Res.string.accessibility_pause else Res.string.accessibility_play
+                        ),
+                        onTap = {
+                            if(isPlaying.value) {
+                                stopPlaying()
+                            }else startPlaying()
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 package ui.conversation.components.audio
 
+import base.utils.LinkUtils.urlRegex
+import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getExtensionFromMimeType
 import base.utils.sha256
 import data.shared.SharedDataManager
@@ -30,7 +32,7 @@ class MediaProcessorRepository(
         val mimetype: String?
     )
 
-    /** returns a file from Google cloud storage or cache and caches it if it is not cached */
+    /** downloads a a file and caches or retrieves the cache */
     suspend fun getFileByteArray(
         url: String,
         downloadUrl: String = url,
@@ -38,7 +40,9 @@ class MediaProcessorRepository(
         onProgressChange: (bytesSentTotal: Long, contentLength: Long?) -> Unit
     ): FileResult? {
         return withContext(Dispatchers.IO) {
-            val fileName = sha256(url).plus(if(extension != null) ".$extension" else "")
+            val fileName = if(url.startsWith(MATRIX_REPOSITORY_PREFIX) || urlRegex.matches(url)) {
+                sha256(url).plus(if(extension != null) ".$extension" else "")
+            }else url.substringAfterLast("/")
 
             if(url.isBlank()) return@withContext null
 
@@ -48,8 +52,11 @@ class MediaProcessorRepository(
                 expirationMillis = if(sharedDataManager.networkConnectivity.value?.isStable != true) {
                     Long.MAX_VALUE
                 }else EXPIRATION_MILLIS
-            ) ?: try {
-                if(downloadUrl.isBlank()) return@withContext null
+            ).also {
+                println("kostka_test, getFileByteArray, url: $url, cache: ${it?.byteArray?.size}")
+            } ?: try {
+                println("kostka_test, getFileByteArray, is invalid download: ${downloadUrl.isBlank() || !urlRegex.matches(downloadUrl)}")
+                if(downloadUrl.isBlank() || !urlRegex.matches(downloadUrl)) return@withContext null
 
                 val response = httpClient.get(urlString = downloadUrl) {
                     onDownload { bytesSentTotal, contentLength ->
@@ -65,7 +72,7 @@ class MediaProcessorRepository(
                         byteArray = bytes,
                         path = fileAccess.saveFileToCache(
                             data = bytes,
-                            fileName = fileName.plus(responseMimetype)
+                            fileName = fileName.plus(if(extension == null) responseMimetype else "")
                         ),
                         mimetype = mimetype
                     )

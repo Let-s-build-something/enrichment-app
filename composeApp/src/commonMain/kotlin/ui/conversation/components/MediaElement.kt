@@ -87,8 +87,10 @@ fun MediaElement(
     enabled: Boolean = onTap != null,
     onLongPress: () -> Unit = {}
 ) {
-    var finalMedia by remember(media) {
-        mutableStateOf(media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true })
+    var finalMedia by remember {
+        mutableStateOf(
+            media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true }
+        )
     }
     val mediaType = getMediaType(
         finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
@@ -108,11 +110,11 @@ fun MediaElement(
     if(media?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) == true) {
         val viewModel: MediaProcessorModel = koinViewModel()
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(media) {
             viewModel.cacheFiles(media)
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(media) {
             viewModel.cachedFiles.collectLatest {
                 it[media.url]?.let { newMedia ->
                     finalMedia = newMedia
