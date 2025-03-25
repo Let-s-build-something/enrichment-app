@@ -39,7 +39,6 @@ import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.delay
-import ui.conversation.components.MEDIA_MAX_HEIGHT_DP
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageBubble
 import ui.conversation.components.message.MessageBubbleModel
@@ -139,10 +138,7 @@ fun LazyItemScope.ConversationMessageContent(
                     topEnd = LocalTheme.current.shapes.rectangularActionRadius
                 )
                 val heightModifier = Modifier
-                    .heightIn(
-                        max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp,
-                        min = MEDIA_MAX_HEIGHT_DP.dp
-                    )
+                    .heightIn(max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp)
                     .clip(shape)
 
                 Column(

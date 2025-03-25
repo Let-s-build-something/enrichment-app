@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,12 +58,13 @@ fun LinkPreview(
             graphProtocol.value?.imageUrl?.let { image ->
                 AsyncSvgImage(
                     modifier = modifier
-                        .size(
-                            height = (imageSize.height.takeIf { it != 0 } ?: 200).dp,
-                            width = (imageSize.width.takeIf { it != 0 } ?: 250).dp
-                        ),
+                        .height(height = (imageSize.height.takeIf { it != 0 } ?: 160).dp)
+                        .then(if(imageSize.width.takeIf { it != 0 } != null) {
+                            Modifier.width(imageSize.width.dp)
+                        } else Modifier)
+                        .wrapContentWidth(),
                     model = image,
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Crop
                 )
             }
             Row(

@@ -27,6 +27,7 @@ import koin.commonModule
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import org.koin.compose.KoinContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
@@ -99,7 +100,7 @@ class MainActivity: ComponentActivity() {
                     DeviceOrientation.Vertical
                 }else DeviceOrientation.Horizontal
             ) {
-                App()
+                KoinContext { App() }
             }
         }
     }

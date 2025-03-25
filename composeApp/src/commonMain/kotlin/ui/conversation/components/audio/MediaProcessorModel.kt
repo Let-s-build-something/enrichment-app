@@ -57,8 +57,14 @@ class MediaProcessorModel(
     /** Download the remote [ByteArray] by [url] */
     fun downloadAudioByteArray(url: String) {
         viewModelScope.launch {
+            val downloadUrl = if(currentUser.value?.matrixHomeserver != null) {
+                url.takeIf { !it.startsWith(MATRIX_REPOSITORY_PREFIX) }
+                    ?: "https://${currentUser.value?.matrixHomeserver}/_matrix/client/v1/media/download/${url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
+            }else ""
+
             repository.getFileByteArray(
                 url = url,
+                downloadUrl = downloadUrl,
                 onProgressChange = { bytesSentTotal, contentLength ->
                     _downloadProgress.value = MediaHttpProgress(
                         items = 1,

@@ -49,6 +49,9 @@ enum class MediaType {
     PDF,
     PRESENTATION,
     UNKNOWN;
+
+    val isVisual: Boolean
+        get() = this == IMAGE || this == VIDEO || this == GIF
 }
 
 val maxMultiLineHeight: Int

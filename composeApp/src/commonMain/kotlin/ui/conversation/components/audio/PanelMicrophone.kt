@@ -71,7 +71,6 @@ import augmy.composeapp.generated.resources.accessibility_pause
 import augmy.composeapp.generated.resources.accessibility_resume
 import augmy.composeapp.generated.resources.conversation_action_delete
 import augmy.composeapp.generated.resources.conversation_action_send
-import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.ext.scalingDraggable
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.PlatformType
@@ -80,6 +79,7 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.interactive.shared.utils.DateUtils
 import base.isDarkTheme
 import base.theme.Colors
 import base.utils.PermissionType
@@ -95,6 +95,8 @@ import kotlin.math.PI
 import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.sin
+
+// TODO abstract the recorder logic and make stateful (resume and pause)
 
 /**
  * Interactable microphone component for recording audio with ability to save, lock, and discard the recording.

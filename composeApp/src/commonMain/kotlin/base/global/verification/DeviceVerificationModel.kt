@@ -96,7 +96,7 @@ class VerificationModel(
         }
     }
 
-    suspend fun clear() {
+    fun clear() {
         cancel(restart = false)
         keyVerificationScope.coroutineContext.cancelChildren()
     }

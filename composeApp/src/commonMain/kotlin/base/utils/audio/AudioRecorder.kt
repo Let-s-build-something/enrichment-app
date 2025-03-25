@@ -104,8 +104,11 @@ abstract class AudioProcessor(
                 byteArray = byteArray,
                 samplesPerBar = bytesPerBar / 2,
             )?.let { peaks ->
-                val amplitudes = peaks.map { d -> d to Uuid.random().toString() }
-                samplePeakSum += peaks.sum()
+                var sum = 0.0
+                val amplitudes = peaks.map { d ->
+                    d.also { sum += it } to Uuid.random().toString()
+                }
+                samplePeakSum += sum
                 samplePeakCount += peaks.size
                 peakMedian.doubleValue = samplePeakSum / samplePeakCount * 3.5f
                 barPeakAmplitudes.value = barPeakAmplitudes.value.plus(amplitudes).takeLast(barsCount)

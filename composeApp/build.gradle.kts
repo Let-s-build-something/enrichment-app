@@ -1,4 +1,5 @@
 
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -358,7 +359,7 @@ buildkonfig {
 
     // this is the production setting
     defaultConfigs {
-        buildConfigField(STRING, "BuildType", "production")
+        buildConfigField(BOOLEAN, "isDevelopment", "false")
         buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
         buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
         buildConfigField(STRING, "BearerToken", keystoreProperties["bearerToken"] as String)
@@ -371,7 +372,7 @@ buildkonfig {
 
     // change the setting just for development
     defaultConfigs("development") {
-        buildConfigField(STRING, "BuildType", "development")
+        buildConfigField(BOOLEAN, "isDevelopment", "true")
         buildConfigField(STRING, "HttpsHostName", debugHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidDebugAppId"] as String)
     }

@@ -4,7 +4,7 @@ android-compileSdk = "35"
 android-minSdk = "24"
 android-targetSdk = "35"
 version-name = "1.0"
-version-code = "50"
+version-code = "52"
 
 androidx-activityCompose = "1.10.1"
 composeWebviewMultiplatform = "1.9.40"
@@ -22,7 +22,6 @@ koin = "4.0.2"
 pagingCompose = "3.3.0-alpha02-0.5.1"
 room = "2.7.0-rc02"
 sqlite-bundled = "2.5.0-rc02"
-sqlite-sqlcipher = "4.6.0"
 lifecycle = "2.8.4"
 googleId = "1.1.1"
 firebaseJavaSdk = "0.4.6"
@@ -38,8 +37,8 @@ fileKit = "0.8.8"
 multiplatformSettings = "1.3.0"
 datastore = "1.1.3"
 workRuntimeKtx = "2.10.0"
-trixnity = "4.13.1"
-oshaiKotlinLogging = "7.0.4" # https://github.com/oshai/kotlin-logging/releases
+trixnity = "4.13.3"
+oshaiKotlinLogging = "7.0.5" # https://github.com/oshai/kotlin-logging/releases
 
 # Android
 accompanistPermissions = "0.37.0"
@@ -47,7 +46,7 @@ credentials = "1.5.0"
 androidxSplashscreen = "1.2.0-beta01"
 androidFirebaseAuth = "23.2.0"
 androidFirebaseCommon = "21.0.0"
-androidFirebaseMessaging = "24.1.0"
+androidFirebaseMessaging = "24.1.1"
 
 # Java
 jvmGoogleCloudStorage = "2.46.0"
@@ -80,7 +79,6 @@ compose-paging-common = { module = "app.cash.paging:paging-compose-common", vers
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
-sqlite-sqlcipher = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-sqlcipher" }
 
 media-player-chaintech = { module = "network.chaintech:compose-multiplatform-media-player", version.ref = "mediaPlayerChaintech" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coilCompose" }

@@ -67,11 +67,10 @@ fun SimpleModalBottomSheet(
     }
 
     ModalBottomSheet(
-        modifier = modifier,
         onDismissRequest = onDismissRequest,
         content = {
             Column(
-                modifier = Modifier
+                modifier = modifier
                     .padding(contentPadding)
                     .navigationBarsPadding()
                     .then(

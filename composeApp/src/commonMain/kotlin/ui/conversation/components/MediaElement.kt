@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -87,13 +88,17 @@ fun MediaElement(
     enabled: Boolean = onTap != null,
     onLongPress: () -> Unit = {}
 ) {
-    var finalMedia by remember(media) {
-        mutableStateOf(media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true })
+    var finalMedia by remember {
+        mutableStateOf(
+            media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true }
+        )
     }
     val mediaType = getMediaType(
         finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
     )
-    val itemModifier = modifier.scalingClickable(
+    val itemModifier = (if(mediaType.isVisual) {
+        modifier.height(MEDIA_MAX_HEIGHT_DP.dp)
+    } else modifier).scalingClickable(
         enabled = enabled,
         scaleInto = .95f,
         hoverEnabled = false,
@@ -108,11 +113,11 @@ fun MediaElement(
     if(media?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) == true) {
         val viewModel: MediaProcessorModel = koinViewModel()
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(media) {
             viewModel.cacheFiles(media)
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(media) {
             viewModel.cachedFiles.collectLatest {
                 it[media.url]?.let { newMedia ->
                     finalMedia = newMedia

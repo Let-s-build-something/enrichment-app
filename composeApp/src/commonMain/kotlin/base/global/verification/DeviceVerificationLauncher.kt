@@ -84,7 +84,7 @@ fun DeviceVerificationLauncher(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
-    ) { value -> value != SheetValue.Hidden }
+    ) { value -> value != SheetValue.Hidden || BuildKonfig.isDevelopment }
 ) {
     loadKoinModules(verificationModule)
     val model: VerificationModel = koinViewModel()
@@ -93,12 +93,14 @@ fun DeviceVerificationLauncher(
     if(launcherState.value is LauncherState.Hidden) return
 
     SimpleModalBottomSheet(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(),
         sheetState = sheetState,
         contentPadding = PaddingValues(
             start = 16.dp, end = 16.dp, bottom = 12.dp
         ),
-        onDismissRequest = {}
+        onDismissRequest = {
+            if(BuildKonfig.isDevelopment) model.cancel(restart = false, manual = false)
+        }
     ) {
         Text(
             modifier = Modifier
@@ -130,11 +132,14 @@ fun DeviceVerificationLauncher(
 
 @Composable
 private fun Success() {
-    Column {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Icon(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(64.dp),
             imageVector = Icons.Outlined.Verified,
-            tint = LocalTheme.current.colors.secondary,
+            tint = SharedColors.GREEN_CORRECT,
             contentDescription = null
         )
         Text(

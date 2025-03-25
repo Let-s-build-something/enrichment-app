@@ -2,10 +2,13 @@ package base.utils.audio
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
@@ -24,9 +27,9 @@ actual fun rememberAudioPlayer(
     secondsPerBar: Double,
     bufferSize: Int
 ): AudioPlayer {
-    val scope = rememberCoroutineScope()
-
     return remember(byteArray.size) {
+        val scope = CoroutineScope(Job() + Dispatchers.IO)
+
         object: AudioPlayer(
             byteArray = byteArray,
             barsCount = barsCount,
@@ -83,13 +86,15 @@ actual fun rememberAudioPlayer(
             override fun discard() {
                 onFinish()
                 scope.coroutineContext.cancelChildren()
-                line?.drain()
-                line?.stop()
-                line?.close()
-                line?.flush()
-                line = null
-                offset = 0
-                playedBytes = 0
+                runBlocking {
+                    line?.drain()
+                    line?.stop()
+                    line?.close()
+                    line?.flush()
+                    line = null
+                    offset = 0
+                    playedBytes = 0
+                }
             }
         }
     }

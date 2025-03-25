@@ -30,7 +30,7 @@ object DateUtils {
         val seconds = ((millis / 1000.0) % 60.0).toInt()
         val minutes = ((millis / (1000.0 * 60.0)) % 60.0).toInt()
 
-        return "${if(minutes < 10) "0$minutes" else minutes}:${if(seconds < 10) "0$seconds" else seconds}"
+        return (if(minutes > 0) "${minutes}m " else "") + if(seconds > 0 || minutes == 0) "${seconds}s" else ""
     }
 
     /** Formats a localized time to a string */

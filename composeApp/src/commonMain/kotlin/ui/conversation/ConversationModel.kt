@@ -282,7 +282,6 @@ open class ConversationModel(
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
-        println("kostka_test, sendMessage, gravityValues: $gravityValues")
         CoroutineScope(Job()).launch {
             var progressId = ""
             repository.sendMessage(

@@ -65,6 +65,8 @@ open class FileAccess {
                 FileSystem.SYSTEM.exists(it)
             } ?: FileSystem.SYSTEM.list(TEMPORARY_DIRECTORY).firstOrNull { it.name.startsWith("$fileName.") }
 
+            println("kostka_test, loadFileFromCache, fileName: $fileName, cachePath: $cachePath")
+
             if(cachePath == null) return@withContext null
 
             try {
@@ -77,7 +79,9 @@ open class FileAccess {
                             ext = extension ?: getUrlExtension(cachePath.name),
                             default = MimeType.IMAGE_JPEG
                         ).mime
-                    )
+                    ).also {
+                        println("kostka_test, loadFileFromCache result: ${it.byteArray.size}, ${it.mimetype}")
+                    }
                 }else {
                     FileSystem.SYSTEM.delete(cachePath)
                     null
