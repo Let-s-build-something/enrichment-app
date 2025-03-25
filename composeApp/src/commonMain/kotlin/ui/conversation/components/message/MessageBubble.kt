@@ -195,8 +195,8 @@ private fun ContentLayout(
     val hasAttachment = remember(data.id) { data.media?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
-    val awaitingTranscription = !isCurrentUser
-            && !model.transcribe.value
+    val awaitingTranscription = /*!isCurrentUser
+            && */!model.transcribe.value
             && data.transcribed != true
             && !data.timings.isNullOrEmpty()
 

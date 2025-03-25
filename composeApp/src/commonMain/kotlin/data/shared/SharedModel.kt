@@ -48,7 +48,7 @@ open class SharedModel: ViewModel() {
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
     /** persistent settings saved locally to a device */
-    protected val settings = KoinPlatform.getKoin().get<AppSettings>()
+    protected val settings: AppSettings by KoinPlatform.getKoin().inject()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
