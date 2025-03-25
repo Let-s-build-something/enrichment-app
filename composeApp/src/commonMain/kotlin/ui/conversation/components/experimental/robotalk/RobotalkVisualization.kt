@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import korlibs.math.squared
 
 // so that not all amplitudes affect the visualization
 private const val CUT_OFF_FRACTION = 0.25f
@@ -34,11 +33,11 @@ fun RobotalkVisualization(
 ) {
     val amplitude = remember { Animatable(initialValue = 0f) }
 
-    LaunchedEffect(amplitudes) {
+    LaunchedEffect(amplitudes, median) {
         amplitude.animateTo(
             targetValue = amplitudes.lastOrNull()?.first?.div(median)?.let { fraction ->
                 fraction.takeIf { it > CUT_OFF_FRACTION }
-                    ?.times(HEAD_FRACTION.squared())
+                    ?.times(HEAD_FRACTION)
             }?.toFloat() ?: 0f,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,

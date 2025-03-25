@@ -143,7 +143,6 @@ private fun AppContent(
     val deviceType = LocalDeviceType.current
 
     val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
-    val isDevelopment = BuildKonfig.BuildType == "development"
 
     val modalDeepLink = rememberSaveable(viewModel) {
         mutableStateOf<String?>(null)
@@ -241,11 +240,11 @@ private fun AppContent(
     )
 
     CompositionLocalProvider(
-        LocalHeyIamScreen provides (isDevelopment && isPhone),
+        LocalHeyIamScreen provides (BuildKonfig.isDevelopment && isPhone),
     ) {
         if(isPhone) {
             Column {
-                if(isDevelopment) DeveloperContent(
+                if(BuildKonfig.isDevelopment) DeveloperContent(
                     modifier = Modifier.statusBarsPadding(),
                 )
                 Box {
@@ -254,7 +253,7 @@ private fun AppContent(
             }
         }else {
             Row {
-                if(isDevelopment) DeveloperContent()
+                if(BuildKonfig.isDevelopment) DeveloperContent()
                 Box {
                     NavigationHost(navController = navController)
                 }

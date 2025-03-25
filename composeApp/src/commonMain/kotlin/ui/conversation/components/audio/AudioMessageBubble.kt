@@ -123,6 +123,7 @@ fun AudioMessageBubble(
 
     Row(
         modifier = modifier
+            .padding(top = 10.dp, bottom = 0.dp, start = 12.dp, end = 16.dp)
             .height(waveformHeight)
             .wrapContentWidth()
             .animateContentSize(),
@@ -132,20 +133,20 @@ fun AudioMessageBubble(
         ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RobotalkVisualization(
-            modifier = Modifier.size(50.dp),
-            amplitudes = player.barPeakAmplitudes.value,
-            median = player.peakMedian.value
-        )
         Text(
-            modifier = Modifier
-                .padding(end = 16.dp)
-                .animateContentSize(),
-            text = "${
-                DateUtils.formatMillis(millisecondsElapsed.longValue).takeIf {
-                    it != "00:00"
-                }?.plus("/") ?: ""}${DateUtils.formatMillis(totalLengthMs.value)}",
+            modifier = Modifier.animateContentSize(),
+            text = "${DateUtils.formatMillis(millisecondsElapsed.longValue).takeIf {
+                it != "0s"
+            }?.plus("/") ?: ""}${DateUtils.formatMillis(totalLengthMs.value)}",
             style = LocalTheme.current.styles.regular.copy(color = tintColor)
+        )
+        RobotalkVisualization(
+            modifier = Modifier
+                .align(Alignment.Bottom)
+                .padding(horizontal = 16.dp)
+                .size(waveformHeight - 16.dp),
+            amplitudes = player.barPeakAmplitudes.value.takeIf { isPlaying.value }.orEmpty(),
+            median = player.peakMedian.value.takeIf { isPlaying.value } ?: 0.0
         )
         player.barPeakAmplitudes.value.takeLast(player.barsCount).forEach { bar ->
             Box(

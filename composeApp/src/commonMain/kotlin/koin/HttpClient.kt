@@ -32,8 +32,6 @@ import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.util.network.UnresolvedAddressException
-import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.MatrixServerException
 import org.koin.mp.KoinPlatform
@@ -159,10 +157,6 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     HttpResponseValidator {
         handleResponseException { cause, _ ->
             when (cause) {
-                is IOException, is UnresolvedAddressException -> {
-                    sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                    println("No network connection or server unreachable")
-                }
                 is ConnectTimeoutException, is SocketTimeoutException -> {
                     sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
                     println("Network timeout")

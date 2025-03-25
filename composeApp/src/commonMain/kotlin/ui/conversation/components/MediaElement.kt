@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -97,7 +97,7 @@ fun MediaElement(
         finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
     )
     val itemModifier = (if(mediaType.isVisual) {
-        modifier.heightIn(min = MEDIA_MAX_HEIGHT_DP.dp)
+        modifier.height(MEDIA_MAX_HEIGHT_DP.dp)
     } else modifier).scalingClickable(
         enabled = enabled,
         scaleInto = .95f,

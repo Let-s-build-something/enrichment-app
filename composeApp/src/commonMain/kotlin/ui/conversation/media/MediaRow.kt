@@ -41,6 +41,7 @@ import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.navigation.NavigationNode
 import base.theme.Colors
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
+import base.utils.getMediaType
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.core.PlatformFile
@@ -109,8 +110,7 @@ fun MediaRow(
             }
             data.media?.forEachIndexed { index, media ->
                 val temporaryMedia = temporaryFiles[media.url]
-                val canBeVisualized = media.mimetype?.contains("image") == true
-                        || media.mimetype?.contains("video") == true
+                val canBeVisualized = getMediaType(media.mimetype ?: "").isVisual
 
                 val onTap: (Offset) -> Unit = {
                     coroutineScope.launch {

@@ -2,7 +2,6 @@ package base.utils.audio
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.ShortVar
@@ -15,9 +14,13 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okio.Buffer
 import platform.AVFAudio.AVAudioEngine
 import platform.AVFAudio.AVAudioFormat
@@ -52,9 +55,9 @@ actual fun rememberAudioPlayer(
     secondsPerBar: Double,
     bufferSize: Int
 ): AudioPlayer {
-    val scope = rememberCoroutineScope()
-
     return remember(byteArray.size) {
+        val scope = CoroutineScope(Job() + Dispatchers.IO)
+
         object : AudioPlayer(
             byteArray = byteArray,
             barsCount = barsCount,
@@ -144,12 +147,13 @@ actual fun rememberAudioPlayer(
             }
 
             override fun pause() {
+                scope.coroutineContext.cancelChildren()
                 playerNode?.pause()
             }
 
             override fun discard() {
                 scope.coroutineContext.cancelChildren()
-                scope.launch(Dispatchers.Main) {
+                runBlocking {
                     onFinish()
                     engine?.mainMixerNode?.removeTapOnBus(0u)
                     playerNode?.stop()
