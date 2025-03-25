@@ -40,7 +40,6 @@ fun buildTempoString(
     val graphemes = remember(text, key) {
         mutableStateOf<Sequence<MatchResult>?>(null)
     }
-    text.spanStyles
 
     if(timings.isNotEmpty()) {
         LaunchedEffect(Unit) {
