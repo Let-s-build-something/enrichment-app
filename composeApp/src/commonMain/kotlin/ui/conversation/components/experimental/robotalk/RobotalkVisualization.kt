@@ -8,22 +8,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.LocalTheme
 import korlibs.math.squared
-import kotlin.math.sqrt
 
 // so that not all amplitudes affect the visualization
-private const val CUT_OFF_FRACTION = 0.3f
+private const val CUT_OFF_FRACTION = 0.25f
 
 // the faction that is considered moving head part of the visualization
-private const val HEAD_FRACTION = .5f
+private const val HEAD_FRACTION = .4f
 
 @Composable
 fun RobotalkVisualization(
@@ -41,8 +41,8 @@ fun RobotalkVisualization(
                     ?.times(HEAD_FRACTION.squared())
             }?.toFloat() ?: 0f,
             animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessMedium
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessHigh
             )
         )
     }
@@ -50,30 +50,46 @@ fun RobotalkVisualization(
     Canvas(modifier = modifier) {
         val startingY = size.height * HEAD_FRACTION
         val newY = -size.height * amplitude.value.coerceAtMost(1f)
-        val newX = sqrt(size.width.squared() - newY.squared())
+        val headOffset = Offset(size.width * .1f, newY)
+        val headSize = Size(
+            width = size.width * .8f,
+            height = startingY
+        )
 
-        Path().apply {
-            moveTo(0f, startingY)
+        drawRoundRect(
+            color = color,
+            topLeft = headOffset,
+            size = headSize,
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+            cornerRadius = CornerRadius(x = 10.dp.toPx(), y = 10.dp.toPx())
+        )
 
-            lineTo(
-                x = newX,
-                y = newY + startingY
-            )
-            arcTo(
-                rect = Rect(
-                    topLeft = Offset(0f, 5f),
-                    bottomRight = Offset(size.width, newY + startingY.times(1.5f))
+        drawPoints(
+            points = listOf(
+                Offset(
+                    headOffset.x + headSize.width * .35f,
+                    headOffset.y + headSize.height / 2f
                 ),
-                startAngleDegrees = -180f,
-                sweepAngleDegrees = 180f,
-                forceMoveTo = true
-            )
-        }.let {
-            drawPath(
-                path = it,
-                color = color,
-                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-            )
-        }
+                Offset(
+                    headOffset.x + headSize.width * .65f,
+                    headOffset.y + headSize.height / 2f
+                ),
+            ),
+            pointMode = PointMode.Points,
+            color = color,
+            cap = StrokeCap.Round,
+            strokeWidth = 4.dp.toPx()
+        )
+
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(0f, startingY),
+            size = Size(
+                width = size.width,
+                height = size.height / 2
+            ),
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+            cornerRadius = CornerRadius(x = 20.dp.toPx(), y = 20.dp.toPx())
+        )
     }
 }

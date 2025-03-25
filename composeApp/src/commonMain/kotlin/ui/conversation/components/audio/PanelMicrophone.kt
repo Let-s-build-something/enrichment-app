@@ -91,7 +91,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.components.experimental.robotalk.RobotalkVisualization
 import kotlin.math.PI
 import kotlin.math.absoluteValue
 import kotlin.math.cos
@@ -581,47 +580,37 @@ private fun AudioWaveForm(
                 }else SharedColors.RED_ERROR
             )
         )
-        Column {
-            RobotalkVisualization(
-                modifier = Modifier
-                    .size(50.dp)
-                    .align(Alignment.CenterHorizontally),
-                amplitudes = recorder.barPeakAmplitudes.value,
-                median = recorder.peakMedian.value
+        LazyRow(
+            modifier = Modifier
+                .height(waveformHeight)
+                .fillMaxWidth(),
+            reverseLayout = true,
+            horizontalArrangement = Arrangement.spacedBy(
+                space = 4.dp,
+                alignment = Alignment.CenterHorizontally
             )
-
-            LazyRow(
-                modifier = Modifier
-                    .height(waveformHeight)
-                    .fillMaxWidth(),
-                reverseLayout = true,
-                horizontalArrangement = Arrangement.spacedBy(
-                    space = 4.dp,
-                    alignment = Alignment.CenterHorizontally
-                )
-            ) {
-                items(
-                    items = recorder.barPeakAmplitudes.value,
-                    key = { bar -> bar.second }
-                ) { bar ->
+        ) {
+            items(
+                items = recorder.barPeakAmplitudes.value,
+                key = { bar -> bar.second }
+            ) { bar ->
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(waveformHeight)
+                        .animateItem(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Box(
                         modifier = Modifier
+                            .heightIn(min = 6.dp, max = waveformHeight)
                             .width(4.dp)
-                            .height(waveformHeight)
-                            .animateItem(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .heightIn(min = 6.dp, max = waveformHeight)
-                                .width(4.dp)
-                                .background(
-                                    color = LocalTheme.current.colors.secondary,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .height((bar.first / recorder.peakMedian.value * waveformHeight.value).dp)
-                        )
-                    }
+                            .background(
+                                color = LocalTheme.current.colors.secondary,
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .height((bar.first / recorder.peakMedian.value * waveformHeight.value).dp)
+                    )
                 }
             }
         }
