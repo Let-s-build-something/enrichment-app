@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import augmy.interactive.com.BuildKonfig
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.ObservableSettings
@@ -19,7 +20,9 @@ import org.koin.mp.KoinPlatform.getKoin
 actual val settings: AppSettings = object : AppSettings, FlowSettings by DataStoreSettings(
     PreferenceDataStoreFactory.createWithPath(
         produceFile = {
-            getKoin().get<Context>().preferencesDataStoreFile("app_preferences").absolutePath.toPath()
+            getKoin().get<Context>().preferencesDataStoreFile(
+                if(BuildKonfig.isDevelopment) "app_preferences_dev" else "app_preferences"
+            ).absolutePath.toPath()
         }
     )
 ) {}
@@ -27,7 +30,7 @@ actual val settings: AppSettings = object : AppSettings, FlowSettings by DataSto
 actual val secureSettings: SecureAppSettings = object : SecureAppSettings, ObservableSettings by SharedPreferencesSettings(
     EncryptedSharedPreferences.create(
         getKoin().get<Context>(),
-        "secure_app_prefs",
+        if(BuildKonfig.isDevelopment) "secure_app_prefs_dev" else "secure_app_prefs",
         MasterKey.Builder(
             getKoin().get<Context>()
         ).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),

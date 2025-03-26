@@ -1,6 +1,7 @@
 package koin
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import augmy.interactive.com.BuildKonfig
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.coroutines.FlowSettings
@@ -24,7 +25,9 @@ actual val settings: AppSettings = object : AppSettings, FlowSettings by DataSto
              System.getProperty("user.dir")
                     + File.separator
                     + "datastore"
-                    + File.separator + "app_preferences.preferences_pb"
+                    + File.separator + if(BuildKonfig.isDevelopment) {
+                        "app_preferences_dev.preferences_pb"
+             } else "app_preferences.preferences_pb"
         ).absolutePath.toPath()
     }
 )) {}

@@ -109,8 +109,8 @@ fun SocialCircleContent(
     }
 
     LaunchedEffect(scale.value) {
-        val maxOffsetX = (largerDimension * (scale.value - 1)) / 2
-        val maxOffsetY = (largerDimension * (scale.value - 1)) / 2
+        val maxOffsetX = (largerDimension * (scale.value.coerceAtLeast(1f) - 1)) / 2
+        val maxOffsetY = (largerDimension * (scale.value.coerceAtLeast(1f) - 1)) / 2
 
         offset.value = Offset(
             x = offset.value.x.coerceIn(

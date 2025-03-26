@@ -52,10 +52,7 @@ class MediaProcessorRepository(
                 expirationMillis = if(sharedDataManager.networkConnectivity.value?.isStable != true) {
                     Long.MAX_VALUE
                 }else EXPIRATION_MILLIS
-            ).also {
-                println("kostka_test, getFileByteArray, url: $url, cache: ${it?.byteArray?.size}")
-            } ?: try {
-                println("kostka_test, getFileByteArray, is invalid download: ${downloadUrl.isBlank() || !urlRegex.matches(downloadUrl)}")
+            ) ?: try {
                 if(downloadUrl.isBlank() || !urlRegex.matches(downloadUrl)) return@withContext null
 
                 val response = httpClient.get(urlString = downloadUrl) {

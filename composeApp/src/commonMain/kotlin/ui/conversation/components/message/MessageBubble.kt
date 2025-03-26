@@ -195,12 +195,13 @@ private fun ContentLayout(
     val hasAttachment = remember(data.id) { data.media?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
-    val awaitingTranscription = !isCurrentUser
-            && !model.transcribe.value
+    val awaitingTranscription = /*!isCurrentUser
+            && */!model.transcribe.value
             && data.transcribed != true
             && !data.timings.isNullOrEmpty()
 
     val textContent = if(!data.content.isNullOrBlank()) {
+        println("kostka_test, transcribe: ${model.transcribe.value}")
         buildTempoString(
             key = data.id,
             timings = data.timings.orEmpty(),
@@ -525,7 +526,8 @@ private fun ContentLayout(
                                                     } else LocalTheme.current.colors.backgroundContrast,
                                                     indicationColor = tagToColor(data.user?.tag) ?: LocalTheme.current.colors.tetrial,
                                                     gravityData = data.gravityData,
-                                                    shape = messageShape
+                                                    shape = messageShape,
+                                                    enabled = model.transcribe.value
                                                 ) {
                                                     Text(
                                                         modifier = Modifier
