@@ -50,14 +50,16 @@ private fun calculateIndicationStops(
 ): GravityIndicationStops {
     val verticalFraction = ((gy.absoluteValue / FULL_GRAVITY).minus(1f).absoluteValue * MAX_FRACTION_OFFSET).let {
         if(counterOffset != null) {
-            counterOffset.div(8) - (if(it < 0) it else -it).div(2)
+            counterOffset - (if(it < 0) it else -it).div(2)
         }else it / 2
     }
-    val value = ((gx / FULL_GRAVITY / 2 + .5f).minus(1).absoluteValue.coerceAtMost(1f)).let {
-        if(counterValue != null) {
-            counterValue.div(8) - if(it < 0) it else -it
-        }else it
-    }
+
+    val calculatedValue = (gx / FULL_GRAVITY / 2 + 0.5f).minus(1).absoluteValue.coerceIn(0f, 1f)
+    val value = if (counterValue != null) {
+        0.5f + (counterValue - calculatedValue)
+    } else {
+        calculatedValue
+    }.minus(1).absoluteValue.coerceIn(0f, 1f)
     //val depthFraction = gz / FULL_GRAVITY * 2
 
     val stops = listOf(
@@ -83,6 +85,7 @@ fun GravityIndicationContainer(
     modifier: Modifier = Modifier,
     indicationColor: Color = LocalTheme.current.colors.tetrial,
     backgroundColor: Color,
+    enabled: Boolean,
     shape: Shape,
     gravityData: GravityData?,
     content: @Composable ColumnScope.() -> Unit= {}
@@ -93,7 +96,7 @@ fun GravityIndicationContainer(
         }
     }else null
 
-    if(!gravityData?.values.isNullOrEmpty() && index?.value != gravityData?.values?.size) {
+    if(enabled && !gravityData?.values.isNullOrEmpty() && index?.value != gravityData?.values?.size) {
         val scope = rememberCoroutineScope()
         val offset = remember(gravityData) {
             Animatable(gravityData?.values?.firstOrNull()?.offset ?: 0f)

@@ -201,6 +201,7 @@ private fun ContentLayout(
             && !data.timings.isNullOrEmpty()
 
     val textContent = if(!data.content.isNullOrBlank()) {
+        println("kostka_test, transcribe: ${model.transcribe.value}")
         buildTempoString(
             key = data.id,
             timings = data.timings.orEmpty(),
@@ -525,7 +526,8 @@ private fun ContentLayout(
                                                     } else LocalTheme.current.colors.backgroundContrast,
                                                     indicationColor = tagToColor(data.user?.tag) ?: LocalTheme.current.colors.tetrial,
                                                     gravityData = data.gravityData,
-                                                    shape = messageShape
+                                                    shape = messageShape,
+                                                    enabled = model.transcribe.value
                                                 ) {
                                                     Text(
                                                         modifier = Modifier

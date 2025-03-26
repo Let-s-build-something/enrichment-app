@@ -231,7 +231,7 @@ fun ConversationComponent(
                 }
                 val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.transcribed == true) }
 
-                if(data?.id != null && !isCurrentUser) {
+                if(data?.id != null/* && !isCurrentUser*/ && !data.content.isNullOrBlank()) {
                     LaunchedEffect(Unit) {
                         if(data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
                             transcribedItem.value = index to data.id
@@ -256,7 +256,9 @@ fun ConversationComponent(
                 val model = remember(data?.id) {
                     object: MessageBubbleModel {
                         override val transcribe = derivedStateOf {
-                            !isCurrentUser && transcribedItem.value?.second == data?.id
+                            println("kostka_test, transcribedItem: ${transcribedItem.value?.second == data?.id} (${transcribedItem.value?.second}), " +
+                                    "isTranscribed: ${isTranscribed.value}")
+                            /*!isCurrentUser && */transcribedItem.value?.second == data?.id
                                     && !isTranscribed.value
                         }
 
