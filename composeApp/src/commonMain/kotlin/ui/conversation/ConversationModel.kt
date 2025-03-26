@@ -173,7 +173,7 @@ open class ConversationModel(
             }
         }
 
-        // TODO socket listening on typing indicators
+        // TODO socket listening to typing indicators
         //appendTypingIndicator()
     }
 

@@ -135,7 +135,7 @@ open class ConversationRepository(
                         withContext(Dispatchers.IO) {
                             val prevBatch = conversationRoomDao.get(conversationId)?.prevBatch
 
-                            conversationMessageDao.getPaginated(
+                            (conversationMessageDao.getPaginated(
                                 conversationId = conversationId,
                                 limit = config.pageSize,
                                 offset = page * config.pageSize
@@ -143,7 +143,8 @@ open class ConversationRepository(
                                 if(res.isNotEmpty()) {
                                     GetMessagesResponse(
                                         data = res,
-                                        hasNext = res.size == config.pageSize || prevBatch != null
+                                        hasNext = res.size == config.pageSize
+                                                || (prevBatch != null && res.isNotEmpty())
                                     ).also {
                                         println("kostka_test, page: $page, hasNext: ${it.hasNext}, size: ${it.data.size}")
                                     }
@@ -163,6 +164,11 @@ open class ConversationRepository(
                                     data = res.messages,
                                     hasNext = res.prevBatch != null && res.messages.isNotEmpty()
                                 )
+                            })?.also {
+                                // we just downloaded empty page, let's refresh UI to end paging
+                                if(it.data.isEmpty()) {
+                                    //TODO invalidateLocalSource()
+                                }
                             }
                         }
                     },
