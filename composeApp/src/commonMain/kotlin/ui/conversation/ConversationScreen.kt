@@ -172,7 +172,7 @@ fun ConversationScreen(
             messages = messages,
             conversationId = conversationId,
             shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-            viewModel = viewModel,
+            model = viewModel,
             emptyLayout = {
                 // TODO
             }

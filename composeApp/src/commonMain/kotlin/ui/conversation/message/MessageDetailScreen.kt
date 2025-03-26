@@ -129,7 +129,7 @@ fun MessageDetailScreen(
             verticalArrangement = Arrangement.Top,
             shimmerItemCount = REPLIES_SHIMMER_ITEM_COUNT,
             conversationId = conversationId,
-            viewModel = viewModel,
+            model = viewModel,
             messages = replies,
             emptyLayout = {
                 // TODO

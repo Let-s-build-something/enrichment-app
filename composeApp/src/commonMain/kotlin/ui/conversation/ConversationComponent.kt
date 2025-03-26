@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -47,6 +46,7 @@ import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.verticallyDraggable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -57,19 +57,16 @@ import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.TypingIndicator
 import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.ConversationMessageContent
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * Component containing a list of messages derived from [messages] with shimmer loading effect which can be modified by [shimmerItemCount]
  * It also contains typing indicators, and messaging panel
  */
-@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun ConversationComponent(
     modifier: Modifier = Modifier,
     listModifier: Modifier = Modifier,
-    viewModel: ConversationModel,
+    model: ConversationModel,
     shimmerItemCount: Int = 20,
     verticalArrangement: Arrangement.Vertical,
     messages: LazyPagingItems<ConversationMessageIO>,
@@ -82,10 +79,15 @@ fun ConversationComponent(
     val density = LocalDensity.current
     val navController = LocalNavController.current
     val focusManager = LocalFocusManager.current
-    val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    
-    val preferredEmojis = viewModel.preferredEmojis.collectAsState()
+    val listState = persistedLazyListState(
+        persistentData = model.persistentPositionData,
+        onDispose = { lastInfo ->
+            model.persistentPositionData = lastInfo
+        }
+    )
+
+    val preferredEmojis = model.preferredEmojis.collectAsState()
     val keyboardMode = rememberSaveable {
         mutableStateOf(ConversationKeyboardMode.Default.ordinal)
     }
@@ -101,7 +103,7 @@ fun ConversationComponent(
     val typingIndicatorsHeight = rememberSaveable {
         mutableStateOf(0f)
     }
-    val lastCurrentUserMessage = rememberSaveable(viewModel) {
+    val lastCurrentUserMessage = rememberSaveable(model) {
         mutableStateOf(Int.MAX_VALUE)
     }
     val showEmojiPreferencesId = rememberSaveable {
@@ -146,7 +148,7 @@ fun ConversationComponent(
             .fillMaxSize(),
         contentAlignment = Alignment.BottomCenter
     ) {
-        val typingIndicators = viewModel.typingIndicators.collectAsState()
+        val typingIndicators = model.typingIndicators.collectAsState()
 
         if(typingIndicators.value.second.isNotEmpty()) {
             Box(
@@ -217,11 +219,11 @@ fun ConversationComponent(
             }
             items(
                 count = if(messages.itemCount == 0 && isLoadingInitialPage) shimmerItemCount else messages.itemCount,
-                key = { index -> messages.getOrNull(index)?.id ?: Uuid.random().toString() }
+                key = { index -> messages.getOrNull(index)?.id ?: index }
             ) { index ->
                 val data = messages.getOrNull(index)
 
-                val isCurrentUser = data?.authorPublicId == viewModel.matrixUserId
+                val isCurrentUser = data?.authorPublicId == model.matrixUserId
                 val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
                 val nextItem = messages.getOrNull(index - 1)
                 val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
@@ -253,18 +255,16 @@ fun ConversationComponent(
                     }
                 }
 
-                val model = remember(data?.id) {
+                val bubbleModel = remember(data?.id) {
                     object: MessageBubbleModel {
                         override val transcribe = derivedStateOf {
-                            println("kostka_test, transcribedItem: ${transcribedItem.value?.second == data?.id} (${transcribedItem.value?.second}), " +
-                                    "isTranscribed: ${isTranscribed.value}")
                             /*!isCurrentUser && */transcribedItem.value?.second == data?.id
                                     && !isTranscribed.value
                         }
 
                         override fun onTranscribed() {
                             isTranscribed.value = true
-                            viewModel.markMessageAsTranscribed(id = data?.id)
+                            model.markMessageAsTranscribed(id = data?.id)
                             transcribedItem.value = if(index > 0) {
                                 index + 1 to nextItem?.id.orEmpty()
                             }else null
@@ -275,7 +275,7 @@ fun ConversationComponent(
                         }
 
                         override fun onReactionChange(emoji: String) {
-                            viewModel.reactToMessage(content = emoji, messageId = data?.id)
+                            model.reactToMessage(content = emoji, messageId = data?.id)
                             reactingToMessageId.value = null
                         }
 
@@ -315,13 +315,13 @@ fun ConversationComponent(
                     ),
                     isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
                     isNextMessageSameAuthor = isNextMessageSameAuthor,
-                    currentUserPublicId = viewModel.matrixUserId ?: "",
+                    currentUserPublicId = model.matrixUserId ?: "",
                     reactingToMessageId = reactingToMessageId,
-                    model = model,
+                    model = bubbleModel,
                     replyToMessage = replyToMessage,
                     scrollToMessage = scrollToMessage,
                     preferredEmojis = preferredEmojis.value,
-                    temporaryFiles = viewModel.temporaryFiles.toMap(),
+                    temporaryFiles = model.temporaryFiles.toMap(),
                     isMyLastMessage = lastCurrentUserMessage.value == index
                 )
             }
@@ -346,7 +346,7 @@ fun ConversationComponent(
                 },
             overrideAnchorMessage = thread,
             keyboardMode = keyboardMode,
-            model = viewModel,
+            model = model,
             replyToMessage = replyToMessage,
             scrollToMessage = {
                 scrollToMessage(it.id, -1)

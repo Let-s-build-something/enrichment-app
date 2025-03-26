@@ -201,7 +201,6 @@ private fun ContentLayout(
             && !data.timings.isNullOrEmpty()
 
     val textContent = if(!data.content.isNullOrBlank()) {
-        println("kostka_test, transcribe: ${model.transcribe.value}")
         buildTempoString(
             key = data.id,
             timings = data.timings.orEmpty(),

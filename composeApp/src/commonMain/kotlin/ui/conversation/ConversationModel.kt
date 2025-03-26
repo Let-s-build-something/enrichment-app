@@ -6,6 +6,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
 import augmy.interactive.shared.ui.base.DeviceOrientation
+import augmy.interactive.shared.utils.PersistentListData
 import base.utils.getUrlExtension
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
@@ -90,6 +91,9 @@ open class ConversationModel(
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
     private val _repositoryConfig = MutableStateFlow<MediaRepositoryConfig?>(null)
 
+    // firstVisibleItemIndex to firstVisibleItemScrollOffset
+    var persistentPositionData: PersistentListData = PersistentListData()
+
 
     /** Detailed information about this conversation */
     val conversationDetail = _conversationDetail.asStateFlow()
@@ -123,18 +127,22 @@ open class ConversationModel(
             conversationId = conversationId
         ).flow
             .cachedIn(viewModelScope)
-            .combine(_conversationDetail) { messages, detail ->
-                withContext(Dispatchers.Default) {
-                    messages.map {
-                        it.apply {
-                            user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                            anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
-                            reactions?.forEach { reaction ->
-                                reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+            .let {
+                if(_conversationDetail.value != null) {
+                    it.combine(_conversationDetail) { messages, detail ->
+                        withContext(Dispatchers.Default) {
+                            messages.map { message ->
+                                message.apply {
+                                    user = detail?.users?.find { user -> user.publicId == authorPublicId }
+                                    anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                                    reactions?.forEach { reaction ->
+                                        reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                }else it
             }
     }else flow { PagingData.empty<ConversationMessageIO>() }
 
