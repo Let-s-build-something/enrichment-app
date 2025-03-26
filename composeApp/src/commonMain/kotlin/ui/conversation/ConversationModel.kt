@@ -104,8 +104,6 @@ open class ConversationModel(
     /** Current configuration of media repository */
     val repositoryConfig = _repositoryConfig.asStateFlow()
 
-    val keyWidths = pacingUseCase.keyWidths
-
     /** Progress of the current upload */
     val uploadProgress = _uploadProgress.asStateFlow()
 
