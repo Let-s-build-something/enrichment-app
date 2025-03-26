@@ -78,7 +78,6 @@ import base.theme.Colors
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.openLink
-import base.utils.tagToColor
 import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.EmojiData
@@ -91,7 +90,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.LoadingMessageBubble
 import ui.conversation.components.audio.MediaProcessorModel
-import ui.conversation.components.experimental.gravity.GravityIndicationContainer
 import ui.conversation.components.experimental.pacing.buildTempoString
 import ui.conversation.media.DownloadIndication
 import ui.conversation.media.rememberIndicationState
@@ -195,8 +193,8 @@ private fun ContentLayout(
     val hasAttachment = remember(data.id) { data.media?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
-    val awaitingTranscription = /*!isCurrentUser
-            && */!model.transcribe.value
+    val awaitingTranscription = !isCurrentUser
+            && !model.transcribe.value
             && data.transcribed != true
             && !data.timings.isNullOrEmpty()
 
@@ -501,7 +499,7 @@ private fun ContentLayout(
                                                 mutableStateOf(false)
                                             }
                                             val text = @Composable {
-                                                GravityIndicationContainer(
+                                                Column(
                                                     modifier = Modifier
                                                         .then(
                                                             if (!data.reactions.isNullOrEmpty()) {
@@ -519,14 +517,7 @@ private fun ContentLayout(
                                                         .padding(
                                                             vertical = 10.dp,
                                                             horizontal = 14.dp
-                                                        ),
-                                                    backgroundColor = if (isCurrentUser) {
-                                                        LocalTheme.current.colors.brandMainDark
-                                                    } else LocalTheme.current.colors.backgroundContrast,
-                                                    indicationColor = tagToColor(data.user?.tag) ?: LocalTheme.current.colors.tetrial,
-                                                    gravityData = data.gravityData,
-                                                    shape = messageShape,
-                                                    enabled = model.transcribe.value
+                                                        )
                                                 ) {
                                                     Text(
                                                         modifier = Modifier

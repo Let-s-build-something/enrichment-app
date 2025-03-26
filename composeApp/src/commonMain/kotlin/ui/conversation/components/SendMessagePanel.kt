@@ -131,7 +131,6 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationModel
 import ui.conversation.components.audio.PanelMicrophone
-import ui.conversation.components.experimental.pacing.WaveLine
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageMediaPanel
@@ -376,16 +375,6 @@ internal fun BoxScope.SendMessagePanel(
         ),
         verticalArrangement = Arrangement.Top
     ) {
-
-        // TODO should be within a message, not here
-        val keyWidths = model.keyWidths.collectAsState()
-        WaveLine(
-            modifier = Modifier
-                .height(20.dp)
-                .fillMaxWidth(),
-            waveHeights = keyWidths.value
-        )
-
         gifAttached.value?.let { gifAsset ->
             Box {
                 GifImage(

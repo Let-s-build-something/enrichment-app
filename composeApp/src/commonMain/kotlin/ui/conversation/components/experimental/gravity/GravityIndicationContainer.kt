@@ -34,52 +34,6 @@ import ui.conversation.components.experimental.gravity.GravityUseCase.Companion.
 import ui.conversation.components.experimental.gravity.GravityUseCase.Companion.MAX_FRACTION_OFFSET
 import kotlin.math.absoluteValue
 
-private data class GravityIndicationStops(
-    val stops: List<Float>,
-    val from: Offset,
-    val to: Offset,
-)
-
-private fun calculateIndicationStops(
-    size: Size,
-    gx: Float,
-    gy: Float,
-    gz: Float,
-    counterValue: Float? = null,
-    counterOffset: Float? = null
-): GravityIndicationStops {
-    val verticalFraction = ((gy.absoluteValue / FULL_GRAVITY).minus(1f).absoluteValue * MAX_FRACTION_OFFSET).let {
-        if(counterOffset != null) {
-            counterOffset - (if(it < 0) it else -it).div(2)
-        }else it / 2
-    }
-
-    val calculatedValue = (gx / FULL_GRAVITY / 2 + 0.5f).minus(1).absoluteValue.coerceIn(0f, 1f)
-    val value = if (counterValue != null) {
-        0.5f + (counterValue - calculatedValue)
-    } else {
-        calculatedValue
-    }.minus(1).absoluteValue.coerceIn(0f, 1f)
-    //val depthFraction = gz / FULL_GRAVITY * 2
-
-    val stops = listOf(
-        value - verticalFraction,
-        value,
-        value + verticalFraction,
-    )
-    //val horizontalOffset = size.width * (1f - value) * 0.8f
-    //val verticalOffset = size.height * (0.5f + depthFraction)
-
-    val from = Offset.Zero //Offset(horizontalOffset, verticalOffset)
-    val to = Offset(size.width, size.height) //Offset(size.width - horizontalOffset, size.height - verticalOffset)
-
-    return GravityIndicationStops(
-        stops = stops,
-        from = from,
-        to = to
-    )
-}
-
 @Composable
 fun GravityIndicationContainer(
     modifier: Modifier = Modifier,
@@ -154,7 +108,6 @@ fun GravityIndicationContainer(
                                 size = size,
                                 gx = ownValues?.first ?: 0f,
                                 gy = ownValues?.second ?: 0f,
-                                gz = ownValues?.third ?: 0f,
                                 counterValue = counterValue,
                                 counterOffset = offset.value
                             )
@@ -188,4 +141,46 @@ fun GravityIndicationContainer(
     }else {
         Column(modifier = modifier, content = content)
     }
+}
+
+private data class GravityIndicationStops(
+    val stops: List<Float>,
+    val from: Offset,
+    val to: Offset,
+)
+
+private fun calculateIndicationStops(
+    size: Size,
+    gx: Float,
+    gy: Float,
+    counterValue: Float? = null,
+    counterOffset: Float? = null
+): GravityIndicationStops {
+    val verticalFraction = ((gy.absoluteValue / FULL_GRAVITY).minus(1f).absoluteValue * MAX_FRACTION_OFFSET).let {
+        if(counterOffset != null) {
+            counterOffset - (if(it < 0) it else -it).div(2)
+        }else it / 2
+    }
+
+    val calculatedValue = (gx / FULL_GRAVITY / 2 + 0.5f).minus(1).absoluteValue.coerceIn(0f, 1f)
+    val value = if (counterValue != null) {
+        0.5f + (counterValue - calculatedValue)
+    } else {
+        calculatedValue
+    }.minus(1).absoluteValue.coerceIn(0f, 1f)
+
+    val stops = listOf(
+        value - verticalFraction,
+        value,
+        value + verticalFraction,
+    )
+
+    val from = Offset.Zero
+    val to = Offset(size.width, size.height)
+
+    return GravityIndicationStops(
+        stops = stops,
+        from = from,
+        to = to
+    )
 }

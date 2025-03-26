@@ -3,16 +3,20 @@ package koin
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpRequestData
+import io.ktor.client.request.HttpResponseData
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.content.TextContent
 import io.ktor.http.encodedPath
+import io.ktor.utils.io.ByteChannel
+import io.ktor.utils.io.peek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.io.bytestring.decodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -120,6 +124,20 @@ object DeveloperUtils {
                     responseCode = response.status.value
                 )
             }
+        }
+    }
+
+    suspend fun processResponse(
+        id: String,
+        response: HttpResponseData
+    ): HttpCall {
+        return withContext(Dispatchers.Default) {
+            HttpCall(
+                id = id,
+                responseBody = formatJson((response.body as? ByteChannel)?.peek(10000)?.decodeToString() ?: ""),
+                responseSeconds = response.responseTime.seconds - response.requestTime.seconds,
+                responseCode = response.statusCode.value
+            )
         }
     }
 }
