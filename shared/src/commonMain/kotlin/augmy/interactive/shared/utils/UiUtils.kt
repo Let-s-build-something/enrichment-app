@@ -11,7 +11,6 @@ fun persistedLazyListState(
     persistentData: PersistentListData,
     onDispose: (PersistentListData) -> Unit
 ): LazyListState {
-    println("kostka_test, persistedLazyListState: $persistentData")
     val scrollState = rememberLazyListState(
         persistentData.firstVisibleItemIndex,
         persistentData.firstVisibleItemOffset

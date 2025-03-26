@@ -139,7 +139,7 @@ private fun Success() {
         Icon(
             modifier = Modifier.size(64.dp),
             imageVector = Icons.Outlined.Verified,
-            tint = SharedColors.GREEN_CORRECT,
+            tint = LocalTheme.current.colors.brandMain,
             contentDescription = null
         )
         Text(

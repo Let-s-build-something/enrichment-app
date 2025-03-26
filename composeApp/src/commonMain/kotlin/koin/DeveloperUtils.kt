@@ -1,5 +1,6 @@
 package koin
 
+import augmy.interactive.shared.utils.DateUtils
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpRequestData
@@ -80,7 +81,7 @@ object DeveloperUtils {
                 requestBody = formatJson((request.body as? TextContent)?.text ?: ""),
                 url = request.url.host + request.url.encodedPath,
                 method = request.method,
-                id = id ?: ""
+                id = id ?: "${request.url}_${DateUtils.now.toEpochMilliseconds()}".hashCode().toString()
             )
         }
     }
@@ -103,7 +104,7 @@ object DeveloperUtils {
                 requestBody = formatJson((request.body as? TextContent)?.text ?: ""),
                 url = request.url.host + request.url.encodedPath,
                 method = request.method,
-                id = id ?: ""
+                id = id ?: "${request.url}_${DateUtils.now.toEpochMilliseconds()}".hashCode().toString()
             )
         }
     }
