@@ -43,7 +43,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,8 @@ import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.shared.generated.resources.Res
 import augmy.shared.generated.resources.accessibility_clear
 import org.jetbrains.compose.resources.stringResource
+
+const val DELAY_BETWEEN_TYPING_SHORT = 300L
 
 /**
  * Brand specific customized [BasicTextField] supporting error state via [errorText], [suggestText], [isCorrect], and trailing icon
@@ -92,6 +95,7 @@ fun CustomTextField(
     enabled: Boolean = true,
     isFocused: MutableState<Boolean> = remember(state.text) { mutableStateOf(false) }
 ) {
+    val focusManager = LocalFocusManager.current
     val controlColor = if(showBorders) {
         animateColorAsState(
             when {
@@ -137,18 +141,25 @@ fun CustomTextField(
                     .padding(paddingValues),
                 contentAlignment = Alignment.CenterStart
             ) {
+                val finalModifier = fieldModifier
+                    .onPreviewKeyEvent { keyEvent ->
+                        when(keyEvent.key) {
+                            Key.Tab -> true // unable to move focus, so we intercept it at the very least
+                            Key.Escape -> {
+                                focusManager.clearFocus()
+                                false
+                            }
+                            else -> false
+                        }
+                    }
+                    .focusRequester(focusRequester)
+                    .onFocusChanged {
+                        isFocused.value = it.isFocused
+                    }
+
                 if(keyboardOptions.keyboardType == KeyboardType.Password) {
                     BasicSecureTextField(
-                        modifier = fieldModifier
-                            .onKeyEvent { keyEvent ->
-                                if(keyEvent.key == Key.Escape) {
-                                    focusRequester.freeFocus()
-                                }else false
-                            }
-                            .focusRequester(focusRequester)
-                            .onFocusChanged {
-                                isFocused.value = it.isFocused
-                            },
+                        modifier = finalModifier,
                         state = state,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
                         textObfuscationMode = textObfuscationMode,
@@ -158,16 +169,7 @@ fun CustomTextField(
                     )
                 }else {
                     BasicTextField(
-                        modifier = fieldModifier
-                            .onKeyEvent { keyEvent ->
-                                if(keyEvent.key == Key.Escape) {
-                                    focusRequester.freeFocus()
-                                }else false
-                            }
-                            .focusRequester(focusRequester)
-                            .onFocusChanged {
-                                isFocused.value = it.isFocused
-                            },
+                        modifier = finalModifier,
                         inputTransformation = inputTransformation,
                         state = state,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
