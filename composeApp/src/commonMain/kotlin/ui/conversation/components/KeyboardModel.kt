@@ -105,21 +105,21 @@ open class KeyboardModel(
     }
 
     /** Makes a request to retrieve trending GIFs */
-    fun requestGifSearch(query: String) {
+    fun requestGifSearch(query: CharSequence) {
         viewModelScope.launch {
             if(query.isBlank()) requestTrendingGifs()
             gifUseCase.requestGifs(
                 coroutineScope = viewModelScope,
                 section = SEARCH_SECTION,
-                query = query
+                query = query.toString()
             )
         }
     }
 
     /** Filters emojis */
-    fun filterEmojis(query: String) {
+    fun filterEmojis(query: CharSequence) {
         viewModelScope.launch {
-            emojiUseCase.filterEmojis(query)
+            emojiUseCase.filterEmojis(query.toString())
         }
     }
 

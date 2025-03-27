@@ -31,6 +31,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
@@ -68,7 +69,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
@@ -210,6 +211,12 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleModel, isC
     ) { index ->
         when(index) {
             0 -> {
+                val hostState = remember { TextFieldState(viewModel.hostOverride ?: "") }
+
+                LaunchedEffect(hostState.text) {
+                    viewModel.changeHost(hostState.text)
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -254,17 +261,14 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleModel, isC
                     RowInformation(title = "Client status: ", localSettings.value?.clientStatus)
                     RowInformation(title = "Theme: ", localSettings.value?.theme)
 
-                    EditFieldInput(
+                    CustomTextField(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp),
                         hint = "Host, default: ${BuildKonfig.HttpsHostName}",
-                        value = viewModel.hostOverride ?: "",
+                        state = hostState,
                         isClearable = true,
-                        paddingValues = PaddingValues(start = 16.dp),
-                        onValueChange = { value ->
-                            viewModel.changeHost(value.text)
-                        }
+                        paddingValues = PaddingValues(start = 16.dp)
                     )
 
                     ErrorHeaderButton(
@@ -320,23 +324,21 @@ private fun ColumnScope.InformationContent(viewModel: DeveloperConsoleModel, isC
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.Bottom
                             ) {
-                                val input = remember {
-                                    mutableStateOf("")
+                                val filterState = remember { TextFieldState() }
+
+                                LaunchedEffect(filterState.text) {
+                                    coroutineScope.coroutineContext.cancelChildren()
+                                    coroutineScope.launch {
+                                        delay(300)
+                                        searchedText.value = filterState.text.toString()
+                                    }
                                 }
-                                EditFieldInput(
+
+                                CustomTextField(
                                     hint = "Filter anything",
-                                    value = input.value,
                                     isClearable = true,
                                     paddingValues = PaddingValues(start = 16.dp),
-                                    onValueChange = { value ->
-                                        input.value = value.text
-
-                                        coroutineScope.coroutineContext.cancelChildren()
-                                        coroutineScope.launch {
-                                            delay(300)
-                                            searchedText.value = value.text
-                                        }
-                                    }
+                                    state = filterState
                                 )
                                 SortChip(
                                     modifier = Modifier.padding(start = 4.dp),

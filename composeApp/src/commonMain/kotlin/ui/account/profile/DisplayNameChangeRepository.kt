@@ -16,13 +16,13 @@ import ui.login.safeRequest
 class DisplayNameChangeRepository(private val httpClient: HttpClient) {
 
     /** Makes a request to change username */
-    suspend fun changeDisplayName(value: String): BaseResponse<ResponseDisplayNameChange> {
+    suspend fun changeDisplayName(value: CharSequence): BaseResponse<ResponseDisplayNameChange> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<ResponseDisplayNameChange> {
                 patch(
                     urlString = "/api/v1/users",
                     block =  {
-                        setBody(RequestUserPropertiesChange(displayName = value))
+                        setBody(RequestUserPropertiesChange(displayName = value.toString()))
                     }
                 )
             }
@@ -30,7 +30,7 @@ class DisplayNameChangeRepository(private val httpClient: HttpClient) {
     }
 
     /** Validates input value by user */
-    suspend fun validateDisplayName(value: String): BaseResponse<Any> {
+    suspend fun validateDisplayName(value: CharSequence): BaseResponse<Any> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<Any> {
                 get(urlString = "/api/v1/users/validate/display-name?value=$value")

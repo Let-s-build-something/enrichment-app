@@ -37,6 +37,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
@@ -300,7 +301,9 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
 
     Box {
         UserProfileImage(
-            modifier = Modifier.fillMaxWidth(.4f),
+            modifier = Modifier
+                .zIndex(5f)
+                .fillMaxWidth(.4f),
             animate = true,
             media = try { MediaIO(url = firebaseUser.value?.photoURL) }catch (e: NotImplementedError) { null },
             tag = currentUser.value?.tag
