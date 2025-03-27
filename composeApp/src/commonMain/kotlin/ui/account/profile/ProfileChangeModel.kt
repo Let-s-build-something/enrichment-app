@@ -40,7 +40,7 @@ class ProfileChangeModel (
     val displayNameValidationResponse = _displayNameValidationResponse.asStateFlow()
 
     /** Validates currently entered display name */
-    fun validateDisplayName(value: String) {
+    fun validateDisplayName(value: CharSequence) {
         if(value == sharedDataManager.currentUser.value?.displayName) return
 
         viewModelScope.launch {
@@ -51,9 +51,9 @@ class ProfileChangeModel (
     }
 
     /** Makes a request to change user's username */
-    fun requestDisplayNameChange(value: String) {
+    fun requestDisplayNameChange(value: CharSequence) {
+        _isLoading.value = true
         viewModelScope.launch {
-            _isLoading.value = true
             _displayNameChangeResponse.emit(
                 repository.changeDisplayName(value).apply {
                     success?.data?.let { data ->

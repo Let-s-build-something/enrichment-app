@@ -60,7 +60,7 @@ open class ConversationRepository(
     protected var certainMessageCount: Int? = null
 
     /** Attempts to invalidate local PagingSource with conversation messages */
-    protected fun invalidateLocalSource() {
+    private fun invalidateLocalSource() {
         certainMessageCount = null
         currentPagingSource?.invalidate()
     }
@@ -158,16 +158,19 @@ open class ConversationRepository(
                                         data = res.messages,
                                         hasNext = res.prevBatch != null && res.messages.isNotEmpty()
                                     ).also {
-                                        val newPrevBatch = if(res.messages.isEmpty() && res.events == 0 && res.members == 0) {
-                                            // we just downloaded empty page, let's refresh UI to end paging
-                                            invalidateLocalSource()
-                                            null
-                                        }else res.prevBatch
+                                        val newPrevBatch = if(res.messages.isEmpty()
+                                            && res.events == 0
+                                            && res.members == 0
+                                        )null else res.prevBatch
 
                                         conversationRoomDao.setPrevBatch(
                                             id = conversationId,
                                             prevBatch = newPrevBatch
                                         )
+                                        if(newPrevBatch == null) {
+                                            // we just downloaded empty page, let's refresh UI to end paging
+                                            invalidateLocalSource()
+                                        }
                                     }
                                 }
                             }else GetMessagesResponse(data = emptyList(), hasNext = false)
@@ -246,7 +249,7 @@ open class ConversationRepository(
                 },
                 state = MessageState.Pending
             )
-            conversationMessageDao.insert(msg)
+            conversationMessageDao.insertReplace(msg)
             invalidateLocalSource()
 
             // upload the final message
@@ -334,7 +337,7 @@ open class ConversationRepository(
                 }
                 cachedFiles.remove(s)
             }
-            conversationMessageDao.insert(msg)
+            conversationMessageDao.insertReplace(msg)
             invalidateLocalSource()
 
             response
@@ -357,7 +360,7 @@ open class ConversationRepository(
             conversationMessageDao.get(reaction.messageId)?.let { message ->
                 val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
 
-                conversationMessageDao.insert(message.copy(
+                conversationMessageDao.insertReplace(message.copy(
                     reactions = message.reactions.orEmpty().toMutableList().apply {
                         add(
                             MessageReactionIO(

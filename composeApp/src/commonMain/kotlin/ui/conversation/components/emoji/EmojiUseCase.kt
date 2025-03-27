@@ -3,8 +3,6 @@
 package ui.conversation.components.emoji
 
 import augmy.composeapp.generated.resources.Res
-import augmy.interactive.shared.ext.ifNull
-import com.russhwolf.settings.ExperimentalSettingsApi
 import data.io.app.SettingsKeys
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.EmojiSelection
@@ -38,6 +36,25 @@ class EmojiUseCase(
     private val settings: AppSettings,
     private val selectionDao: EmojiSelectionDao
 ) {
+    companion object {
+
+        /** List of default emojis representing different categories */
+        private val DefaultEmojis
+            get() = listOf(
+                EmojiData(mutableListOf("❤\uFE0F"), name = "Red heart"),
+                EmojiData(mutableListOf("\uD83D\uDC4D"), name = "Thumbs up"),
+                EmojiData(mutableListOf("\uD83D\uDC4E"), name = "Thumbs down"),
+                EmojiData(mutableListOf("\uD83D\uDE06"), name = "Grinning Squinting Face"),
+                EmojiData(mutableListOf("\uD83D\uDE2F"), name = "Hushed Face"),
+                EmojiData(mutableListOf("\uD83D\uDE25"), name = "Sad but Relieved Face"),
+            )
+
+        /** Key for the group of emojis representing past history of this user */
+        internal const val EMOJIS_HISTORY_GROUP = "history"
+
+        internal const val EMOJIS_HISTORY_LENGTH = 30
+    }
+
     private val conversationEmojiHistory = MutableStateFlow<EmojiHistory?>(null)
     private val emojiSearch = MutableStateFlow("")
 
@@ -61,7 +78,10 @@ class EmojiUseCase(
                     }
                 }
                 .map {
-                    EmojiData(emoji = mutableListOf(it.content ?: ""), name = "'" + it.name)
+                    EmojiData(
+                        emoji = mutableListOf(it.content ?: ""),
+                        name = "${EMOJIS_HISTORY_GROUP}${it.name.removePrefix(EMOJIS_HISTORY_GROUP)}"
+                    )
                 }
         }
     }
@@ -114,12 +134,14 @@ class EmojiUseCase(
         conversationId: String?
     ) {
         withContext(Dispatchers.IO) {
+            val emojiName = emoji.name.removePrefix(EMOJIS_HISTORY_GROUP)
+
             // update general emoji selection
             dataManager.emojiGeneralHistory.update { prev ->
                 prev.apply {
                     selectionDao.insertSelection(
-                        (find { it.name == emoji.name } ?: EmojiSelection(
-                            name = emoji.name,
+                        (find { it.name == emojiName } ?: EmojiSelection(
+                            name = emojiName,
                             content = emoji.emoji.first(),
                             count = 0
                         )).also {
@@ -135,8 +157,8 @@ class EmojiUseCase(
             if(conversationId != null) {
                 conversationEmojiHistory.value?.apply {
                     selectionDao.insertSelection(
-                        (selections.find { it.name == emoji.name } ?: EmojiSelection(
-                            name = emoji.name,
+                        (selections.find { it.name == emojiName } ?: EmojiSelection(
+                            name = emojiName,
                             conversationId = conversationId,
                             content = emoji.emoji.first(),
                             count = 0
@@ -188,9 +210,7 @@ class EmojiUseCase(
                 "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.matrixUserId}"
             )?.let { jsonString ->
                 json.decodeFromString<List<EmojiData>>(jsonString)
-            }.ifNull {
-                DefaultEmojis
-            }
+            } ?: DefaultEmojis
         }
     }
 
@@ -204,24 +224,5 @@ class EmojiUseCase(
                     "uid=$uid" +
                     "}"
         }
-    }
-
-    companion object {
-
-        /** List of default emojis representing different categories */
-        private val DefaultEmojis
-            get() = listOf(
-                EmojiData(mutableListOf("❤\uFE0F"), name = "Red heart"),
-                EmojiData(mutableListOf("\uD83D\uDC4D"), name = "Thumbs up"),
-                EmojiData(mutableListOf("\uD83D\uDC4E"), name = "Thumbs down"),
-                EmojiData(mutableListOf("\uD83D\uDE06"), name = "Grinning Squinting Face"),
-                EmojiData(mutableListOf("\uD83D\uDE2F"), name = "Hushed Face"),
-                EmojiData(mutableListOf("\uD83D\uDE25"), name = "Sad but Relieved Face"),
-            )
-
-        /** Key for the group of emojis representing past history of this user */
-        internal const val EMOJIS_HISTORY_GROUP = "history"
-
-        internal const val EMOJIS_HISTORY_LENGTH = 30
     }
 }

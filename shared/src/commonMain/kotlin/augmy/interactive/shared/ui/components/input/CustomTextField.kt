@@ -1,5 +1,7 @@
 package augmy.interactive.shared.ui.components.input
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
@@ -21,10 +23,14 @@ import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,13 +43,20 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.shared.generated.resources.Res
+import augmy.shared.generated.resources.accessibility_clear
+import org.jetbrains.compose.resources.stringResource
+
+const val DELAY_BETWEEN_TYPING_SHORT = 300L
 
 /**
  * Brand specific customized [BasicTextField] supporting error state via [errorText], [suggestText], [isCorrect], and trailing icon
@@ -62,13 +75,13 @@ fun CustomTextField(
         top = 8.dp,
         bottom = 8.dp
     ),
-    showBorders: Boolean = true,
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
     textObfuscationMode: TextObfuscationMode = TextObfuscationMode.RevealLastTyped,
     inputTransformation: InputTransformation? = null,
     prefixIcon: ImageVector? = null,
+    maxCharacters: Int = -1,
     focusRequester: FocusRequester = remember(state) { FocusRequester() },
     trailingIcon: @Composable (() -> Unit)? = null,
     lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
@@ -76,10 +89,13 @@ fun CustomTextField(
     errorText: String? = null,
     hint: String? = null,
     suggestText: String? = null,
+    isClearable: Boolean = false,
+    showBorders: Boolean = true,
     isCorrect: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isFocused: MutableState<Boolean> = remember(state.text) { mutableStateOf(false) }
 ) {
-    val isFocused = remember(state.text) { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     val controlColor = if(showBorders) {
         animateColorAsState(
             when {
@@ -125,18 +141,25 @@ fun CustomTextField(
                     .padding(paddingValues),
                 contentAlignment = Alignment.CenterStart
             ) {
+                val finalModifier = fieldModifier
+                    .onPreviewKeyEvent { keyEvent ->
+                        when(keyEvent.key) {
+                            Key.Tab -> true // unable to move focus, so we intercept it at the very least
+                            Key.Escape -> {
+                                focusManager.clearFocus()
+                                false
+                            }
+                            else -> false
+                        }
+                    }
+                    .focusRequester(focusRequester)
+                    .onFocusChanged {
+                        isFocused.value = it.isFocused
+                    }
+
                 if(keyboardOptions.keyboardType == KeyboardType.Password) {
                     BasicSecureTextField(
-                        modifier = fieldModifier
-                            .onKeyEvent { keyEvent ->
-                                if(keyEvent.key == Key.Escape) {
-                                    focusRequester.freeFocus()
-                                }else false
-                            }
-                            .focusRequester(focusRequester)
-                            .onFocusChanged {
-                                isFocused.value = it.isFocused
-                            },
+                        modifier = finalModifier,
                         state = state,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
                         textObfuscationMode = textObfuscationMode,
@@ -146,16 +169,7 @@ fun CustomTextField(
                     )
                 }else {
                     BasicTextField(
-                        modifier = fieldModifier
-                            .onKeyEvent { keyEvent ->
-                                if(keyEvent.key == Key.Escape) {
-                                    focusRequester.freeFocus()
-                                }else false
-                            }
-                            .focusRequester(focusRequester)
-                            .onFocusChanged {
-                                isFocused.value = it.isFocused
-                            },
+                        modifier = finalModifier,
                         inputTransformation = inputTransformation,
                         state = state,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
@@ -176,7 +190,33 @@ fun CustomTextField(
                     }
                 }
             }
-            trailingIcon?.invoke()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if(maxCharacters > 0) {
+                    Text(
+                        text = "${state.text.length}/$maxCharacters",
+                        style = LocalTheme.current.styles.regular.copy(
+                            color = if(state.text.length > maxCharacters) {
+                                SharedColors.RED_ERROR
+                            }else LocalTheme.current.colors.disabled
+                        )
+                    )
+                }
+                Crossfade(trailingIcon != null) { showTrailingIcon ->
+                    if(showTrailingIcon) {
+                        trailingIcon?.invoke()
+                    }else if((isClearable && state.text.isNotEmpty()) || maxCharacters > 0) {
+                        AnimatedVisibility(enabled && isClearable && state.text.isNotEmpty()) {
+                            MinimalisticIcon(
+                                contentDescription = stringResource(Res.string.accessibility_clear),
+                                imageVector = Icons.Outlined.Clear,
+                                tint = LocalTheme.current.colors.secondary
+                            ) {
+                                state.setTextAndPlaceCursorAtEnd("")
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.width(16.dp))
         }
 

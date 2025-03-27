@@ -78,7 +78,7 @@ fun ConversationScreen(
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        //messages.refresh()
+        messages.refresh()
     }
 
     LaunchedEffect(Unit) {

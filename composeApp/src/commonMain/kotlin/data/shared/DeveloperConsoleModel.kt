@@ -76,8 +76,8 @@ class DeveloperConsoleModel(
     }
 
     /** Overrides current host */
-    fun changeHost(host: String) {
-        dataManager.hostOverride.value = host
+    fun changeHost(host: CharSequence) {
+        dataManager.hostOverride.value = host.toString().takeIf { it.isNotBlank() }
     }
 
     fun deleteLocalData() {

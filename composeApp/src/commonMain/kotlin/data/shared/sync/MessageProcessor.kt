@@ -77,9 +77,14 @@ abstract class MessageProcessor {
             }
             roomMemberDao.insertAll(result.members)
 
-            if(result.messages.isNotEmpty()) {
-                conversationMessageDao.insertAll(result.messages)
+            val messages = result.messages.mapNotNull {
+                if(conversationMessageDao.insertIgnore(it) == -1L) {
+                    conversationMessageDao.insertReplace(it)
+                    null
+                } else it
+            }
 
+            if(result.messages.isNotEmpty()) {
                 // add the anchor messages
                 val updates = withContext(Dispatchers.Default) {
                     result.messages.filter { it.anchorMessageId != null }.map {
@@ -92,7 +97,7 @@ abstract class MessageProcessor {
             }
 
             SaveEventsResult(
-                messages = result.messages,
+                messages = messages,
                 members = result.members.size,
                 events = events.size,
                 prevBatch = prevBatch
@@ -211,7 +216,7 @@ abstract class MessageProcessor {
                             MessageState.Sent
                         } else MessageState.Read
                     )?.let { decryptedMessage ->
-                        conversationMessageDao.insert(decryptedMessage)
+                        conversationMessageDao.insertReplace(decryptedMessage)
                         decryptedMessage.conversationId?.let { identifier ->
                             dataService.appendPing(
                                 AppPing(

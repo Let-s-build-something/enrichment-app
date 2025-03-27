@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +48,7 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
@@ -88,12 +88,8 @@ fun NetworkAddNewLauncher(
     val navController = LocalNavController.current
     val isLoading = viewModel.isLoading.collectAsState()
 
-    val inputDisplayName = rememberSaveable {
-        mutableStateOf(displayName ?: "")
-    }
-    val inputTag = rememberSaveable {
-        mutableStateOf(tag ?: "")
-    }
+    val displayNameState = remember { TextFieldState(displayName ?: "") }
+    val tagState = rememberSaveable { TextFieldState(tag ?: "") }
     val errorMessage = remember {
         mutableStateOf<String?>(null)
     }
@@ -105,11 +101,11 @@ fun NetworkAddNewLauncher(
     }
     val focusRequester = remember { FocusRequester() }
 
-    val isDisplayNameValid = with(inputDisplayName.value) {
+    val isDisplayNameValid = with(displayNameState.text) {
         length in USERNAME_MIN_LENGTH..USERNAME_MAX_LENGTH
                 && !startsWith(' ') && !endsWith(' ')
     }
-    val isTagValid = with(inputTag.value) {
+    val isTagValid = with(tagState.text) {
         length == 6 && REGEX_USER_TAG.toRegex().matches(this)
     }
 
@@ -117,6 +113,10 @@ fun NetworkAddNewLauncher(
         if(isDisplayNameValid && isTagValid && errorMessage.value == null) {
             showProximityChoice.value = true
         }
+    }
+
+    LaunchedEffect(displayNameState.text) {
+        errorMessage.value = null
     }
 
     LaunchedEffect(Unit) {
@@ -138,7 +138,7 @@ fun NetworkAddNewLauncher(
                 )
             }
             it?.success?.data?.let { data ->
-                val name = inputDisplayName.value + ""
+                val name = displayNameState.text.toString() + ""
                 CoroutineScope(Dispatchers.Main).launch {
                     if(snackbarHostState?.showSnackbar(
                             message = getString(Res.string.network_inclusion_success),
@@ -188,12 +188,12 @@ fun NetworkAddNewLauncher(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            EditFieldInput(
+            CustomTextField(
                 modifier = Modifier
                     .focusRequester(focusRequester)
                     .weight(1f, fill = true),
                 hint = stringResource(Res.string.account_username_hint),
-                value = displayName ?: "",
+                state = displayNameState,
                 suggestText = if(!isDisplayNameValid) {
                     stringResource(Res.string.account_username_error_format)
                 } else null,
@@ -202,42 +202,33 @@ fun NetworkAddNewLauncher(
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
-                ),
-                onValueChange = { value ->
-                    errorMessage.value = null
-                    inputDisplayName.value = value.text
-                }
+                )
             )
-            EditFieldInput(
+            CustomTextField(
                 modifier = Modifier.weight(.75f),
                 hint = stringResource(Res.string.network_inclusion_hint_tag),
-                value = tag ?: "",
+                state = tagState,
                 maxCharacters = 6,
-                errorText = if(!isTagValid && inputTag.value.isNotBlank()) {
+                errorText = if(!isTagValid && tagState.text.isNotBlank()) {
                     stringResource(Res.string.network_inclusion_format_tag)
                 } else null,
-                suggestText = if(inputTag.value.isBlank()) {
+                suggestText = if(tagState.text.isBlank()) {
                     stringResource(Res.string.network_inclusion_format_tag)
                 } else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Done
                 ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if(isDisplayNameValid && isTagValid) {
-                            viewModel.includeNewUser(
-                                displayName = inputDisplayName.value,
-                                tag = inputTag.value,
-                                proximity = selectedCategory.value
-                            )
-                        }
+                onKeyboardAction = {
+                    if(isDisplayNameValid && isTagValid) {
+                        viewModel.includeNewUser(
+                            displayName = displayNameState.text,
+                            tag = tagState.text,
+                            proximity = selectedCategory.value
+                        )
                     }
-                ),
-                leadingIcon = Icons.Outlined.Tag,
-                onValueChange = { value ->
-                    inputTag.value = value.text
-                }
+                },
+                prefixIcon = Icons.Outlined.Tag
             )
         }
 
@@ -252,8 +243,8 @@ fun NetworkAddNewLauncher(
                     selectedCategory.value = it
                 },
                 newItem = NetworkItemIO(
-                    name = inputDisplayName.value,
-                    tag = inputTag.value,
+                    name = displayNameState.text.toString(),
+                    tag = tagState.text.toString(),
                     avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
                 )
             )
@@ -266,8 +257,8 @@ fun NetworkAddNewLauncher(
             text = stringResource(Res.string.network_inclusion_action),
             onClick = {
                 viewModel.includeNewUser(
-                    displayName = inputDisplayName.value,
-                    tag = inputTag.value,
+                    displayName = displayNameState.text,
+                    tag = tagState.text,
                     proximity = selectedCategory.value
                 )
             }
