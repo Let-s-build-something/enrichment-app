@@ -26,4 +26,14 @@ data class MediaIO(
 ) {
     val isEmpty: Boolean
         get() = url.isNullOrBlank() || path.isNullOrBlank()
+
+    override fun toString(): String {
+        return "{" +
+                "url: $url, " +
+                "mimetype: $mimetype, " +
+                "name: $name, " +
+                "size: $size, " +
+                "path: $path" +
+                "}"
+    }
 }

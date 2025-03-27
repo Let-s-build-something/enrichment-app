@@ -50,7 +50,7 @@ fun UserProfileImage(
             ContentLayout(
                 media = media,
                 tag = tag,
-                animate = animate,
+                animate = animate && tag != null,
                 contentDescription = contentDescription
             )
         }else {
@@ -139,7 +139,7 @@ private fun ContentLayout(
                 contentDescription = null
             )
         }
-    }else {
+    }else if(tag != null) {
         Box(
             modifier = modifier
                 .background(
@@ -163,5 +163,18 @@ private fun ContentLayout(
                 contentScale = ContentScale.Crop
             )
         }
+    }else {
+        MediaElement(
+            modifier = modifier
+                .background(
+                    color = LocalTheme.current.colors.brandMain,
+                    shape = CircleShape
+                )
+                .clip(CircleShape)
+                .aspectRatio(1f),
+            contentDescription = contentDescription,
+            media = media,
+            contentScale = ContentScale.Crop
+        )
     }
 }

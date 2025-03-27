@@ -41,6 +41,9 @@ composeApp/google-services.json
 # Android Profiling
 *.hprof
 
+# Data caching databases (preferences)
+composeApp/datastore/*
+
 .xcuserdatad/
 build/wix311/
 shared/build/
