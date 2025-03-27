@@ -61,9 +61,11 @@ interface ConversationMessageDao {
             "WHERE id = :messageId ")
     suspend fun transcribe(messageId: String, transcribed: Boolean)
 
-    /** Inserts or updates a a single item object */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(item: ConversationMessageIO): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: ConversationMessageIO)
+    suspend fun insertReplace(item: ConversationMessageIO)
 
     /** Removes all items from the database */
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}")

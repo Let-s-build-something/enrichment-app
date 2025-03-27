@@ -5,7 +5,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
-import augmy.interactive.shared.ui.base.DeviceOrientation
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.getUrlExtension
 import components.pull_refresh.RefreshableViewModel
@@ -198,10 +197,6 @@ open class ConversationModel(
             timingSensor.value.pause()
             gravityUseCase.kill()
         }
-    }
-
-    fun setDeviceOrientation(orientation: DeviceOrientation) {
-        gravityUseCase.deviceOrientation = orientation
     }
 
     fun onKeyPressed(char: Char, timingMs: Long) {

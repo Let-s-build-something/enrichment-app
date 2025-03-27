@@ -96,7 +96,6 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.base.LocalOrientation
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
@@ -150,7 +149,6 @@ internal fun BoxScope.SendMessagePanel(
     val density = LocalDensity.current
     val navController = LocalNavController.current
     val snackbarHost = LocalSnackbarHost.current
-    val deviceOrientation = LocalOrientation.current
     val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
@@ -305,7 +303,6 @@ internal fun BoxScope.SendMessagePanel(
 
 
     LifecycleResumeEffect(model) {
-        model.setDeviceOrientation(deviceOrientation)
         // temporary init to showcase the behaviour, remove for implementation
         model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
 
