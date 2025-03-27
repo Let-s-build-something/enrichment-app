@@ -12,6 +12,7 @@ import java.io.File
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.prefs.Preferences
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -109,6 +110,10 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
             String(cipher.doFinal(cipherText))
+        } catch (e: AEADBadTagException) {
+            prefs.clear()
+            _secretKey = null
+            decrypt(encryptedData, key)
         } catch (e: Exception) {
             e.printStackTrace()
             ""

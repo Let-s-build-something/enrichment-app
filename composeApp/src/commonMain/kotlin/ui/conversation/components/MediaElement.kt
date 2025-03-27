@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FilePresent
@@ -29,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -150,9 +148,7 @@ fun MediaElement(
                     PlatformFileShell(localMedia)
                 } else finalMedia?.path ?: finalMedia?.url)?.let { data ->
                     GifImage(
-                        modifier = itemModifier
-                            .zIndex(1f)
-                            .clip(RoundedCornerShape(6.dp)),
+                        modifier = itemModifier,
                         data = data,
                         contentDescription = contentDescription,
                         contentScale = contentScale
@@ -177,7 +173,7 @@ fun MediaElement(
                         isFastForwardBackwardEnabled = false,
                         loaderView = {
                             Box(
-                                modifier = Modifier.size(100.dp),
+                                modifier = itemModifier,
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(

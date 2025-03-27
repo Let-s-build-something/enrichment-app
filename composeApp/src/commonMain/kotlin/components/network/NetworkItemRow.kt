@@ -60,7 +60,7 @@ fun NetworkItemRow(
         modifier = modifier,
         targetState = data != null
     ) { isData ->
-        if(isData) {
+        if(isData && data != null) {
             ContentLayout(
                 indicatorColor = indicatorColor,
                 isChecked = isChecked,
@@ -80,7 +80,7 @@ private fun ContentLayout(
     indicatorColor: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
-    data: NetworkItemIO?,
+    data: NetworkItemIO,
     onAvatarClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {}
 ) {
@@ -90,7 +90,7 @@ private fun ContentLayout(
                 .animateContentSize()
                 .padding(top = 8.dp, bottom = 8.dp, end = 4.dp)
                 .height(IntrinsicSize.Min),
-            verticalAlignment = if(data?.lastMessage.isNullOrBlank()) {
+            verticalAlignment = if(data.lastMessage.isNullOrBlank()) {
                 Alignment.CenterVertically
             }else Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -118,8 +118,8 @@ private fun ContentLayout(
                     }
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                     .size(48.dp),
-                media = data?.avatar,
-                tag = data?.tag,
+                media = data.avatar,
+                tag = data.tag,
                 contentDescription = null
             )
             Column(
@@ -130,12 +130,12 @@ private fun ContentLayout(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = data?.name ?: "",
+                    text = data.name ?: "",
                     style = LocalTheme.current.styles.category,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if(data?.lastMessage != null) {
+                if(data.lastMessage != null) {
                     Text(
                         text = data.lastMessage,
                         style = LocalTheme.current.styles.regular,
