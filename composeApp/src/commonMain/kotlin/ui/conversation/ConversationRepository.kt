@@ -144,26 +144,33 @@ open class ConversationRepository(
                                     GetMessagesResponse(
                                         data = res,
                                         hasNext = res.size == config.pageSize || prevBatch != null
-                                    ).also {
-                                        println("kostka_test, page: $page, hasNext: ${it.hasNext}, size: ${it.data.size}")
-                                    }
+                                    )
                                 }else null
-                            } ?: getAndStoreNewMessages(
-                                limit = config.pageSize,
-                                conversationId = conversationId,
-                                fromBatch = prevBatch,
-                                homeserver = homeserver()
-                            )?.let { res ->
-                                certainMessageCount = null
-                                conversationRoomDao.setPrevBatch(
-                                    id = conversationId,
-                                    prevBatch = res.prevBatch
-                                )
-                                GetMessagesResponse(
-                                    data = res.messages,
-                                    hasNext = res.prevBatch != null && res.messages.isNotEmpty()
-                                )
-                            }
+                            } ?: if(prevBatch != null) {
+                                getAndStoreNewMessages(
+                                    limit = config.pageSize,
+                                    conversationId = conversationId,
+                                    fromBatch = prevBatch,
+                                    homeserver = homeserver()
+                                )?.let { res ->
+                                    certainMessageCount = certainMessageCount?.plus(res.messages.size)
+                                    GetMessagesResponse(
+                                        data = res.messages,
+                                        hasNext = res.prevBatch != null && res.messages.isNotEmpty()
+                                    ).also {
+                                        val newPrevBatch = if(res.messages.isEmpty() && res.events == 0 && res.members == 0) {
+                                            // we just downloaded empty page, let's refresh UI to end paging
+                                            invalidateLocalSource()
+                                            null
+                                        }else res.prevBatch
+
+                                        conversationRoomDao.setPrevBatch(
+                                            id = conversationId,
+                                            prevBatch = newPrevBatch
+                                        )
+                                    }
+                                }
+                            }else GetMessagesResponse(data = emptyList(), hasNext = false)
                         }
                     },
                     getCount = {

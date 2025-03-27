@@ -116,7 +116,8 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     }
 
     private fun generateOrLoadKey(): SecretKey {
-        val storedKey = prefs.get("SecureAppKey", null)
+        val keyName = if(BuildKonfig.isDevelopment) "SecureDevAppKey" else "SecureAppKey"
+        val storedKey = prefs.get(keyName, null)
         return if (storedKey != null) {
             try {
                 val decodedKey = Base64.getDecoder().decode(storedKey)
@@ -129,7 +130,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
             val keyGen = KeyGenerator.getInstance("AES")
             keyGen.init(256)
             val newKey = keyGen.generateKey()
-            prefs.put("SecureAppKey", Base64.getEncoder().encodeToString(newKey.encoded))
+            prefs.put(keyName, Base64.getEncoder().encodeToString(newKey.encoded))
             newKey
         }
     }
