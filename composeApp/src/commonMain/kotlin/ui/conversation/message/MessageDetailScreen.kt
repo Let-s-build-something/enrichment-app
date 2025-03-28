@@ -165,7 +165,8 @@ fun MessageDetailScreen(
                                             .size(48.dp),
                                         media = message.value?.user?.avatar,
                                         tag = message.value?.user?.tag,
-                                        animate = true
+                                        animate = true,
+                                        name = message.value?.user?.name
                                     )
                                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                                     Text(

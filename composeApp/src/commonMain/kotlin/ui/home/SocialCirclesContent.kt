@@ -364,7 +364,8 @@ private fun NetworkItemCompact(
                             onClick()
                         },
                     media = data.avatar,
-                    tag = data.tag
+                    tag = data.tag,
+                    name = data.name
                 )
                 Text(
                     modifier = Modifier

@@ -66,7 +66,8 @@ fun TypingIndicator(
         UserProfileImage(
             modifier = Modifier.size(userProfileSize),
             media = data.user?.avatar,
-            tag = data.user?.tag
+            tag = data.user?.tag,
+            name = data.user?.name
         )
         LoadingMessageBubble(
             key = key,

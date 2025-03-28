@@ -227,7 +227,8 @@ private fun SocialCircleTier(
                         .fillMaxHeight()
                         .aspectRatio(1f),
                     media = data.avatar,
-                    tag = data.tag
+                    tag = data.tag,
+                    name = data.name
                 )
                 if(showNames) {
                     Text(
