@@ -82,6 +82,7 @@ import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
+import base.utils.getUrlExtension
 import base.utils.shareLink
 import components.RowSetting
 import components.UserProfileImage
@@ -89,6 +90,7 @@ import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.MediaIO
 import koin.HttpDomain
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -304,9 +306,16 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
             modifier = Modifier
                 .zIndex(5f)
                 .fillMaxWidth(.4f),
-            animate = true,
-            media = try { MediaIO(url = firebaseUser.value?.photoURL) }catch (e: NotImplementedError) { null },
-            tag = currentUser.value?.tag
+            media = try {
+                firebaseUser.value?.photoURL?.let {
+                    MediaIO(
+                        url = it,
+                        mimetype = MimeType.getByExtension(getUrlExtension(it)).mime
+                    )
+                }
+            }catch (e: NotImplementedError) { null },
+            tag = currentUser.value?.tag,
+            name = currentUser.value?.displayName
         )
         MinimalisticFilledIcon(
             modifier = Modifier

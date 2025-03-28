@@ -120,7 +120,7 @@ private fun ContentLayout(
                     .size(48.dp),
                 media = data.avatar,
                 tag = data.tag,
-                contentDescription = null
+                name = data.name
             )
             Column(
                 modifier = Modifier

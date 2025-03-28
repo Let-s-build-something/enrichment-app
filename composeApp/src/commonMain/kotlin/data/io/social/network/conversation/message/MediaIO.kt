@@ -25,7 +25,7 @@ data class MediaIO(
     val path: String? = null
 ) {
     val isEmpty: Boolean
-        get() = url.isNullOrBlank() || path.isNullOrBlank()
+        get() = url.isNullOrBlank() && path.isNullOrBlank()
 
     override fun toString(): String {
         return "{" +

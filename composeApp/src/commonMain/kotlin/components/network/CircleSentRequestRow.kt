@@ -89,7 +89,7 @@ private fun ContentLayout(
                 modifier = Modifier.size(48.dp),
                 media = data.avatar,
                 tag = data.tag,
-                contentDescription = null
+                name = data.displayName
             )
             Text(
                 text = data.displayName ?: "",

@@ -138,7 +138,8 @@ fun ConversationScreen(
                             .size(32.dp),
                         media = conversationDetail.value?.summary?.avatar,
                         tag = conversationDetail.value?.summary?.tag,
-                        animate = true
+                        animate = true,
+                        name = conversationDetail.value?.summary?.alias
                     )
                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                 }

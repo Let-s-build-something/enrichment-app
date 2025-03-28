@@ -110,7 +110,8 @@ fun LazyItemScope.ConversationMessageContent(
                         .zIndex(4f)
                         .size(profileImageSize),
                     media = data?.user?.avatar,
-                    tag = data?.user?.tag
+                    tag = data?.user?.tag,
+                    name = data?.user?.name
                 )
             }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
                 Spacer(Modifier.width(profileImageSize + 22.dp))

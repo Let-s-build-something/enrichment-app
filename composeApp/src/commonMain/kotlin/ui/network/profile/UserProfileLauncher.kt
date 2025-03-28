@@ -263,7 +263,8 @@ private fun DataContent(
                     .zIndex(1f),
                 animate = true,
                 media = userProfile.avatar,
-                tag = userProfile.tag
+                tag = userProfile.tag,
+                name = userProfile.name
             )
         }
         Text(
