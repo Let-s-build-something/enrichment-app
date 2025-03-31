@@ -213,6 +213,7 @@ class AuthService {
     private suspend fun cacheCredentials(
         homeserver: String? = null,
         password: String? = null,
+        token: String?,
         identifier: MatrixIdentifierData? = null,
         deviceId: String? = null,
         response: MatrixAuthenticationResponse? = null
@@ -246,7 +247,8 @@ class AuthService {
                 publicId = user?.publicId ?: previous?.publicId,
                 configuration = user?.configuration ?: previous?.configuration,
                 idToken = user?.idToken ?: previous?.idToken,
-                databasePassword = previous?.databasePassword
+                databasePassword = previous?.databasePassword,
+                token = token ?: previous?.token
             )
 
             updateUser(credentials = credentials)
@@ -319,7 +321,8 @@ class AuthService {
                             homeserver = homeserver,
                             password = null,
                             identifier = null,
-                            deviceId = null
+                            deviceId = null,
+                            token = null
                         )
                         initializeMatrixClient()
 
@@ -349,22 +352,28 @@ class AuthService {
                         deviceId = deviceId
                     )
                     val isValid = dataManager.currentUser.value?.idToken != null
-                    cacheCredentials(
-                        deviceId = deviceId,
-                        response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0)
-                    )
-                    loginWithCredentials(forceRefresh)
+                    println("kostka_test, loginWithCredentials -> idToken -> ${dataManager.currentUser.value?.idToken}")
+                    if(isValid) {
+                        cacheCredentials(
+                            deviceId = deviceId,
+                            response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0),
+                            token = null
+                        )
+                        loginWithCredentials(forceRefresh)
+                    }else false
                 }
                 // only refresh
-                it.isFullyValid && dataManager.currentUser.value?.isFullyValid == true -> {
+                it.isFullyValid && dataManager.currentUser.value?.isFullyValid == true && it.refreshToken != null -> {
                     refreshToken(
                         refreshToken = it.refreshToken,
                         expiresAtMsEpoch = it.expiresAtMsEpoch,
                         homeserver = it.homeserver
                     )
+                    println("kostka_test, loginWithCredentials -> refresh -> isFullyValid: ${dataManager.currentUser.value?.isFullyValid}")
                     dataManager.currentUser.value?.isFullyValid == true
                 }
-                else -> {
+                it.canLogin -> {
+                    println("kostka_test, loginWithCredentials -> login")
                     loginWithIdentifier(
                         homeserver = it.homeserver ?: "",
                         identifier = MatrixIdentifierData(
@@ -374,9 +383,11 @@ class AuthService {
                             user = it.userId
                         ),
                         password = it.password,
-                        deviceId = deviceId
+                        deviceId = deviceId,
+                        token = it.token
                     ).success?.data != null
                 }
+                else -> false
             }
         }
         return false
@@ -386,13 +397,11 @@ class AuthService {
     suspend fun loginWithIdentifier(
         setupAutoLogin: Boolean = true,
         homeserver: String,
-        identifier: MatrixIdentifierData,
+        identifier: MatrixIdentifierData?,
         password: String?,
+        token: String?,
         deviceId: String = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
-        // if this is a point of entry
-
-        println("kostka_test, login with deviceId: $deviceId")
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
                 httpClient.post(url = Url("https://${homeserver}/_matrix/client/v3/login")) {
@@ -401,12 +410,14 @@ class AuthService {
                             identifier = identifier,
                             initialDeviceDisplayName = deviceName() ?: deviceId,
                             password = password,
-                            type = Matrix.LOGIN_PASSWORD,
-                            deviceId = deviceId
+                            type = if(token != null) Matrix.LOGIN_TOKEN else Matrix.LOGIN_PASSWORD,
+                            deviceId = deviceId,
+                            token = token
                         )
                     )
                 }
             }.also {
+                println("kostka_test, loginWithIdentifier, response: $it")
                 it.success?.data?.let { response ->
                     authFirebase(
                         accessToken = response.accessToken,
@@ -420,7 +431,8 @@ class AuthService {
                         identifier = identifier,
                         homeserver = homeserver,
                         password = password,
-                        deviceId = deviceId
+                        deviceId = deviceId,
+                        token = token
                     )
                     initializeMatrixClient()
 

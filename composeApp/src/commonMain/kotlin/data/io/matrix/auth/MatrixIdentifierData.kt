@@ -16,7 +16,7 @@ data class MatrixIdentifierData(
     m.id.thirdparty
     m.id.phone
      */
-    val type: String?,
+    val type: String? = null,
 
     /** the medium of login */
     val medium: String? = null

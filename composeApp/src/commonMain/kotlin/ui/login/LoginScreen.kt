@@ -46,6 +46,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +56,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -164,18 +164,21 @@ import ui.conversation.components.gif.GifImage
  * email + password, Google, and Apple ID
  */
 @Composable
-fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
+fun LoginScreen(
+    model: LoginModel = koinViewModel(),
+    nonce: String?,
+    loginToken: String?
+) {
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
-    val clientStatus = viewModel.clientStatus.collectAsState()
-    val matrixProgress = viewModel.matrixProgress.collectAsState()
+    val clientStatus = model.clientStatus.collectAsState()
+    val matrixProgress = model.matrixProgress.collectAsState()
     val errorMessage = remember {
         mutableStateOf<String?>(null)
     }
     val passwordState = remember { TextFieldState() }
     val usernameState = remember { TextFieldState() }
-    val isMatrixMode = rememberSaveable { mutableStateOf(false) }
     val screenStateIndex = rememberSaveable {
         mutableStateOf(clientStatus.value.ordinal)
     }
@@ -203,7 +206,16 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        if(viewModel.currentUser.value != null) navController?.popBackStack()
+        if(model.currentUser.value != null) navController?.popBackStack()
+    }
+
+    LaunchedEffect(nonce, loginToken) {
+        if(nonce != null && loginToken != null) {
+            model.loginWithToken(
+                nonce = nonce,
+                token = loginToken
+            )
+        }
     }
 
     LaunchedEffect(passwordState.text) {
@@ -251,7 +263,7 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loginResult.collectLatest { res ->
+        model.loginResult.collectLatest { res ->
             errorMessage.value = when(res) {
                 LoginResultType.SUCCESS -> {
                     CoroutineScope(Dispatchers.Main).launch {
@@ -263,7 +275,7 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
                             navController?.navigate(NavigationNode.Water)
                         }
                     }
-                    navController?.popBackStack(NavigationNode.Login, inclusive = true)
+                    navController?.popBackStack(NavigationNode.Home, inclusive = false)
                     null
                 }
                 LoginResultType.NO_GOOGLE_CREDENTIALS -> {
@@ -296,7 +308,7 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
                 }
                 else -> getString(Res.string.error_general)
             }
-            viewModel.setLoading(false)
+            model.setLoading(false)
         }
     }
 
@@ -305,7 +317,7 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
         flow?.stages?.getOrNull(progress.index)?.let { stage ->
             MatrixProgressStage(
                 stage = stage,
-                viewModel = viewModel
+                viewModel = model
             )
         }
     }
@@ -354,14 +366,13 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
                 }
             }
             LoginScreenContent(
-                viewModel = viewModel,
+                model = model,
                 screenStateIndex = screenStateIndex,
                 passwordValidations = passwordValidations.value,
                 usernameValidations = usernameValidations,
                 errorMessage = errorMessage,
                 passwordState = passwordState,
-                usernameState = usernameState,
-                isMatrixMode = isMatrixMode
+                usernameState = usernameState
             )
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -370,17 +381,16 @@ fun LoginScreen(viewModel: LoginModel = koinViewModel()) {
 
 @Composable
 private fun ColumnScope.LoginScreenContent(
-    viewModel: LoginModel,
+    model: LoginModel,
     screenStateIndex: MutableState<Int>,
     passwordValidations: List<FieldValidation>,
     usernameValidations: List<FieldValidation>,
     errorMessage: MutableState<String?>,
     passwordState: TextFieldState,
-    usernameState: TextFieldState,
-    isMatrixMode: MutableState<Boolean>
+    usernameState: TextFieldState
 ) {
-    val isLoading = viewModel.isLoading.collectAsState()
-    val homeServerResponse = viewModel.homeServerResponse.collectAsState()
+    val isLoading = model.isLoading.collectAsState()
+    val homeServerResponse = model.homeServerResponse.collectAsState()
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
     val emailState = remember { TextFieldState() }
@@ -396,25 +406,24 @@ private fun ColumnScope.LoginScreenContent(
     } != false*/
 
     val sendRequest = {
-        viewModel.setLoading(true)
-        viewModel.signUpWithPassword(
+        model.setLoading(true)
+        model.signUpWithPassword(
             email = emailState.text.toString(),
             password = passwordState.text.toString(),
             screenType = screenType,
-            username = if(isMatrixMode.value) usernameState.text.toString() else null,
-            isMatrix = isMatrixMode.value
+            username = usernameState.text.toString()
         )
     }
 
     if(showHomeServerPicker.value) {
         MatrixHomeserverPicker(
-            viewModel = viewModel,
+            viewModel = model,
             screenType = screenType,
             homeserver = homeServer.value,
             onDismissRequest = { showHomeServerPicker.value = false },
             onSelect = {
                 homeServer.value = it
-                viewModel.selectHomeServer(
+                model.selectHomeServer(
                     screenType = screenType,
                     address = it
                 )
@@ -427,13 +436,13 @@ private fun ColumnScope.LoginScreenContent(
     }
 
     LaunchedEffect(screenType) {
-        viewModel.selectHomeServer(
+        model.selectHomeServer(
             screenType = screenType,
             address = homeServer.value
         )
     }
 
-    AnimatedVisibility(isMatrixMode.value && homeServerResponse.value?.supportsEmail != true) {
+    AnimatedVisibility(homeServerResponse.value?.supportsEmail != true) {
         val cancellableScope = rememberCoroutineScope()
         val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
 
@@ -442,7 +451,7 @@ private fun ColumnScope.LoginScreenContent(
                 cancellableScope.coroutineContext.cancelChildren()
                 cancellableScope.launch {
                     delay(DELAY_BETWEEN_TYPING_SHORT)
-                    viewModel.validateUsername(
+                    model.validateUsername(
                         address = homeServer.value,
                         username = usernameState.text.toString()
                     )
@@ -557,7 +566,7 @@ private fun ColumnScope.LoginScreenContent(
         modifier = Modifier
             .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
             .fillMaxWidth()
-            .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+            .padding(vertical = 16.dp, horizontal = 16.dp),
         text = stringResource(Res.string.login_password_action_go),
         isEnabled = isPasswordValid && isEmailValid && isLoading.value.not(),
         isLoading = isLoading.value,
@@ -591,7 +600,15 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    AnimatedVisibility(isLoading.value.not()) {
+    val ssoFlow = remember(homeServerResponse.value) {
+        derivedStateOf {
+            homeServerResponse.value?.plan?.flows?.find {
+                it.type == Matrix.LOGIN_SSO
+            }
+        }
+    }
+
+    AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
                 .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
@@ -602,72 +619,55 @@ private fun ColumnScope.LoginScreenContent(
         ) {
             Row(
                 modifier = Modifier
-                    .padding(top = 4.dp)
                     .wrapContentHeight()
                     .animateContentSize(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                viewModel.availableOptions.forEach { option ->
-                    if(!isMatrixMode.value || option == SingInServiceOption.MATRIX) {
-                        Image(
-                            modifier = Modifier
-                                .height(34.dp)
-                                .scalingClickable(
-                                    onTap = {
-                                        when(option) {
-                                            SingInServiceOption.GOOGLE -> {
-                                                isMatrixMode.value = false
-                                                viewModel.requestGoogleSignIn()
-                                            }
-                                            SingInServiceOption.APPLE -> {
-                                                isMatrixMode.value = false
-                                                viewModel.requestAppleSignIn()
-                                            }
-                                            SingInServiceOption.MATRIX -> {
-                                                if(homeServer.value.isBlank()) {
-                                                    showHomeServerPicker.value = true
-                                                }else isMatrixMode.value = !isMatrixMode.value
-                                            }
-                                        }
-                                    }
-                                ),
-                            painter = painterResource(
-                                when(option) {
-                                    SingInServiceOption.GOOGLE -> LocalTheme.current.icons.googleSignUp
-                                    SingInServiceOption.APPLE -> LocalTheme.current.icons.appleSignUp
-                                    SingInServiceOption.MATRIX -> LocalTheme.current.icons.matrixSignUp
-                                }
-                            ),
-                            contentDescription = null,
-                            colorFilter = if(option == SingInServiceOption.MATRIX) {
-                                ColorFilter.tint(
-                                    if(isMatrixMode.value) LocalTheme.current.colors.primary
-                                    else LocalTheme.current.colors.secondary
-                                )
-                            }else null
-                        )
+                ssoFlow.value?.identityProviders?.forEach { identityProvider ->
+                    when(identityProvider.brand) {
+                        Matrix.Brand.GOOGLE -> {
+                            Image(
+                                modifier = Modifier
+                                    .height(42.dp)
+                                    .scalingClickable {
+                                        model.requestSsoRedirect(identityProvider.id)
+                                    },
+                                painter = painterResource(LocalTheme.current.icons.googleSignUp ),
+                                contentDescription = null
+                            )
+                        }
+                        Matrix.Brand.APPLE -> {
+                            Image(
+                                modifier = Modifier
+                                    .height(42.dp)
+                                    .scalingClickable {
+                                        model.requestSsoRedirect(identityProvider.id)
+                                    },
+                                painter = painterResource(LocalTheme.current.icons.appleSignUp ),
+                                contentDescription = null
+                            )
+                        }
                     }
                 }
             }
-            AnimatedVisibility(isMatrixMode.value) {
-                Text(
-                    modifier = Modifier
-                        .padding(start = 16.dp)
-                        .scalingClickable(enabled = !isLoading.value) {
-                            showHomeServerPicker.value = true
-                        }
-                        .padding(4.dp)
-                        .animateContentSize(),
-                    text = stringResource(
-                        Res.string.login_matrix_homeserver,
-                        homeServer.value
-                    ),
-                    style = LocalTheme.current.styles.regular
-                )
-            }
         }
     }
+
+    Text(
+        modifier = Modifier
+            .align(Alignment.CenterHorizontally)
+            .scalingClickable(enabled = !isLoading.value) {
+                showHomeServerPicker.value = true
+            }
+            .padding(top = 2.dp)
+            .animateContentSize(),
+        text = stringResource(
+            Res.string.login_matrix_homeserver,
+            homeServer.value
+        ),
+        style = LocalTheme.current.styles.regular
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

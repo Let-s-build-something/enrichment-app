@@ -89,7 +89,7 @@ fun DefaultAppBarActions(
                             text = if(expanded) stringResource(Res.string.screen_login) else null,
                             imageVector = Icons.Outlined.PersonAddAlt,
                             onClick = {
-                                navController?.navigate(NavigationNode.Login)
+                                navController?.navigate(NavigationNode.Login())
                             }
                         )
                     }

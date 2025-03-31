@@ -33,6 +33,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.audio.mediaProcessorModule
 import ui.home.homeModule
+import ui.login.LoginDataManager
 
 /** Common module for the whole application */
 @OptIn(ExperimentalCoilApi::class, ExperimentalSerializationApi::class)
@@ -40,6 +41,7 @@ internal val commonModule = module {
     if(currentPlatform != PlatformType.Jvm) includes(settingsModule)
     single { FileAccess() }
     single { SharedDataManager() }
+    single { LoginDataManager() }
     single<EventContentSerializerMappings> { DefaultEventContentSerializerMappings }
     single<Json> {
         Json {

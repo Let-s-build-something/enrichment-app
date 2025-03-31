@@ -76,6 +76,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     }
 
     override fun remove(key: String) {
+        prefs.put(key, "")
         prefs.remove(key)
     }
 

@@ -119,7 +119,7 @@ class MainActivity: ComponentActivity() {
     private fun handleDeepLink(intent: Intent) {
         if(intent.data != null) {
             val viewModel: AppServiceModel = getKoin().get()
-            viewModel.emitDeepLink(intent.data?.path)
+            viewModel.emitDeepLink(intent.data?.toString())
         }
     }
 }

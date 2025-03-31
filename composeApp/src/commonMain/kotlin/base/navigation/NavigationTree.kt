@@ -22,8 +22,20 @@ sealed class NavigationNode {
 
     /** screen for both login and signup */
     @Serializable
-    data object Login: NavigationNode() {
-        override val deepLink: String = "login"
+    data class Login(
+        val nonce: String? = null,
+        val loginToken: String? = null
+    ): NavigationNode() {
+        override val deepLink: String
+            get() {
+                val base = "login"
+                return when {
+                    nonce != null && loginToken != null -> "$base?nonce=$nonce&loginToken=$loginToken"
+                    loginToken != null -> "$base?loginToken=$loginToken"
+                    nonce != null -> "$base?nonce=$nonce"
+                    else -> base
+                }
+            }
     }
 
     /** Easter-egg screen, just because */
@@ -86,7 +98,7 @@ sealed class NavigationNode {
     /** home screen of the whole app */
     @Serializable
     data object Home: NavigationNode() {
-        override val deepLink: String = ""
+        override val deepLink: String? = null
     }
 
     /** Detail screen of a single message, sort of a focus mode with replies,
@@ -97,7 +109,7 @@ sealed class NavigationNode {
         val conversationId: String? = null,
         val title: String? = null
     ): NavigationNode() {
-        override val deepLink: String = ""
+        override val deepLink: String? = null
     }
 
     /** Full screen media detail */
@@ -110,12 +122,12 @@ sealed class NavigationNode {
         val selectedIndex: Int = 0,
         private val encodedMedia: List<String> = media.map { "${it.name}|||${it.mimetype}|||${it.url}|||${it.path}" }
     ): NavigationNode() {
-        override val deepLink: String = ""
+        override val deepLink: String? = null
     }
 
     companion object {
         val allNodes = listOf(
-            Login,
+            Login(),
             Water,
             Conversation(),
             AccountDashboard,

@@ -62,10 +62,6 @@ class DesktopSignInRepository(private val httpClient: HttpClient) {
 
 actual class UserOperationService(private val repository: DesktopSignInRepository) {
 
-    actual val availableOptions = listOf(
-        SingInServiceOption.MATRIX
-    )
-
     actual suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType {
         return LoginResultType.FAILURE
     }

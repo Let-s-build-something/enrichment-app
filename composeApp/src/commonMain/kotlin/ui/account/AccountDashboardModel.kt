@@ -35,6 +35,9 @@ class AccountDashboardModel(
     private val _signOutResponse = MutableStateFlow(false)
     private val _privacyResponse = MutableStateFlow<BaseResponse<Any>?>(null)
     private val _visibilityResponse = MutableStateFlow<BaseResponse<Any>?>(null)
+    private val _isLoading = MutableStateFlow(false)
+
+    val isLoading = _isLoading.asStateFlow()
 
     /** Response to a sign out request */
     val signOutResponse = _signOutResponse.asStateFlow()
@@ -110,9 +113,11 @@ class AccountDashboardModel(
     /** Logs out the currently signed in user */
     override fun logoutCurrentUser() {
         viewModelScope.launch {
+            _isLoading.value = true
             repository.logout()
             super.logoutCurrentUser()
             _signOutResponse.emit(Firebase.auth.currentUser == null)
+            _isLoading.value = false
         }
     }
 }

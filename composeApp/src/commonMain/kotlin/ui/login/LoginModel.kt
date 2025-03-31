@@ -2,8 +2,13 @@ package ui.login
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import base.navigation.NavigationNode
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
+import base.utils.deeplinkHost
+import base.utils.openLink
+import base.utils.sha256
+import coil3.toUri
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
@@ -40,6 +45,7 @@ import kotlin.uuid.Uuid
 /** Communication between the UI, the control layers, and control and data layers */
 class LoginModel(
     private val serviceProvider: UserOperationService,
+    private val dataManager: LoginDataManager,
     private val repository: LoginRepository,
     private val authService: AuthService
 ): SharedModel() {
@@ -65,7 +71,6 @@ class LoginModel(
 
     private val _loginResult = MutableSharedFlow<LoginResultType?>()
     private val _isLoading = MutableStateFlow(false)
-    private val _homeServerResponse = MutableStateFlow<HomeServerResponse?>(null)
     private val _matrixAuthResponse = MutableStateFlow<MatrixAuthenticationResponse?>(null)
     private var session: String? = null
 
@@ -75,10 +80,7 @@ class LoginModel(
     /** Sends signal to UI about a response that happened */
     val loginResult = _loginResult.asSharedFlow()
     val isLoading = _isLoading.asStateFlow()
-    val homeServerResponse = _homeServerResponse.asStateFlow()
-
-    /** List of all available service via which user can sign in */
-    val availableOptions = serviceProvider.availableOptions
+    val homeServerResponse = dataManager.homeServerResponse.asStateFlow()
 
 
     init {
@@ -128,7 +130,7 @@ class LoginModel(
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            _homeServerResponse.value = (if(screenType == LoginScreenType.SIGN_UP) {
+            dataManager.homeServerResponse.value = (if(screenType == LoginScreenType.SIGN_UP) {
                 repository.dummyMatrixRegister(address = address)
             }else repository.dummyMatrixLogin(address = address))?.let {
                 session = it.session ?: session
@@ -145,7 +147,8 @@ class LoginModel(
                                 medium = Matrix.Medium.EMAIL,
                                 address = "email@email.com"
                             ),
-                            password = "-"
+                            password = "-",
+                            token = null
                         ).error?.message?.contains("Bad login type") == false)).also { answer ->
                             homeserverAbilityCache[address] = answer
                         }
@@ -169,7 +172,7 @@ class LoginModel(
             repository.requestRegistrationToken(
                 secret = _matrixProgress.value?.secret ?: "",
                 email = _matrixProgress.value?.email ?: "",
-                address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
             ).also { res ->
                 res.error?.retryAfterMs?.let {
                     _matrixProgress.value = _matrixProgress.value?.copy(retryAfter = it)
@@ -202,7 +205,7 @@ class LoginModel(
                 index = _matrixProgress.value?.index?.plus(1)?.coerceAtMost(lastIndex) ?: 0
             )?.also { progress ->
                 repository.registerWithUsername(
-                    address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                    address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                     username = progress.username ?: "",
                     password = progress.password,
                     authenticationData = AuthenticationData(
@@ -222,8 +225,7 @@ class LoginModel(
                             email = progress.email ?: "",
                             password = progress.password,
                             screenType = LoginScreenType.SIGN_UP,
-                            response = response,
-                            isMatrix = true
+                            response = response
                         )
                     }
                 }
@@ -237,19 +239,18 @@ class LoginModel(
         username: String?,
         email: String,
         password: String,
-        isMatrix: Boolean,
         screenType: LoginScreenType,
         response: MatrixAuthenticationResponse? = null
     ) {
         viewModelScope.launch {
-            val res = if(isMatrix && screenType == LoginScreenType.SIGN_UP && response == null) {
+            val res = if(screenType == LoginScreenType.SIGN_UP && response == null) {
                 val secret = Uuid.random().toString()
 
                 // we check for single EP registration first
-                val flow = _homeServerResponse.value?.plan?.flows?.firstOrNull()
+                val flow = dataManager.homeServerResponse.value?.plan?.flows?.firstOrNull()
                 if(flow?.stages?.size == 1 && flow.stages.firstOrNull() == Matrix.LOGIN_DUMMY) {
                     repository.registerWithUsername(
-                        address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                        address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                         username = username,
                         password = password,
                         authenticationData = AuthenticationData(
@@ -266,7 +267,7 @@ class LoginModel(
                         repository.requestRegistrationToken(
                             secret = secret,
                             email = email,
-                            address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                            address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                         )
                     }else null
 
@@ -280,14 +281,14 @@ class LoginModel(
                         else -> {
                             if(isEmailFreeFirebase(email = email, password = password)) {
                                 (repository.registerWithUsername(
-                                    address = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                                    address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                                     username = null,
                                     password = null,
                                     authenticationData = AuthenticationData(
                                         session = null,
                                         type = null
                                     )
-                                ) ?: _homeServerResponse.value?.plan)?.also { response ->
+                                ) ?: dataManager.homeServerResponse.value?.plan)?.also { response ->
                                     session = response.session
                                     _matrixProgress.value = MatrixProgress(
                                         username = username,
@@ -313,11 +314,10 @@ class LoginModel(
                     serviceProvider.signUpWithPassword(email, password)?.let {
                         when(it) {
                             IdentityMessageType.SUCCESS -> {
-                                signInWithPassword(
+                                loginWithCredentials(
                                     username = username,
                                     email = email,
-                                    password = password,
-                                    isMatrix = isMatrix
+                                    password = password
                                 )
                             }
                             IdentityMessageType.EMAIL_EXISTS -> _loginResult.emit(LoginResultType.EMAIL_EXISTS)
@@ -331,7 +331,7 @@ class LoginModel(
                         _loginResult.emit(LoginResultType.FAILURE)
                     }
                 }else _loginResult.emit(LoginResultType.FAILURE)
-            }else signInWithPassword(username, email, password, isMatrix = isMatrix)
+            }else loginWithCredentials(username, email, password)
         }
     }
 
@@ -359,23 +359,23 @@ class LoginModel(
     }
 
     /** Requests a sign-in with an email and a password */
-    private suspend fun signInWithPassword(
+    private suspend fun loginWithCredentials(
         username: String?,
         email: String,
-        password: String,
-        isMatrix: Boolean
+        password: String
     ) {
-        val res = if(isMatrix && _matrixAuthResponse.value?.userId == null) {
+        val res = if(_matrixAuthResponse.value?.userId == null) {
             authService.loginWithIdentifier(
                 setupAutoLogin = false,
-                homeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
                     type = Matrix.Id.THIRD_PARTY,
                     medium = Matrix.Medium.EMAIL,
                     address = email,
                     user = username
                 ),
-                password = password
+                password = password,
+                token = null
             ).let {
                 if(it.error?.code == Matrix.ErrorCode.FORBIDDEN) {
                     _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
@@ -404,51 +404,85 @@ class LoginModel(
         }else _loginResult.emit(LoginResultType.FAILURE)
     }
 
-    /** Requests sign in or sign up via Google account */
-    fun requestGoogleSignIn() {
+    /** Requests the URL for redirecting user */
+    @OptIn(ExperimentalUuidApi::class)
+    fun requestSsoRedirect(idpId: String?) {
         viewModelScope.launch {
-            val res = serviceProvider.requestGoogleSignIn(filterAuthorizedAccounts = true)
-            if(res == LoginResultType.SUCCESS) {
-                null.finalizeSignIn(null)
-            }else _loginResult.emit(res)
+            _isLoading.value = true
+            dataManager.ssoNonce = Uuid.random().toString()
+            val ssoNonce = dataManager.ssoNonce
+            val homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+            val redirectUrl = "${deeplinkHost}${NavigationNode.Login(nonce = ssoNonce).deepLink}"
+            openLink("https://${homeserver}/_matrix/client/v3/login/sso/redirect/$idpId?redirectUrl=${redirectUrl.toUri()}")
         }
     }
 
-    /** Requests sign in or sign up via Google account */
-    fun requestAppleSignIn() {
+    fun loginWithToken(nonce: String, token: String) {
+        _isLoading.value = true
         viewModelScope.launch {
-            val res = serviceProvider.requestAppleSignIn()
-            if(res == LoginResultType.SUCCESS) {
-                null.finalizeSignIn(null)
-            }else _loginResult.emit(res)
+            if(nonce != dataManager.ssoNonce) {
+                _loginResult.emit(LoginResultType.AUTH_SECURITY)
+            }else {
+                _loginResult.emit(
+                    authService.loginWithIdentifier(
+                        setupAutoLogin = true,
+                        homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                        identifier = null,
+                        password = null,
+                        token = token
+                    ).let {
+                        when {
+                            it.success != null -> {
+                                val email = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
+                                val password = sha256(it.success?.data?.userId)
+
+                                try {
+                                    Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
+                                } catch(e: FirebaseAuthUserCollisionException) {
+                                    Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
+                                } catch(e: Exception) {
+                                    Firebase.auth.signInAnonymously().user?.authenticateUser(email)
+                                }
+
+                                LoginResultType.SUCCESS
+                            }
+                            it.error?.code == Matrix.ErrorCode.FORBIDDEN -> LoginResultType.INVALID_CREDENTIAL
+                            else -> LoginResultType.FAILURE
+                        }
+                    }
+                )
+            }
+            _isLoading.value = false
         }
     }
 
     /** Authenticates user with a token */
     private suspend fun FirebaseUser.authenticateUser(email: String?, attempt: Int = 1) {
         withContext(Dispatchers.IO) {
-            this@authenticateUser.getIdToken(false)?.let { idToken ->
-                if(sharedDataManager.currentUser.value?.idToken == null) {
-                    val initialUser = UserIO(
-                        idToken = idToken,
-                        accessToken = _matrixAuthResponse.value?.accessToken,
-                        matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
-                    )
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
-                }
-                if(sharedDataManager.currentUser.value?.tag == null) {
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                        repository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value,
-                            refreshToken = _matrixAuthResponse.value?.refreshToken,
-                            expiresInMs = _matrixAuthResponse.value?.expiresInMs
+            if(currentUser.value?.idToken == null) {
+                this@authenticateUser.getIdToken(false)?.let { idToken ->
+                    if(sharedDataManager.currentUser.value?.idToken == null) {
+                        val initialUser = UserIO(
+                            idToken = idToken,
+                            accessToken = _matrixAuthResponse.value?.accessToken,
+                            matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                         )
-                    )
-                }
-                if(attempt < 3) {
-                    this@authenticateUser.finalizeSignIn(email, attempt = attempt)
-                }else _loginResult.emit(LoginResultType.FAILURE)
-            }.ifNull { _loginResult.emit(LoginResultType.FAILURE) }
+                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
+                    }
+                    if(sharedDataManager.currentUser.value?.tag == null) {
+                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                            repository.authenticateUser(
+                                localSettings = sharedDataManager.localSettings.value,
+                                refreshToken = _matrixAuthResponse.value?.refreshToken,
+                                expiresInMs = _matrixAuthResponse.value?.expiresInMs
+                            )
+                        )
+                    }
+                    if(attempt < 3) {
+                        this@authenticateUser.finalizeSignIn(email, attempt = attempt)
+                    }else _loginResult.emit(LoginResultType.FAILURE)
+                }.ifNull { _loginResult.emit(LoginResultType.FAILURE) }
+            }
         }
     }
 
@@ -465,7 +499,7 @@ class LoginModel(
                             clientId = clientId,
                             fcmToken = localSettings.value?.fcmToken,
                             matrixUserId = _matrixAuthResponse.value?.userId,
-                            matrixHomeserver = _homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                            matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
                         )
                     )?.publicId
                 )
@@ -490,21 +524,11 @@ class LoginModel(
 /** module providing platform-specific sign in options */
 expect fun signInServiceModule(): Module
 
-/** available service via which user can sign in */
-enum class SingInServiceOption {
-    GOOGLE,
-    APPLE,
-    MATRIX
-}
-
 /** base URL for google cloud identity tool */
 const val identityToolUrl = "https://identitytoolkit.googleapis.com/v1/accounts"
 
 /** interface for communicating with all of the platforms creating sign in/up requests */
 expect class UserOperationService {
-
-    /** list of all available service via which user can sign in */
-    val availableOptions: List<SingInServiceOption>
 
     /** Requests signup or sign in via Google account */
     suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType

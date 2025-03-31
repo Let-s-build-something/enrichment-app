@@ -34,9 +34,12 @@ fun NavigationHost(
         navController = navController,
         startDestination = NavigationNode.Home
     ) {
-        composable<NavigationNode.Login> {
+        composable<NavigationNode.Login> { args ->
             loadKoinModules(loginModule())
-            LoginScreen()
+            LoginScreen(
+                nonce = args.arguments?.getString("nonce"),
+                loginToken = args.arguments?.getString("loginToken")
+            )
         }
         composable<NavigationNode.Home> {
             HomeScreen()

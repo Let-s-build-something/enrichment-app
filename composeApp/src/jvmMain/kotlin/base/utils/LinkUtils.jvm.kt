@@ -73,3 +73,5 @@ actual fun openEmail(address: String?): Boolean {
                 }
             ))
 }
+
+actual val deeplinkHost: String = "augmy://"
