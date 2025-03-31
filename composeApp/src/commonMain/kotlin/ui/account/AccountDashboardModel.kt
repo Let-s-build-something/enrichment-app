@@ -9,8 +9,6 @@ import data.io.social.UserConfiguration
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
 import data.shared.SharedModel
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -18,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -112,11 +111,11 @@ class AccountDashboardModel(
 
     /** Logs out the currently signed in user */
     override fun logoutCurrentUser() {
-        viewModelScope.launch {
+        runBlocking {
             _isLoading.value = true
             repository.logout()
             super.logoutCurrentUser()
-            _signOutResponse.emit(Firebase.auth.currentUser == null)
+            _signOutResponse.emit(true)
             _isLoading.value = false
         }
     }

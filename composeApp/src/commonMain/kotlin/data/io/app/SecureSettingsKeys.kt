@@ -12,8 +12,8 @@ object SecureSettingsKeys {
 
     val persistentKeys = listOf(
         KEY_DEVICE_ID,
-        //KEY_DB_PASSWORD,
-        //KEY_DB_KEY,
+        KEY_DB_PASSWORD,
+        KEY_DB_KEY,
         KEY_PICKLE_KEY
     )
 }
