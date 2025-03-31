@@ -122,7 +122,8 @@ class AuthService {
 
         withContext(Dispatchers.IO) {
             retrieveCredentials()?.let { credentials ->
-                println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}")
+                println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}, " +
+                        "isFullyValid: ${credentials.isFullyValid}, forceRefresh: $forceRefresh")
 
                 when {
                     (!forceRefresh && credentials.isFullyValid)
@@ -363,7 +364,7 @@ class AuthService {
                     }else false
                 }
                 // only refresh
-                it.isFullyValid && dataManager.currentUser.value?.isFullyValid == true && it.refreshToken != null -> {
+                it.isExpired && it.refreshToken != null -> {
                     refreshToken(
                         refreshToken = it.refreshToken,
                         expiresAtMsEpoch = it.expiresAtMsEpoch,

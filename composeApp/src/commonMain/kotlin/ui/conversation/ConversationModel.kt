@@ -5,10 +5,15 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
+import base.utils.MediaType
+import base.utils.getMediaType
 import base.utils.getUrlExtension
+import base.utils.sha256
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
+import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.room.ConversationRoomIO
 import data.io.social.network.conversation.ConversationTypingIndicator
@@ -16,8 +21,10 @@ import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageState
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.core.extension
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +38,11 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.events.m.room.AudioInfo
+import net.folivo.trixnity.core.model.events.m.room.FileInfo
+import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
@@ -45,6 +57,8 @@ import ui.conversation.components.experimental.pacing.PacingUseCase.Companion.WA
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
 import ui.login.AUGMY_HOME_SERVER
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
     includes(keyboardModule)
@@ -59,6 +73,7 @@ internal val conversationModule = module {
             get<GifUseCase>(),
             get<PacingUseCase>(),
             get<GravityUseCase>(),
+            get<FileAccess>(),
         )
     }
     viewModelOf(::ConversationModel)
@@ -73,7 +88,8 @@ open class ConversationModel(
     gifUseCase: GifUseCase,
     // experimental
     private val pacingUseCase: PacingUseCase,
-    private val gravityUseCase: GravityUseCase
+    private val gravityUseCase: GravityUseCase,
+    private val fileAccess: FileAccess
 ): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
@@ -285,7 +301,7 @@ open class ConversationModel(
     ) {
         CoroutineScope(Job()).launch {
             var progressId = ""
-            repository.sendMessage(
+            sendMessage(
                 conversationId = conversationId,
                 homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
                 mediaFiles = mediaFiles,
@@ -323,6 +339,199 @@ open class ConversationModel(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
+    private suspend fun sendMessage(
+        conversationId: String,
+        homeserver: String,
+        message: ConversationMessageIO,
+        audioByteArray: ByteArray? = null,
+        gifAsset: GifAsset? = null,
+        onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
+        mediaFiles: List<PlatformFile> = listOf()
+    ) {
+        val uuids = mutableListOf<String>()
+        val msgId = "temporary_${Uuid.random()}"
+
+        // placeholder/loading message preview
+        var msg = message.copy(
+            id = msgId,
+            conversationId = conversationId,
+            sentAt = localNow,
+            authorPublicId = currentUser.value?.matrixUserId,
+            media = withContext(Dispatchers.Default) {
+                mediaFiles.map { media ->
+                    MediaIO(
+                        url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                            repository.cachedFiles.update { prev ->
+                                prev.apply { this[uuid] = media }
+                            }
+                            uuids.add(uuid)
+                        }
+                    )
+                }.toMutableList().apply {
+                    addAll(message.media.orEmpty())
+                    if(audioByteArray != null) {
+                        add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
+                    }
+                    add(
+                        MediaIO(
+                            url = gifAsset?.original,
+                            mimetype = MimeType.IMAGE_GIF.mime,
+                            name = gifAsset?.description
+                        )
+                    )
+                }.filter { !it.isEmpty }
+            },
+            state = MessageState.Pending
+        )
+        repository.cacheMessage(msg)
+        repository.invalidateLocalSource()
+
+        // real message
+        msg = msg.copy(
+            media = withContext(Dispatchers.Default) {
+                mediaFiles.mapNotNull { media ->
+                    val bytes = media.readBytes()
+                    val fileName = "${Uuid.random()}.${media.extension.lowercase()}"
+                    if(bytes.isNotEmpty()) {
+                        repository.uploadMedia(
+                            mediaByteArray = bytes,
+                            fileName = fileName,
+                            homeserver = homeserver,
+                            mimetype = MimeType.getByExtension(media.extension).mime
+                        )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
+                            MediaIO(
+                                url = url,
+                                size = bytes.size.toLong(),
+                                name = fileName,
+                                mimetype = MimeType.getByExtension(media.extension).mime
+                            )
+                        }
+                    }else null
+                }.toMutableList().apply {
+                    // existing media
+                    addAll(message.media.orEmpty().toMutableList().filter { !it.isEmpty })
+
+                    // audio file
+                    if(audioByteArray != null) {
+                        val size = audioByteArray.size.toLong()
+                        val fileName = "${Uuid.random()}.wav"
+                        val mimetype = MimeType.getByExtension("wav").mime
+
+                        repository.uploadMedia(
+                            mediaByteArray = audioByteArray,
+                            fileName = fileName,
+                            homeserver = homeserver,
+                            mimetype = mimetype
+                        )?.success?.data?.contentUri.let { audioUrl ->
+                            if(!audioUrl.isNullOrBlank()) {
+                                fileAccess.saveFileToCache(
+                                    data = audioByteArray,
+                                    fileName = sha256(audioUrl)
+                                )?.let {
+                                    remove(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
+                                    add(
+                                        MediaIO(
+                                            url = audioUrl,
+                                            size = size,
+                                            name = fileName,
+                                            mimetype = mimetype,
+                                            path = it.toString()
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // GIPHY asset
+                    if(!gifAsset?.original.isNullOrBlank()) {
+                        MediaIO(
+                            url = gifAsset?.original,
+                            mimetype = MimeType.IMAGE_GIF.mime,
+                            name = gifAsset?.description
+                        )
+                    }
+                }
+            }
+        )
+        sharedDataManager.matrixClient.value?.api?.room?.sendMessageEvent(
+            roomId = RoomId(conversationId),
+            eventContent = when {
+                msg.media?.size == 1 -> {
+                    val media = msg.media?.firstOrNull()
+                    when(getMediaType(media?.mimetype ?: "")) {
+                        MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
+                            body = msg.content ?: "",
+                            url = media?.url,
+                            fileName = media?.name,
+                            info = AudioInfo(
+                                mimeType = media?.mimetype,
+                                size = media?.size
+                            ),
+                            relatesTo = msg.relatesTo()
+                        )
+                        MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
+                            body = msg.content ?: "",
+                            url = media?.url,
+                            fileName = media?.name,
+                            info = ImageInfo(
+                                mimeType = media?.mimetype,
+                                size = media?.size
+                            ),
+                            relatesTo = msg.relatesTo()
+                        )
+                        else -> RoomMessageEventContent.FileBased.File(
+                            body = msg.content ?: "",
+                            url = media?.url,
+                            fileName = media?.name,
+                            info = FileInfo(
+                                mimeType = media?.mimetype,
+                                size = media?.size
+                            ),
+                            relatesTo = msg.relatesTo()
+                        )
+                    }
+                }
+                (msg.media?.size ?: 0) > 1 -> FileList(
+                    body = msg.content ?: "",
+                    urls = msg.media?.mapNotNull { it.url },
+                    fileName = msg.media?.firstOrNull()?.name,
+                    infos = msg.media?.map { media ->
+                        FileInfo(
+                            mimeType = media.mimetype,
+                            size = media.size
+                        )
+                    },
+                    relatesTo = msg.relatesTo()
+                )
+                else -> RoomMessageEventContent.TextBased.Text(
+                    body = msg.content ?: "",
+                    relatesTo = msg.relatesTo()
+                )
+            }
+        ).let { result ->
+            repository.cacheMessage(
+                msg.copy(
+                    id = result?.getOrNull()?.full ?: "",
+                    state = if(result?.isSuccess == true) MessageState.Sent else MessageState.Failed
+                )
+            )
+            // we don't need the local message anymore
+            repository.removeMessage(msg.id)
+            if(result?.isSuccess == true) {
+                repository.cachedFiles.update { prev ->
+                    prev.apply {
+                        uuids.forEachIndexed { index, s ->
+                            msg.media?.getOrNull(index)?.url?.let { remove(it) }
+                            remove(s)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /** Makes a request to add or change reaction to a message */
     fun reactToMessage(messageId: String?, content: String) {
         if(messageId == null) return
@@ -340,7 +549,7 @@ open class ConversationModel(
     /** Makes a request to send a conversation audio message */
     fun sendAudioMessage(byteArray: ByteArray) {
         viewModelScope.launch {
-            repository.sendMessage(
+            sendMessage(
                 audioByteArray = byteArray,
                 conversationId = conversationId,
                 homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,

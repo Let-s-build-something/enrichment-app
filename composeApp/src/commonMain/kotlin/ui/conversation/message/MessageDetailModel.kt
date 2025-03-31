@@ -5,6 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
 import androidx.paging.map
 import data.io.social.network.conversation.message.ConversationMessageIO
+import database.file.FileAccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -15,8 +16,8 @@ import org.koin.dsl.module
 import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.experimental.gravity.GravityUseCase
-import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.experimental.pacing.PacingUseCase
+import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
     factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
@@ -25,6 +26,7 @@ internal val messageDetailModule = module {
             get<String>(),
             get<String>(),
             get<MessageDetailRepository>(),
+            get(),
             get(),
             get(),
             get(),
@@ -41,7 +43,8 @@ class MessageDetailModel(
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase,
     pacingUseCase: PacingUseCase,
-    gravityUseCase: GravityUseCase
+    gravityUseCase: GravityUseCase,
+    fileAccess: FileAccess
 ): ConversationModel(
     conversationId = conversationId ?: "",
     enableMessages = false,
@@ -49,7 +52,8 @@ class MessageDetailModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
     pacingUseCase = pacingUseCase,
-    gravityUseCase = gravityUseCase
+    gravityUseCase = gravityUseCase,
+    fileAccess = fileAccess
 ) {
 
     private val _message = MutableStateFlow<ConversationMessageIO?>(null)

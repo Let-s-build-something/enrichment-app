@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -50,6 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.components.MEDIA_MAX_HEIGHT_DP
 import ui.conversation.components.MediaElement
 import ui.conversation.components.audio.MediaProcessorModel
 
@@ -148,6 +150,7 @@ fun MediaRow(
                         .then(if((media.size ?: 0) > 1) {
                             Modifier.padding(horizontal = LocalTheme.current.shapes.betweenItemsSpace)
                         } else Modifier)
+                        .heightIn(min = MEDIA_MAX_HEIGHT_DP.div(2).dp)
                         .clip(
                             RoundedCornerShape(
                                 topStart = LocalTheme.current.shapes.componentCornerRadius,
@@ -160,6 +163,7 @@ fun MediaRow(
                                 }else 0.dp
                             )
                         ),
+                    visualHeight = MEDIA_MAX_HEIGHT_DP.dp,
                     tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary,
                     media = cachedMedia.value[media.url] ?: media,
                     localMedia = temporaryMedia,

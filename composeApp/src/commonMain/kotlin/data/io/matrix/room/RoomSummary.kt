@@ -50,6 +50,7 @@ data class RoomSummary(
 ) {
 
     fun update(other: RoomSummary?): RoomSummary {
+        println("kostka_test, summary before: $this")
         return if(other == null) this
         else this.copy(
             heroes = other.heroes ?: heroes,
@@ -62,7 +63,9 @@ data class RoomSummary(
             invitationMessage = other.invitationMessage ?: invitationMessage,
             invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
             joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
-        )
+        ).also {
+            println("kostka_test, summary after: $it")
+        }
     }
 
     /** List of members */

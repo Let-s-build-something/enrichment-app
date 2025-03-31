@@ -68,6 +68,10 @@ interface ConversationMessageDao {
     suspend fun insertReplace(item: ConversationMessageIO)
 
     /** Removes all items from the database */
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} WHERE id = :id")
+    suspend fun remove(id: String)
+
+    /** Removes all items from the database */
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}")
     suspend fun removeAll()
 }

@@ -140,7 +140,7 @@ open class SharedModel: ViewModel() {
         return Firebase.auth.currentUser?.let {
             if(sharedDataManager.currentUser.value?.idToken == null) {
                 try {
-                    authService.setupAutoLogin(forceRefresh = true)
+                    authService.setupAutoLogin(forceRefresh = false)
                     updateClientSettings()
 
                     currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null

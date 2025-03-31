@@ -321,7 +321,7 @@ fun ConversationComponent(
                     replyToMessage = replyToMessage,
                     scrollToMessage = scrollToMessage,
                     preferredEmojis = preferredEmojis.value,
-                    temporaryFiles = model.temporaryFiles.toMap(),
+                    temporaryFiles = model.temporaryFiles.value.toMap(),
                     isMyLastMessage = lastCurrentUserMessage.value == index
                 )
             }

@@ -4,7 +4,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
@@ -74,6 +76,7 @@ import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.theme.Colors
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
@@ -364,7 +367,8 @@ private fun ContentLayout(
 
                 Row(
                     modifier = Modifier.animateContentSize(
-                        alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart
+                        alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+                        animationSpec = spring(stiffness = Spring.StiffnessHigh)
                     ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -392,7 +396,8 @@ private fun ContentLayout(
                             )
                         } else Modifier)
                             .animateContentSize(
-                                alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart
+                                alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+                                animationSpec = spring(stiffness = Spring.StiffnessHigh)
                             )
                     ) {
                         Column(
@@ -467,7 +472,8 @@ private fun ContentLayout(
                                 }
 
                                 Box(modifier = Modifier.animateContentSize(
-                                    alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart
+                                    alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+                                    animationSpec = spring(stiffness = Spring.StiffnessHigh)
                                 )) {
                                     // textual content
                                     when {
@@ -675,9 +681,16 @@ private fun ContentLayout(
                 }
             }
 
-            if (isCurrentUser && (isMyLastMessage || (data.state?.ordinal
-                    ?: 0) < MessageState.Sent.ordinal)
-            ) {
+            AnimatedVisibility(isReacting) {
+                Text(
+                    modifier = Modifier.padding(end = 6.dp),
+                    text = (data.state?.description?.plus(", ") ?: "") +
+                            " ${data.sentAt?.formatAsRelative() ?: ""}",
+                    style = LocalTheme.current.styles.regular
+                )
+            }
+
+            if (isCurrentUser && (isMyLastMessage || (data.state?.ordinal ?: 0) < MessageState.Sent.ordinal)) {
                 data.state?.imageVector?.let { imgVector ->
                     Icon(
                         modifier = Modifier
