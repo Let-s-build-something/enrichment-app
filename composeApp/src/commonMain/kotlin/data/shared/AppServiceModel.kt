@@ -1,6 +1,7 @@
 package data.shared
 
 import androidx.lifecycle.viewModelScope
+import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
 import korlibs.io.net.MimeType
@@ -99,10 +100,9 @@ class AppServiceModel(
         if(uri == null) return
         viewModelScope.launch {
             dataManager.newDeeplink.emit(
-                uri
-                    .replace("""^\/""".toRegex(), "")
+                uri.replace("""^\/""".toRegex(), "")
                     .replace("""\/$""".toRegex(), "")
-                    .replace("augmy://", "")
+                    .replace(deeplinkHost, "")
             )
         }
     }

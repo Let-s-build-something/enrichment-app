@@ -47,11 +47,6 @@ actual fun signInServiceModule() = module {
 }
 
 actual class UserOperationService {
-    actual val availableOptions: List<SingInServiceOption> = listOf(
-        SingInServiceOption.GOOGLE,
-        SingInServiceOption.APPLE,
-        SingInServiceOption.MATRIX
-    )
 
     @OptIn(ExperimentalForeignApi::class)
     actual suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType {

@@ -25,6 +25,8 @@ expect fun openFile(path: String?)
 
 expect fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean
 
+expect val deeplinkHost: String
+
 /** Returns an extension for a file by mime type */
 fun getExtensionFromMimeType(mimeType: String?): String? {
     return if(mimeType == null) null else when(mimeType) {

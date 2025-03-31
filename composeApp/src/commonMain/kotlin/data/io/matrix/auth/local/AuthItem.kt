@@ -21,6 +21,7 @@ data class AuthItem(
     val refreshToken: String? = null,
     val address: String? = null,
     val password: String? = null,
+    val token: String?,
 
     @Transient
     val userId: String? = null,
@@ -47,4 +48,8 @@ data class AuthItem(
                 && idToken != null
                 && homeserver != null
                 && userId != null
+
+    val canLogin: Boolean
+        get() = token != null
+                || ((userId != null || address != null) && password != null)
 }

@@ -48,11 +48,6 @@ actual class UserOperationService(
 
     private var lastNonce: String? = null
 
-    actual val availableOptions = listOf(
-        SingInServiceOption.GOOGLE,
-        SingInServiceOption.MATRIX
-    )
-
     actual suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType {
         val pendingResult = checkForPendingResult()
         if(pendingResult != null) return pendingResult

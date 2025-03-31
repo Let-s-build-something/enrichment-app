@@ -152,16 +152,19 @@ fun ComponentHeaderButton(
 fun ErrorHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
+    isLoading: Boolean = false,
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
     endIconVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
 ) {
-    HeaderButton(
+    LoadingHeaderButton(
         modifier = modifier,
         text = text,
         shape = shape,
+        isLoading = isLoading,
         onClick = onClick,
+        isEnabled = !isLoading,
         showBorder = false,
         additionalContent = extraContent,
         endImageVector = endIconVector,
@@ -183,13 +186,46 @@ fun BrandHeaderButton(
     isLoading: Boolean = false,
     onClick: () -> Unit = {}
 ) {
+    LoadingHeaderButton(
+        modifier = modifier,
+        text = text,
+        isEnabled = isEnabled,
+        onClick = onClick,
+        isLoading = isLoading,
+        showBorder = isEnabled,
+        contentColor = LocalTheme.current.colors.tetrial,
+        containerColor = if(isLoading) {
+            LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
+        }else LocalTheme.current.colors.brandMainDark
+    )
+}
+
+@Composable
+private fun LoadingHeaderButton(
+    modifier: Modifier = Modifier,
+    text: String = "",
+    contentColor: Color,
+    containerColor: Color,
+    showBorder: Boolean = true,
+    isEnabled: Boolean = true,
+    endImageVector: ImageVector? = null,
+    textStyle: TextStyle = LocalTheme.current.styles.category,
+    shape: Shape = LocalTheme.current.shapes.circularActionShape,
+    isLoading: Boolean = false,
+    onClick: () -> Unit = {},
+    additionalContent: @Composable RowScope.() -> Unit = {}
+) {
     HeaderButton(
         modifier = modifier,
         text = text,
         isEnabled = isEnabled,
         onClick = onClick,
-        showBorder = isEnabled,
+        showBorder = showBorder,
+        shape = shape,
+        endImageVector = endImageVector,
+        textStyle = textStyle,
         additionalContent = {
+            additionalContent()
             AnimatedVisibility(isLoading) {
                 val density = LocalDensity.current
 
@@ -199,15 +235,13 @@ fun BrandHeaderButton(
                         .requiredSize(
                             with(density) { LocalTheme.current.styles.category.fontSize.toDp() }
                         ),
-                    color = LocalTheme.current.colors.brandMainDark,
-                    trackColor = LocalTheme.current.colors.tetrial
+                    color = containerColor,
+                    trackColor = contentColor
                 )
             }
         },
-        contentColor = LocalTheme.current.colors.tetrial,
-        containerColor = if(isLoading) {
-            LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
-        }else LocalTheme.current.colors.brandMainDark
+        contentColor = contentColor,
+        containerColor = containerColor
     )
 }
 

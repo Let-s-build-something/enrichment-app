@@ -4,14 +4,15 @@ object Matrix {
     private const val LOGIN = "m.login"
 
     const val LOGIN_DUMMY = "$LOGIN.dummy"
+    const val LOGIN_SSO = "$LOGIN.sso"
     const val LOGIN_EMAIL_IDENTITY = "$LOGIN.email.identity"
     const val LOGIN_RECAPTCHA = "$LOGIN.recaptcha"
     const val LOGIN_TERMS = "$LOGIN.terms"
+    const val LOGIN_TOKEN = "$LOGIN.token"
     const val LOGIN_PASSWORD = "$LOGIN.password"
 
     object ErrorCode {
         const val FORBIDDEN = "M_FORBIDDEN"
-        const val LIMIT_EXCEEDED = "M_LIMIT_EXCEEDED"
         const val USER_IN_USE = "M_USER_IN_USE"
         const val UNKNOWN = "M_UNKNOWN"
         const val CREDENTIALS_IN_USE = "M_THREEPID_IN_USE"
@@ -19,8 +20,12 @@ object Matrix {
     }
 
     object Id {
-        const val USER = "m.id.user"
         const val THIRD_PARTY = "m.id.thirdparty"
+    }
+
+    object Brand {
+        const val GOOGLE = "google"
+        const val APPLE = "apple"
     }
 
     object Medium {
@@ -29,19 +34,5 @@ object Matrix {
 
     object Media {
         const val MATRIX_REPOSITORY_PREFIX = "mxc://"
-    }
-
-    object Room {
-        const val AVATAR = "m.room.avatar"
-        const val CANONICAL_ALIAS = "m.room.canonical_alias"
-        const val NAME = "m.room.name"
-        const val MESSAGE = "m.room.message"
-        const val RECEIPT = "m.receipt"
-        const val HISTORY_VISIBILITY = "m.room.history_visibility"
-        const val ENCRYPTION = "m.room.encryption"
-    }
-
-    object Message {
-        const val TEXT = "m.text"
     }
 }

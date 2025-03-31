@@ -33,7 +33,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
@@ -215,7 +214,7 @@ open class SharedModel: ViewModel() {
 
     /** Logs out the currently signed in user */
     open fun logoutCurrentUser() {
-        runBlocking {
+        viewModelScope.launch {
             authService.clear()
             secureSettings.clear()
             Firebase.auth.signOut()

@@ -103,11 +103,11 @@ import ui.account.profile.DisplayNameChangeLauncher
  * Screen for the home page
  */
 @Composable
-fun AccountDashboardScreen(viewModel: AccountDashboardModel = koinViewModel()) {
+fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
     val navController = LocalNavController.current
 
-    val currentUser = viewModel.currentUser.collectAsState(null)
-    val signOutResponse = viewModel.signOutResponse.collectAsState()
+    val currentUser = model.currentUser.collectAsState(null)
+    val signOutResponse = model.signOutResponse.collectAsState()
 
     val showSignOutDialog = remember {
         mutableStateOf(false)
@@ -125,7 +125,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardModel = koinViewModel()) {
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),
                 onClick = {
-                    viewModel.logoutCurrentUser()
+                    model.logoutCurrentUser()
                 }
             ),
             dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
@@ -164,15 +164,17 @@ fun AccountDashboardScreen(viewModel: AccountDashboardModel = koinViewModel()) {
                 LocalTheme.current.shapes.betweenItemsSpace * 2
             )
         ) {
-            ProfileSection(viewModel)
+            ProfileSection(model)
 
-            SettingsSection(viewModel)
+            SettingsSection(model)
 
+            val isLoading = model.isLoading.collectAsState()
             ErrorHeaderButton(
                 modifier = Modifier
                     .padding(top = 32.dp)
                     .fillMaxWidth(),
                 text = stringResource(Res.string.account_dashboard_sign_out),
+                isLoading = isLoading.value,
                 endIconVector = Icons.AutoMirrored.Outlined.Logout,
                 onClick = {
                     showSignOutDialog.value = true

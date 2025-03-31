@@ -121,3 +121,5 @@ actual fun openEmail(address: String?): Boolean {
         false
     }
 }
+
+actual val deeplinkHost: String = "https://augmy.org/"

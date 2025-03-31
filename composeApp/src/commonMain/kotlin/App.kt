@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.core.uri.UriUtils
+import androidx.navigation.NavOptions
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_confirm
@@ -165,19 +167,34 @@ private fun AppContent(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.newDeeplink.collectLatest {
+        viewModel.newDeeplink.collectLatest { deeplink ->
             try {
                 NavigationNode.allNodes.find { node ->
                     node.deepLink?.let { link ->
-                        it.contains(link)
+                        deeplink.contains(link)
                     } ?: false
                 }?.let { node ->
-                    navController.navigate(node)
+                    val link = UriUtils.parse(deeplink)
+                    when(node) {
+                        is NavigationNode.Login -> {
+                            navController.navigate(
+                                NavigationNode.Login(
+                                    nonce = link.getQueryParameters("nonce").firstOrNull(),
+                                    loginToken = link.getQueryParameters("loginToken").firstOrNull()
+                                ),
+                                navOptions = NavOptions.Builder()
+                                    .setPopUpTo(NavigationNode.Home, inclusive = false)
+                                    .setLaunchSingleTop(true)
+                                    .build()
+                            )
+                        }
+                        else -> navController.navigate(link)
+                    }
                 }.ifNull {
-                    modalDeepLink.value = it
+                    modalDeepLink.value = deeplink
                 }
             }catch (e: IllegalArgumentException) {
-                modalDeepLink.value = it
+                modalDeepLink.value = deeplink
             }
         }
     }
@@ -185,7 +202,7 @@ private fun AppContent(
     LaunchedEffect(Unit) {
         viewModel.clientStatus.collectLatest {
             if(it == ClientStatus.NEW) {
-                navController.navigate(NavigationNode.Login)
+                navController.navigate(NavigationNode.Login())
             }
         }
     }
