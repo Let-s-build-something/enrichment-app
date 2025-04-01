@@ -114,8 +114,8 @@ class AuthService {
     fun stop() {
         if(isRunning) {
             isRunning = false
-            enqueueScope.coroutineContext.cancelChildren()
             if(mutex.isLocked) mutex.unlock()
+            enqueueScope.coroutineContext.cancelChildren()
         }
     }
 
@@ -162,7 +162,10 @@ class AuthService {
         if(userId == null) return@withContext null
         secureSettings.getString(
             "${SecureSettingsKeys.KEY_DEVICE_ID}_${userId}", ""
-        ).takeIf { it.isNotBlank() }
+        ).takeIf { it.isNotBlank() }.also {
+            println("kostka_test, getDeviceId: $it")
+            //Android_8d75da771906464c8271e49bde1a0273
+        }
     }
 
     private suspend fun getPickleKey(userId: String?): String? = withContext(Dispatchers.IO) {
@@ -339,6 +342,7 @@ class AuthService {
                         )
                         initializeMatrixClient()
 
+                        println("kostka_test, expires in: ${response.data.expiresInMs}")
                         refreshToken(
                             refreshToken = response.data.refreshToken,
                             expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()

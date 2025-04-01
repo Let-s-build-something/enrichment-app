@@ -224,7 +224,6 @@ open class SharedModel: ViewModel() {
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
             sharedDataManager.matrixClient.value = null
-            sharedDataManager.olmAccount = null
             dataSyncService.stop()
             unloadKoinModules(commonModule)
             loadKoinModules(commonModule)

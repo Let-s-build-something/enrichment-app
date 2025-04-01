@@ -27,6 +27,7 @@ import net.folivo.trixnity.client.verification.ActiveVerificationState
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import net.folivo.trixnity.client.verification.VerificationService
 import net.folivo.trixnity.clientserverapi.client.UIA
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod.Sas
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationRequestToDeviceEventContent
@@ -51,6 +52,8 @@ sealed class LauncherState {
     class SelfVerification(
         val methods: List<SelfVerificationMethod>
     ): LauncherState()
+
+    data object Bootstrap : LauncherState()
 
     data class ComparisonByUser(
         val data: ComparisonByUserData,
@@ -90,6 +93,12 @@ class VerificationModel(
         keyVerificationScope.launch {
             sharedDataManager.matrixClient.collectLatest {
                 it?.let { client ->
+                    client.key.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { keys ->
+                        println("kostka_test, crossSigningKeys: $keys")
+                    }
+                    client.key.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { trust ->
+                        println("kostka_test, trustLevel: $trust")
+                    }
                     subscribeToVerificationMethods(client = client)
                 }
             }
@@ -111,8 +120,11 @@ class VerificationModel(
                         }
                     }
                     is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
-                        println("kostka_test, selfVerificationMethod, method: ${verification.methods.firstOrNull()}")
-                        _launcherState.value = LauncherState.SelfVerification(
+                        println("kostka_test, selfVerificationMethod, methods: ${verification.methods}")
+
+                        _launcherState.value = if(verification.methods.isEmpty()) {
+                            LauncherState.Bootstrap
+                        } else LauncherState.SelfVerification(
                             methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
                         )
                     }
@@ -265,7 +277,7 @@ class VerificationModel(
         }
     }
 
-    fun resetBootstrap(newPassphrase: String) {
+    fun bootstrap(newPassphrase: String) {
         viewModelScope.launch {
             bootstrapCrossSigning(passphrase = newPassphrase)?.let { result ->
                 if(result is UIA.Success<*>) {

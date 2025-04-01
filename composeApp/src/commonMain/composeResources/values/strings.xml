@@ -169,6 +169,7 @@
   <string name="message_decryption_failed">Failed to decrypt this message, try again.</string>
 
   <string name="device_verification_passphrase_hint">PIN code</string>
+  <string name="device_verification_bootstrap_title">Create a new PIN for your account🗝️</string>
   <string name="device_verification_title">You need to verify yourself🗝️👀</string>
   <string name="device_verification_title_passphrase">Create a new PIN</string>
   <string name="device_verification_title_other_device">Use your PIN</string>
