@@ -46,7 +46,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
-import ui.conversation.components.emoji.EmojiPreferencePicker
 
 /** Number of network items within one screen to be shimmered */
 private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
@@ -71,9 +70,6 @@ fun ConversationScreen(
     val conversationDetail = viewModel.conversationDetail.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
     val reactingToMessageId = rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-    val showEmojiPreferencesId = rememberSaveable {
         mutableStateOf<String?>(null)
     }
 
@@ -111,20 +107,6 @@ fun ConversationScreen(
 
     OnBackHandler(enabled = reactingToMessageId.value != null) {
         reactingToMessageId.value = null
-    }
-
-    showEmojiPreferencesId.value?.let { messageId ->
-        EmojiPreferencePicker(
-            viewModel = viewModel,
-            onEmojiSelected = { emoji ->
-                viewModel.reactToMessage(content = emoji, messageId = messageId)
-                reactingToMessageId.value = null
-                showEmojiPreferencesId.value = null
-            },
-            onDismissRequest = {
-                showEmojiPreferencesId.value = null
-            }
-        )
     }
 
     BrandBaseScreen(

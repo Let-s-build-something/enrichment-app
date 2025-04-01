@@ -3,8 +3,11 @@ package ui.conversation
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
+import base.utils.MediaType
+import base.utils.getMediaType
 import base.utils.sha256
 import data.io.base.BaseResponse
+import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
@@ -33,6 +36,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.core.model.EventId
+import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.events.m.room.AudioInfo
+import net.folivo.trixnity.core.model.events.m.room.FileInfo
+import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
@@ -194,6 +204,69 @@ open class ConversationRepository(
                 )
             }
         }
+    }
+
+    suspend fun sendMessage(
+        client: MatrixClient?,
+        conversationId: String,
+        message: ConversationMessageIO
+    ): Result<EventId>? = withContext(Dispatchers.IO) {
+        client?.api?.room?.sendMessageEvent(
+            roomId = RoomId(conversationId),
+            eventContent = when {
+                message.media?.size == 1 -> {
+                    val media = message.media.firstOrNull()
+                    when(getMediaType(media?.mimetype ?: "")) {
+                        MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
+                            body = message.content ?: "",
+                            url = media?.url,
+                            fileName = media?.name,
+                            info = AudioInfo(
+                                mimeType = media?.mimetype,
+                                size = media?.size
+                            ),
+                            relatesTo = message.relatesTo()
+                        )
+                        MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
+                            body = message.content ?: "",
+                            url = media?.url,
+                            fileName = media?.name,
+                            info = ImageInfo(
+                                mimeType = media?.mimetype,
+                                size = media?.size
+                            ),
+                            relatesTo = message.relatesTo()
+                        )
+                        else -> RoomMessageEventContent.FileBased.File(
+                            body = message.content ?: "",
+                            url = media?.url,
+                            fileName = media?.name,
+                            info = FileInfo(
+                                mimeType = media?.mimetype,
+                                size = media?.size
+                            ),
+                            relatesTo = message.relatesTo()
+                        )
+                    }
+                }
+                (message.media?.size ?: 0) > 1 -> FileList(
+                    body = message.content ?: "",
+                    urls = message.media?.mapNotNull { it.url },
+                    fileName = message.media?.firstOrNull()?.name,
+                    infos = message.media?.map { media ->
+                        FileInfo(
+                            mimeType = media.mimetype,
+                            size = media.size
+                        )
+                    },
+                    relatesTo = message.relatesTo()
+                )
+                else -> RoomMessageEventContent.TextBased.Text(
+                    body = message.content ?: "",
+                    relatesTo = message.relatesTo()
+                )
+            }
+        )
     }
 
     suspend fun cacheMessage(message: ConversationMessageIO) = withContext(Dispatchers.IO) {

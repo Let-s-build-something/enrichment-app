@@ -7,13 +7,10 @@ import androidx.paging.cachedIn
 import androidx.paging.map
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
-import base.utils.MediaType
-import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.sha256
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
-import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.room.ConversationRoomIO
 import data.io.social.network.conversation.ConversationTypingIndicator
@@ -38,11 +35,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.folivo.trixnity.core.model.RoomId
-import net.folivo.trixnity.core.model.events.m.room.AudioInfo
-import net.folivo.trixnity.core.model.events.m.room.FileInfo
-import net.folivo.trixnity.core.model.events.m.room.ImageInfo
-import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
@@ -455,71 +447,20 @@ open class ConversationModel(
                 }
             }
         )
-        sharedDataManager.matrixClient.value?.api?.room?.sendMessageEvent(
-            roomId = RoomId(conversationId),
-            eventContent = when {
-                msg.media?.size == 1 -> {
-                    val media = msg.media?.firstOrNull()
-                    when(getMediaType(media?.mimetype ?: "")) {
-                        MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
-                            body = msg.content ?: "",
-                            url = media?.url,
-                            fileName = media?.name,
-                            info = AudioInfo(
-                                mimeType = media?.mimetype,
-                                size = media?.size
-                            ),
-                            relatesTo = msg.relatesTo()
-                        )
-                        MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
-                            body = msg.content ?: "",
-                            url = media?.url,
-                            fileName = media?.name,
-                            info = ImageInfo(
-                                mimeType = media?.mimetype,
-                                size = media?.size
-                            ),
-                            relatesTo = msg.relatesTo()
-                        )
-                        else -> RoomMessageEventContent.FileBased.File(
-                            body = msg.content ?: "",
-                            url = media?.url,
-                            fileName = media?.name,
-                            info = FileInfo(
-                                mimeType = media?.mimetype,
-                                size = media?.size
-                            ),
-                            relatesTo = msg.relatesTo()
-                        )
-                    }
-                }
-                (msg.media?.size ?: 0) > 1 -> FileList(
-                    body = msg.content ?: "",
-                    urls = msg.media?.mapNotNull { it.url },
-                    fileName = msg.media?.firstOrNull()?.name,
-                    infos = msg.media?.map { media ->
-                        FileInfo(
-                            mimeType = media.mimetype,
-                            size = media.size
-                        )
-                    },
-                    relatesTo = msg.relatesTo()
-                )
-                else -> RoomMessageEventContent.TextBased.Text(
-                    body = msg.content ?: "",
-                    relatesTo = msg.relatesTo()
-                )
-            }
-        ).let { result ->
+        repository.sendMessage(
+            client = sharedDataManager.matrixClient.value,
+            conversationId = conversationId,
+            message = msg
+        )?.let { result ->
             repository.cacheMessage(
                 msg.copy(
-                    id = result?.getOrNull()?.full ?: "",
-                    state = if(result?.isSuccess == true) MessageState.Sent else MessageState.Failed
+                    id = result.getOrNull()?.full ?: "",
+                    state = if(result.isSuccess) MessageState.Sent else MessageState.Failed
                 )
             )
             // we don't need the local message anymore
             repository.removeMessage(msg.id)
-            if(result?.isSuccess == true) {
+            if(result.isSuccess) {
                 repository.cachedFiles.update { prev ->
                     prev.apply {
                         uuids.forEachIndexed { index, s ->
@@ -530,6 +471,7 @@ open class ConversationModel(
                 }
             }
         }
+        println("kostka_test, new message sent: $msg")
     }
 
     /** Makes a request to add or change reaction to a message */

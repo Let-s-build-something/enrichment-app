@@ -102,13 +102,15 @@ fun DeviceVerificationLauncher(
             if(BuildKonfig.isDevelopment) model.cancel(restart = false, manual = false)
         }
     ) {
-        Text(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 24.dp),
-            text = stringResource(Res.string.device_verification_title),
-            style = LocalTheme.current.styles.heading
-        )
+        AnimatedVisibility(launcherState.value !is LauncherState.Success) {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 24.dp),
+                text = stringResource(Res.string.device_verification_title),
+                style = LocalTheme.current.styles.heading
+            )
+        }
 
         Crossfade(
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -143,9 +145,9 @@ private fun Success() {
             contentDescription = null
         )
         Text(
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
             text = stringResource(Res.string.device_verification_success),
-            style = LocalTheme.current.styles.subheading
+            style = LocalTheme.current.styles.heading
         )
     }
 }

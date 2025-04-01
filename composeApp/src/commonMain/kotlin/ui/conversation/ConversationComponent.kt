@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +56,7 @@ import org.jetbrains.compose.resources.getString
 import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.TypingIndicator
+import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.ConversationMessageContent
 
@@ -62,6 +64,7 @@ import ui.conversation.message.ConversationMessageContent
  * Component containing a list of messages derived from [messages] with shimmer loading effect which can be modified by [shimmerItemCount]
  * It also contains typing indicators, and messaging panel
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationComponent(
     modifier: Modifier = Modifier,
@@ -128,7 +131,21 @@ fun ConversationComponent(
             }
         }
     }
-    
+
+    showEmojiPreferencesId.value?.let { messageId ->
+        EmojiPreferencePicker(
+            model = model,
+            onEmojiSelected = { emoji ->
+                model.reactToMessage(content = emoji, messageId = messageId)
+                reactingToMessageId.value = null
+                showEmojiPreferencesId.value = null
+            },
+            onDismissRequest = {
+                showEmojiPreferencesId.value = null
+            }
+        )
+    }
+
     Box(
         modifier = modifier
             .pointerInput(Unit) {

@@ -40,7 +40,7 @@ import ui.conversation.ConversationModel
 @Composable
 fun EmojiPreferencePicker(
     modifier: Modifier = Modifier,
-    viewModel: ConversationModel,
+    model: ConversationModel,
     onEmojiSelected: (String) -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
     onDismissRequest: () -> Unit
@@ -50,10 +50,10 @@ fun EmojiPreferencePicker(
         mutableStateOf(-1)
     }
     val showHint = remember {
-        mutableStateOf(viewModel.showEmojiPreferenceHint)
+        mutableStateOf(model.showEmojiPreferenceHint)
     }
 
-    val preferredEmojis = viewModel.preferredEmojis.collectAsState()
+    val preferredEmojis = model.preferredEmojis.collectAsState()
 
 
     SimpleModalBottomSheet(
@@ -98,7 +98,7 @@ fun EmojiPreferencePicker(
                     InfoHintBox(
                         text = stringResource(Res.string.emojis_preference_set_hint),
                         onDismissRequest = {
-                            viewModel.showEmojiPreferenceHint = false
+                            model.showEmojiPreferenceHint = false
                             showHint.value = false
                         }
                     )
@@ -106,10 +106,10 @@ fun EmojiPreferencePicker(
             }
         }
         EmojiPicker(
-            viewModel = viewModel,
+            viewModel = model,
             onEmojiSelected = { emoji ->
                 if(selectedIndex.value != -1) {
-                    viewModel.updatePreferredEmojiSet(
+                    model.updatePreferredEmojiSet(
                         preferredEmojis.value.toMutableList().apply {
                             set(selectedIndex.value, EmojiData(emoji))
                         }

@@ -324,8 +324,7 @@ fun MessageDetailScreen(
                             )
                             Text(
                                 modifier = Modifier.padding(start = 6.dp),
-                                text = (message.value?.state?.description?.plus(", ") ?: "") +
-                                        " ${message.value?.sentAt?.formatAsRelative() ?: ""}",
+                                text = "${message.value?.state?.description ?: ""} ${message.value?.sentAt?.formatAsRelative()}",
                                 style = LocalTheme.current.styles.regular
                             )
                             if(!isCurrentUser) {

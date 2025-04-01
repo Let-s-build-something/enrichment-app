@@ -684,8 +684,7 @@ private fun ContentLayout(
             AnimatedVisibility(isReacting) {
                 Text(
                     modifier = Modifier.padding(end = 6.dp),
-                    text = (data.state?.description?.plus(", ") ?: "") +
-                            " ${data.sentAt?.formatAsRelative() ?: ""}",
+                    text = "${data.state?.description ?: ""} ${data.sentAt?.formatAsRelative()}",
                     style = LocalTheme.current.styles.regular
                 )
             }
@@ -798,5 +797,5 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 
 // maximum visible reactions within message bubble
 const val MaximumReactions = 4
-private const val MaximumTextLines = 6
+private const val MaximumTextLines = 8
 private const val DragCancelDelayMillis = 100L

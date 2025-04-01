@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
@@ -73,6 +74,7 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import base.theme.Colors
 import data.shared.DeveloperConsoleModel
 import data.shared.developerConsoleModule
 import io.ktor.http.HttpMethod
@@ -426,16 +428,18 @@ private fun HttpDetail(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val backgroundColor = when(log.method) {
+                HttpMethod.Get -> SharedColors.GREEN_CORRECT
+                HttpMethod.Post -> Color.Blue
+                HttpMethod.Put -> Color.Yellow
+                HttpMethod.Delete -> SharedColors.RED_ERROR
+                else -> Color.Gray
+            }
             Box(modifier = Modifier
                 .heightIn(min = 32.dp)
                 .widthIn(min = 50.dp)
-                .background(color = when(log.method) {
-                    HttpMethod.Get -> SharedColors.GREEN_CORRECT
-                    HttpMethod.Post -> Color.Blue
-                    HttpMethod.Put -> Color.Yellow
-                    HttpMethod.Delete -> SharedColors.RED_ERROR
-                    else -> Color.Gray
-                },
+                .background(
+                    color = backgroundColor,
                     shape = LocalTheme.current.shapes.rectangularActionShape
                 )
                 .padding(vertical = 2.dp, horizontal = 6.dp),
@@ -443,7 +447,9 @@ private fun HttpDetail(
             ) {
                 Text(
                     text = log.method?.value.toString(),
-                    style = LocalTheme.current.styles.category.copy(color = Color.White)
+                    style = LocalTheme.current.styles.category.copy(
+                        color = if(backgroundColor.luminance() > .5f) Colors.Coffee else Colors.GrayLight
+                    )
                 )
             }
 

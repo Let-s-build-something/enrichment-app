@@ -259,14 +259,12 @@ internal class DataSyncHandler: MessageProcessor() {
                         dataService.appendPing(
                             AppPing(
                                 type = AppPingType.Conversation,
-                                identifiers = res.messages.mapNotNull { it.conversationId }.distinct()
+                                identifiers = listOf(room.id)
                             )
                         )
                     }
 
-                    val lastMessage = res.messages.firstOrNull {
-                        it.conversationId == newItem.id
-                    }
+                    val lastMessage = res.messages.lastOrNull()
 
                     // either update existing one, or insert new one
                     newItem.copy(

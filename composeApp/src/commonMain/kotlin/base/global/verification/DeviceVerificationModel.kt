@@ -111,6 +111,7 @@ class VerificationModel(
                         }
                     }
                     is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
+                        println("kostka_test, selfVerificationMethod, method: ${verification.methods.firstOrNull()}")
                         _launcherState.value = LauncherState.SelfVerification(
                             methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
                         )
@@ -187,7 +188,7 @@ class VerificationModel(
     }
 
     private suspend fun onActiveState(state: ActiveVerificationState) {
-        println("kostka_test, state: $state")
+        println("kostka_test, onActiveState: $state")
         when(state) {
             is ActiveVerificationState.TheirRequest -> {
                 when(val content = state.content) {
