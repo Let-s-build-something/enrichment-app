@@ -24,11 +24,15 @@ import io.ktor.client.request.setBody
 import io.ktor.http.Url
 import koin.InterceptingEngine
 import koin.SecureAppSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -58,6 +62,7 @@ class AuthService {
     private val repository: SharedRepository by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
 
+    private val enqueueScope = CoroutineScope(Job())
     private val mutex = Mutex()
     private var isRunning = false
 
@@ -109,6 +114,7 @@ class AuthService {
     fun stop() {
         if(isRunning) {
             isRunning = false
+            enqueueScope.coroutineContext.cancelChildren()
             if(mutex.isLocked) mutex.unlock()
         }
     }
@@ -278,7 +284,7 @@ class AuthService {
         }
     }
 
-    private suspend fun enqueueRefreshToken(
+    private fun enqueueRefreshToken(
         refreshToken: String?,
         homeserver: String?,
         expiresAtMsEpoch: Long?
@@ -286,12 +292,14 @@ class AuthService {
         if(!isRunning) {
             isRunning = true
 
-            mutex.withLock {
-                refreshToken(
-                    refreshToken = refreshToken,
-                    homeserver = homeserver,
-                    expiresAtMsEpoch = expiresAtMsEpoch
-                )
+            enqueueScope.launch {
+                mutex.withLock {
+                    refreshToken(
+                        refreshToken = refreshToken,
+                        homeserver = homeserver,
+                        expiresAtMsEpoch = expiresAtMsEpoch
+                    )
+                }
             }
         }
     }
@@ -304,11 +312,15 @@ class AuthService {
         if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
             withContext(Dispatchers.IO) {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
+                println("kostka_test, refreshToken -> delay: $delay")
                 if(delay > 0) {
                     try {
                         delay(delay)
-                    }catch (_: Exception) {}
+                    }catch (e: Exception) {
+                        println("kostka_test, refreshToken exception: ${e.cause}:${e.message}")
+                    }
                 }
+                println("kostka_test, refreshToken after delay, refreshing")
                 httpClient.safeRequest<MatrixAuthenticationResponse> {
                     httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
                         setBody(

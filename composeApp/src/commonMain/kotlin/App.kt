@@ -56,6 +56,8 @@ import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.AugmyTheme
+import base.global.InformationLines
+import base.global.InformationPopUps
 import base.navigation.NavigationNode
 import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
@@ -138,7 +140,7 @@ fun App(viewModel: AppServiceModel = koinViewModel()) {
 
 @Composable
 private fun AppContent(
-    viewModel: AppServiceModel,
+    model: AppServiceModel,
     navController: androidx.navigation.NavHostController
 ) {
     val backPressDispatcher = LocalBackPressDispatcher.current
@@ -146,10 +148,10 @@ private fun AppContent(
 
     val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
-    val modalDeepLink = rememberSaveable(viewModel) {
+    val modalDeepLink = rememberSaveable(model) {
         mutableStateOf<String?>(null)
     }
-    val showDialogLeave = rememberSaveable(viewModel) {
+    val showDialogLeave = rememberSaveable(model) {
         mutableStateOf(false)
     }
     val showDialogAgain = remember {
@@ -158,7 +160,7 @@ private fun AppContent(
 
     OnBackHandler {
         if(currentPlatform == PlatformType.Jvm || !navController.popBackStack()) {
-            if(viewModel.showLeaveDialog) {
+            if(model.showLeaveDialog) {
                 showDialogLeave.value = !showDialogLeave.value
             }else {
                 backPressDispatcher?.executeSystemBackPress()
@@ -167,7 +169,7 @@ private fun AppContent(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.newDeeplink.collectLatest { deeplink ->
+        model.newDeeplink.collectLatest { deeplink ->
             try {
                 NavigationNode.allNodes.find { node ->
                     node.deepLink?.let { link ->
@@ -200,7 +202,7 @@ private fun AppContent(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.clientStatus.collectLatest {
+        model.clientStatus.collectLatest {
             if(it == ClientStatus.NEW) {
                 navController.navigate(NavigationNode.Login())
             }
@@ -215,7 +217,7 @@ private fun AppContent(
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_confirm),
             ) {
-                viewModel.saveDialogSetting(showDialogAgain.value)
+                model.saveDialogSetting(showDialogAgain.value)
                 backPressDispatcher?.executeSystemBackPress()
             },
             dismissButtonState = ButtonState(
@@ -259,20 +261,22 @@ private fun AppContent(
     CompositionLocalProvider(
         LocalHeyIamScreen provides (BuildKonfig.isDevelopment && isPhone),
     ) {
-        if(isPhone) {
-            Column {
+        Column {
+            InformationPopUps()
+            InformationLines(sharedModel = model)
+            if(isPhone) {
                 if(BuildKonfig.isDevelopment) DeveloperContent(
                     modifier = Modifier.statusBarsPadding(),
                 )
                 Box {
                     NavigationHost(navController = navController)
                 }
-            }
-        }else {
-            Row {
-                if(BuildKonfig.isDevelopment) DeveloperContent()
-                Box {
-                    NavigationHost(navController = navController)
+            }else {
+                Row {
+                    if(BuildKonfig.isDevelopment) DeveloperContent()
+                    Box {
+                        NavigationHost(navController = navController)
+                    }
                 }
             }
         }
