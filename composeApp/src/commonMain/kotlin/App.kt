@@ -262,16 +262,18 @@ private fun AppContent(
         LocalHeyIamScreen provides (BuildKonfig.isDevelopment && isPhone),
     ) {
         Column {
-            InformationPopUps()
-            InformationLines(sharedModel = model)
             if(isPhone) {
                 if(BuildKonfig.isDevelopment) DeveloperContent(
                     modifier = Modifier.statusBarsPadding(),
                 )
+                InformationPopUps()
+                InformationLines(sharedModel = model)
                 Box {
                     NavigationHost(navController = navController)
                 }
             }else {
+                InformationPopUps()
+                InformationLines(sharedModel = model)
                 Row {
                     if(BuildKonfig.isDevelopment) DeveloperContent()
                     Box {

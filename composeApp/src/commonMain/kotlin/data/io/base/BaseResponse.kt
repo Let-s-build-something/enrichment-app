@@ -29,7 +29,10 @@ sealed class BaseResponse<out T> {
 
         /** BE error code */
         @SerialName("errcode")
-        val code: String? = null
+        val code: String? = null,
+
+        @SerialName("soft_logout")
+        val softLogout: Boolean = false
     ): BaseResponse<Nothing>() {
         var httpCode: Int = -1
     }

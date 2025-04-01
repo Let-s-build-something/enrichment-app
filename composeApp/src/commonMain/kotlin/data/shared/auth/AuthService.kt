@@ -164,7 +164,6 @@ class AuthService {
             "${SecureSettingsKeys.KEY_DEVICE_ID}_${userId}", ""
         ).takeIf { it.isNotBlank() }.also {
             println("kostka_test, getDeviceId: $it")
-            //Android_8d75da771906464c8271e49bde1a0273
         }
     }
 
@@ -317,11 +316,7 @@ class AuthService {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
                 println("kostka_test, refreshToken -> delay: $delay")
                 if(delay > 0) {
-                    try {
-                        delay(delay)
-                    }catch (e: Exception) {
-                        println("kostka_test, refreshToken exception: ${e.cause}:${e.message}")
-                    }
+                    try { delay(delay) }catch (_: Exception) { }
                 }
                 println("kostka_test, refreshToken after delay, refreshing")
                 httpClient.safeRequest<MatrixAuthenticationResponse> {
@@ -331,29 +326,40 @@ class AuthService {
                         )
                     }
                 }.let { response ->
-                    if(response is BaseResponse.Success) {
-                        cacheCredentials(
-                            response = response.data,
-                            homeserver = homeserver,
-                            password = null,
-                            identifier = null,
-                            deviceId = null,
-                            token = null
-                        )
-                        initializeMatrixClient()
+                    when (response) {
+                        is BaseResponse.Success -> {
+                            cacheCredentials(
+                                response = response.data,
+                                homeserver = homeserver,
+                                password = null,
+                                identifier = null,
+                                deviceId = null,
+                                token = null
+                            )
+                            initializeMatrixClient()
 
-                        println("kostka_test, expires in: ${response.data.expiresInMs}")
-                        refreshToken(
-                            refreshToken = response.data.refreshToken,
-                            expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
-                                .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS)
-                                .minus(TOKEN_REFRESH_THRESHOLD_MS),
-                            homeserver = homeserver
-                        )
-                    }else loginWithCredentials(forceRefresh = true)
+                            println("kostka_test, expires in: ${response.data.expiresInMs}")
+                            refreshToken(
+                                refreshToken = response.data.refreshToken,
+                                expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
+                                    .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS)
+                                    .minus(TOKEN_REFRESH_THRESHOLD_MS),
+                                homeserver = homeserver
+                            )
+                        }
+                        is BaseResponse.Error -> {
+                            if(response.softLogout) {
+                                // TODO relogin via SSO etc.
+                            }else loginWithCredentials(false)
+                        }
+                        else -> {
+                            delay(TOKEN_REFRESH_THRESHOLD_MS)
+                            setupAutoLogin()
+                        }
+                    }
                 }
             }
-        }else loginWithCredentials(forceRefresh = true)
+        }else loginWithCredentials(forceRefresh = false)
     }
 
     private suspend fun loginWithCredentials(forceRefresh: Boolean): Boolean {
@@ -376,7 +382,7 @@ class AuthService {
                             response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0),
                             token = null
                         )
-                        loginWithCredentials(forceRefresh)
+                        loginWithCredentials(false)
                     }else false
                 }
                 // only refresh
@@ -391,7 +397,7 @@ class AuthService {
                 }
                 it.canLogin -> {
                     println("kostka_test, loginWithCredentials -> login")
-                    loginWithIdentifier(
+                    /*loginWithIdentifier(
                         homeserver = it.homeserver ?: "",
                         identifier = MatrixIdentifierData(
                             type = it.loginType,
@@ -402,7 +408,8 @@ class AuthService {
                         password = it.password,
                         deviceId = deviceId,
                         token = it.token
-                    ).success?.data != null
+                    ).success?.data != null*/
+                    false
                 }
                 else -> false
             }
