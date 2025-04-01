@@ -1,19 +1,27 @@
-package data.io.social.network.conversation
+package data.io.matrix.room.event
 
 import androidx.room.Ignore
 import data.io.user.NetworkItemIO
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import net.folivo.trixnity.core.model.events.EphemeralEventContent
+import ui.conversation.components.ANIMATION_LENGTH
 
 /** Indicator of other user typing within the same conversation */
 @Serializable
 data class ConversationTypingIndicator(
-    /** Public identifier of the author */
-    val authorPublicId: String? = null,
-
     /** Textual content of the message being typed */
-    var content: String? = null
-) {
+    var content: String? = null,
+
+    @SerialName("user_ids")
+    val userIds: List<String>? = null,
+
+    val type: String = "m.typing"
+): EphemeralEventContent {
+
+    val typing: Boolean = !content.isNullOrBlank()
+    val timeout: Long = ANIMATION_LENGTH
 
     /** User attached to this message */
     @Ignore
@@ -22,7 +30,7 @@ data class ConversationTypingIndicator(
 
     override fun toString(): String {
         return "{" +
-                "authorPublicId: $authorPublicId, " +
+                "userIds: $userIds, " +
                 "content: $content, " +
                 "}"
     }

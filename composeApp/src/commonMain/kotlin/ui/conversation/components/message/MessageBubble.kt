@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -67,6 +66,7 @@ import augmy.composeapp.generated.resources.accessibility_action_message_react
 import augmy.composeapp.generated.resources.accessibility_message_download
 import augmy.composeapp.generated.resources.accessibility_message_reply
 import augmy.composeapp.generated.resources.accessibility_reaction_other
+import augmy.composeapp.generated.resources.message_decrypting
 import augmy.composeapp.generated.resources.message_read_more
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.detectMessageInteraction
@@ -82,7 +82,6 @@ import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.openLink
 import components.buildAnnotatedLinkString
-import data.io.social.network.conversation.ConversationTypingIndicator
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MessageState
@@ -91,7 +90,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.conversation.components.LoadingMessageBubble
 import ui.conversation.components.audio.MediaProcessorModel
 import ui.conversation.components.experimental.pacing.buildTempoString
 import ui.conversation.media.DownloadIndication
@@ -475,91 +473,67 @@ private fun ContentLayout(
                                     alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
                                     animationSpec = spring(stiffness = Spring.StiffnessHigh)
                                 )) {
-                                    // textual content
-                                    when {
-                                        data.state == MessageState.Decrypting -> {
-                                            Box(
+                                    if(!data.content.isNullOrEmpty()) {
+                                        val showReadMore = remember(data.id) {
+                                            mutableStateOf(false)
+                                        }
+                                        val text = @Composable {
+                                            Column(
                                                 modifier = Modifier
-                                                    .width(96.dp)
-                                                    .requiredHeight(
-                                                        20.dp + with(density) { LocalTheme.current.styles.title.fontSize.toDp() }
+                                                    .then(
+                                                        if (!data.reactions.isNullOrEmpty()) {
+                                                            Modifier.padding(bottom = with(density) {
+                                                                LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
+                                                            })
+                                                        } else Modifier
                                                     )
                                                     .background(
                                                         color = if (isCurrentUser) {
                                                             LocalTheme.current.colors.brandMainDark
                                                         } else LocalTheme.current.colors.backgroundContrast,
                                                         shape = messageShape
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                LoadingMessageBubble(
-                                                    key = data.id.hashCode(),
-                                                    data = ConversationTypingIndicator(
-                                                        authorPublicId = data.authorPublicId
                                                     )
-                                                )
-                                            }
-                                        }
-                                        !data.content.isNullOrEmpty() -> {
-                                            val showReadMore = remember(data.id) {
-                                                mutableStateOf(false)
-                                            }
-                                            val text = @Composable {
-                                                Column(
+                                                    .padding(
+                                                        vertical = 10.dp,
+                                                        horizontal = 14.dp
+                                                    )
+                                            ) {
+                                                Text(
                                                     modifier = Modifier
+                                                        .widthIn(max = (screenSize.width * .8f).dp)
                                                         .then(
-                                                            if (!data.reactions.isNullOrEmpty()) {
-                                                                Modifier.padding(bottom = with(density) {
-                                                                    LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
-                                                                })
-                                                            } else Modifier
+                                                            if(hasAttachment) Modifier.fillMaxWidth() else Modifier
                                                         )
-                                                        .background(
-                                                            color = if (isCurrentUser) {
-                                                                LocalTheme.current.colors.brandMainDark
-                                                            } else LocalTheme.current.colors.backgroundContrast,
-                                                            shape = messageShape
-                                                        )
-                                                        .padding(
-                                                            vertical = 10.dp,
-                                                            horizontal = 14.dp
-                                                        )
-                                                ) {
+                                                        .then(if(model.transcribe.value) Modifier else Modifier),
+                                                    text = if(data.state == MessageState.Decrypting) {
+                                                        AnnotatedString(stringResource(Res.string.message_decrypting))
+                                                    }else textContent,
+                                                    maxLines = MaximumTextLines,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    onTextLayout = {
+                                                        showReadMore.value = it.didOverflowHeight
+                                                    }
+                                                )
+                                                AnimatedVisibility(showReadMore.value) {
                                                     Text(
                                                         modifier = Modifier
-                                                            .widthIn(max = (screenSize.width * .8f).dp)
-                                                            .then(
-                                                                if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                                                            )
-                                                            .then(if(model.transcribe.value) Modifier else Modifier),
-                                                        text = textContent,
-                                                        maxLines = MaximumTextLines,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        onTextLayout = {
-                                                            showReadMore.value = it.didOverflowHeight
-                                                        }
+                                                            .padding(top = 4.dp)
+                                                            .scalingClickable {
+                                                                model.openDetail()
+                                                            },
+                                                        text = stringResource(Res.string.message_read_more),
+                                                        style = LocalTheme.current.styles.title.copy(
+                                                            fontFamily = FontFamily(fontQuicksandSemiBold)
+                                                        ),
                                                     )
-                                                    AnimatedVisibility(showReadMore.value) {
-                                                        Text(
-                                                            modifier = Modifier
-                                                                .padding(top = 4.dp)
-                                                                .scalingClickable {
-                                                                    model.openDetail()
-                                                                },
-                                                            text = stringResource(Res.string.message_read_more),
-                                                            style = LocalTheme.current.styles.title.copy(
-                                                                fontFamily = FontFamily(fontQuicksandSemiBold)
-                                                            ),
-                                                        )
-                                                    }
                                                 }
                                             }
-                                            if(showOptions || isMouseUser) {
-                                                SelectionContainer {
-                                                    text()
-                                                }
-                                            }else text()
                                         }
+                                        if(showOptions || isMouseUser) {
+                                            SelectionContainer {
+                                                text()
+                                            }
+                                        }else text()
                                     }
 
                                     androidx.compose.animation.AnimatedVisibility(

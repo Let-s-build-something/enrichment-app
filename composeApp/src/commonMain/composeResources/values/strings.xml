@@ -98,6 +98,7 @@
   <string name="account_settings_title_offline">You're offline</string>
   <string name="account_settings_content_offline">No interruption and no network is being used.</string>
 
+  <string name="message_decrypting">This message couldn't be decrypted:(</string>
   <string name="message_read_more">Read more</string>
   <string name="invite_new_item_conversation">Name of the conversation</string>
   <string name="invite_new_item_button">Create new</string>

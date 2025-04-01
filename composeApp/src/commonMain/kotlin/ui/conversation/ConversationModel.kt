@@ -13,7 +13,7 @@ import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.room.ConversationRoomIO
-import data.io.social.network.conversation.ConversationTypingIndicator
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -191,6 +191,7 @@ open class ConversationModel(
 
     // ==================== functions ===========================
 
+    /** Experimental typing services */
     fun startTypingServices() {
         if(!timingSensor.value.isRunning && !timingSensor.value.isLocked) {
             viewModelScope.launch {
@@ -204,6 +205,15 @@ open class ConversationModel(
         if(timingSensor.value.isRunning) {
             timingSensor.value.pause()
             gravityUseCase.kill()
+        }
+    }
+
+    fun updateTypingStatus(content: CharSequence) {
+        viewModelScope.launch {
+            repository.updateTypingIndicator(
+                conversationId = conversationId,
+                indicator = ConversationTypingIndicator(content = content.toString())
+            )
         }
     }
 
@@ -253,11 +263,13 @@ open class ConversationModel(
             _typingIndicators.update { previous ->
                 val res = previous.second.toMutableList().apply {
                     // update existing indicator or add a new one
-                    find { it.authorPublicId == indicator.authorPublicId }?.apply {
+                    find { it.userIds == indicator.userIds }?.apply {
                         content = indicator.content
                     } ?: add(indicator.also {
                         // find relevant user for new indicator
-                        it.user = _conversationDetail.value?.users?.find { user -> user.publicId == indicator.authorPublicId }
+                        it.user = _conversationDetail.value?.users?.find { user ->
+                            indicator.userIds?.contains(user.publicId) == true
+                        }
                     })
 
                     // remove irrelevant indicator - better than just filtering them
