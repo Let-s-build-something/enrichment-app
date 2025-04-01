@@ -46,6 +46,8 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
+import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.device_verification_bootstrap_title
 import augmy.composeapp.generated.resources.device_verification_confirm
 import augmy.composeapp.generated.resources.device_verification_match
 import augmy.composeapp.generated.resources.device_verification_no_match
@@ -74,6 +76,7 @@ import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
+import ui.login.AUGMY_HOME_SERVER
 
 /**
  * Bottom sheet for verifying current device
@@ -102,14 +105,6 @@ fun DeviceVerificationLauncher(
             if(BuildKonfig.isDevelopment) model.cancel(restart = false, manual = false)
         }
     ) {
-        Text(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 24.dp),
-            text = stringResource(Res.string.device_verification_title),
-            style = LocalTheme.current.styles.heading
-        )
-
         Crossfade(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             targetState = launcherState.value
@@ -124,9 +119,94 @@ fun DeviceVerificationLauncher(
                     launcherState = state
                 )
                 is LauncherState.Success -> Success()
+                is LauncherState.Bootstrap -> Bootstrap(model)
                 else -> {}
             }
         }
+    }
+}
+
+@Composable
+private fun Bootstrap(model: VerificationModel) {
+    val isLoading = model.isLoading.collectAsState()
+
+    val passphraseState = remember { TextFieldState() }
+    val showPassphrase = remember { mutableStateOf(false) }
+
+    val verify = {
+        model.bootstrap(passphraseState.text.toString())
+    }
+
+    Column {
+        Text(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 24.dp),
+            text = stringResource(Res.string.device_verification_bootstrap_title),
+            style = LocalTheme.current.styles.heading
+        )
+
+        CustomTextField(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
+                .fillMaxWidth(.7f),
+            hint = stringResource(Res.string.device_verification_passphrase_hint),
+            prefixIcon = Icons.Outlined.Pin,
+            state = passphraseState,
+            textObfuscationMode = if(showPassphrase.value) {
+                TextObfuscationMode.Visible
+            }else TextObfuscationMode.RevealLastTyped,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.NumberPassword,
+                imeAction = ImeAction.Send
+            ),
+            onKeyboardAction = { verify() },
+            trailingIcon = {
+                Crossfade(
+                    targetState = showPassphrase.value
+                ) { isPasswordVisible ->
+                    MinimalisticIcon(
+                        contentDescription = stringResource(
+                            if(isPasswordVisible) {
+                                Res.string.accessibility_hide_password
+                            }else Res.string.accessibility_show_password
+                        ),
+                        imageVector = if(isPasswordVisible) {
+                            Icons.Outlined.Visibility
+                        }else Icons.Outlined.VisibilityOff,
+                        tint = LocalTheme.current.colors.secondary
+                    ) {
+                        showPassphrase.value = !showPassphrase.value
+                    }
+                }
+            },
+            // Augmy has numeric PINs only
+            inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOME_SERVER) {
+                InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
+                    proposed.replace(Regex("[^0-9]"), "")
+                }
+            }else null,
+            paddingValues = PaddingValues(start = 16.dp)
+        )
+
+        BrandHeaderButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            text = stringResource(
+                when {
+                    isLoading.value -> Res.string.accessibility_cancel
+                    else -> Res.string.button_confirm
+                }
+            ),
+            isLoading = isLoading.value,
+            onClick = {
+                if(isLoading.value) {
+                    model.cancel()
+                }else verify()
+            }
+        )
     }
 }
 
@@ -136,16 +216,18 @@ private fun Success() {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 24.dp),
+            text = stringResource(Res.string.device_verification_success),
+            style = LocalTheme.current.styles.heading
+        )
         Icon(
             modifier = Modifier.size(64.dp),
             imageVector = Icons.Outlined.Verified,
             tint = LocalTheme.current.colors.brandMain,
             contentDescription = null
-        )
-        Text(
-            modifier = Modifier.padding(top = 12.dp),
-            text = stringResource(Res.string.device_verification_success),
-            style = LocalTheme.current.styles.subheading
         )
     }
 }
@@ -179,6 +261,14 @@ private fun SelfVerification(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 24.dp),
+            text = stringResource(Res.string.device_verification_title),
+            style = LocalTheme.current.styles.heading
+        )
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (i in state.methods.size.plus(1) downTo 0) {
                 state.methods.getOrNull(i)?.let { method ->
@@ -244,9 +334,12 @@ private fun SelfVerification(
                         }
                     }
                 },
-                inputTransformation = InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
-                    proposed.replace(Regex("[^0-9]"), "")
-                },
+                // Augmy has numeric PINs only
+                inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOME_SERVER) {
+                    InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
+                        proposed.replace(Regex("[^0-9]"), "")
+                    }
+                }else null,
                 paddingValues = PaddingValues(start = 16.dp)
             )
         }

@@ -10,6 +10,7 @@ import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
+import io.ktor.client.call.body
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.HttpRequestRetry
@@ -109,7 +110,7 @@ internal fun httpClientFactory(
                 && !request.url.encodedPath.contains("/refresh")
                 && forceRefreshCountdown-- > 0
             ) {
-                authService.setupAutoLogin(forceRefresh = true)
+                authService.setupAutoLogin(forceRefresh = false)
                 if(sharedModel.currentUser.value?.accessToken != null) {
                     request.headers[HttpHeaders.Authorization] = "Bearer ${sharedModel.currentUser.value?.accessToken}"
                     return@intercept execute(request)
@@ -155,11 +156,11 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         }
     }
     HttpResponseValidator {
-        handleResponseException { cause, _ ->
+        handleResponseException { cause, request ->
             when (cause) {
                 is ConnectTimeoutException, is SocketTimeoutException -> {
                     sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                    println("Network timeout")
+                    println("Network timeout, response: ${request.url}, ${request.call.response.body<String>()}")
                 }
             }
         }

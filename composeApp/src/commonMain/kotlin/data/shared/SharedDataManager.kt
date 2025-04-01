@@ -6,7 +6,6 @@ import data.io.base.AppPing
 import data.io.user.UserIO
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.folivo.trixnity.client.MatrixClient
-import net.folivo.trixnity.olm.OlmAccount
 
 /** Shared data manager with most common information */
 class SharedDataManager {
@@ -26,6 +25,5 @@ class SharedDataManager {
     /** Most recent measure of speed and network connectivity */
     val networkConnectivity = MutableStateFlow<NetworkConnectivity?>(null)
 
-    var olmAccount: OlmAccount? = null
     var matrixClient = MutableStateFlow<MatrixClient?>(null)
 }

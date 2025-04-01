@@ -1,7 +1,6 @@
 package base
 
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -17,8 +16,6 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.theme.LocalTheme
-import base.global.InformationLines
-import base.global.InformationPopUps
 import base.navigation.DefaultAppBarActions
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
@@ -103,42 +100,35 @@ fun BrandBaseScreen(
         }
     }
 
-    Column {
-        InformationPopUps()
-        InformationLines(
-            sharedModel = sharedModel,
-            currentUser = currentUser.value
-        )
-        BaseScreen(
-            modifier = modifier,
-            title = title,
-            subtitle = subtitle,
-            contentModifier = contentModifier,
-            actionIcons = actions,
-            headerPrefix = headerPrefix,
-            appBarVisible = appBarVisible,
-            containerColor = containerColor,
-            contentColor = contentColor,
-            clearFocus = clearFocus,
-            onNavigationIconClick = {
-                navIconClick?.invoke() ?: if(onBackPressed()) {
-                    navController?.popBackStack()
-                } else { }
-            },
-            floatingActionButtonPosition = floatingActionButtonPosition,
-            floatingActionButton = floatingActionButton,
-            navigationIcon = navIconType?.imageVector ?: if(isPreviousHome) {
-                NavIconType.HOME.imageVector
-            }else NavIconType.BACK.imageVector,
-            content = content,
-            verticalAppBar = {
-                VerticalAppBar(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .wrapContentWidth(),
-                    actions = actions
-                )
-            }
-        )
-    }
+    BaseScreen(
+        modifier = modifier,
+        title = title,
+        subtitle = subtitle,
+        contentModifier = contentModifier,
+        actionIcons = actions,
+        headerPrefix = headerPrefix,
+        appBarVisible = appBarVisible,
+        containerColor = containerColor,
+        contentColor = contentColor,
+        clearFocus = clearFocus,
+        onNavigationIconClick = {
+            navIconClick?.invoke() ?: if(onBackPressed()) {
+                navController?.popBackStack()
+            } else { }
+        },
+        floatingActionButtonPosition = floatingActionButtonPosition,
+        floatingActionButton = floatingActionButton,
+        navigationIcon = navIconType?.imageVector ?: if(isPreviousHome) {
+            NavIconType.HOME.imageVector
+        }else NavIconType.BACK.imageVector,
+        content = content,
+        verticalAppBar = {
+            VerticalAppBar(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .wrapContentWidth(),
+                actions = actions
+            )
+        }
+    )
 }

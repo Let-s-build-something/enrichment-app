@@ -90,7 +90,7 @@ class InterceptingEngine(
             val responseBody = response.body.toString()
 
             if(responseBody.contains("M_MISSING_TOKEN") || responseBody.contains("M_UNKNOWN_TOKEN")) {
-                authService.setupAutoLogin(forceRefresh = true)
+                authService.setupAutoLogin(forceRefresh = false)
                 if(dataManager.currentUser.value?.accessToken != null) {
                     return execute(HttpRequestData(
                         url = data.url,

@@ -36,7 +36,6 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
 import components.notification.InfoHintBox
-import data.io.user.UserIO
 import data.shared.SharedModel
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
@@ -49,10 +48,10 @@ import ui.account.profile.DisplayNameChangeLauncher
 
 @Composable
 fun ColumnScope.InformationLines(
-    sharedModel: SharedModel = koinViewModel(),
-    currentUser: UserIO?
+    sharedModel: SharedModel = koinViewModel()
 ) {
     val networkConnectivity = sharedModel.networkConnectivity.collectAsState()
+    val currentUser = sharedModel.currentUser.collectAsState()
 
 
     // no stable internet connection
@@ -62,8 +61,8 @@ fun ColumnScope.InformationLines(
 
     // missing display name
     AnimatedVisibility(
-        currentUser != null
-                && currentUser.displayName == null
+        currentUser.value != null
+                && currentUser.value?.displayName == null
                 && !sharedModel.awaitingAutologin
     ) {
         MissingDisplayNameLine()

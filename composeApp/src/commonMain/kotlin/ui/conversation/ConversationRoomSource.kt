@@ -5,6 +5,8 @@ import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.social.network.conversation.message.ConversationMessageIO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.io.IOException
 
 data class GetMessagesResponse(
@@ -26,22 +28,25 @@ class ConversationRoomSource(
         }
     }
 
+    private var mutex = Mutex()
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageIO> {
         return try {
-            val paramsKey = params.key ?: 0
-            val response = getMessages(paramsKey)
+            mutex.withLock {
+                val paramsKey = params.key ?: 0
+                val response = getMessages(paramsKey)
 
-            if(response != null) {
-                LoadResult.Page(
-                    data = response.data,
-                    prevKey = if(paramsKey > 0) paramsKey.minus(1) else null,
-                    nextKey = if(response.hasNext) paramsKey.plus(1) else null,
-                    itemsAfter = if(response.hasNext) {
-                        getCount().minus(paramsKey.plus(1) * size).takeIf { it > 0 } ?: size
-                    }else COUNT_UNDEFINED,
-                    itemsBefore = if(paramsKey > 0) paramsKey.minus(1) * size else COUNT_UNDEFINED
-                )
-            }else LoadResult.Error(Throwable("No response"))
+                if(response != null) {
+                    LoadResult.Page(
+                        data = response.data,
+                        prevKey = if(paramsKey > 0) paramsKey.minus(1) else null,
+                        nextKey = if(response.hasNext) paramsKey.plus(1) else null,
+                        itemsAfter = if(response.hasNext) {
+                            getCount().minus(paramsKey.plus(1) * size).takeIf { it > 0 } ?: size
+                        }else COUNT_UNDEFINED,
+                        itemsBefore = if(paramsKey > 0) paramsKey.minus(1) * size else COUNT_UNDEFINED
+                    )
+                }else LoadResult.Error(Throwable("No response"))
+            }
         } catch (exception: IOException) {
             LoadResult.Error(exception)
         } catch (exception: HttpException) {

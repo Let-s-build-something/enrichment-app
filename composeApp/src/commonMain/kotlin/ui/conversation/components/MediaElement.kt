@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
@@ -79,6 +80,7 @@ fun MediaElement(
     videoPlayerEnabled: Boolean = false,
     media: MediaIO? = null,
     tintColor: Color = LocalTheme.current.colors.secondary,
+    visualHeight: Dp? = null,
     localMedia: PlatformFile? = null,
     contentDescription: String? = null,
     contentScale: ContentScale = ContentScale.Inside,
@@ -94,8 +96,8 @@ fun MediaElement(
     val mediaType = getMediaType(
         finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
     )
-    val itemModifier = (if(mediaType.isVisual) {
-        modifier.height(MEDIA_MAX_HEIGHT_DP.dp)
+    val itemModifier = (if(visualHeight != null && mediaType.isVisual) {
+        modifier.height(visualHeight)
     } else modifier).scalingClickable(
         enabled = enabled,
         scaleInto = .95f,

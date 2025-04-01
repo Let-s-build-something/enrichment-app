@@ -11,6 +11,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import net.folivo.trixnity.core.model.EventId
+import net.folivo.trixnity.core.model.events.m.RelatesTo
 import ui.conversation.components.experimental.gravity.GravityData
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -109,6 +111,19 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
             conversationId = other.conversationId ?: conversationId,
             transcribed = other.transcribed ?: transcribed
         )
+    }
+
+    fun relatesTo(): RelatesTo? {
+        return when {
+            parentAnchorMessageId != null -> RelatesTo.Thread(
+                replyTo = if(anchorMessageId != null) RelatesTo.ReplyTo(EventId(anchorMessageId)) else null,
+                eventId = EventId(parentAnchorMessageId)
+            )
+            anchorMessageId != null -> RelatesTo.Reply(
+                replyTo = RelatesTo.ReplyTo(EventId(anchorMessageId))
+            )
+            else -> null
+        }
     }
 
     /** Whether content contains any website url */

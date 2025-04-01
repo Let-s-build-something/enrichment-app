@@ -3,19 +3,19 @@ package ui.conversation
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
-import augmy.interactive.shared.utils.DateUtils.localNow
+import base.utils.MediaType
+import base.utils.getMediaType
 import base.utils.sha256
 import data.io.base.BaseResponse
+import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.io.social.network.conversation.MessageReactionRequest
-import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
-import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
@@ -24,8 +24,6 @@ import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.baseName
-import io.github.vinceglb.filekit.core.extension
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -34,16 +32,22 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Url
-import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.client.room.encrypt
+import net.folivo.trixnity.client.roomEventEncryptionServices
+import net.folivo.trixnity.core.model.EventId
+import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.events.m.room.AudioInfo
+import net.folivo.trixnity.core.model.events.m.room.FileInfo
+import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
-import ui.conversation.components.audio.MediaHttpProgress
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /** Class for calling APIs and remote work in general */
 open class ConversationRepository(
@@ -56,11 +60,11 @@ open class ConversationRepository(
 ) {
     private val dataSyncHandler = DataSyncHandler()
     protected var currentPagingSource: PagingSource<*, *>? = null
-    val cachedFiles = hashMapOf<String, PlatformFile?>()
+    val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
     protected var certainMessageCount: Int? = null
 
     /** Attempts to invalidate local PagingSource with conversation messages */
-    private fun invalidateLocalSource() {
+    fun invalidateLocalSource() {
         certainMessageCount = null
         currentPagingSource?.invalidate()
     }
@@ -204,144 +208,81 @@ open class ConversationRepository(
         }
     }
 
-    /** Sends a message to a conversation */
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun sendMessage(
+        client: MatrixClient?,
         conversationId: String,
-        homeserver: String,
-        message: ConversationMessageIO,
-        audioByteArray: ByteArray? = null,
-        gifAsset: GifAsset? = null,
-        // TODO upload progress
-        onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
-        mediaFiles: List<PlatformFile> = listOf(),
-    ): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
-            val uuids = mutableListOf<String>()
-
-            // placeholder/loading message preview
-            var msg = message.copy(
-                conversationId = conversationId,
-                sentAt = localNow,
-                authorPublicId = dataManager.currentUser.value?.matrixUserId,
-                media = withContext(Dispatchers.Default) {
-                    mediaFiles.map { media ->
-                        MediaIO(
-                            url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                                cachedFiles[uuid] = media
-                                uuids.add(uuid)
-                            }
-                        )
-                    }.toMutableList().apply {
-                        addAll(message.media.orEmpty())
-                        if(audioByteArray != null) {
-                            add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
-                        }
-                        add(
-                            MediaIO(
-                                url = gifAsset?.original,
-                                mimetype = MimeType.IMAGE_GIF.mime,
-                                name = gifAsset?.description
-                            )
-                        )
-                    }.filter { !it.isEmpty }
-                },
-                state = MessageState.Pending
-            )
-            conversationMessageDao.insertReplace(msg)
-            invalidateLocalSource()
-
-            // upload the final message
-            val response = httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/conversation/send",
-                    block = {
-                        parameter("conversationId", conversationId)
-                        setBody(msg)
-                    }
-                )
-            }
-
-            // real message
-            msg = msg.copy(
-                media = withContext(Dispatchers.Default) {
-                    mediaFiles.mapNotNull { media ->
-                        val bytes = media.readBytes()
-                        if(bytes.isNotEmpty()) {
-                            uploadMedia(
-                                mediaByteArray = bytes,
-                                fileName = "${Uuid.random()}.${media.extension.lowercase()}",
-                                homeserver = homeserver,
-                                mimetype = MimeType.getByExtension(media.extension).mime
-                            )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
-                                MediaIO(
-                                    url = url,
-                                    size = bytes.size.toLong(),
-                                    name = media.baseName,
-                                    mimetype = MimeType.getByExtension(media.extension).mime
-                                )
-                            }
-                        }else null
-                    }.toMutableList().apply {
-                        // existing media
-                        addAll(message.media.orEmpty().toMutableList().filter { !it.isEmpty })
-
-                        // audio file
-                        if(audioByteArray != null) {
-                            val size = audioByteArray.size.toLong()
-                            val fileName = "${Uuid.random()}.wav"
-                            val mimetype = MimeType.getByExtension("wav").mime
-
-                            uploadMedia(
-                                mediaByteArray = audioByteArray,
-                                fileName = fileName,
-                                homeserver = homeserver,
-                                mimetype = mimetype
-                            )?.success?.data?.contentUri.let { audioUrl ->
-                                if(!audioUrl.isNullOrBlank()) {
-                                    fileAccess.saveFileToCache(
-                                        data = audioByteArray,
-                                        fileName = sha256(audioUrl)
-                                    )?.let {
-                                        remove(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
-                                        add(
-                                            MediaIO(
-                                                url = audioUrl,
-                                                size = size,
-                                                name = fileName,
-                                                mimetype = mimetype,
-                                                path = it.toString()
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // GIPHY asset
-                        if(!gifAsset?.original.isNullOrBlank()) {
-                            MediaIO(
-                                url = gifAsset?.original,
-                                mimetype = MimeType.IMAGE_GIF.mime,
-                                name = gifAsset?.description
-                            )
-                        }
-                    }
-                },
-                state = if(response is BaseResponse.Success) MessageState.Sent else MessageState.Failed
-            )
-            uuids.forEachIndexed { index, s ->
-                msg.media?.getOrNull(index)?.url?.let {
-                    cachedFiles[it] = cachedFiles[s]
+        message: ConversationMessageIO
+    ): Result<EventId>? = withContext(Dispatchers.IO) {
+        val roomId = RoomId(conversationId)
+        val eventContent = when {
+            message.media?.size == 1 -> {
+                val media = message.media.firstOrNull()
+                when(getMediaType(media?.mimetype ?: "")) {
+                    MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
+                        body = message.content ?: "",
+                        url = media?.url,
+                        fileName = media?.name,
+                        info = AudioInfo(
+                            mimeType = media?.mimetype,
+                            size = media?.size
+                        ),
+                        relatesTo = message.relatesTo()
+                    )
+                    MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
+                        body = message.content ?: "",
+                        url = media?.url,
+                        fileName = media?.name,
+                        info = ImageInfo(
+                            mimeType = media?.mimetype,
+                            size = media?.size
+                        ),
+                        relatesTo = message.relatesTo()
+                    )
+                    else -> RoomMessageEventContent.FileBased.File(
+                        body = message.content ?: "",
+                        url = media?.url,
+                        fileName = media?.name,
+                        info = FileInfo(
+                            mimeType = media?.mimetype,
+                            size = media?.size
+                        ),
+                        relatesTo = message.relatesTo()
+                    )
                 }
-                cachedFiles.remove(s)
             }
-            conversationMessageDao.insertReplace(msg)
-            invalidateLocalSource()
-
-            response
+            (message.media?.size ?: 0) > 1 -> FileList(
+                body = message.content ?: "",
+                urls = message.media?.mapNotNull { it.url },
+                fileName = message.media?.firstOrNull()?.name,
+                infos = message.media?.map { media ->
+                    FileInfo(
+                        mimeType = media.mimetype,
+                        size = media.size
+                    )
+                },
+                relatesTo = message.relatesTo()
+            )
+            else -> RoomMessageEventContent.TextBased.Text(
+                body = message.content ?: "",
+                relatesTo = message.relatesTo()
+            )
         }
+
+        client?.api?.room?.sendMessageEvent(
+            roomId = roomId,
+            eventContent = client.roomEventEncryptionServices.encrypt(
+                content = eventContent,
+                roomId = roomId
+            )?.getOrNull() ?: eventContent
+        )
+    }
+
+    suspend fun cacheMessage(message: ConversationMessageIO) = withContext(Dispatchers.IO) {
+        conversationMessageDao.insertReplace(message)
+    }
+
+    suspend fun removeMessage(id: String) = withContext(Dispatchers.IO) {
+        conversationMessageDao.remove(id)
     }
 
     /** Marks a message as transcribed */
@@ -396,7 +337,7 @@ open class ConversationRepository(
      * Uploads media to the server
      * @return the server location URL
      */
-    private suspend fun uploadMedia(
+    suspend fun uploadMedia(
         mediaByteArray: ByteArray?,
         mimetype: String,
         homeserver: String,

@@ -11,6 +11,7 @@ import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
+import database.dao.ConversationRoomDao
 import database.dao.matrix.RoomMemberDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
+import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
@@ -45,6 +47,7 @@ abstract class MessageProcessor {
     protected val dataService: DataService by KoinPlatform.getKoin().inject()
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
 
     protected val decryptionScope = CoroutineScope(Dispatchers.Default)
@@ -217,6 +220,17 @@ abstract class MessageProcessor {
                         } else MessageState.Read
                     )?.let { decryptedMessage ->
                         conversationMessageDao.insertReplace(decryptedMessage)
+                        conversationRoomDao.getItem(
+                            id = decryptedMessage.conversationId,
+                            ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
+                        ).also { data ->
+                            if(data?.summary?.lastMessage?.id == decryptedMessage.id) {
+                                conversationRoomDao.insert(data.copy(
+                                    summary = data.summary.copy(lastMessage = decryptedMessage)
+                                ))
+                            }
+                        }
+
                         decryptedMessage.conversationId?.let { identifier ->
                             dataService.appendPing(
                                 AppPing(
@@ -258,7 +272,9 @@ abstract class MessageProcessor {
                         size = it.info?.size
                     )
                 )
-            }
+            },
+            anchorMessageId = this.relatesTo?.replyTo?.eventId?.full,
+            parentAnchorMessageId = (relatesTo as? RelatesTo.Thread)?.eventId?.full
         )
     }
 }

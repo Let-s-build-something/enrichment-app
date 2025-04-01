@@ -24,11 +24,15 @@ import io.ktor.client.request.setBody
 import io.ktor.http.Url
 import koin.InterceptingEngine
 import koin.SecureAppSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -58,6 +62,7 @@ class AuthService {
     private val repository: SharedRepository by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
 
+    private val enqueueScope = CoroutineScope(Job())
     private val mutex = Mutex()
     private var isRunning = false
 
@@ -110,6 +115,7 @@ class AuthService {
         if(isRunning) {
             isRunning = false
             if(mutex.isLocked) mutex.unlock()
+            enqueueScope.coroutineContext.cancelChildren()
         }
     }
 
@@ -122,7 +128,8 @@ class AuthService {
 
         withContext(Dispatchers.IO) {
             retrieveCredentials()?.let { credentials ->
-                println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}")
+                println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}, " +
+                        "isFullyValid: ${credentials.isFullyValid}, forceRefresh: $forceRefresh")
 
                 when {
                     (!forceRefresh && credentials.isFullyValid)
@@ -155,7 +162,9 @@ class AuthService {
         if(userId == null) return@withContext null
         secureSettings.getString(
             "${SecureSettingsKeys.KEY_DEVICE_ID}_${userId}", ""
-        ).takeIf { it.isNotBlank() }
+        ).takeIf { it.isNotBlank() }.also {
+            println("kostka_test, getDeviceId: $it")
+        }
     }
 
     private suspend fun getPickleKey(userId: String?): String? = withContext(Dispatchers.IO) {
@@ -277,7 +286,7 @@ class AuthService {
         }
     }
 
-    private suspend fun enqueueRefreshToken(
+    private fun enqueueRefreshToken(
         refreshToken: String?,
         homeserver: String?,
         expiresAtMsEpoch: Long?
@@ -285,12 +294,14 @@ class AuthService {
         if(!isRunning) {
             isRunning = true
 
-            mutex.withLock {
-                refreshToken(
-                    refreshToken = refreshToken,
-                    homeserver = homeserver,
-                    expiresAtMsEpoch = expiresAtMsEpoch
-                )
+            enqueueScope.launch {
+                mutex.withLock {
+                    refreshToken(
+                        refreshToken = refreshToken,
+                        homeserver = homeserver,
+                        expiresAtMsEpoch = expiresAtMsEpoch
+                    )
+                }
             }
         }
     }
@@ -303,11 +314,11 @@ class AuthService {
         if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
             withContext(Dispatchers.IO) {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
+                println("kostka_test, refreshToken -> delay: $delay")
                 if(delay > 0) {
-                    try {
-                        delay(delay)
-                    }catch (_: Exception) {}
+                    try { delay(delay) }catch (_: Exception) { }
                 }
+                println("kostka_test, refreshToken after delay, refreshing")
                 httpClient.safeRequest<MatrixAuthenticationResponse> {
                     httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
                         setBody(
@@ -315,28 +326,40 @@ class AuthService {
                         )
                     }
                 }.let { response ->
-                    if(response is BaseResponse.Success) {
-                        cacheCredentials(
-                            response = response.data,
-                            homeserver = homeserver,
-                            password = null,
-                            identifier = null,
-                            deviceId = null,
-                            token = null
-                        )
-                        initializeMatrixClient()
+                    when (response) {
+                        is BaseResponse.Success -> {
+                            cacheCredentials(
+                                response = response.data,
+                                homeserver = homeserver,
+                                password = null,
+                                identifier = null,
+                                deviceId = null,
+                                token = null
+                            )
+                            initializeMatrixClient()
 
-                        refreshToken(
-                            refreshToken = response.data.refreshToken,
-                            expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
-                                .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS)
-                                .minus(TOKEN_REFRESH_THRESHOLD_MS),
-                            homeserver = homeserver
-                        )
-                    }else loginWithCredentials(forceRefresh = true)
+                            println("kostka_test, expires in: ${response.data.expiresInMs}")
+                            refreshToken(
+                                refreshToken = response.data.refreshToken,
+                                expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
+                                    .plus(response.data.expiresInMs ?: DEFAULT_TOKEN_LIFESPAN_MS)
+                                    .minus(TOKEN_REFRESH_THRESHOLD_MS),
+                                homeserver = homeserver
+                            )
+                        }
+                        is BaseResponse.Error -> {
+                            if(response.softLogout) {
+                                // TODO relogin via SSO etc.
+                            }else loginWithCredentials(false)
+                        }
+                        else -> {
+                            delay(TOKEN_REFRESH_THRESHOLD_MS)
+                            setupAutoLogin()
+                        }
+                    }
                 }
             }
-        }else loginWithCredentials(forceRefresh = true)
+        }else loginWithCredentials(forceRefresh = false)
     }
 
     private suspend fun loginWithCredentials(forceRefresh: Boolean): Boolean {
@@ -359,11 +382,11 @@ class AuthService {
                             response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0),
                             token = null
                         )
-                        loginWithCredentials(forceRefresh)
+                        loginWithCredentials(false)
                     }else false
                 }
                 // only refresh
-                it.isFullyValid && dataManager.currentUser.value?.isFullyValid == true && it.refreshToken != null -> {
+                it.isExpired && it.refreshToken != null -> {
                     refreshToken(
                         refreshToken = it.refreshToken,
                         expiresAtMsEpoch = it.expiresAtMsEpoch,
@@ -374,7 +397,7 @@ class AuthService {
                 }
                 it.canLogin -> {
                     println("kostka_test, loginWithCredentials -> login")
-                    loginWithIdentifier(
+                    /*loginWithIdentifier(
                         homeserver = it.homeserver ?: "",
                         identifier = MatrixIdentifierData(
                             type = it.loginType,
@@ -385,7 +408,8 @@ class AuthService {
                         password = it.password,
                         deviceId = deviceId,
                         token = it.token
-                    ).success?.data != null
+                    ).success?.data != null*/
+                    false
                 }
                 else -> false
             }

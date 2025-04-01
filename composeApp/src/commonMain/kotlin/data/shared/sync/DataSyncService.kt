@@ -250,15 +250,6 @@ internal class DataSyncHandler: MessageProcessor() {
                     algorithm = algorithm?.algorithm
                 )
 
-                // either update existing one, or insert new one
-                (conversationRoomDao.getItem(
-                    id = room.id,
-                    ownerPublicId = owner
-                )?.update(newItem) ?: newItem).also { newRoom ->
-                    conversationRoomDao.insert(newRoom)
-                    rooms.add(newRoom)
-                }
-
                 saveEvents(
                     events = room.timeline?.events.orEmpty(),
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
@@ -268,9 +259,25 @@ internal class DataSyncHandler: MessageProcessor() {
                         dataService.appendPing(
                             AppPing(
                                 type = AppPingType.Conversation,
-                                identifiers = res.messages.mapNotNull { it.conversationId }.distinct()
+                                identifiers = listOf(room.id)
                             )
                         )
+                    }
+
+                    val lastMessage = res.messages.lastOrNull()
+
+                    // either update existing one, or insert new one
+                    newItem.copy(
+                        summary = newItem.summary?.copy(lastMessage = lastMessage) ?: RoomSummary(lastMessage = lastMessage),
+                        lastMessageTimestamp = lastMessage?.sentAt
+                    ).let { roomUpdate ->
+                        (conversationRoomDao.getItem(
+                            id = room.id,
+                            ownerPublicId = owner
+                        )?.update(roomUpdate) ?: roomUpdate).also { data ->
+                            conversationRoomDao.insert(data)
+                            rooms.add(data)
+                        }
                     }
                 }
             }
@@ -282,9 +289,7 @@ internal class DataSyncHandler: MessageProcessor() {
                 }
             }
 
-            if(rooms.isNotEmpty()) {
-                dataService.appendPing(AppPing(type = AppPingType.ConversationDashboard))
-            }
+            dataService.appendPing(AppPing(type = AppPingType.ConversationDashboard))
         }
     }
 

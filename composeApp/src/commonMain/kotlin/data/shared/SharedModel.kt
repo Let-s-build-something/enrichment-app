@@ -21,8 +21,10 @@ import dev.gitlive.firebase.storage.Data
 import koin.AppSettings
 import koin.commonModule
 import koin.secureSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
@@ -138,7 +140,7 @@ open class SharedModel: ViewModel() {
         return Firebase.auth.currentUser?.let {
             if(sharedDataManager.currentUser.value?.idToken == null) {
                 try {
-                    authService.setupAutoLogin(forceRefresh = true)
+                    authService.setupAutoLogin(forceRefresh = false)
                     updateClientSettings()
 
                     currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
@@ -214,7 +216,7 @@ open class SharedModel: ViewModel() {
 
     /** Logs out the currently signed in user */
     open fun logoutCurrentUser() {
-        viewModelScope.launch {
+        CoroutineScope(Job()).launch {
             authService.clear()
             secureSettings.clear()
             Firebase.auth.signOut()
@@ -222,7 +224,6 @@ open class SharedModel: ViewModel() {
             sharedDataManager.currentUser.value = null
             sharedDataManager.localSettings.value = null
             sharedDataManager.matrixClient.value = null
-            sharedDataManager.olmAccount = null
             dataSyncService.stop()
             unloadKoinModules(commonModule)
             loadKoinModules(commonModule)
