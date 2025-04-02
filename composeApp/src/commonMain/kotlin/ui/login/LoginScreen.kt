@@ -317,7 +317,7 @@ fun LoginScreen(
         flow?.stages?.getOrNull(progress.index)?.let { stage ->
             MatrixProgressStage(
                 stage = stage,
-                viewModel = model
+                model = model
             )
         }
     }
@@ -674,9 +674,9 @@ private fun ColumnScope.LoginScreenContent(
 @Composable
 private fun MatrixProgressStage(
     stage: String,
-    viewModel: LoginModel
+    model: LoginModel
 ) {
-    val progress = viewModel.matrixProgress.collectAsState()
+    val progress = model.matrixProgress.collectAsState()
 
     Crossfade(targetState = stage) { currentStage ->
         when(currentStage) {
@@ -699,7 +699,7 @@ private fun MatrixProgressStage(
                             callback: (String) -> Unit
                         ) {
                             isSuccess.value = true
-                            viewModel.matrixStepOver(
+                            model.matrixStepOver(
                                 type = currentStage,
                                 recaptchaJson = message.params
                             )
@@ -737,7 +737,10 @@ private fun MatrixProgressStage(
                         )
                     },
                     onDismissRequest = {
-                        if(!isSuccess.value) viewModel.clearMatrixProgress()
+                        if(!isSuccess.value) {
+                            model.clearMatrixProgress()
+                            model.setLoading(false)
+                        }
                     }
                 )
             }
@@ -764,14 +767,14 @@ private fun MatrixProgressStage(
                         text = stringResource(Res.string.button_confirm),
                         onClick = {
                             isSuccess.value = true
-                            viewModel.matrixStepOver(
+                            model.matrixStepOver(
                                 type = currentStage,
                                 agreements = policies.orEmpty().mapNotNull { it.en?.url }
                             )
                         }
                     ),
                     onDismissRequest = {
-                        if(!isSuccess.value) viewModel.clearMatrixProgress()
+                        if(!isSuccess.value) model.clearMatrixProgress()
                     }
                 )
             }
@@ -792,7 +795,7 @@ private fun MatrixProgressStage(
                     }
                 }
                 LaunchedEffect(Unit) {
-                    viewModel.matrixProgress.collectLatest {
+                    model.matrixProgress.collectLatest {
                         if(it?.retryAfter != null) {
                             counter.value = it.retryAfter
                         }
@@ -800,12 +803,12 @@ private fun MatrixProgressStage(
                 }
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     if(progress.value?.sid != null) {
-                        viewModel.matrixStepOver(type = currentStage)
+                        model.matrixStepOver(type = currentStage)
                     }
                 }
                 LaunchedEffect(Unit) {
                     if(progress.value?.sid == null) {
-                        viewModel.matrixRequestToken()
+                        model.matrixRequestToken()
                     }
                 }
 
@@ -876,7 +879,7 @@ private fun MatrixProgressStage(
                             modifier = Modifier
                                 .scalingClickable(enabled = counter.value <= 0) {
                                     counter.value = STOPWATCH_MAX
-                                    viewModel.matrixRequestToken()
+                                    model.matrixRequestToken()
                                 }
                                 .padding(top = 2.dp),
                             text = stringResource(Res.string.login_email_verification_repeat),

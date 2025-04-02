@@ -114,7 +114,6 @@ class AuthService {
     fun stop() {
         if(isRunning) {
             isRunning = false
-            if(mutex.isLocked) mutex.unlock()
             enqueueScope.coroutineContext.cancelChildren()
         }
     }

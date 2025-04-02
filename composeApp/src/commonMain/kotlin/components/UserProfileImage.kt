@@ -180,41 +180,43 @@ private fun ContentElement(
     tag: String?,
     name: String?
 ) {
-    if(media?.isEmpty == false) {
-        MediaElement(
-            modifier = modifier
-                .clip(CircleShape)
-                .aspectRatio(1f),
-            contentDescription = contentDescription,
-            media = media,
-            contentScale = ContentScale.Crop
-        )
-    }else if(name != null) {
-        val backgroundColor = tagToColor(tag) ?: LocalTheme.current.colors.tetrial
-        val textColor = if(backgroundColor.luminance() > .5f) Colors.Coffee else Colors.GrayLight
-
-        Box(
-            modifier = modifier
-                .aspectRatio(1f)
-                .background(
-                    color = backgroundColor,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            AutoResizeText(
-                modifier = Modifier.padding(bottom = 8.dp, top = 6.dp),
-                text = name.split("""\s""".toRegex()).let {
-                    if(it.size > 1) {
-                        it[0].take(1) + it[1].take(1)
-                    }else it.firstOrNull()?.take(1) ?: ""
-                },
-                style = LocalTheme.current.styles.subheading.copy(color = textColor),
-                fontSizeRange = FontSizeRange(
-                    min = 6.sp,
-                    max = LocalTheme.current.styles.subheading.fontSize * 1.5f
-                )
+    Crossfade(media?.isEmpty == false) { isValid ->
+        if(isValid) {
+            MediaElement(
+                modifier = modifier
+                    .clip(CircleShape)
+                    .aspectRatio(1f),
+                contentDescription = contentDescription,
+                media = media,
+                contentScale = ContentScale.Crop
             )
+        }else if(name != null) {
+            val backgroundColor = tagToColor(tag) ?: LocalTheme.current.colors.tetrial
+            val textColor = if(backgroundColor.luminance() > .5f) Colors.Coffee else Colors.GrayLight
+
+            Box(
+                modifier = modifier
+                    .aspectRatio(1f)
+                    .background(
+                        color = backgroundColor,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                AutoResizeText(
+                    modifier = Modifier.padding(bottom = 8.dp, top = 6.dp),
+                    text = name.split("""\s""".toRegex()).let {
+                        if(it.size > 1) {
+                            it[0].take(1) + it[1].take(1)
+                        }else it.firstOrNull()?.take(1) ?: ""
+                    },
+                    style = LocalTheme.current.styles.subheading.copy(color = textColor),
+                    fontSizeRange = FontSizeRange(
+                        min = 6.sp,
+                        max = LocalTheme.current.styles.subheading.fontSize * 1.5f
+                    )
+                )
+            }
         }
     }
 }

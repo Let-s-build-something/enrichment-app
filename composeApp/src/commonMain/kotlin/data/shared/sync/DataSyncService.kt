@@ -232,6 +232,8 @@ internal class DataSyncHandler: MessageProcessor() {
                         }
                     }
 
+
+                println("kostka_test, ephemeral: ${room.ephemeral?.events}")
                 val newItem = room.copy(
                     summary = room.summary?.copy(
                         avatar = avatar?.url?.let {
