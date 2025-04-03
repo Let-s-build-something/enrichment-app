@@ -13,6 +13,7 @@ import data.io.app.ClientStatus
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
 import data.io.identity_platform.IdentityMessageType
+import data.io.identity_platform.IdentityUserResponse
 import data.io.matrix.auth.AuthenticationCredentials
 import data.io.matrix.auth.AuthenticationData
 import data.io.matrix.auth.MatrixAuthenticationPlan
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -311,16 +313,19 @@ class LoginModel(
                     _matrixAuthResponse.value = res
                     clearMatrixProgress()
 
-                    serviceProvider.signUpWithPassword(email, password)?.let {
-                        when(it) {
-                            IdentityMessageType.SUCCESS -> {
+                    serviceProvider.signUpWithPassword(email, password)?.let { userResponse ->
+                        when {
+                            userResponse.idToken != null -> {
+                                sharedDataManager.currentUser.update {
+                                    it?.copy(idToken = userResponse.idToken) ?: UserIO(idToken = userResponse.idToken)
+                                }
                                 loginWithCredentials(
                                     username = username,
                                     email = email,
                                     password = password
                                 )
                             }
-                            IdentityMessageType.EMAIL_EXISTS -> _loginResult.emit(LoginResultType.EMAIL_EXISTS)
+                            userResponse.error?.type == IdentityMessageType.EMAIL_EXISTS -> _loginResult.emit(LoginResultType.EMAIL_EXISTS)
                             else -> _loginResult.emit(LoginResultType.FAILURE)
                         }
                     } ?: try {
@@ -344,7 +349,7 @@ class LoginModel(
         else withContext(Dispatchers.IO) {
             try {
                 serviceProvider.signUpWithPassword(email, password, deleteRightAfter = true)?.let {
-                    it == IdentityMessageType.SUCCESS
+                    it.idToken != null
                 } ?: Firebase.auth.createUserWithEmailAndPassword(
                     email = email,
                     password = password
@@ -459,30 +464,30 @@ class LoginModel(
     /** Authenticates user with a token */
     private suspend fun FirebaseUser.authenticateUser(email: String?, attempt: Int = 1) {
         withContext(Dispatchers.IO) {
-            if(currentUser.value?.idToken == null) {
-                this@authenticateUser.getIdToken(false)?.let { idToken ->
-                    if(sharedDataManager.currentUser.value?.idToken == null) {
-                        val initialUser = UserIO(
-                            idToken = idToken,
-                            accessToken = _matrixAuthResponse.value?.accessToken,
-                            matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+            (if(currentUser.value?.idToken == null) {
+                this@authenticateUser.getIdToken(false)
+            }else currentUser.value?.idToken)?.let { idToken ->
+                if(sharedDataManager.currentUser.value?.idToken == null) {
+                    val initialUser = UserIO(
+                        idToken = idToken,
+                        accessToken = _matrixAuthResponse.value?.accessToken,
+                        matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                    )
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
+                }
+                if(sharedDataManager.currentUser.value?.tag == null) {
+                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
+                        repository.authenticateUser(
+                            localSettings = sharedDataManager.localSettings.value,
+                            refreshToken = _matrixAuthResponse.value?.refreshToken,
+                            expiresInMs = _matrixAuthResponse.value?.expiresInMs
                         )
-                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
-                    }
-                    if(sharedDataManager.currentUser.value?.tag == null) {
-                        sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                            repository.authenticateUser(
-                                localSettings = sharedDataManager.localSettings.value,
-                                refreshToken = _matrixAuthResponse.value?.refreshToken,
-                                expiresInMs = _matrixAuthResponse.value?.expiresInMs
-                            )
-                        )
-                    }
-                    if(attempt < 3) {
-                        this@authenticateUser.finalizeSignIn(email, attempt = attempt)
-                    }else _loginResult.emit(LoginResultType.FAILURE)
-                }.ifNull { _loginResult.emit(LoginResultType.FAILURE) }
-            }
+                    )
+                }
+                if(attempt < 3) {
+                    this@authenticateUser.finalizeSignIn(email, attempt = attempt)
+                }else _loginResult.emit(LoginResultType.FAILURE)
+            }.ifNull { _loginResult.emit(LoginResultType.FAILURE) }
         }
     }
 
@@ -541,7 +546,7 @@ expect class UserOperationService {
         email: String,
         password: String,
         deleteRightAfter: Boolean = false
-    ): IdentityMessageType?
+    ): IdentityUserResponse?
 }
 
 data class MatrixProgress(

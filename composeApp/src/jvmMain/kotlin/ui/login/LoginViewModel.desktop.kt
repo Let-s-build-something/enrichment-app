@@ -1,7 +1,6 @@
 package ui.login
 
 import augmy.interactive.com.BuildKonfig
-import data.io.identity_platform.IdentityMessageType
 import data.io.identity_platform.IdentityUserResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.request.header
@@ -50,7 +49,7 @@ class DesktopSignInRepository(private val httpClient: HttpClient) {
     suspend fun signUpWithPassword(email: String, password: String): IdentityUserResponse? {
         return withContext(Dispatchers.IO) {
             json.decodeFromString<IdentityUserResponse?>(
-                httpClient.safeRequest<String> {
+                httpClient.safeRequestError<String> {
                     post(
                         urlString = "$identityToolUrl:signUp",
                         block =  {
@@ -64,7 +63,7 @@ class DesktopSignInRepository(private val httpClient: HttpClient) {
                             )
                         }
                     )
-                }.success?.data ?: ""
+                } ?: ""
             )
         }
     }
@@ -101,7 +100,7 @@ actual class UserOperationService(private val repository: DesktopSignInRepositor
         email: String,
         password: String,
         deleteRightAfter: Boolean
-    ): IdentityMessageType? {
+    ): IdentityUserResponse? {
         val res = repository.signUpWithPassword(email, password)
         if(deleteRightAfter) {
             res?.idToken?.let {
@@ -110,8 +109,6 @@ actual class UserOperationService(private val repository: DesktopSignInRepositor
         }
 
         println("kostka_test, signUpWithPassword: $res")
-        return if(res?.idToken != null) {
-            IdentityMessageType.SUCCESS
-        }else res?.error?.type ?: IdentityMessageType.FAILURE
+        return res
     }
 }

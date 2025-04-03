@@ -96,6 +96,14 @@ internal fun httpClientFactory(
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
                 }
+            }else if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
+                request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                sharedModel.currentUser.value?.idToken?.let { idToken ->
+                    request.headers[IdToken] = idToken
+                }
+                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                    request.headers[AccessToken] = accessToken
+                }
             }
 
             request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
