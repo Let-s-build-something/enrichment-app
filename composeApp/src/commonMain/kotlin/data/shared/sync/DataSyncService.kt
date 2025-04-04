@@ -68,6 +68,9 @@ class DataSyncService {
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
         if(!isRunning) {
+            println("kostka_test, datasync service sync, isFullyValid: ${
+                sharedDataManager.currentUser.value?.isFullyValid
+            }")
             this.homeserver = homeserver
             isRunning = true
             syncScope.launch {
@@ -211,7 +214,6 @@ internal class DataSyncHandler: MessageProcessor() {
                             is AvatarEventContent -> avatar = content
                             is EncryptionEventContent -> algorithm = content
                             is TypingEventContent -> {
-                                println("kostka_test, TypingEventContent: $content")
                                 sharedDataManager.typingIndicators.update { prev ->
                                     prev.second.apply {
                                         this[room.id] = ConversationTypingIndicator(userIds = content.users)

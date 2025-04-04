@@ -12,6 +12,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.http.Url
 import koin.httpClientConfig
+import korlibs.io.util.getOrNullLoggingError
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.MatrixClient.LoginInfo
@@ -47,6 +48,7 @@ class MatrixClientFactory(
     private val repositoriesModuleCreation: CreateRepositoriesModule = KoinPlatform.getKoin().get()
 
     suspend fun initializeMatrixClient(credentials: AuthItem): MatrixClient? {
+        println("kostka_test, initializeMatrixClient, userId: ${credentials.userId}")
         return if(credentials.userId != null) {
             (if(credentials.databasePassword != null) {
                 MatrixClient.fromStore(
@@ -73,7 +75,7 @@ class MatrixClientFactory(
                 configuration = {
                     configureClient(credentials.deviceId)
                 }
-            ).getOrNull()
+            ).getOrNullLoggingError()
         }else null
     }
 
@@ -131,12 +133,5 @@ sealed interface MatrixClientInitializationException {
 
     @Serializable
     data class DatabaseLockedException(override val message: String? = null) : MatrixClientInitializationException,
-        RuntimeException(message)
-
-    @Serializable
-    data object NoDatabaseException : MatrixClientInitializationException, RuntimeException("no database existing")
-
-    @Serializable
-    data class Unknown(override val message: String? = null) : MatrixClientInitializationException,
         RuntimeException(message)
 }

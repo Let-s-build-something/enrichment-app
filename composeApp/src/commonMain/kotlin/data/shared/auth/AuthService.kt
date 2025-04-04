@@ -80,7 +80,7 @@ class AuthService {
             getLoginInfo = {
                 (retrieveCredentials()?.let { credentials ->
                     if (credentials.accessToken != null
-                        && credentials.refreshToken != null
+                        //&& credentials.refreshToken != null TODO some homeservers do not support refresh tokens
                         && credentials.userId != null
                         && credentials.deviceId != null
                     ) {

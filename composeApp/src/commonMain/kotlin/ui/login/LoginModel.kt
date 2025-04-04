@@ -374,7 +374,7 @@ class LoginModel(
                 setupAutoLogin = false,
                 homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
-                    type = Matrix.Id.THIRD_PARTY,
+                    type = if(username != null) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
                     medium = Matrix.Medium.EMAIL,
                     address = email,
                     user = username
