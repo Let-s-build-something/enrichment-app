@@ -13,7 +13,7 @@ import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.room.ConversationRoomIO
-import data.io.social.network.conversation.ConversationTypingIndicator
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -30,6 +30,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
@@ -180,8 +181,22 @@ open class ConversationModel(
             }
         }
 
-        // TODO socket listening to typing indicators
-        //appendTypingIndicator()
+        viewModelScope.launch(Dispatchers.Default) {
+            sharedDataManager.typingIndicators.collectLatest { indicators ->
+                _typingIndicators.value = indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
+                    if(userId.full != matrixUserId) {
+                        ConversationTypingIndicator().apply {
+                            user = _conversationDetail.value?.users?.find { user ->
+                                user.userMatrixId == userId.full
+                            }
+                        }
+                    }else null
+                }.let {
+                    // hashcode to enforce recomposition
+                    it.hashCode() to it?.takeLast(MAX_TYPING_INDICATORS).orEmpty()
+                }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -191,6 +206,7 @@ open class ConversationModel(
 
     // ==================== functions ===========================
 
+    /** Experimental typing services */
     fun startTypingServices() {
         if(!timingSensor.value.isRunning && !timingSensor.value.isLocked) {
             viewModelScope.launch {
@@ -204,6 +220,15 @@ open class ConversationModel(
         if(timingSensor.value.isRunning) {
             timingSensor.value.pause()
             gravityUseCase.kill()
+        }
+    }
+
+    fun updateTypingStatus(content: CharSequence) {
+        viewModelScope.launch {
+            repository.updateTypingIndicator(
+                conversationId = conversationId,
+                indicator = ConversationTypingIndicator(content = content.toString())
+            )
         }
     }
 
@@ -244,27 +269,6 @@ open class ConversationModel(
                 gravityUseCase.clearCache(conversationId)
             }
             savedMessage.value = content
-        }
-    }
-
-    /** Appends or updates a typing indicator */
-    private fun appendTypingIndicator(indicator: ConversationTypingIndicator) {
-        viewModelScope.launch(Dispatchers.Default) {
-            _typingIndicators.update { previous ->
-                val res = previous.second.toMutableList().apply {
-                    // update existing indicator or add a new one
-                    find { it.authorPublicId == indicator.authorPublicId }?.apply {
-                        content = indicator.content
-                    } ?: add(indicator.also {
-                        // find relevant user for new indicator
-                        it.user = _conversationDetail.value?.users?.find { user -> user.publicId == indicator.authorPublicId }
-                    })
-
-                    // remove irrelevant indicator - better than just filtering them
-                    removeAll { it.content.isNullOrBlank() }
-                }
-                res.hashCode() to res.takeLast(MAX_TYPING_INDICATORS)
-            }
         }
     }
 

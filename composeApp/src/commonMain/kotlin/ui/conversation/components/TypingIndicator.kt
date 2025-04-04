@@ -22,12 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
-import data.io.social.network.conversation.ConversationTypingIndicator
+import data.io.matrix.room.event.ConversationTypingIndicator
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val ANIMATION_LENGTH = 400L * 12 + 800L
+const val ANIMATION_LENGTH = 400L * 12 + 800L
 
 /**
  * Animated visualization of other user typing in a conversation
@@ -38,8 +38,6 @@ fun TypingIndicator(
     modifier: Modifier = Modifier,
     key: Int,
     data: ConversationTypingIndicator,
-    hasPrevious: Boolean,
-    hasNext: Boolean,
     onFinish: () -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -50,16 +48,7 @@ fun TypingIndicator(
     Row (
         modifier = modifier
             .height(48.dp)
-            .widthIn(min = 96.dp + userProfileSize)
-            .background(
-                color = LocalTheme.current.colors.backgroundContrast,
-                shape = RoundedCornerShape(
-                    topEnd = 24.dp,
-                    bottomEnd = 24.dp,
-                    topStart = if(hasPrevious) 1.dp else 24.dp,
-                    bottomStart = if(hasNext) 1.dp else 24.dp
-                )
-            ),
+            .widthIn(min = 96.dp + userProfileSize),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -87,14 +76,14 @@ fun LoadingMessageBubble(
     val coroutineScope = rememberCoroutineScope()
     val cancellableScope = rememberCoroutineScope()
 
-    val dotCount = remember(data.authorPublicId) {
+    val dotCount = remember(data.userIds) {
         mutableStateOf(0)
     }
-    val isTicked = remember(data.authorPublicId) {
+    val isTicked = remember(data.userIds) {
         mutableStateOf(false)
     }
 
-    LaunchedEffect(data.authorPublicId, key, data.content) {
+    LaunchedEffect(data.userIds, key, data.content) {
         cancellableScope.coroutineContext.cancelChildren()
         coroutineScope.coroutineContext.cancelChildren()
         if(dotCount.value == -1) dotCount.value = 0

@@ -91,9 +91,18 @@ internal fun httpClientFactory(
         install(HttpSend)
     }.apply {
         plugin(HttpSend).intercept { request ->
-            if(request.url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.")) {
+            val isMatrix = request.url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.")
+            if(isMatrix) {
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
+                }
+            }else if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
+                request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
+                sharedModel.currentUser.value?.idToken?.let { idToken ->
+                    request.headers[IdToken] = idToken
+                }
+                sharedModel.currentUser.value?.accessToken?.let { accessToken ->
+                    request.headers[AccessToken] = accessToken
                 }
             }
 
@@ -106,6 +115,7 @@ internal fun httpClientFactory(
 
             // retry for 401 response
             if (call.response.status == EXPIRED_TOKEN_CODE
+                && isMatrix
                 && request.url.toString().contains("/_matrix/")
                 && !request.url.encodedPath.contains("/refresh")
                 && forceRefreshCountdown-- > 0
@@ -166,20 +176,12 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         }
     }
     defaultRequest {
+        headers[HttpHeaders.UserAgent] = "Augmy"
         if(headers[HttpHeaders.Authorization] == null) {
             when {
                 url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.") -> {
                     sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                         headers[HttpHeaders.Authorization] = "Bearer $accessToken"
-                    }
-                }
-                url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName) -> {
-                    headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                    sharedModel.currentUser.value?.idToken?.let { idToken ->
-                        headers[IdToken] = idToken
-                    }
-                    sharedModel.currentUser.value?.accessToken?.let { accessToken ->
-                        headers[AccessToken] = accessToken
                     }
                 }
             }

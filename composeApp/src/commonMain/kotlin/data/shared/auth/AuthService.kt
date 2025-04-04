@@ -80,7 +80,7 @@ class AuthService {
             getLoginInfo = {
                 (retrieveCredentials()?.let { credentials ->
                     if (credentials.accessToken != null
-                        && credentials.refreshToken != null
+                        //&& credentials.refreshToken != null TODO some homeservers do not support refresh tokens
                         && credentials.userId != null
                         && credentials.deviceId != null
                     ) {
@@ -114,7 +114,6 @@ class AuthService {
     fun stop() {
         if(isRunning) {
             isRunning = false
-            if(mutex.isLocked) mutex.unlock()
             enqueueScope.coroutineContext.cancelChildren()
         }
     }

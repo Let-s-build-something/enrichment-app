@@ -11,6 +11,7 @@ import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
@@ -29,6 +30,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Url
@@ -58,6 +60,8 @@ open class ConversationRepository(
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
 ) {
+    private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
+
     private val dataSyncHandler = DataSyncHandler()
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
@@ -197,13 +201,26 @@ open class ConversationRepository(
     suspend fun getConversationDetail(
         conversationId: String,
         owner: String?
-    ): ConversationRoomIO? {
-        return withContext(Dispatchers.IO) {
-            conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
-                summary?.members = networkItemDao.getItems(
-                    userPublicIds = summary?.heroes?.map { it.full },
-                    ownerPublicId = ownerPublicId
-                )
+    ): ConversationRoomIO? = withContext(Dispatchers.IO) {
+        conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
+            summary?.members = networkItemDao.getItems(
+                userPublicIds = summary?.heroes?.map { it.full },
+                ownerPublicId = ownerPublicId
+            )
+        }
+    }
+
+    /** Returns a detailed information about a conversation */
+    suspend fun updateTypingIndicator(
+        conversationId: String,
+        indicator: ConversationTypingIndicator
+    ): BaseResponse<Any> = withContext(Dispatchers.IO) {
+        val userId = sharedDataManager.currentUser.value?.matrixUserId
+        val homeserver = sharedDataManager.currentUser.value?.matrixHomeserver
+
+        httpClient.safeRequest<Any> {
+            put("https://${homeserver}/_matrix/client/v3/rooms/${conversationId}/typing/${userId}") {
+                setBody(indicator)
             }
         }
     }

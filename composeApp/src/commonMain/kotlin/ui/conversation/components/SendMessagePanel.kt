@@ -353,6 +353,7 @@ internal fun BoxScope.SendMessagePanel(
             cancellableScope.coroutineContext.cancelChildren()
             cancellableScope.launch(Dispatchers.Default) {
                 delay(DELAY_BETWEEN_TYPING_SHORT)
+                model.updateTypingStatus(content = messageState.text)
                 typedUrl.value = LinkUtils.urlRegex.findAll(messageState.text).firstOrNull()?.value
             }
         }
@@ -572,6 +573,7 @@ internal fun BoxScope.SendMessagePanel(
                     }
                     .onFocusChanged {
                         if(it.isFocused && messageState.text.isNotBlank()) {
+                            model.updateTypingStatus(content = messageState.text)
                             model.startTypingServices()
                         }else model.stopTypingServices()
                     }

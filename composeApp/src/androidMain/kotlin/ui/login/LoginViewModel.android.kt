@@ -21,7 +21,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.auth
-import data.io.identity_platform.IdentityMessageType
+import data.io.identity_platform.IdentityUserResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -105,7 +105,7 @@ actual class UserOperationService(
         email: String,
         password: String,
         deleteRightAfter: Boolean
-    ): IdentityMessageType? = null
+    ): IdentityUserResponse? = null
 
 
     /**

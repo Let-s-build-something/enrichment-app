@@ -6,6 +6,7 @@ import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingEntityType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
@@ -21,6 +22,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
@@ -30,6 +32,7 @@ import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import net.folivo.trixnity.core.model.events.m.Presence
+import net.folivo.trixnity.core.model.events.m.TypingEventContent
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
@@ -65,6 +68,9 @@ class DataSyncService {
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
         if(!isRunning) {
+            println("kostka_test, datasync service sync, isFullyValid: ${
+                sharedDataManager.currentUser.value?.isFullyValid
+            }")
             this.homeserver = homeserver
             isRunning = true
             syncScope.launch {
@@ -207,6 +213,15 @@ internal class DataSyncHandler: MessageProcessor() {
                             is NameEventContent -> name = content.name
                             is AvatarEventContent -> avatar = content
                             is EncryptionEventContent -> algorithm = content
+                            is TypingEventContent -> {
+                                sharedDataManager.typingIndicators.update { prev ->
+                                    prev.second.apply {
+                                        this[room.id] = ConversationTypingIndicator(userIds = content.users)
+                                    }.let {
+                                        it.hashCode() to it
+                                    }
+                                }
+                            }
                             else -> {}
                         }
 

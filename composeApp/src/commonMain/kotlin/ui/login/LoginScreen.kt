@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.Key
@@ -73,6 +74,7 @@ import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.accessibility_sign_in_illustration
 import augmy.composeapp.generated.resources.accessibility_sign_up_illustration
 import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.dialog_recaptcha_title
 import augmy.composeapp.generated.resources.dialog_terms_message
 import augmy.composeapp.generated.resources.dialog_terms_title
@@ -317,7 +319,7 @@ fun LoginScreen(
         flow?.stages?.getOrNull(progress.index)?.let { stage ->
             MatrixProgressStage(
                 stage = stage,
-                viewModel = model
+                model = model
             )
         }
     }
@@ -670,13 +672,12 @@ private fun ColumnScope.LoginScreenContent(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MatrixProgressStage(
     stage: String,
-    viewModel: LoginModel
+    model: LoginModel
 ) {
-    val progress = viewModel.matrixProgress.collectAsState()
+    val progress = model.matrixProgress.collectAsState()
 
     Crossfade(targetState = stage) { currentStage ->
         when(currentStage) {
@@ -699,7 +700,7 @@ private fun MatrixProgressStage(
                             callback: (String) -> Unit
                         ) {
                             isSuccess.value = true
-                            viewModel.matrixStepOver(
+                            model.matrixStepOver(
                                 type = currentStage,
                                 recaptchaJson = message.params
                             )
@@ -737,7 +738,10 @@ private fun MatrixProgressStage(
                         )
                     },
                     onDismissRequest = {
-                        if(!isSuccess.value) viewModel.clearMatrixProgress()
+                        if(!isSuccess.value) {
+                            model.clearMatrixProgress()
+                            model.setLoading(false)
+                        }
                     }
                 )
             }
@@ -764,134 +768,158 @@ private fun MatrixProgressStage(
                         text = stringResource(Res.string.button_confirm),
                         onClick = {
                             isSuccess.value = true
-                            viewModel.matrixStepOver(
+                            model.matrixStepOver(
                                 type = currentStage,
                                 agreements = policies.orEmpty().mapNotNull { it.en?.url }
                             )
                         }
                     ),
                     onDismissRequest = {
-                        if(!isSuccess.value) viewModel.clearMatrixProgress()
+                        if(!isSuccess.value) model.clearMatrixProgress()
                     }
                 )
             }
             Matrix.LOGIN_EMAIL_IDENTITY -> {
-                val counter = remember { mutableStateOf(STOPWATCH_MAX) }
-                val snackbarHostState = LocalSnackbarHost.current
-                val coroutineScope = rememberCoroutineScope()
+                EmailConfirmationSheet(
+                    model = model,
+                    currentStage = currentStage,
+                    progress = progress.value
+                )
+            }
+            else -> {}
+        }
+    }
+}
 
-                LaunchedEffect(Unit, counter.value) {
-                    if(counter.value >= STOPWATCH_MAX) {
-                        coroutineScope.coroutineContext.cancelChildren()
-                        coroutineScope.launch {
-                            while(counter.value > 0) {
-                                delay(100)
-                                counter.value -= 100
-                            }
-                        }
-                    }
-                }
-                LaunchedEffect(Unit) {
-                    viewModel.matrixProgress.collectLatest {
-                        if(it?.retryAfter != null) {
-                            counter.value = it.retryAfter
-                        }
-                    }
-                }
-                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-                    if(progress.value?.sid != null) {
-                        viewModel.matrixStepOver(type = currentStage)
-                    }
-                }
-                LaunchedEffect(Unit) {
-                    if(progress.value?.sid == null) {
-                        viewModel.matrixRequestToken()
-                    }
-                }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EmailConfirmationSheet(
+    model: LoginModel,
+    currentStage: String,
+    progress: MatrixProgress?
+) {
+    val counter = remember { mutableStateOf(STOPWATCH_MAX) }
+    val snackbarHostState = LocalSnackbarHost.current
+    val coroutineScope = rememberCoroutineScope()
 
-                SimpleModalBottomSheet(
-                    sheetState = rememberModalBottomSheetState(
-                        skipPartiallyExpanded = true,
-                        confirmValueChange = { false }
-                    ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    onDismissRequest = {}
-                ) {
-                    Text(
-                        text = stringResource(Res.string.login_email_verification_heading),
-                        style = LocalTheme.current.styles.subheading
-                    )
-                    Text(
-                        text = buildAnnotatedString {
-                            append(stringResource(Res.string.login_email_verification_message))
-                            withStyle(
-                                SpanStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    fontStyle = LocalTheme.current.styles.title.fontStyle
-                                )
-                            ) { append(progress.value?.email) }
-                            append(".")
+    LaunchedEffect(Unit, counter.value) {
+        if(counter.value >= STOPWATCH_MAX) {
+            coroutineScope.coroutineContext.cancelChildren()
+            coroutineScope.launch {
+                while(counter.value > 0) {
+                    delay(100)
+                    counter.value -= 100
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        model.matrixProgress.collectLatest {
+            if(it?.retryAfter != null) {
+                counter.value = it.retryAfter
+            }
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if(progress?.sid != null) {
+            model.matrixStepOver(type = currentStage)
+        }
+    }
+    LaunchedEffect(Unit) {
+        if(progress?.sid == null) {
+            model.matrixRequestToken()
+        }
+    }
 
-                        },
-                        style = LocalTheme.current.styles.regular
+    SimpleModalBottomSheet(
+        sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { false }
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        onDismissRequest = {}
+    ) {
+        MinimalisticIcon(
+            modifier = Modifier.align(Alignment.End),
+            imageVector = Icons.Outlined.Close,
+            contentDescription = stringResource(Res.string.button_dismiss),
+            tint = LocalTheme.current.colors.secondary,
+            onTap = {
+                model.clearMatrixProgress()
+                model.setLoading(false)
+            }
+        )
+        Text(
+            text = stringResource(Res.string.login_email_verification_heading),
+            style = LocalTheme.current.styles.subheading
+        )
+        Text(
+            text = buildAnnotatedString {
+                append(stringResource(Res.string.login_email_verification_message))
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = LocalTheme.current.styles.title.fontStyle
                     )
-                    GifImage(
-                        modifier = Modifier
-                            .padding(top = 6.dp)
-                            .zIndex(1f)
-                            .clip(RoundedCornerShape(6.dp))
-                            .wrapContentWidth()
-                            .animateContentSize(alignment = Alignment.BottomCenter),
-                        data = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzVrZTdmbHhybnZ4MTJ5eXNkNTBza3RreWxoeTBtaDB6Yjl2Y2JzMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gjxYeOTM4Zq1ODtTv3/giphy.gif",
-                        contentDescription = null
-                    )
-                    ComponentHeaderButton(
-                        modifier = Modifier
-                            .padding(top = 32.dp)
-                            .fillMaxWidth(.7f),
-                        text = stringResource(Res.string.login_email_verification_action),
-                        extraContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.AlternateEmail,
-                                contentDescription = null,
-                                tint = LocalTheme.current.colors.secondary
-                            )
-                        },
-                        onClick = {
-                            if(!openEmail(address = progress.value?.email)) {
-                                coroutineScope.launch {
-                                    snackbarHostState?.showSnackbar(
-                                        message = getString(Res.string.no_email_client_error)
-                                    )
-                                }
-                            }
-                        }
-                    )
-                    Row(
-                        modifier = Modifier.animateContentSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .scalingClickable(enabled = counter.value <= 0) {
-                                    counter.value = STOPWATCH_MAX
-                                    viewModel.matrixRequestToken()
-                                }
-                                .padding(top = 2.dp),
-                            text = stringResource(Res.string.login_email_verification_repeat),
-                            style = LocalTheme.current.styles.regular
+                ) { append(progress?.email) }
+                append(".")
+
+            },
+            style = LocalTheme.current.styles.regular
+        )
+        GifImage(
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .zIndex(1f)
+                .clip(RoundedCornerShape(6.dp))
+                .wrapContentWidth()
+                .animateContentSize(alignment = Alignment.BottomCenter),
+            data = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzVrZTdmbHhybnZ4MTJ5eXNkNTBza3RreWxoeTBtaDB6Yjl2Y2JzMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gjxYeOTM4Zq1ODtTv3/giphy.gif",
+            contentDescription = null
+        )
+        ComponentHeaderButton(
+            modifier = Modifier
+                .padding(top = 32.dp)
+                .fillMaxWidth(.7f),
+            text = stringResource(Res.string.login_email_verification_action),
+            extraContent = {
+                Icon(
+                    imageVector = Icons.Outlined.AlternateEmail,
+                    contentDescription = null,
+                    tint = LocalTheme.current.colors.secondary
+                )
+            },
+            onClick = {
+                if(!openEmail(address = progress?.email)) {
+                    coroutineScope.launch {
+                        snackbarHostState?.showSnackbar(
+                            message = getString(Res.string.no_email_client_error)
                         )
-                        if(counter.value > 0) {
-                            Text(
-                                text = "${counter.value.div(1000)}s",
-                                style = LocalTheme.current.styles.title
-                            )
-                        }
                     }
                 }
             }
-            else -> {}
+        )
+        Row(
+            modifier = Modifier.animateContentSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .scalingClickable(enabled = counter.value <= 0) {
+                        counter.value = STOPWATCH_MAX
+                        model.matrixRequestToken()
+                    }
+                    .padding(top = 2.dp),
+                text = stringResource(Res.string.login_email_verification_repeat),
+                style = LocalTheme.current.styles.regular
+            )
+            if(counter.value > 0) {
+                Text(
+                    text = "${counter.value.div(1000)}s",
+                    style = LocalTheme.current.styles.title
+                )
+            }
         }
     }
 }

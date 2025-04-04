@@ -21,6 +21,7 @@ object Matrix {
 
     object Id {
         const val THIRD_PARTY = "m.id.thirdparty"
+        const val USER = "m.id.user"
     }
 
     object Brand {
