@@ -6,6 +6,7 @@ import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingEntityType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
@@ -21,6 +22,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
@@ -30,6 +32,7 @@ import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import net.folivo.trixnity.core.model.events.m.Presence
+import net.folivo.trixnity.core.model.events.m.TypingEventContent
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
@@ -207,6 +210,16 @@ internal class DataSyncHandler: MessageProcessor() {
                             is NameEventContent -> name = content.name
                             is AvatarEventContent -> avatar = content
                             is EncryptionEventContent -> algorithm = content
+                            is TypingEventContent -> {
+                                println("kostka_test, TypingEventContent: $content")
+                                sharedDataManager.typingIndicators.update { prev ->
+                                    prev.second.apply {
+                                        this[room.id] = ConversationTypingIndicator(userIds = content.users)
+                                    }.let {
+                                        it.hashCode() to it
+                                    }
+                                }
+                            }
                             else -> {}
                         }
 
@@ -232,8 +245,6 @@ internal class DataSyncHandler: MessageProcessor() {
                         }
                     }
 
-
-                println("kostka_test, ephemeral: ${room.ephemeral?.events}")
                 val newItem = room.copy(
                     summary = room.summary?.copy(
                         avatar = avatar?.url?.let {

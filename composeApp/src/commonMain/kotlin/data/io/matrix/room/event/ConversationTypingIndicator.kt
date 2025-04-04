@@ -5,6 +5,7 @@ import data.io.user.NetworkItemIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.EphemeralEventContent
 import ui.conversation.components.ANIMATION_LENGTH
 
@@ -15,7 +16,7 @@ data class ConversationTypingIndicator(
     var content: String? = null,
 
     @SerialName("user_ids")
-    val userIds: List<String>? = null,
+    val userIds: Set<UserId>? = null,
 
     val type: String = "m.typing"
 ): EphemeralEventContent {

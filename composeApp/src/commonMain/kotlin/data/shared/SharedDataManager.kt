@@ -3,6 +3,7 @@ package data.shared
 import base.utils.NetworkConnectivity
 import data.io.app.LocalSettings
 import data.io.base.AppPing
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.user.UserIO
 import kotlinx.coroutines.flow.MutableStateFlow
 import net.folivo.trixnity.client.MatrixClient
@@ -26,4 +27,6 @@ class SharedDataManager {
     val networkConnectivity = MutableStateFlow<NetworkConnectivity?>(null)
 
     var matrixClient = MutableStateFlow<MatrixClient?>(null)
+
+    val typingIndicators = MutableStateFlow(-1 to hashMapOf<String, ConversationTypingIndicator>())
 }

@@ -189,7 +189,7 @@ fun ConversationComponent(
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    typingIndicators.value.second.forEachIndexed { index, indicator ->
+                    typingIndicators.value.second.forEach { indicator ->
                         TypingIndicator(
                             modifier = Modifier
                                 .padding(start = 12.dp,)
@@ -200,9 +200,7 @@ fun ConversationComponent(
                                     }
                                 },
                             key = typingIndicators.value.first,
-                            data = indicator,
-                            hasPrevious = index > 0,
-                            hasNext = index < typingIndicators.value.second.lastIndex
+                            data = indicator
                         )
                     }
                 }

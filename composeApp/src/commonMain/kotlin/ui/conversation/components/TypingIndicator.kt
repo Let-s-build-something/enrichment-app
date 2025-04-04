@@ -38,8 +38,6 @@ fun TypingIndicator(
     modifier: Modifier = Modifier,
     key: Int,
     data: ConversationTypingIndicator,
-    hasPrevious: Boolean,
-    hasNext: Boolean,
     onFinish: () -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -50,16 +48,7 @@ fun TypingIndicator(
     Row (
         modifier = modifier
             .height(48.dp)
-            .widthIn(min = 96.dp + userProfileSize)
-            .background(
-                color = LocalTheme.current.colors.backgroundContrast,
-                shape = RoundedCornerShape(
-                    topEnd = 24.dp,
-                    bottomEnd = 24.dp,
-                    topStart = if(hasPrevious) 1.dp else 24.dp,
-                    bottomStart = if(hasNext) 1.dp else 24.dp
-                )
-            ),
+            .widthIn(min = 96.dp + userProfileSize),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
