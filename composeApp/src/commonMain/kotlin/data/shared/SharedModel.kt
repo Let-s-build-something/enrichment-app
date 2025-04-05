@@ -62,7 +62,6 @@ open class SharedModel: ViewModel() {
                 client to user
             }.collectLatest { client ->
                 if(client.first != null && client.second?.isFullyValid == true) {
-                    println("kostka_test, homeserver: ${client.second?.matrixHomeserver}")
                     client.second?.matrixHomeserver?.let { homeserver ->
                         dataSyncService.sync(homeserver = homeserver)
                     }

@@ -396,7 +396,6 @@ class AuthService {
                         deviceId = deviceId
                     )
                     val isValid = dataManager.currentUser.value?.idToken != null
-                    println("kostka_test, loginWithCredentials -> idToken -> ${dataManager.currentUser.value?.idToken}")
                     if(isValid) {
                         cacheCredentials(
                             deviceId = deviceId,
@@ -549,7 +548,6 @@ class AuthService {
     }
 
     private suspend fun initializeMatrixClient(auth: AuthItem? = null) {
-        println("kostka_test, initializeMatrixClient, can continue: ${(auth ?: retrieveCredentials()) != null}")
         val credentials = auth ?: retrieveCredentials() ?: return
 
         if(dataManager.matrixClient.value == null) {

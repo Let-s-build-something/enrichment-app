@@ -93,13 +93,18 @@ class VerificationModel(
         keyVerificationScope.launch {
             sharedDataManager.matrixClient.collectLatest {
                 it?.let { client ->
-                    client.key.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { keys ->
-                        println("kostka_test, crossSigningKeys: $keys")
-                    }
-                    client.key.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { trust ->
-                        println("kostka_test, trustLevel: $trust")
-                    }
                     subscribeToVerificationMethods(client = client)
+
+                    keyVerificationScope.launch {
+                        client.key.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { keys ->
+                            println("kostka_test, crossSigningKeys: $keys")
+                        }
+                    }
+                    keyVerificationScope.launch {
+                        client.key.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { trust ->
+                            println("kostka_test, trustLevel: $trust")
+                        }
+                    }
                 }
             }
         }
@@ -113,9 +118,10 @@ class VerificationModel(
     private fun subscribeToVerificationMethods(client: MatrixClient) {
         keyVerificationScope.launch {
             client.verification.getSelfVerificationMethods().collectLatest { verification ->
+                println("kostka_test, selfVerificationMethods: $verification")
                 when(verification) {
                     is VerificationService.SelfVerificationMethods.AlreadyCrossSigned -> {
-                        if(_launcherState.value is LauncherState.SelfVerification) {
+                        if(_launcherState.value !is LauncherState.Hidden && _launcherState.value !is LauncherState.Success) {
                             _launcherState.value = LauncherState.Hidden
                         }
                     }
@@ -127,6 +133,10 @@ class VerificationModel(
                         } else LauncherState.SelfVerification(
                             methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
                         )
+                    }
+                    is VerificationService.SelfVerificationMethods.NoCrossSigningEnabled -> {
+                        // TODO #86c2y7krb this is how we recognize a new user
+                        _launcherState.value = LauncherState.Bootstrap
                     }
                     else -> {}
                 }
@@ -278,11 +288,14 @@ class VerificationModel(
     }
 
     fun bootstrap(newPassphrase: String) {
+        isLoading.value = true
         viewModelScope.launch {
             bootstrapCrossSigning(passphrase = newPassphrase)?.let { result ->
                 if(result is UIA.Success<*>) {
                     finishDeviceVerification()
-                }else isLoading.value = false
+                    _launcherState.value = LauncherState.Success
+                }
+                isLoading.value = false
             }.ifNull {
                 isLoading.value = false
             }
@@ -328,12 +341,14 @@ class VerificationModel(
     private fun finishDeviceVerification() {
         viewModelScope.launch {
             sharedDataManager.matrixClient.value?.let { client ->
-                client.verification.createDeviceVerificationRequest(
-                    theirDeviceIds = client.key.getDeviceKeys(client.userId).firstOrNull()?.mapNotNull { key ->
-                        key.deviceId.takeIf { it != client.deviceId }
-                    }?.toSet().orEmpty(),
-                    theirUserId = client.userId
-                )
+                client.key.getDeviceKeys(client.userId).firstOrNull()?.mapNotNull { key ->
+                    key.deviceId.takeIf { it != client.deviceId }
+                }?.toSet()?.takeIf { it.isNotEmpty() }?.let { deviceIds ->
+                    client.verification.createDeviceVerificationRequest(
+                        theirDeviceIds = deviceIds,
+                        theirUserId = client.userId
+                    )
+                }
             }
         }
     }

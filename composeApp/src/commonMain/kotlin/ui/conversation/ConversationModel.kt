@@ -449,27 +449,31 @@ open class ConversationModel(
                         )
                     }
                 }
-            }
+            },
+            state = if(sharedDataManager.matrixClient.value != null) MessageState.Pending else MessageState.Failed
         )
-        repository.sendMessage(
-            client = sharedDataManager.matrixClient.value,
-            conversationId = conversationId,
-            message = msg
-        )?.let { result ->
-            repository.cacheMessage(
-                msg.copy(
-                    id = result.getOrNull()?.full ?: "",
-                    state = if(result.isSuccess) MessageState.Sent else MessageState.Failed
+
+        if(sharedDataManager.matrixClient.value != null) {
+            repository.sendMessage(
+                client = sharedDataManager.matrixClient.value,
+                conversationId = conversationId,
+                message = msg
+            )?.let { result ->
+                repository.cacheMessage(
+                    msg.copy(
+                        id = result.getOrNull()?.full ?: "",
+                        state = if(result.isSuccess) MessageState.Sent else MessageState.Failed
+                    )
                 )
-            )
-            // we don't need the local message anymore
-            repository.removeMessage(msg.id)
-            if(result.isSuccess) {
-                repository.cachedFiles.update { prev ->
-                    prev.apply {
-                        uuids.forEachIndexed { index, s ->
-                            msg.media?.getOrNull(index)?.url?.let { remove(it) }
-                            remove(s)
+                // we don't need the local message anymore
+                repository.removeMessage(msg.id)
+                if(result.isSuccess) {
+                    repository.cachedFiles.update { prev ->
+                        prev.apply {
+                            uuids.forEachIndexed { index, s ->
+                                msg.media?.getOrNull(index)?.url?.let { remove(it) }
+                                remove(s)
+                            }
                         }
                     }
                 }
