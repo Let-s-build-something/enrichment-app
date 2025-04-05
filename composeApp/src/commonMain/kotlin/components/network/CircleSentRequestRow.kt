@@ -69,13 +69,6 @@ private fun ContentLayout(
     onResponse: (accept: Boolean) -> Unit,
     response: BaseResponse<*>?
 ) {
-    val confirmReject = rememberSaveable(data.publicId) {
-        mutableStateOf(false)
-    }
-    val confirmAccept = rememberSaveable(data.publicId) {
-        mutableStateOf(false)
-    }
-
     Row(
         modifier = modifier.padding(vertical = 8.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -97,128 +90,149 @@ private fun ContentLayout(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        Crossfade(
+        NetworkRequestActions(
             modifier = Modifier.weight(1f),
-            targetState = response != null
-        ) { isLoading ->
-            Box(modifier = Modifier
+            response = response,
+            key = data.publicId,
+            onResponse = onResponse
+        )
+    }
+}
+
+@Composable
+fun NetworkRequestActions(
+    modifier: Modifier = Modifier,
+    key: Any?,
+    response: BaseResponse<*>?,
+    onResponse: (accept: Boolean) -> Unit
+) {
+    val confirmReject = rememberSaveable(key) {
+        mutableStateOf(false)
+    }
+    val confirmAccept = rememberSaveable(key) {
+        mutableStateOf(false)
+    }
+
+    Crossfade(
+        modifier = modifier,
+        targetState = response != null
+    ) { isLoading ->
+        Box(
+            modifier = Modifier
                 .animateContentSize()
-                .padding(8.dp)
                 .fillMaxWidth()
-                .height(56.dp)
-            ) {
-                if(isLoading) {
-                    LoadingIndicator(
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        response = response
-                    )
-                }else {
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .height(IntrinsicSize.Min)
-                            .background(
-                                color = when {
-                                    confirmAccept.value -> LocalTheme.current.colors.brandMain.copy(.5f)
-                                    confirmReject.value -> SharedColors.RED_ERROR_50
-                                    else -> Color.Transparent
-                                },
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = when {
-                                    confirmAccept.value -> LocalTheme.current.colors.brandMain
-                                    confirmReject.value -> SharedColors.RED_ERROR
-                                    else -> Color.Transparent
-                                },
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                            .padding(4.dp)
-                            .animateContentSize(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Crossfade(
-                            targetState = when {
-                                confirmReject.value -> ActionMode.REJECT
-                                confirmAccept.value -> ActionMode.ACCEPT
-                                else -> ActionMode.DEFAULT
-                            }
-                        ) { actionMode ->
-                            Row(
-                                modifier = Modifier.fillMaxHeight(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                when(actionMode) {
-                                    ActionMode.DEFAULT -> {
-                                        MinimalisticIcon(
-                                            imageVector = Icons.Outlined.Close,
-                                            contentDescription = stringResource(Res.string.button_dismiss),
-                                            tint = SharedColors.RED_ERROR,
-                                            onTap = {
-                                                if(confirmReject.value) {
-                                                    confirmReject.value = false
-                                                    onResponse(false)
-                                                }else confirmReject.value = true
+        ) {
+            if(isLoading) {
+                LoadingIndicator(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    response = response
+                )
+            }else {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .height(IntrinsicSize.Min)
+                        .background(
+                            color = when {
+                                confirmAccept.value -> LocalTheme.current.colors.brandMain.copy(.5f)
+                                confirmReject.value -> SharedColors.RED_ERROR_50
+                                else -> Color.Transparent
+                            },
+                            shape = LocalTheme.current.shapes.componentShape
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = when {
+                                confirmAccept.value -> LocalTheme.current.colors.brandMain
+                                confirmReject.value -> SharedColors.RED_ERROR
+                                else -> Color.Transparent
+                            },
+                            shape = LocalTheme.current.shapes.componentShape
+                        )
+                        .padding(4.dp)
+                        .animateContentSize(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Crossfade(
+                        targetState = when {
+                            confirmReject.value -> ActionMode.REJECT
+                            confirmAccept.value -> ActionMode.ACCEPT
+                            else -> ActionMode.DEFAULT
+                        }
+                    ) { actionMode ->
+                        Row(
+                            modifier = Modifier.fillMaxHeight(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            when(actionMode) {
+                                ActionMode.DEFAULT -> {
+                                    MinimalisticIcon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = stringResource(Res.string.button_dismiss),
+                                        tint = SharedColors.RED_ERROR,
+                                        onTap = {
+                                            if(confirmReject.value) {
+                                                confirmReject.value = false
+                                                onResponse(false)
+                                            }else confirmReject.value = true
+                                        }
+                                    )
+                                    MinimalisticIcon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = stringResource(Res.string.button_yes),
+                                        tint = LocalTheme.current.colors.brandMain,
+                                        onTap = {
+                                            if(confirmAccept.value) {
+                                                confirmAccept.value = false
+                                                onResponse(true)
+                                            }else confirmAccept.value = true
+                                        }
+                                    )
+                                }
+                                ActionMode.REJECT -> {
+                                    Text(
+                                        modifier = Modifier
+                                            .scalingClickable {
+                                                confirmReject.value = false
                                             }
-                                        )
-                                        MinimalisticIcon(
-                                            imageVector = Icons.Outlined.Check,
-                                            contentDescription = stringResource(Res.string.button_yes),
-                                            tint = LocalTheme.current.colors.brandMain,
-                                            onTap = {
-                                                if(confirmAccept.value) {
-                                                    confirmAccept.value = false
-                                                    onResponse(true)
-                                                }else confirmAccept.value = true
+                                            .padding(4.dp),
+                                        text = stringResource(Res.string.accessibility_cancel),
+                                        style = LocalTheme.current.styles.regular
+                                    )
+                                    MinimalisticIcon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = stringResource(Res.string.button_dismiss),
+                                        tint = SharedColors.RED_ERROR,
+                                        onTap = {
+                                            if(confirmReject.value) {
+                                                confirmReject.value = false
+                                                onResponse(false)
+                                            }else confirmReject.value = true
+                                        }
+                                    )
+                                }
+                                ActionMode.ACCEPT -> {
+                                    MinimalisticIcon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = stringResource(Res.string.button_yes),
+                                        tint = LocalTheme.current.colors.brandMain,
+                                        onTap = {
+                                            if(confirmAccept.value) {
+                                                confirmAccept.value = false
+                                                onResponse(true)
+                                            }else confirmAccept.value = true
+                                        }
+                                    )
+                                    Text(
+                                        modifier = Modifier
+                                            .scalingClickable {
+                                                confirmAccept.value = false
                                             }
-                                        )
-                                    }
-                                    ActionMode.REJECT -> {
-                                        Text(
-                                            modifier = Modifier
-                                                .scalingClickable {
-                                                    confirmReject.value = false
-                                                }
-                                                .padding(4.dp),
-                                            text = stringResource(Res.string.accessibility_cancel),
-                                            style = LocalTheme.current.styles.category
-                                        )
-                                        MinimalisticIcon(
-                                            imageVector = Icons.Outlined.Close,
-                                            contentDescription = stringResource(Res.string.button_dismiss),
-                                            tint = SharedColors.RED_ERROR,
-                                            onTap = {
-                                                if(confirmReject.value) {
-                                                    confirmReject.value = false
-                                                    onResponse(false)
-                                                }else confirmReject.value = true
-                                            }
-                                        )
-                                    }
-                                    ActionMode.ACCEPT -> {
-                                        MinimalisticIcon(
-                                            imageVector = Icons.Outlined.Check,
-                                            contentDescription = stringResource(Res.string.button_yes),
-                                            tint = LocalTheme.current.colors.brandMain,
-                                            onTap = {
-                                                if(confirmAccept.value) {
-                                                    confirmAccept.value = false
-                                                    onResponse(true)
-                                                }else confirmAccept.value = true
-                                            }
-                                        )
-                                        Text(
-                                            modifier = Modifier
-                                                .scalingClickable {
-                                                    confirmAccept.value = false
-                                                }
-                                                .padding(4.dp),
-                                            text = stringResource(Res.string.accessibility_cancel),
-                                            style = LocalTheme.current.styles.category
-                                        )
-                                    }
+                                            .padding(4.dp),
+                                        text = stringResource(Res.string.accessibility_cancel),
+                                        style = LocalTheme.current.styles.regular
+                                    )
                                 }
                             }
                         }

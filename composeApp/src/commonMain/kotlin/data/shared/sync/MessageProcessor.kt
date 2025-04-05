@@ -123,6 +123,10 @@ abstract class MessageProcessor {
 
         events.forEach { event ->
             when(val content = event.content) {
+                is RoomMessageEventContent.VerificationRequest -> {
+                    // TODO #86c2y88ex user verification within Rooms
+                    content.process()
+                }
                 is MemberEventContent -> {
                     (event.stateKeyOrNull ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
@@ -187,8 +191,7 @@ abstract class MessageProcessor {
                         state = message.state ?: if(receipts.find { it.idOrNull?.full == event.idOrNull?.full } != null) {
                             MessageState.Read
                         }else MessageState.Sent,
-                        conversationId = roomId,
-                        prevBatch = prevBatch
+                        conversationId = roomId
                     )
                 )
             }

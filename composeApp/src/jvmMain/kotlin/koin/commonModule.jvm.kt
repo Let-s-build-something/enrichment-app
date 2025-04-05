@@ -90,7 +90,6 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
         keys.forEach { key ->
             if(persistentKeys.none { it.contains(key) }) remove(key)
         }
-        _secretKey = null
     }
 
     private fun encrypt(plainText: String, key: SecretKey): String {
@@ -114,7 +113,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
         } catch (e: AEADBadTagException) {
             prefs.clear()
             _secretKey = null
-            decrypt(encryptedData, key)
+            ""
         } catch (e: Exception) {
             e.printStackTrace()
             ""

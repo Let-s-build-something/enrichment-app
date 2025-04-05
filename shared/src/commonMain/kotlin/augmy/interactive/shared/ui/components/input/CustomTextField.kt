@@ -78,7 +78,7 @@ fun CustomTextField(
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
-    textObfuscationMode: TextObfuscationMode = TextObfuscationMode.RevealLastTyped,
+    textObfuscationMode: TextObfuscationMode? = null,
     inputTransformation: InputTransformation? = null,
     prefixIcon: ImageVector? = null,
     maxCharacters: Int = -1,
@@ -157,12 +157,12 @@ fun CustomTextField(
                         isFocused.value = it.isFocused
                     }
 
-                if(keyboardOptions.keyboardType == KeyboardType.Password) {
+                if(keyboardOptions.keyboardType == KeyboardType.Password || textObfuscationMode != null) {
                     BasicSecureTextField(
                         modifier = finalModifier,
                         state = state,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
-                        textObfuscationMode = textObfuscationMode,
+                        textObfuscationMode = textObfuscationMode ?: TextObfuscationMode.RevealLastTyped,
                         textStyle = textStyle,
                         keyboardOptions = keyboardOptions,
                         onKeyboardAction = onKeyboardAction

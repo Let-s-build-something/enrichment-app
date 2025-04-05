@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomType
 import database.AppRoomDatabase
 
 /** Interface for communication with local Room database */
@@ -71,6 +72,18 @@ interface ConversationRoomDao {
         """)
     suspend fun setPrevBatch(id: String?, prevBatch: String?)
 
+    @Query("""
+           UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+            SET type = :newType
+            WHERE id = :id
+            AND owner_public_id = :ownerPublicId
+        """)
+    suspend fun setType(
+        id: String?,
+        ownerPublicId: String?,
+        newType: RoomType?
+    )
+
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
             "WHERE owner_public_id = :ownerPublicId " +
             "AND id = :id " +
@@ -85,4 +98,11 @@ interface ConversationRoomDao {
 
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}")
     suspend fun removeAll()
+
+    @Query("""
+        DELETE FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+        WHERE owner_public_id = :ownerPublicId
+        AND id = :id
+        """)
+    suspend fun remove(id: String, ownerPublicId: String?)
 }

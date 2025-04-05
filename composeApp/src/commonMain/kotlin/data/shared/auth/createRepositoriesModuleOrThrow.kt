@@ -60,7 +60,7 @@ class MatrixClientFactory(
                     configuration = {
                         configureClient(credentials.deviceId)
                     },
-                ).getOrNull()
+                ).getOrNullLoggingError()
             }else null) ?: MatrixClient.loginWith(
                 baseUrl = Url("https://${credentials.homeserver}"),
                 getLoginInfo = {
@@ -101,6 +101,7 @@ class MatrixClientFactory(
         val repositoriesModule = try {
             repositoriesModuleCreation.create(userId)
         } catch (exc: Exception) {
+            exc.printStackTrace()
             if (isLocked(exc)) throw MatrixClientInitializationException.DatabaseLockedException()
             else throw MatrixClientInitializationException.DatabaseAccessException(exc.message)
         }

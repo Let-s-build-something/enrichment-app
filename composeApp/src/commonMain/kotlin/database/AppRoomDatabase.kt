@@ -37,7 +37,7 @@ import ui.conversation.components.experimental.gravity.GravityValue
         GravityValue::class,
         ConversationRoomIO::class
     ],
-    version = 54,
+    version = 55,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

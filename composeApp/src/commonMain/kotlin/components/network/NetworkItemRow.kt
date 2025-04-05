@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,6 +55,7 @@ fun NetworkItemRow(
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
     onAvatarClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit = {},
     actions: @Composable () -> Unit = {}
 ) {
     Crossfade(
@@ -67,7 +69,8 @@ fun NetworkItemRow(
                 isSelected = isSelected,
                 actions = actions,
                 onAvatarClick = onAvatarClick,
-                data = data
+                data = data,
+                content = content
             )
         }else {
             ShimmerLayout()
@@ -82,6 +85,7 @@ private fun ContentLayout(
     isSelected: Boolean = false,
     data: NetworkItemIO,
     onAvatarClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit = {},
     actions: @Composable () -> Unit = {}
 ) {
     Column(Modifier.animateContentSize()) {
@@ -154,6 +158,7 @@ private fun ContentLayout(
                     contentDescription = null
                 )
             }
+            content()
         }
         AnimatedVisibility(
             modifier = Modifier.zIndex(-1f),

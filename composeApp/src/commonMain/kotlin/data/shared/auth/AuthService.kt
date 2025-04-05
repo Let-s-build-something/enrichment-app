@@ -6,6 +6,8 @@ import base.utils.Matrix
 import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
+import data.io.base.AppPing
+import data.io.base.AppPingType
 import data.io.base.BaseResponse
 import data.io.matrix.auth.EmailLoginRequest
 import data.io.matrix.auth.MatrixAuthenticationResponse
@@ -15,6 +17,7 @@ import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
+import data.shared.sync.DataService
 import database.factory.SecretByteArray
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -56,11 +59,25 @@ internal val authModule = module {
  * The DAO informs us of all users on the device, whereas secure settings stores the credentials of the last login.
  */
 class AuthService {
-    private val httpClient: HttpClient by KoinPlatform.getKoin().inject()
-    private val dataManager: SharedDataManager by KoinPlatform.getKoin().inject()
-    private val secureSettings: SecureAppSettings by KoinPlatform.getKoin().inject()
-    private val repository: SharedRepository by KoinPlatform.getKoin().inject()
-    private val json: Json by KoinPlatform.getKoin().inject()
+    private val _httpClient by lazy { KoinPlatform.getKoin().inject<HttpClient>() }
+    private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
+    private val _dataService by lazy { KoinPlatform.getKoin().inject<DataService>() }
+    private val _secureSettings by lazy { KoinPlatform.getKoin().inject<SecureAppSettings>() }
+    private val _repository by lazy { KoinPlatform.getKoin().inject<SharedRepository>() }
+    private val _json by lazy { KoinPlatform.getKoin().inject<Json>() }
+
+    private val httpClient
+        get() = _httpClient.value
+    private val dataManager
+        get() = _dataManager.value
+    private val dataService
+        get() = _dataService.value
+    private val secureSettings
+        get() = _secureSettings.value
+    private val repository
+        get() = _repository.value
+    private val json
+        get() = _json.value
 
     private val enqueueScope = CoroutineScope(Job())
     private val mutex = Mutex()
@@ -78,6 +95,7 @@ class AuthService {
     private val matrixClientFactory by lazy {
         MatrixClientFactory(
             getLoginInfo = {
+                println("kostka_test, getLoginInfo: ${retrieveCredentials()}")
                 (retrieveCredentials()?.let { credentials ->
                     if (credentials.accessToken != null
                         //&& credentials.refreshToken != null TODO some homeservers do not support refresh tokens
@@ -138,13 +156,19 @@ class AuthService {
                             println("kostka_test, setupAutoLogin -> not expired. Initializing matrix.")
                             initializeMatrixClient(auth = credentials)
                         }else {
-                            println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")
+                            if(credentials.refreshToken == null) {
+                                dataManager.currentUser.value = null
+                                dataService.appendPing(AppPing(AppPingType.HardLogout))
+                                println("kostka_test, setupAutoLogin -> HardLogout")
+                            }else println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")
                         }
-                        enqueueRefreshToken(
-                            refreshToken = credentials.refreshToken,
-                            expiresAtMsEpoch = credentials.expiresAtMsEpoch,
-                            homeserver = credentials.homeserver
-                        )
+                        if(credentials.refreshToken != null) {
+                            enqueueRefreshToken(
+                                refreshToken = credentials.refreshToken,
+                                expiresAtMsEpoch = credentials.expiresAtMsEpoch,
+                                homeserver = credentials.homeserver
+                            )
+                        }
                     }
                     // something's missing, we gotta get all the info first
                     else -> {
@@ -161,9 +185,7 @@ class AuthService {
         if(userId == null) return@withContext null
         secureSettings.getString(
             "${SecureSettingsKeys.KEY_DEVICE_ID}_${userId}", ""
-        ).takeIf { it.isNotBlank() }.also {
-            println("kostka_test, getDeviceId: $it")
-        }
+        ).takeIf { it.isNotBlank() }
     }
 
     private suspend fun getPickleKey(userId: String?): String? = withContext(Dispatchers.IO) {
@@ -374,14 +396,13 @@ class AuthService {
                         deviceId = deviceId
                     )
                     val isValid = dataManager.currentUser.value?.idToken != null
-                    println("kostka_test, loginWithCredentials -> idToken -> ${dataManager.currentUser.value?.idToken}")
                     if(isValid) {
                         cacheCredentials(
                             deviceId = deviceId,
                             response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0),
                             token = null
                         )
-                        loginWithCredentials(false)
+                        true
                     }else false
                 }
                 // only refresh
@@ -532,7 +553,9 @@ class AuthService {
         if(dataManager.matrixClient.value == null) {
             dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
                 credentials = credentials
-            )
+            ).also {
+                println("kostka_test, new Matrix client: $it")
+            }
         }
     }
 
