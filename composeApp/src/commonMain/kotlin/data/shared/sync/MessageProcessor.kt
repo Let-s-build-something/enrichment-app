@@ -124,7 +124,7 @@ abstract class MessageProcessor {
         events.forEach { event ->
             when(val content = event.content) {
                 is RoomMessageEventContent.VerificationRequest -> {
-                    // TODO user verification within Rooms
+                    // TODO #86c2y88ex user verification within Rooms
                     content.process()
                 }
                 is MemberEventContent -> {
