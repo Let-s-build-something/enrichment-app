@@ -159,8 +159,8 @@ class AuthService {
                             if(credentials.refreshToken == null) {
                                 dataManager.currentUser.value = null
                                 dataService.appendPing(AppPing(AppPingType.HardLogout))
-                            }
-                            println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")
+                                println("kostka_test, setupAutoLogin -> HardLogout")
+                            }else println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")
                         }
                         if(credentials.refreshToken != null) {
                             enqueueRefreshToken(
@@ -553,7 +553,9 @@ class AuthService {
         if(dataManager.matrixClient.value == null) {
             dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
                 credentials = credentials
-            )
+            ).also {
+                println("kostka_test, new Matrix client: $it")
+            }
         }
     }
 
