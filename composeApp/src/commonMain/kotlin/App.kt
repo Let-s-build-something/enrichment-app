@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.DoorBack
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -37,6 +38,8 @@ import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.hard_logout_action
+import augmy.composeapp.generated.resources.hard_logout_message
 import augmy.composeapp.generated.resources.leave_app_dialog_message
 import augmy.composeapp.generated.resources.leave_app_dialog_show_again
 import augmy.composeapp.generated.resources.leave_app_dialog_title
@@ -61,8 +64,12 @@ import base.global.InformationPopUps
 import base.navigation.NavigationNode
 import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
+import data.io.base.AppPingType
 import data.shared.AppServiceModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -71,15 +78,15 @@ import ui.dev.DeveloperContent
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 @Preview
-fun App(viewModel: AppServiceModel = koinViewModel()) {
-    val localSettings = viewModel.localSettings.collectAsState()
+fun App(model: AppServiceModel = koinViewModel()) {
+    val localSettings = model.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // iOS awaits the APNS in order to retrieve an FCM token
     if(currentPlatform != PlatformType.Native) {
         LaunchedEffect(Unit) {
-            viewModel.initApp()
+            model.initApp()
         }
     }
 
@@ -132,7 +139,7 @@ fun App(viewModel: AppServiceModel = koinViewModel()) {
                 LocalDeviceType provides windowSizeClass.widthSizeClass,
                 LocalIsMouseUser provides mouseUser.value
             ) {
-                AppContent(viewModel, navController)
+                AppContent(model, navController)
             }
         }
     }
@@ -145,6 +152,7 @@ private fun AppContent(
 ) {
     val backPressDispatcher = LocalBackPressDispatcher.current
     val deviceType = LocalDeviceType.current
+    val snackbarHost = LocalSnackbarHost.current
 
     val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
@@ -197,6 +205,23 @@ private fun AppContent(
                 }
             }catch (e: IllegalArgumentException) {
                 modalDeepLink.value = deeplink
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        model.pingStream.collectLatest { stream ->
+            withContext(Dispatchers.Default) {
+                stream.find { it.type == AppPingType.HardLogout }?.let { ping ->
+                    model.logoutCurrentUser()
+                    model.consumePing(ping)
+                    if(snackbarHost?.showSnackbar(
+                            message = getString(Res.string.hard_logout_message),
+                            actionLabel = getString(Res.string.hard_logout_action)
+                        ) == SnackbarResult.ActionPerformed) {
+                        navController.navigate(NavigationNode.Login())
+                    }
+                }
             }
         }
     }

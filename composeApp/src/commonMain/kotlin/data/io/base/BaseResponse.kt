@@ -4,6 +4,7 @@ import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
+import korlibs.io.util.getOrNullLoggingError
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -61,6 +62,13 @@ sealed class BaseResponse<out T> {
                 }catch (e: Exception) {
                     Error()
                 }
+            }
+        }
+
+        inline fun <reified T> Result<T>.toResponse(): BaseResponse<T> {
+            return when(val res = getOrNullLoggingError()) {
+                null -> Error()
+                else -> Success(res)
             }
         }
     }

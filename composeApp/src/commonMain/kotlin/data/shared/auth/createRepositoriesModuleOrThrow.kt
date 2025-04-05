@@ -60,7 +60,7 @@ class MatrixClientFactory(
                     configuration = {
                         configureClient(credentials.deviceId)
                     },
-                ).getOrNull()
+                ).getOrNullLoggingError()
             }else null) ?: MatrixClient.loginWith(
                 baseUrl = Url("https://${credentials.homeserver}"),
                 getLoginInfo = {

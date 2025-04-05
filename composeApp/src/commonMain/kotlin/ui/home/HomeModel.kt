@@ -9,21 +9,28 @@ import androidx.paging.filter
 import base.utils.asSimpleString
 import base.utils.tagToColor
 import components.pull_refresh.RefreshableViewModel
+import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_REFRESH_DELAY
+import components.pull_refresh.RefreshableViewModel.Companion.MINIMUM_RESPONSE_DELAY
 import data.NetworkProximityCategory
 import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
+import data.io.base.BaseResponse
+import data.io.base.BaseResponse.Companion.toResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.home.utils.NetworkItemUseCase
@@ -39,7 +46,7 @@ internal val homeModule = module {
 
 /** Communication between the UI, the control layers, and control and data layers */
 class HomeModel(
-    repository: HomeRepository,
+    private val repository: HomeRepository,
     private val networkItemUseCase: NetworkItemUseCase
 ): SharedModel(), RefreshableViewModel {
 
@@ -49,6 +56,9 @@ class HomeModel(
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
     private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
+    private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
+        hashMapOf()
+    )
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -70,9 +80,10 @@ class HomeModel(
         }
     }
 
+    val requestResponse = _requestResponse.asStateFlow()
     val openConversations = networkItemUseCase.openConversations
     val isLoading = networkItemUseCase.isLoading
-    val response = networkItemUseCase.invitationResponse
+    val invitationResponse = networkItemUseCase.invitationResponse
     val networkItems = networkItemUseCase.networkItems.combine(_categories) { networkItems, categories ->
         withContext(Dispatchers.Default) {
             networkItems?.filter { item ->
@@ -149,6 +160,51 @@ class HomeModel(
     fun requestOpenRooms() {
         viewModelScope.launch {
             networkItemUseCase.requestOpenRooms(matrixUserId)
+        }
+    }
+
+    /** User response to an invitation */
+    fun respondToInvitation(
+        roomId: String?,
+        accept: Boolean
+    ) {
+        if(roomId == null || _requestResponse.value[roomId] != null) return
+
+        viewModelScope.launch {
+            _requestResponse.update {
+                hashMapOf(*it.toList().toTypedArray(), roomId to BaseResponse.Loading)
+            }
+            val startTime = Clock.System.now().toEpochMilliseconds()
+
+            println("kostka_test, respondToInvitation, matrixUserId: $matrixUserId, client: ${sharedDataManager.matrixClient.value}")
+            val result = repository.respondToInvitation(
+                client = sharedDataManager.matrixClient.value,
+                matrixUserId = matrixUserId,
+                roomId = roomId,
+                accept = accept
+            )?.toResponse()
+
+            delay(kotlin.math.max(
+                Clock.System.now().toEpochMilliseconds().minus(startTime),
+                MINIMUM_RESPONSE_DELAY
+            ))
+            _requestResponse.update {
+                hashMapOf(*it.toList().toTypedArray()).apply {
+                    set(
+                        roomId,
+                        result
+                    )
+                }
+            }
+            // return back the option to take action after a delay
+            if(result is BaseResponse.Error) {
+                delay(MINIMUM_REFRESH_DELAY)
+                _requestResponse.update {
+                    hashMapOf(*it.toList().toTypedArray()).apply {
+                        remove(roomId)
+                    }
+                }
+            }
         }
     }
 

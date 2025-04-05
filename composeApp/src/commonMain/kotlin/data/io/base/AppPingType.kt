@@ -11,5 +11,6 @@ data class AppPing(
 enum class AppPingType {
     ConversationDashboard,
     Conversation,
+    HardLogout,
     NetworkDashboard
 }

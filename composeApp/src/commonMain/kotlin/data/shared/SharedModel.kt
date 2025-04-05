@@ -27,7 +27,6 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -62,7 +61,6 @@ open class SharedModel: ViewModel() {
             sharedDataManager.matrixClient.combine(currentUser) { client, user ->
                 client to user
             }.collectLatest { client ->
-                println("kostka_test, isFullyValid: ${client.second?.isFullyValid}, client: ${client.first}")
                 if(client.first != null && client.second?.isFullyValid == true) {
                     println("kostka_test, homeserver: ${client.second?.matrixHomeserver}")
                     client.second?.matrixHomeserver?.let { homeserver ->
@@ -114,7 +112,7 @@ open class SharedModel: ViewModel() {
     val currentUser = sharedDataManager.currentUser.asStateFlow()
 
     /** Acts as a sort of a in-app push notification, notifying of changes */
-    val pingStream = sharedDataManager.pingStream.asSharedFlow()
+    val pingStream = sharedDataManager.pingStream.asStateFlow()
 
     /** currently signed in firebase user */
     val firebaseUser = Firebase.auth.authStateChanged.stateIn(

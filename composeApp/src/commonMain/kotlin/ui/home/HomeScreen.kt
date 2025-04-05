@@ -72,10 +72,13 @@ import components.EmptyLayout
 import components.HorizontalScrollChoice
 import components.ScrollChoice
 import components.network.NetworkItemRow
+import components.network.NetworkRequestActions
 import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
 import data.io.base.AppPingType
+import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -286,7 +289,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                                     modifier = Modifier
                                         .animateItem()
                                         .fillMaxWidth(),
-                                    viewModel = viewModel,
+                                    model = viewModel,
                                     room = room,
                                     selectedItem = selectedItem.value,
                                     requestProximityChange = { proximity ->
@@ -367,7 +370,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
 @Composable
 private fun ConversationRoomItem(
     modifier: Modifier = Modifier,
-    viewModel: HomeModel,
+    model: HomeModel,
     selectedItem: String?,
     room: ConversationRoomIO?,
     customColors: Map<NetworkProximityCategory, Color>,
@@ -377,22 +380,32 @@ private fun ConversationRoomItem(
     onLongPress: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val response = remember {
+        mutableStateOf<BaseResponse<Any>?>(null)
+    }
+
     val navController = LocalNavController.current
     val showAddMembers = remember(room?.id) {
         mutableStateOf(false)
     }
 
     LaunchedEffect(Unit) {
+        model.requestResponse.collectLatest { responses ->
+            response.value = responses[room?.id]
+        }
+    }
+
+    LaunchedEffect(Unit) {
         if(room?.summary?.isDirect == true) {
-            viewModel.requestOpenRooms()
+            model.requestOpenRooms()
         }
     }
 
     if(showAddMembers.value) {
-        val isLoading = viewModel.isLoading.collectAsState()
+        val isLoading = model.isLoading.collectAsState()
 
         LaunchedEffect(Unit) {
-            viewModel.response.collectLatest {
+            model.invitationResponse.collectLatest {
                 if(!it?.conversationId.isNullOrBlank()) {
                     navController?.navigate(
                         NavigationNode.Conversation(
@@ -405,7 +418,7 @@ private fun ConversationRoomItem(
         }
 
         if(room?.summary?.isDirect == true) {
-            val conversations = viewModel.openConversations.collectAsState()
+            val conversations = model.openConversations.collectAsState()
 
             AddToLauncher(
                 key = room.id,
@@ -419,7 +432,7 @@ private fun ConversationRoomItem(
                 items = conversations.value,
                 mapToNetworkItem = { it.toNetworkItem() },
                 onInvite = { checkedItems, message, newName ->
-                    viewModel.inviteToConversation(
+                    model.inviteToConversation(
                         conversationId = if(newName != null) null else checkedItems.firstOrNull()?.id,
                         userPublicIds = room.summary.members?.firstOrNull()?.userPublicId?.let { listOf(it) },
                         message = message,
@@ -431,7 +444,7 @@ private fun ConversationRoomItem(
                 }
             )
         }else {
-            val networkItems = viewModel.networkItems.collectAsState(null)
+            val networkItems = model.networkItems.collectAsState(null)
 
             AddToLauncher(
                 key = room?.id,
@@ -442,7 +455,7 @@ private fun ConversationRoomItem(
                 items = networkItems.value,
                 mapToNetworkItem = { it },
                 onInvite = { checkedItems, message, _ ->
-                    viewModel.inviteToConversation(
+                    model.inviteToConversation(
                         conversationId = room?.id,
                         userPublicIds = checkedItems.mapNotNull { it.userPublicId },
                         message = message
@@ -455,59 +468,90 @@ private fun ConversationRoomItem(
         }
     }
 
-    Column(modifier = modifier) {
-        NetworkItemRow(
-            modifier = Modifier
-                .scalingClickable(
-                    hoverEnabled = selectedItem != room?.id,
-                    scaleInto = .9f,
-                    onTap = {
-                        onTap()
-                    },
-                    onLongPress = {
-                        onLongPress()
-                    }
-                )
-                .fillMaxWidth()
-                .then(
-                    (if(selectedItem != null && selectedItem == room?.id) {
-                        Modifier
-                            .background(
-                                color = LocalTheme.current.colors.backgroundLight,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                            .border(
-                                width = 2.dp,
-                                color = LocalTheme.current.colors.backgroundDark,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                    }else Modifier)
-                ),
-            data = room?.toNetworkItem(),
-            isSelected = selectedItem == room?.id,
-            indicatorColor = NetworkProximityCategory.entries.firstOrNull {
-                it.range.contains(room?.proximity ?: 1f)
-            }.let {
-                customColors[it] ?: it?.color
+    val indicatorColor = NetworkProximityCategory.entries.firstOrNull {
+        it.range.contains(room?.proximity ?: 1f)
+    }.let {
+        customColors[it] ?: it?.color
+    }
+    val itemModifier = Modifier
+        .scalingClickable(
+            enabled = room?.type != RoomType.Invited,
+            hoverEnabled = selectedItem != room?.id,
+            scaleInto = .9f,
+            onTap = {
+                onTap()
             },
-            onAvatarClick = onAvatarClick,
-            actions = {
-                SocialItemActions(
-                    key = room?.id,
-                    requestProximityChange = requestProximityChange,
-                    onInvite = {
-                        showAddMembers.value = true
-                    },
-                    newItem = NetworkItemIO(
-                        name = room?.summary?.alias,
-                        tag = room?.summary?.tag,
-                        avatar = room?.summary?.avatar,
-                        publicId = room?.id ?: "-",
-                        proximity = room?.proximity
-                    )
-                )
+            onLongPress = {
+                onLongPress()
             }
         )
+        .fillMaxWidth()
+        .then(
+            (if(selectedItem != null && selectedItem == room?.id) {
+                Modifier
+                    .background(
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
+            }else Modifier)
+        )
+
+    Column(modifier = modifier) {
+        Crossfade(room?.type) { roomType ->
+            when(roomType) {
+                RoomType.Invited -> {
+                    NetworkItemRow(
+                        modifier = itemModifier,
+                        data = room?.toNetworkItem(),
+                        indicatorColor = indicatorColor,
+                        onAvatarClick = onAvatarClick,
+                        content = {
+                            NetworkRequestActions(
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                                key = room?.id,
+                                response = response.value,
+                                onResponse = { accept ->
+                                    model.respondToInvitation(
+                                        roomId = room?.id,
+                                        accept = accept
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+                else -> {
+                    NetworkItemRow(
+                        modifier = itemModifier,
+                        data = room?.toNetworkItem(),
+                        isSelected = selectedItem == room?.id,
+                        indicatorColor = indicatorColor,
+                        onAvatarClick = onAvatarClick,
+                        actions = {
+                            SocialItemActions(
+                                key = room?.id,
+                                requestProximityChange = requestProximityChange,
+                                onInvite = {
+                                    showAddMembers.value = true
+                                },
+                                newItem = NetworkItemIO(
+                                    name = room?.summary?.alias,
+                                    tag = room?.summary?.tag,
+                                    avatar = room?.summary?.avatar,
+                                    publicId = room?.id ?: "-",
+                                    proximity = room?.proximity
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+        }
         content()
     }
 }
