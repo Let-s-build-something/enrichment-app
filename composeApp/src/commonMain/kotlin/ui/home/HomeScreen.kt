@@ -299,7 +299,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
 
                                         viewModel.requestProximityChange(
                                             conversationId = room?.id,
-                                            publicId = singleUser?.publicId,
+                                            publicId = singleUser?.userId,
                                             proximity = proximity,
                                             onOperationDone = {
                                                 if(selectedItem.value == room?.id) {
@@ -426,7 +426,7 @@ private fun ConversationRoomItem(
                 isLoading = isLoading.value,
                 heading = stringResource(
                     Res.string.invite_conversation_heading,
-                    room.summary.members?.firstOrNull()?.name ?: "?"
+                    room.summary.members?.firstOrNull()?.content?.displayName ?: "?"
                 ),
                 newItemHint = stringResource(Res.string.invite_new_item_conversation),
                 items = conversations.value,
@@ -434,7 +434,7 @@ private fun ConversationRoomItem(
                 onInvite = { checkedItems, message, newName ->
                     model.inviteToConversation(
                         conversationId = if(newName != null) null else checkedItems.firstOrNull()?.id,
-                        userPublicIds = room.summary.members?.firstOrNull()?.userPublicId?.let { listOf(it) },
+                        userPublicIds = room.summary.members?.firstOrNull()?.userId?.let { listOf(it) },
                         message = message,
                         newName = newName
                     )

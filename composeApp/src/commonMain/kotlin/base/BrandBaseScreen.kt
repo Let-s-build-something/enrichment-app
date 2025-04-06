@@ -127,7 +127,8 @@ fun BrandBaseScreen(
                 modifier = Modifier
                     .fillMaxHeight()
                     .wrapContentWidth(),
-                actions = actions
+                actions = actions,
+                model = sharedModel
             )
         }
     )

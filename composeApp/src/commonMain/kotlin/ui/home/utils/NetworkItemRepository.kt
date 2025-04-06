@@ -9,6 +9,7 @@ import data.io.social.network.conversation.RoomInvitationRequest
 import data.io.user.NetworkItemIO
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
+import database.dao.matrix.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
@@ -22,6 +23,7 @@ import ui.network.connection.SocialConnectionUpdate
 class NetworkItemRepository(
     private val httpClient: HttpClient,
     private val networkItemDao: NetworkItemDao,
+    private val roomMemberDao: RoomMemberDao,
     private val conversationRoomDao: ConversationRoomDao
 ) {
     /** returns a list of network list */
@@ -107,10 +109,7 @@ class NetworkItemRepository(
                                         canonicalAlias = newName,
                                         isDirect = false
                                     ).apply {
-                                        members = networkItemDao.getItems(
-                                            userPublicIds = userPublicIds,
-                                            ownerPublicId = ownerPublicId
-                                        )
+                                        members = roomMemberDao.get(userIds = userPublicIds.orEmpty())
                                     },
                                     ownerPublicId = ownerPublicId
                                 )

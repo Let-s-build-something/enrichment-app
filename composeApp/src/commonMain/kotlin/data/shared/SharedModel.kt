@@ -11,7 +11,6 @@ import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
 import data.io.base.AppPing
-import data.io.user.UserIO
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
@@ -23,13 +22,10 @@ import koin.commonModule
 import koin.secureSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -41,59 +37,14 @@ import org.koin.mp.KoinPlatform
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedModel: ViewModel() {
-    private val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
-    private val authService = KoinPlatform.getKoin().get<AuthService>()
+    protected val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
+    protected val authService = KoinPlatform.getKoin().get<AuthService>()
 
     /** Singleton data manager to keep session-only data alive */
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
 
     /** persistent settings saved locally to a device */
     protected val settings: AppSettings by KoinPlatform.getKoin().inject()
-
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            delay(50)
-            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) != false
-        }
-
-        viewModelScope.launch {
-            delay(200)
-            sharedDataManager.matrixClient.combine(currentUser) { client, user ->
-                client to user
-            }.collectLatest { client ->
-                if(client.first != null && client.second?.isFullyValid == true) {
-                    client.second?.matrixHomeserver?.let { homeserver ->
-                        dataSyncService.sync(homeserver = homeserver)
-                    }
-                }
-            }
-        }
-        viewModelScope.launch {
-            delay(200)
-            // TODO there should be a variant for unsigned invalid clients as well, probably only a ping of sorts
-            networkConnectivity.collectLatest {
-                sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
-                    while(it?.isNetworkAvailable == false) {
-                        dataSyncService.stop()
-                        dataSyncService.sync(homeserver = homeserver, delay = 2000)
-                        delay(3000)
-                    }
-                }
-            }
-        }
-
-        // update idToken whenever it changes
-        Firebase.auth.idTokenChanged.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            Firebase.auth.currentUser
-        ).onEach { firebaseUser ->
-            if(firebaseUser != null) {
-                val update = UserIO(idToken = firebaseUser.getIdToken(false))
-                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(update) ?: update
-            }
-        }
-    }
 
     //======================================== public variables ==========================================
 

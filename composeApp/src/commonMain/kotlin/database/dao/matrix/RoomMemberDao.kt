@@ -14,12 +14,16 @@ interface RoomMemberDao {
     suspend fun getAll(): List<ConversationRoomMember>
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE room_id IN (:roomIds) " +
-            "AND user_id = :userId ")
-    suspend fun getUserByRoomId(
-        roomIds: List<String>,
-        userId: String
-    ): List<ConversationRoomMember>
+            "WHERE user_id IN (:userIds) ")
+    suspend fun get(userIds: List<String>): List<ConversationRoomMember>
+
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
+            "WHERE user_id = :userId ")
+    suspend fun get(userId: String): ConversationRoomMember?
+
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
+            "WHERE room_id = :roomId ")
+    suspend fun getOfRoom(roomId: String): List<ConversationRoomMember>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationRoomMember>)

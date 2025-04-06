@@ -86,6 +86,7 @@ import base.utils.getUrlExtension
 import base.utils.shareLink
 import components.RowSetting
 import components.UserProfileImage
+import data.io.app.ThemeChoice
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.MediaIO
@@ -200,14 +201,16 @@ private fun SettingsSection(viewModel: AccountDashboardModel) {
             stringResource(Res.string.account_dashboard_theme_dark),
             stringResource(Res.string.account_dashboard_theme_device)
         ),
-        selectedTabIndex = mutableStateOf(localSettings.value?.theme?.ordinal ?: 0),
+        selectedTabIndex = mutableStateOf(
+            localSettings.value?.theme?.ordinal ?: ThemeChoice.SYSTEM.ordinal
+        ),
         onSelectionChange = {
             viewModel.updateTheme(it)
         }
     )
 
     LaunchedEffect(localSettings.value?.theme) {
-        switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: 0
+        switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: ThemeChoice.SYSTEM.ordinal
     }
 
     RowSetting(

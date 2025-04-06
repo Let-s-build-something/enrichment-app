@@ -22,7 +22,6 @@ import data.io.matrix.auth.MatrixIdentifierData
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO
 import data.shared.SharedModel
-import data.shared.auth.AuthService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthEmailException
 import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -48,8 +47,7 @@ import kotlin.uuid.Uuid
 class LoginModel(
     private val serviceProvider: UserOperationService,
     private val dataManager: LoginDataManager,
-    private val repository: LoginRepository,
-    private val authService: AuthService
+    private val repository: LoginRepository
 ): SharedModel() {
     data class HomeServerResponse(
         val state: HomeServerState,
@@ -370,14 +368,15 @@ class LoginModel(
         password: String
     ) {
         val res = if(_matrixAuthResponse.value?.userId == null) {
+            val isUser = !username.isNullOrBlank()
             authService.loginWithIdentifier(
                 setupAutoLogin = false,
                 homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
-                    type = if(username != null) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
-                    medium = Matrix.Medium.EMAIL.takeIf { username != null },
-                    address = email.takeIf { username != null },
-                    user = username
+                    type = if(isUser) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
+                    medium = Matrix.Medium.EMAIL.takeIf { !isUser },
+                    address = email.takeIf { !isUser },
+                    user = username.takeIf { isUser }
                 ),
                 password = password,
                 token = null

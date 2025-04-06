@@ -8,6 +8,7 @@
   <string name="screen_account_logout">I\'m outta here!</string>
   <string name="screen_network_management">Your social network</string>
   <string name="screen_search_network">Search</string>
+  <string name="screen_conversation_settings">Mr. Chan-G Sett Ings</string>
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
 
@@ -163,6 +164,9 @@
   <string name="conversation_reply_heading">Replying to...</string>
   <string name="conversation_reply_prefix_self">You:</string>
   <string name="conversation_detail_you">You</string>
+  <string name="conversation_kick_title">Yeet</string>
+  <string name="conversation_kick_message">You're about to kick %1$s from the conversation. Are you sure you want to do that? 🤓</string>
+  <string name="items_see_more">See %1$d more</string>
 
   <string name="message_room_invite">got invited.</string>
   <string name="message_room_join">joined the room.</string>

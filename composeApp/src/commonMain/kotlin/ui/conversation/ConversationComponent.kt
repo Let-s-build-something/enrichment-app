@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -161,11 +160,10 @@ fun ConversationComponent(
                         }
                     }
                 })
-            }
-            .fillMaxSize(),
+            },
         contentAlignment = Alignment.BottomCenter
     ) {
-        val typingIndicators = model.typingIndicators.collectAsState()
+        val typingIndicators = model.typingIndicators.collectAsState(initial = 0 to listOf())
 
         if(typingIndicators.value.second.isNotEmpty()) {
             Box(
@@ -314,7 +312,7 @@ fun ConversationComponent(
                                             conversationId = conversationId,
                                             title = if(isCurrentUser) {
                                                 getString(Res.string.conversation_detail_you)
-                                            } else data?.user?.name
+                                            } else data?.user?.content?.displayName
                                         )
                                     )
                                 }
@@ -345,6 +343,7 @@ fun ConversationComponent(
 
         SendMessagePanel(
             modifier = Modifier
+                .fillMaxWidth()
                 .background(
                     color = LocalTheme.current.colors.backgroundDark,
                     shape = RoundedCornerShape(

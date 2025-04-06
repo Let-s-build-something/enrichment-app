@@ -1,8 +1,8 @@
 package data.io.matrix.room
 
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import data.io.user.NetworkItemIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -28,9 +28,6 @@ data class RoomSummary(
     /** Avatar photo url. */
     val avatar: MediaIO? = null,
 
-    /** The room’s canonical alias. */
-    val proximity: Float? = null,
-
     /** Whether this room is just one on one. */
     val isDirect: Boolean? = null,
 
@@ -50,26 +47,22 @@ data class RoomSummary(
 ) {
 
     fun update(other: RoomSummary?): RoomSummary {
-        println("kostka_test, summary before: $this")
         return if(other == null) this
         else this.copy(
             heroes = other.heroes ?: heroes,
             canonicalAlias = other.canonicalAlias ?: canonicalAlias,
             tag = other.tag ?: tag,
             avatar = other.avatar ?: avatar,
-            proximity = other.proximity ?: proximity,
             lastMessage = other.lastMessage ?: lastMessage,
             isDirect = other.isDirect ?: isDirect,
             invitationMessage = other.invitationMessage ?: invitationMessage,
             invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
             joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
-        ).also {
-            println("kostka_test, summary after: $it")
-        }
+        )
     }
 
     /** List of members */
-    var members: List<NetworkItemIO>? = null
+    var members: List<ConversationRoomMember>? = null
 
     /** Either [canonicalAlias] or a default based on [heroes] */
     val alias: String

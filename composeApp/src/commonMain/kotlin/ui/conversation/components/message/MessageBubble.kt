@@ -587,7 +587,7 @@ private fun ContentLayout(
                                                                 textAlign = TextAlign.Center
                                                             )
                                                         )
-                                                        if (reaction.user?.userPublicId == currentUserPublicId) {
+                                                        if (reaction.user?.userId == currentUserPublicId) {
                                                             Box(
                                                                 modifier = Modifier
                                                                     .height(2.dp)

@@ -22,7 +22,7 @@ import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.NetworkItemDao
+import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.HttpClient
@@ -56,7 +56,7 @@ open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
     internal val conversationRoomDao: ConversationRoomDao,
-    private val networkItemDao: NetworkItemDao,
+    private val roomMemberDao: RoomMemberDao,
     private val mediaDataManager: MediaProcessorDataManager,
     private val fileAccess: FileAccess
 ) {
@@ -203,9 +203,8 @@ open class ConversationRepository(
         owner: String?
     ): ConversationRoomIO? = withContext(Dispatchers.IO) {
         conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
-            summary?.members = networkItemDao.getItems(
-                userPublicIds = summary?.heroes?.map { it.full },
-                ownerPublicId = ownerPublicId
+            summary?.members = roomMemberDao.get(
+                userIds = summary?.heroes?.map { it.full }.orEmpty()
             )
         }
     }

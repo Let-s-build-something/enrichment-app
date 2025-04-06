@@ -1,11 +1,14 @@
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import augmy.interactive.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
 import data.io.social.network.conversation.message.MediaIO
 import koin.loginModule
@@ -18,6 +21,7 @@ import ui.conversation.ConversationScreen
 import ui.conversation.media.MediaDetailScreen
 import ui.conversation.message.MessageDetailScreen
 import ui.conversation.message.messageDetailModule
+import ui.conversation.settings.ConversationSettingsScreen
 import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
@@ -27,73 +31,81 @@ import ui.network.received.networkManagementModule
 @Composable
 fun NavigationHost(
     modifier: Modifier = Modifier,
-    navController: NavHostController
+    navController: NavHostController = rememberNavController(),
+    startDestination: NavigationNode = NavigationNode.Home
 ) {
-    NavHost(
-        modifier = modifier,
-        navController = navController,
-        startDestination = NavigationNode.Home
+    CompositionLocalProvider(
+        LocalNavController provides navController
     ) {
-        composable<NavigationNode.Login> { args ->
-            loadKoinModules(loginModule())
-            LoginScreen(
-                nonce = args.arguments?.getString("nonce"),
-                loginToken = args.arguments?.getString("loginToken")
-            )
-        }
-        composable<NavigationNode.Home> {
-            HomeScreen()
-        }
-        composable<NavigationNode.Water> {
-            WaterPleaseScreen()
-        }
-        composable<NavigationNode.SearchNetwork> {
-            WaterPleaseScreen()
-        }
-        composable<NavigationNode.SearchAccount> {
-            WaterPleaseScreen()
-        }
-        composable<NavigationNode.Water> {
-            WaterPleaseScreen()
-        }
-        composable<NavigationNode.AccountDashboard> {
-            loadKoinModules(accountDashboardModule)
-            AccountDashboardScreen()
-        }
-        composable<NavigationNode.NetworkManagement> {
-            loadKoinModules(networkManagementModule)
-            NetworkManagementScreen()
-        }
-        composable<NavigationNode.MediaDetail> { args ->
-            MediaDetailScreen(
-                media = args.arguments?.getStringArray("encodedMedia").orEmpty().mapNotNull { media ->
-                    media?.split("|||").let {
-                        MediaIO(
-                            name = it?.get(0),
-                            mimetype = it?.get(1),
-                            url = it?.get(2),
-                            path = it?.get(3)
-                        )
-                    }
-                }.toTypedArray(),
-                selectedIndex = args.arguments?.getInt("selectedIndex") ?: 0,
-                title = args.arguments?.getString("title") ?: "",
-                subtitle = args.arguments?.getString("subtitle") ?: ""
-            )
-        }
-        composable<NavigationNode.Conversation> {
-            ConversationScreen(
-                conversationId = it.arguments?.getString("conversationId"),
-                name = it.arguments?.getString("name")
-            )
-        }
-        composable<NavigationNode.MessageDetail> {
-            loadKoinModules(messageDetailModule)
-            MessageDetailScreen(
-                messageId = it.arguments?.getString("messageId"),
-                conversationId = it.arguments?.getString("conversationId"),
-                title = it.arguments?.getString("title")
-            )
+        NavHost(
+            modifier = modifier,
+            navController = navController,
+            startDestination = startDestination
+        ) {
+            composable<NavigationNode.Login> { args ->
+                loadKoinModules(loginModule())
+                LoginScreen(
+                    nonce = args.arguments?.getString("nonce"),
+                    loginToken = args.arguments?.getString("loginToken")
+                )
+            }
+            composable<NavigationNode.Home> {
+                HomeScreen()
+            }
+            composable<NavigationNode.Water> {
+                WaterPleaseScreen()
+            }
+            composable<NavigationNode.SearchNetwork> {
+                WaterPleaseScreen()
+            }
+            composable<NavigationNode.SearchAccount> {
+                WaterPleaseScreen()
+            }
+            composable<NavigationNode.Water> {
+                WaterPleaseScreen()
+            }
+            composable<NavigationNode.AccountDashboard> {
+                loadKoinModules(accountDashboardModule)
+                AccountDashboardScreen()
+            }
+            composable<NavigationNode.NetworkManagement> {
+                loadKoinModules(networkManagementModule)
+                NetworkManagementScreen()
+            }
+            composable<NavigationNode.MediaDetail> { args ->
+                MediaDetailScreen(
+                    media = args.arguments?.getStringArray("encodedMedia").orEmpty().mapNotNull { media ->
+                        media?.split("|||").let {
+                            MediaIO(
+                                name = it?.get(0),
+                                mimetype = it?.get(1),
+                                url = it?.get(2),
+                                path = it?.get(3)
+                            )
+                        }
+                    }.toTypedArray(),
+                    selectedIndex = args.arguments?.getInt("selectedIndex") ?: 0,
+                    title = args.arguments?.getString("title") ?: "",
+                    subtitle = args.arguments?.getString("subtitle") ?: ""
+                )
+            }
+            composable<NavigationNode.Conversation> {
+                ConversationScreen(
+                    conversationId = it.arguments?.getString("conversationId"),
+                    name = it.arguments?.getString("name")
+                )
+            }
+            composable<NavigationNode.ConversationSettings> {
+                ConversationSettingsScreen(conversationId = it.arguments?.getString("conversationId"))
+            }
+            composable<NavigationNode.MessageDetail> {
+                loadKoinModules(messageDetailModule)
+                MessageDetailScreen(
+                    messageId = it.arguments?.getString("messageId"),
+                    conversationId = it.arguments?.getString("conversationId"),
+                    title = it.arguments?.getString("title")
+                )
+            }
         }
     }
 }

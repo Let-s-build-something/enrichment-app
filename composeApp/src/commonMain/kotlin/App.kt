@@ -50,7 +50,6 @@ import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalHeyIamScreen
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
-import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -109,8 +108,7 @@ fun App(model: AppServiceModel = koinViewModel()) {
         isDarkTheme = when(localSettings.value?.theme) {
             ThemeChoice.DARK -> true
             ThemeChoice.LIGHT -> false
-            ThemeChoice.SYSTEM -> isSystemInDarkTheme()
-            null -> true
+            else -> isSystemInDarkTheme()
         }
     ) {
         Scaffold(
@@ -134,7 +132,6 @@ fun App(model: AppServiceModel = koinViewModel()) {
             val navController = rememberNavController()
 
             CompositionLocalProvider(
-                LocalNavController provides navController,
                 LocalSnackbarHost provides snackbarHostState,
                 LocalDeviceType provides windowSizeClass.widthSizeClass,
                 LocalIsMouseUser provides mouseUser.value
@@ -213,6 +210,7 @@ private fun AppContent(
         model.pingStream.collectLatest { stream ->
             withContext(Dispatchers.Default) {
                 stream.find { it.type == AppPingType.HardLogout }?.let { ping ->
+                    println("kostka_test, hard logout")
                     model.logoutCurrentUser()
                     model.consumePing(ping)
                     if(snackbarHost?.showSnackbar(
