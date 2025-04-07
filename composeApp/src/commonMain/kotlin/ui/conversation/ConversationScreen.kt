@@ -68,7 +68,7 @@ fun ConversationScreen(
     name: String? = null
 ) {
     loadKoinModules(conversationModule)
-    val viewModel: ConversationModel = koinViewModel(
+    val model: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
             parametersOf(conversationId ?: "", true)
@@ -77,8 +77,8 @@ fun ConversationScreen(
     val navController = LocalNavController.current
     val deviceType = LocalDeviceType.current
 
-    val messages = viewModel.conversationMessages.collectAsLazyPagingItems()
-    val conversationDetail = viewModel.conversation.collectAsState(initial = null)
+    val messages = model.conversationMessages.collectAsLazyPagingItems()
+    val conversationDetail = model.conversation.collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
     val reactingToMessageId = rememberSaveable {
         mutableStateOf<String?>(null)
@@ -88,19 +88,19 @@ fun ConversationScreen(
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        messages.refresh()
+        if(model.persistentPositionData != null) messages.refresh()
     }
 
     LaunchedEffect(Unit) {
-        if(conversationId != null) viewModel.consumePing(conversationId)
+        if(conversationId != null) model.consumePing(conversationId)
     }
 
     LaunchedEffect(Unit) {
-        viewModel.pingStream.collectLatest { stream ->
+        model.pingStream.collectLatest { stream ->
             stream.forEach {
                 if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
                     messages.refresh()
-                    viewModel.consumePing(it)
+                    model.consumePing(it)
                 }
             }
         }
@@ -179,7 +179,7 @@ fun ConversationScreen(
                     messages = messages,
                     conversationId = conversationId,
                     shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-                    model = viewModel,
+                    model = model,
                     emptyLayout = {
                         // TODO
                     }

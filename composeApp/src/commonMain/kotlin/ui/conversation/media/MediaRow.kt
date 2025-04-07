@@ -118,7 +118,7 @@ fun MediaRow(
                     coroutineScope.launch {
                         navController?.navigate(
                             NavigationNode.MediaDetail(
-                                media = data.media.map { cachedMedia.value[it.url] ?: it },
+                                media = data.media.map { cachedMedia.value[it.url] ?.success?.data?: it },
                                 selectedIndex = index,
                                 title = if(isCurrentUser) {
                                     getString(Res.string.conversation_detail_you)
@@ -165,7 +165,7 @@ fun MediaRow(
                         ),
                     visualHeight = MEDIA_MAX_HEIGHT_DP.dp,
                     tintColor = if(isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary,
-                    media = cachedMedia.value[media.url] ?: media,
+                    media = cachedMedia.value[media.url]?.success?.data ?: media,
                     localMedia = temporaryMedia,
                     enabled = false,
                     contentScale = ContentScale.FillHeight

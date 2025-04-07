@@ -108,13 +108,20 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             inviteState = other.inviteState ?: inviteState,
             knockState = other.knockState ?: knockState,
             ownerPublicId = other.ownerPublicId ?: ownerPublicId,
-            primaryKey = other.primaryKey
-        )
+            primaryKey = other.primaryKey,
+            prevBatch = other.prevBatch ?: prevBatch,
+            lastMessageTimestamp = other.lastMessageTimestamp ?: lastMessageTimestamp,
+            historyVisibility = other.historyVisibility ?: historyVisibility,
+            algorithm = other.algorithm ?: algorithm,
+            type = other.type
+        ).apply {
+            members = other.members
+        }
     }
 
     /** Users participating in the conversation */
     @Ignore
-    val members: List<ConversationRoomMember>? = null
+    var members: List<ConversationRoomMember>? = null
 
     /** Converts this item to a network item representation */
     fun toNetworkItem() = NetworkItemIO(
@@ -124,4 +131,22 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         avatar = summary?.avatar,
         lastMessage = summary?.lastMessage?.content
     )
+
+    override fun toString(): String {
+        return "{" +
+                "id: $id, " +
+                "summary: $summary, " +
+                "proximity: $proximity, " +
+                "unreadNotifications: $unreadNotifications, " +
+                "inviteState: $inviteState, " +
+                "knockState: $knockState, " +
+                "ownerPublicId: $ownerPublicId, " +
+                "primaryKey: $primaryKey, " +
+                "prevBatch: $prevBatch, " +
+                "lastMessageTimestamp: $lastMessageTimestamp, " +
+                "historyVisibility: $historyVisibility, " +
+                "algorithm: $algorithm, " +
+                "type: $type" +
+                "}"
+    }
 }

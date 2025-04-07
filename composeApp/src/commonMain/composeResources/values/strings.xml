@@ -178,6 +178,7 @@
   <string name="message_room_leave">left.</string>
   <string name="message_room_ban">got banned.</string>
   <string name="message_decryption_failed">Failed to decrypt this message, try again.</string>
+  <string name="error_permission">You don't have permission to do that.</string>
 
   <string name="device_verification_passphrase_hint">PIN code</string>
   <string name="device_verification_bootstrap_title">Create a new PIN for your account🗝️</string>
@@ -255,7 +256,7 @@
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload from files</string>
-  <string name="accessibility_upload_url">Upload from URL input</string>
+  <string name="accessibility_upload_url">User an URL</string>
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>

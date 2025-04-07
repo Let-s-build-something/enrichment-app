@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getExtensionFromMimeType
 import com.fleeksoft.ksoup.Ksoup
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.shared.SharedModel
 import database.file.FileAccess
@@ -160,6 +161,12 @@ class MediaProcessorModel(
                             ?: "https://${currentUser.value?.matrixHomeserver}/_matrix/client/v1/media/download/${unit.url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
                     }else ""
 
+                    dataManager.cachedFiles.update {
+                        it.toMutableMap().apply {
+                            put(unit.url ?: "", BaseResponse.Loading)
+                        }
+                    }
+
                     repository.getFileByteArray(
                         url = unit.url ?: "",
                         downloadUrl = downloadUrl,
@@ -175,15 +182,19 @@ class MediaProcessorModel(
                         if(result == null && unknownHomeserver) {
                             toBeScheduled.add(unit)
                         }
-                        dataManager.cachedFiles.value = dataManager.cachedFiles.value.toMutableMap().apply {
-                            if(result != null) {
-                                bytesSentTotal += unit.size ?: 0
+                        dataManager.cachedFiles.update {
+                            it.toMutableMap().apply {
                                 put(
                                     unit.url ?: "",
-                                    unit.copy(
-                                        path = result.path?.toString(),
-                                        mimetype = result.mimetype
-                                    )
+                                    if(result != null) {
+                                        bytesSentTotal += unit.size ?: 0
+                                        BaseResponse.Success(
+                                            unit.copy(
+                                                path = result.path?.toString(),
+                                                mimetype = result.mimetype
+                                            )
+                                        )
+                                    }else BaseResponse.Error()
                                 )
                             }
                         }

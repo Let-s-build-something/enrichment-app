@@ -46,6 +46,7 @@ import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.verticallyDraggable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -83,7 +84,7 @@ fun ConversationComponent(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val listState = persistedLazyListState(
-        persistentData = model.persistentPositionData,
+        persistentData = model.persistentPositionData ?: PersistentListData(),
         onDispose = { lastInfo ->
             model.persistentPositionData = lastInfo
         }

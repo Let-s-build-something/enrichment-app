@@ -57,9 +57,9 @@ open class ConversationRepository(
     private val conversationMessageDao: ConversationMessageDao,
     internal val conversationRoomDao: ConversationRoomDao,
     private val roomMemberDao: RoomMemberDao,
-    private val mediaDataManager: MediaProcessorDataManager,
-    private val fileAccess: FileAccess
-) {
+    mediaDataManager: MediaProcessorDataManager,
+    fileAccess: FileAccess
+): MediaRepository(httpClient, mediaDataManager, fileAccess) {
     private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
     private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
 
@@ -348,6 +348,13 @@ open class ConversationRepository(
             get(url = Url("https://$homeserver/_matrix/client/v1/media/config"))
         }
     }
+}
+
+open class MediaRepository(
+    private val httpClient: HttpClient,
+    private val mediaDataManager: MediaProcessorDataManager,
+    private val fileAccess: FileAccess
+) {
 
     /**
      * Uploads media to the server
@@ -377,11 +384,13 @@ open class ConversationRepository(
                             mediaDataManager.cachedFiles.value = mediaDataManager.cachedFiles.value.toMutableMap().apply {
                                 put(
                                     path.toString(),
-                                    MediaIO(
-                                        url = uri,
-                                        mimetype = mimetype,
-                                        size = mediaByteArray.size.toLong(),
-                                        name = fileName
+                                    BaseResponse.Success(
+                                        MediaIO(
+                                            url = uri,
+                                            mimetype = mimetype,
+                                            size = mediaByteArray.size.toLong(),
+                                            name = fileName
+                                        )
                                     )
                                 )
                             }

@@ -67,4 +67,18 @@ data class RoomSummary(
     /** Either [canonicalAlias] or a default based on [heroes] */
     val alias: String
         get() = canonicalAlias ?: heroes?.joinToString(", ") ?: "Room ${tag ?: ""}"
+
+    override fun toString(): String {
+        return "{" +
+                "heroes: $heroes, " +
+                "canonicalAlias: $canonicalAlias, " +
+                "tag: $tag, " +
+                "avatar: $avatar, " +
+                "isDirect: $isDirect, " +
+                "invitationMessage: $invitationMessage, " +
+                "invitedMemberCount: $invitedMemberCount, " +
+                "joinedMemberCount: $joinedMemberCount, " +
+                "lastMessage: $lastMessage" +
+                "}"
+    }
 }

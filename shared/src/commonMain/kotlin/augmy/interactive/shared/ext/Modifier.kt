@@ -95,6 +95,7 @@ fun Modifier.scalingClickable(
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
     onPress: ((Offset, isPressed: Boolean) -> Unit)? = null,
+    onHover: ((isHovered: Boolean) -> Unit)? = null,
     scaleInto: Float = 0.85f,
     onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
@@ -106,6 +107,7 @@ fun Modifier.scalingClickable(
             if ((isPressed.value || isHovered.value) && enabled) scaleInto else 1f,
             label = "scalingClickableAnimation"
         )
+        onHover?.invoke(isHovered.value)
 
         scale(scale.value)
             .hoverable(

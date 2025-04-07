@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.FaceRetouchingOff
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,6 +87,10 @@ fun ConversationSettingsContent(conversationId: String?) {
     val members = model.members.collectAsLazyPagingItems()
     val listState = rememberLazyListState()
 
+    SideEffect {
+        println("kostka_test, detail avatar: ${detail.value?.summary?.avatar}")
+    }
+
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
             || (members.itemCount == 0 && !members.loadState.append.endOfPaginationReached)
 
@@ -111,7 +116,13 @@ fun ConversationSettingsContent(conversationId: String?) {
     }
 
     if(showPictureChangeDialog.value) {
-        // TODO change profile picture
+        DialogChangeRoomAvatar(
+            detail = detail.value,
+            model = model,
+            onDismissRequest = {
+                showPictureChangeDialog.value = false
+            }
+        )
     }
     if(showNameChangeLauncher.value) {
         // TODO change alias
@@ -229,7 +240,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                 }
             )
         }
-        if (members.itemCount > MAX_MEMBERS_COUNT && !enableMembersPaging.value) {
+        if (!isLoadingInitialPage && members.itemCount > MAX_MEMBERS_COUNT && !enableMembersPaging.value) {
             item {
                 Text(
                     modifier = Modifier.scalingClickable {

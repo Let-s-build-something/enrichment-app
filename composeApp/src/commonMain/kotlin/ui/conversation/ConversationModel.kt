@@ -127,7 +127,7 @@ open class ConversationModel(
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
-    var persistentPositionData: PersistentListData = PersistentListData()
+    var persistentPositionData: PersistentListData? = null
 
 
     /** Detailed information about this conversation */
@@ -394,21 +394,20 @@ open class ConversationModel(
         // real message
         msg = msg.copy(
             media = withContext(Dispatchers.Default) {
-                mediaFiles.mapNotNull { media ->
-                    val bytes = media.readBytes()
-                    val fileName = "${Uuid.random()}.${media.extension.lowercase()}"
+                mediaFiles.mapNotNull { file ->
+                    val bytes = file.readBytes()
                     if(bytes.isNotEmpty()) {
                         repository.uploadMedia(
                             mediaByteArray = bytes,
-                            fileName = fileName,
+                            fileName = file.name,
                             homeserver = homeserver,
-                            mimetype = MimeType.getByExtension(media.extension).mime
+                            mimetype = MimeType.getByExtension(file.extension).mime
                         )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
                             MediaIO(
                                 url = url,
                                 size = bytes.size.toLong(),
-                                name = fileName,
-                                mimetype = MimeType.getByExtension(media.extension).mime
+                                name = file.name,
+                                mimetype = MimeType.getByExtension(file.extension).mime
                             )
                         }
                     }else null

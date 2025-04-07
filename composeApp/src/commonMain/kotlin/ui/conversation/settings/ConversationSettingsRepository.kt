@@ -11,6 +11,7 @@ import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.RoomMemberDao
+import database.file.FileAccess
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -22,14 +23,18 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.clientserverapi.model.users.Filters
 import org.koin.mp.KoinPlatform
+import ui.conversation.MediaRepository
+import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
 
 /** Class for calling APIs and remote work in general */
 class ConversationSettingsRepository(
     private val httpClient: HttpClient,
     private val roomMemberDao: RoomMemberDao,
-    private val matrixPagingDao: MatrixPagingMetaDao
-) {
+    private val matrixPagingDao: MatrixPagingMetaDao,
+    mediaDataManager: MediaProcessorDataManager,
+    fileAccess: FileAccess
+): MediaRepository(httpClient, mediaDataManager, fileAccess)  {
     private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
     private val json by lazy { KoinPlatform.getKoin().get<Json>() }
 
