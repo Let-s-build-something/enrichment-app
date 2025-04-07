@@ -5,10 +5,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -28,9 +29,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.navigation.compose.rememberNavController
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
@@ -38,13 +39,13 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
-import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
+import base.navigation.NestedNavigationBar
 import collectResult
 import components.UserProfileImage
 import data.io.base.AppPingType
@@ -160,7 +161,10 @@ fun ConversationScreen(
             clearFocus = false,
             title = name
         ) {
-            Row(modifier = Modifier.align(Alignment.BottomCenter)) {
+            Row(
+                modifier = Modifier.fillMaxHeight(),
+                verticalAlignment = Alignment.Bottom
+            ) {
                 ConversationComponent(
                     modifier = Modifier.weight(1f),
                     listModifier = Modifier
@@ -180,24 +184,32 @@ fun ConversationScreen(
                         // TODO
                     }
                 )
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = showSettings.value,
-                    enter = slideInHorizontally { it * 2 },
-                    exit = slideOutHorizontally { it * 2 }
+                Column(
+                    modifier = Modifier
+                        .animateContentSize(alignment = Alignment.TopEnd)
+                        .fillMaxHeight()
+                        .width(if(showSettings.value) LocalScreenSize.current.width.times(.4f).dp else 0.dp)
                 ) {
-                    Box(modifier = Modifier.width(LocalScreenSize.current.width.times(.4f).dp)) {
-                        MinimalisticIcon(
+                    if(showSettings.value) {
+                        val nestedNavController = rememberNavController()
+
+                        NestedNavigationBar(
                             modifier = Modifier
-                                .zIndex(1f)
-                                .padding(top = 4.dp, end = 6.dp)
-                                .align(Alignment.TopEnd),
-                            imageVector = Icons.Outlined.Close,
-                            tint = LocalTheme.current.colors.secondary,
-                            onTap = {
-                                showSettings.value = false
+                                .background(color = LocalTheme.current.colors.backgroundDark)
+                                .fillMaxWidth()
+                                .padding(start = 6.dp),
+                            navController = nestedNavController
+                        )
+                        NavigationHost(
+                            startDestination = NavigationNode.ConversationSettings(conversationId),
+                            navController = nestedNavController,
+                            enterTransition = {
+                                slideInHorizontally { it * 2 }
+                            },
+                            exitTransition = {
+                                slideOutHorizontally { -it }
                             }
                         )
-                        NavigationHost(startDestination = NavigationNode.ConversationSettings(conversationId))
                     }
                 }
             }

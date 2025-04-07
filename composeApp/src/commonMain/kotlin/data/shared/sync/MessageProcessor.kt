@@ -56,7 +56,7 @@ abstract class MessageProcessor {
     data class SaveEventsResult(
         val messages: List<ConversationMessageIO>,
         val events: Int,
-        val members: Int,
+        val members: List<ConversationRoomMember>,
         val prevBatch: String?
     )
 
@@ -68,8 +68,7 @@ abstract class MessageProcessor {
         return withContext(Dispatchers.IO) {
             val result = processEvents(
                 events = events,
-                roomId = roomId,
-                prevBatch = prevBatch
+                roomId = roomId
             )
 
             result.encryptedEvents.forEach { encrypted ->
@@ -83,6 +82,12 @@ abstract class MessageProcessor {
             val messages = result.messages.mapNotNull {
                 if(conversationMessageDao.insertIgnore(it) == -1L) {
                     conversationMessageDao.insertReplace(it)
+                    null
+                } else it
+            }
+            val members = result.members.mapNotNull {
+                if(roomMemberDao.insertIgnore(it) == -1L) {
+                    roomMemberDao.insertReplace(it)
                     null
                 } else it
             }
@@ -101,7 +106,7 @@ abstract class MessageProcessor {
 
             SaveEventsResult(
                 messages = messages,
-                members = result.members.size,
+                members = members,
                 events = events.size,
                 prevBatch = prevBatch
             )
@@ -112,8 +117,7 @@ abstract class MessageProcessor {
     @Suppress("UNCHECKED_CAST")
     private suspend fun processEvents(
         events: List<ClientEvent<*>>,
-        roomId: String,
-        prevBatch: String?
+        roomId: String
     ): ProcessedEvents = withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
         val members = mutableListOf<ConversationRoomMember>()

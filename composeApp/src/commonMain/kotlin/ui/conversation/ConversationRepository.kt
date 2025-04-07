@@ -61,8 +61,8 @@ open class ConversationRepository(
     private val fileAccess: FileAccess
 ) {
     private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
+    private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
 
-    private val dataSyncHandler = DataSyncHandler()
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
     protected var certainMessageCount: Int? = null
@@ -168,7 +168,7 @@ open class ConversationRepository(
                                     ).also {
                                         val newPrevBatch = if(res.messages.isEmpty()
                                             && res.events == 0
-                                            && res.members == 0
+                                            && res.members.isEmpty()
                                         )null else res.prevBatch
 
                                         conversationRoomDao.setPrevBatch(

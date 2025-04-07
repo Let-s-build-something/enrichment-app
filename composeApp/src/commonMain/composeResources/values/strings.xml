@@ -8,7 +8,11 @@
   <string name="screen_account_logout">I\'m outta here!</string>
   <string name="screen_network_management">Your social network</string>
   <string name="screen_search_network">Search</string>
-  <string name="screen_conversation_settings">Mr. Chan-G Sett Ings</string>
+  <string name="screen_conversation">Conversation</string>
+  <string name="screen_conversation_detail">Thread</string>
+  <string name="screen_media_detail">Cheese!</string>
+  <string name="screen_conversation_info">For the curious</string>
+  <string name="screen_conversation_settings">Mr. Sett Ings</string>
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
 

@@ -175,6 +175,7 @@ open class SharedModel: ViewModel() {
             sharedDataManager.localSettings.value = null
             sharedDataManager.matrixClient.value = null
             dataSyncService.stop()
+            sharedDataManager.pingStream.value = setOf()
             unloadKoinModules(commonModule)
             loadKoinModules(commonModule)
         }

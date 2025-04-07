@@ -31,7 +31,7 @@ data class ConversationRoomMember(
 ) {
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
-        name = content.displayName,
+        name = content.displayName ?: UserId(userId).localpart,
         avatar = MediaIO(url = content.avatarUrl)
     )
 }

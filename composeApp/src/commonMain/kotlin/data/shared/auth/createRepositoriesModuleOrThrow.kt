@@ -116,6 +116,7 @@ class MatrixClientFactory(
         val repositoriesModule = try {
             repositoriesModuleCreation.load(userId, databasePassword)
         } catch (e: Exception) {
+            e.printStackTrace()
             if (isLocked(e)) throw MatrixClientInitializationException.DatabaseLockedException()
             else throw MatrixClientInitializationException.DatabaseAccessException(e.message)
         }

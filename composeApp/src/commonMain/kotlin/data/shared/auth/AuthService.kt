@@ -6,8 +6,6 @@ import base.utils.Matrix
 import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
-import data.io.base.AppPing
-import data.io.base.AppPingType
 import data.io.base.BaseResponse
 import data.io.matrix.auth.EmailLoginRequest
 import data.io.matrix.auth.MatrixAuthenticationResponse
@@ -17,7 +15,6 @@ import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
-import data.shared.sync.DataService
 import database.factory.SecretByteArray
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -61,7 +58,6 @@ internal val authModule = module {
 class AuthService {
     private val _httpClient by lazy { KoinPlatform.getKoin().inject<HttpClient>() }
     private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
-    private val _dataService by lazy { KoinPlatform.getKoin().inject<DataService>() }
     private val _secureSettings by lazy { KoinPlatform.getKoin().inject<SecureAppSettings>() }
     private val _repository by lazy { KoinPlatform.getKoin().inject<SharedRepository>() }
     private val _json by lazy { KoinPlatform.getKoin().inject<Json>() }
@@ -70,8 +66,6 @@ class AuthService {
         get() = _httpClient.value
     private val dataManager
         get() = _dataManager.value
-    private val dataService
-        get() = _dataService.value
     private val secureSettings
         get() = _secureSettings.value
     private val repository
@@ -156,19 +150,17 @@ class AuthService {
                             println("kostka_test, setupAutoLogin -> not expired. Initializing matrix.")
                             initializeMatrixClient(auth = credentials)
                         }else {
-                            if(credentials.refreshToken == null) {
+                            /*if(credentials.refreshToken == null) {
                                 dataManager.currentUser.value = null
                                 dataService.appendPing(AppPing(AppPingType.HardLogout))
                                 println("kostka_test, setupAutoLogin -> HardLogout")
-                            }else println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")
+                            }else println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")*/
                         }
-                        if(credentials.refreshToken != null) {
-                            enqueueRefreshToken(
-                                refreshToken = credentials.refreshToken,
-                                expiresAtMsEpoch = credentials.expiresAtMsEpoch,
-                                homeserver = credentials.homeserver
-                            )
-                        }
+                        enqueueRefreshToken(
+                            refreshToken = credentials.refreshToken,
+                            expiresAtMsEpoch = credentials.expiresAtMsEpoch,
+                            homeserver = credentials.homeserver
+                        )
                     }
                     // something's missing, we gotta get all the info first
                     else -> {
@@ -384,14 +376,14 @@ class AuthService {
     }
 
     private suspend fun loginWithCredentials(forceRefresh: Boolean): Boolean {
-        retrieveCredentials()?.let {
-            val deviceId = it.deviceId ?: generateDeviceId()
+        retrieveCredentials()?.let { credentials ->
+            val deviceId = credentials.deviceId ?: generateDeviceId()
 
             return when {
-                !forceRefresh && !it.isExpired && it.accessToken != null && it.idToken == null -> {
+                !forceRefresh && !credentials.isExpired && credentials.accessToken != null && credentials.idToken == null -> {
                     authFirebase(
-                        accessToken = it.accessToken,
-                        refreshToken = it.refreshToken,
+                        accessToken = credentials.accessToken,
+                        refreshToken = credentials.refreshToken,
                         expiresInMs = null,
                         deviceId = deviceId
                     )
@@ -406,29 +398,29 @@ class AuthService {
                     }else false
                 }
                 // only refresh
-                it.isExpired && it.refreshToken != null -> {
+                credentials.isExpired && credentials.refreshToken != null -> {
                     refreshToken(
-                        refreshToken = it.refreshToken,
-                        expiresAtMsEpoch = it.expiresAtMsEpoch,
-                        homeserver = it.homeserver
+                        refreshToken = credentials.refreshToken,
+                        expiresAtMsEpoch = credentials.expiresAtMsEpoch,
+                        homeserver = credentials.homeserver
                     )
                     println("kostka_test, loginWithCredentials -> refresh -> isFullyValid: ${dataManager.currentUser.value?.isFullyValid}")
                     dataManager.currentUser.value?.isFullyValid == true
                 }
-                it.canLogin -> {
+                credentials.canLogin && credentials.refreshToken == null -> {
                     println("kostka_test, loginWithCredentials -> login")
-                    /*loginWithIdentifier(
-                        homeserver = it.homeserver ?: "",
+                    loginWithIdentifier(
+                        homeserver = credentials.homeserver ?: "",
                         identifier = MatrixIdentifierData(
-                            type = it.loginType,
-                            medium = it.medium,
-                            address = it.address,
-                            user = it.userId
+                            type = credentials.loginType,
+                            medium = credentials.medium,
+                            address = credentials.address,
+                            user = credentials.userId
                         ),
-                        password = it.password,
+                        password = credentials.password,
                         deviceId = deviceId,
-                        token = it.token
-                    ).success?.data != null*/
+                        token = credentials.token
+                    ).success?.data != null
                     false
                 }
                 else -> false
@@ -548,6 +540,7 @@ class AuthService {
     }
 
     private suspend fun initializeMatrixClient(auth: AuthItem? = null) {
+        println("kostka_test, initializeMatrixClient, is auth null: ${(auth ?: retrieveCredentials()) == null}")
         val credentials = auth ?: retrieveCredentials() ?: return
 
         if(dataManager.matrixClient.value == null) {

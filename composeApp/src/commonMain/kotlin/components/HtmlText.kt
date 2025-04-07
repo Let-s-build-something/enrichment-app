@@ -84,12 +84,15 @@ fun buildAnnotatedLinkString(
                         },
                     ),
                 ) {
-                    append(
-                        localAppendedText.substring(
-                            startIndex = localAppendedText.indexOf('>') + 1,
-                            endIndex = localAppendedText.indexOf("<")
+                    val range = localAppendedText.indexOf(">").plus(1) to localAppendedText.indexOf("<")
+                    if(range.first <= range.second) {
+                        append(
+                            localAppendedText.substring(
+                                startIndex = range.first,
+                                endIndex = range.second
+                            )
                         )
-                    )
+                    }
                 }
             }
             appendableText = ""

@@ -135,14 +135,20 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
                 newKey
             }else existingKey
         } catch (exc: Exception) {
+            exc.printStackTrace()
             log.error(exc) { "Cannot read or set secret ('$SECRET_BYTE_ARRAY_KEY_KEY')." }
             null
         }
     }
 
     private suspend fun getSecretByteArrayKeyFromSettings() = withContext(Dispatchers.IO) {
-        secureSettings.getStringOrNull(KEY_DB_KEY)?.let {
-            json.decodeFromString<SecretByteArrayKey>(it)
+        try {
+            secureSettings.getStringOrNull(KEY_DB_KEY)?.let {
+                json.decodeFromString<SecretByteArrayKey>(it)
+            }
+        }catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -163,6 +169,7 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
             try {
                 convert(existing, getSecretByteArrayKeyKey(sizeOnCreate))
             }catch (e: Exception) {
+                e.printStackTrace()
                 createKey(sizeOnCreate)
             }
         } else {

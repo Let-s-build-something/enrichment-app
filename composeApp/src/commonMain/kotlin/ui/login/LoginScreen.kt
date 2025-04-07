@@ -413,7 +413,9 @@ private fun ColumnScope.LoginScreenContent(
             email = emailState.text.toString(),
             password = passwordState.text.toString(),
             screenType = screenType,
-            username = usernameState.text.toString()
+            username = usernameState.text.toString().takeIf {
+                homeServerResponse.value?.supportsEmail != true
+            }
         )
     }
 
@@ -493,6 +495,7 @@ private fun ColumnScope.LoginScreenContent(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
             ),
+            lineLimits = TextFieldLineLimits.SingleLine,
             state = emailState,
             errorText = if(isEmailValid || emailState.text.isEmpty() || isEmailFocused.value) {
                 null
@@ -509,6 +512,7 @@ private fun ColumnScope.LoginScreenContent(
         prefixIcon = Icons.Outlined.Key,
         state = passwordState,
         isCorrect = isPasswordValid,
+        lineLimits = TextFieldLineLimits.SingleLine,
         errorText = if(isPasswordValid.not() && passwordState.text.isNotEmpty()) " " else null,
         textObfuscationMode = if(passwordVisible.value) {
             TextObfuscationMode.Visible

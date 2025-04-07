@@ -29,6 +29,7 @@ data class MatrixPagingMetaIO(
     @ColumnInfo("current_batch")
     val currentBatch: String? = null,
 
+    @ColumnInfo("prev_batch")
     val prevBatch: String?,
 
     /** At what time was this object created in milliseconds */

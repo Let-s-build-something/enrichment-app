@@ -1,13 +1,19 @@
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import augmy.interactive.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
 import data.io.social.network.conversation.message.MediaIO
@@ -26,13 +32,26 @@ import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
 import ui.network.received.networkManagementModule
+import kotlin.jvm.JvmSuppressWildcards
 
 /** Host of the main navigation tree */
 @Composable
 fun NavigationHost(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
-    startDestination: NavigationNode = NavigationNode.Home
+    navController: NavHostController,
+    startDestination: NavigationNode = NavigationNode.Home,
+    enterTransition:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+        {
+            fadeIn(animationSpec = tween(700))
+        },
+    exitTransition:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+        {
+            fadeOut(animationSpec = tween(700))
+        },
 ) {
     CompositionLocalProvider(
         LocalNavController provides navController
@@ -40,6 +59,8 @@ fun NavigationHost(
         NavHost(
             modifier = modifier,
             navController = navController,
+            enterTransition = enterTransition,
+            exitTransition = exitTransition,
             startDestination = startDestination
         ) {
             composable<NavigationNode.Login> { args ->

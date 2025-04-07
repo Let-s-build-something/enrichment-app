@@ -1,10 +1,12 @@
 package ui.conversation.settings
 
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import data.io.matrix.room.event.ConversationRoomMember
 import data.shared.SharedModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.core.model.RoomId
@@ -13,31 +15,37 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationDataManager
 import ui.home.utils.NetworkItemUseCase
+import ui.login.AUGMY_HOME_SERVER
 
 val conversationSettingsModule = module {
-    factory { ConversationSettingsRepository(get()) }
+    factory { ConversationSettingsRepository(get(), get(), get()) }
     viewModelOf(::ConversationSettingsModel)
 }
 
 class ConversationSettingsModel(
     private val conversationId: String,
     private val networkItemUseCase: NetworkItemUseCase,
-    private val repository: ConversationSettingsRepository,
-    private val dataManager: ConversationDataManager
+    repository: ConversationSettingsRepository,
+    dataManager: ConversationDataManager
 ): SharedModel() {
-    private val _members = MutableStateFlow(listOf<ConversationRoomMember>())
+    companion object {
+        const val MAX_MEMBERS_COUNT = 8
+        const val PAGE_ITEM_COUNT = 20
+    }
 
     /** Detailed information about this conversation */
     val conversation = dataManager.conversations.map { it[conversationId] }
-    val members = _members.asStateFlow()
 
-    init {
-        if(_members.value.isEmpty()) {
-            viewModelScope.launch {
-                _members.value = repository.getMembers(conversationId)
-            }
-        }
-    }
+    val members: Flow<PagingData<ConversationRoomMember>> = repository.getMembersListFlow(
+        config = PagingConfig(
+            pageSize = PAGE_ITEM_COUNT,
+            enablePlaceholders = true
+        ),
+        homeserver = {
+            currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
+        },
+        conversationId = conversationId
+    ).flow.cachedIn(viewModelScope)
 
     /** Removes a member out of a conversation */
     fun kickMember(memberId: String) {
@@ -56,10 +64,6 @@ class ConversationSettingsModel(
                 userId = UserId(memberId)
             )
         }
-    }
-
-    fun paginateMembers(enable: Boolean) {
-        // TODO
     }
 
     /** Makes a request for a change of proximity of a conversation */

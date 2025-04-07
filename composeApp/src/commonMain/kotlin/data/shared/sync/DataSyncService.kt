@@ -43,6 +43,7 @@ import org.koin.mp.KoinPlatform
 import kotlin.time.Duration.Companion.milliseconds
 
 internal val dataSyncModule = module {
+    factory { DataSyncHandler() }
     factory { DataSyncService() }
     single { DataSyncService() }
     single { DataService() }
@@ -159,7 +160,7 @@ class DataSyncService {
     }
 }
 
-internal class DataSyncHandler: MessageProcessor() {
+class DataSyncHandler: MessageProcessor() {
 
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()

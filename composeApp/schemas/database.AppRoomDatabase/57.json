@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 50,
-    "identityHash": "b007ecd090184e0d444e934e3ccb871b",
+    "version": 57,
+    "identityHash": "c48a11387f56a09732589d082d670578",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -174,7 +174,7 @@
       },
       {
         "tableName": "room_matrix_paging_meta_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `current_batch` TEXT, `prevBatch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `current_batch` TEXT, `prev_batch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
         "fields": [
           {
             "fieldPath": "entityId",
@@ -199,7 +199,7 @@
           },
           {
             "fieldPath": "prevBatch",
-            "columnName": "prevBatch",
+            "columnName": "prev_batch",
             "affinity": "TEXT"
           },
           {
@@ -218,7 +218,7 @@
       },
       {
         "tableName": "room_conversation_message_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `prev_batch` TEXT, `next_batch` TEXT, `current_batch` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `gravityData` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -257,6 +257,11 @@
             "affinity": "TEXT"
           },
           {
+            "fieldPath": "gravityData",
+            "columnName": "gravityData",
+            "affinity": "TEXT"
+          },
+          {
             "fieldPath": "anchorMessageId",
             "columnName": "anchor_message_id",
             "affinity": "TEXT"
@@ -289,21 +294,6 @@
           {
             "fieldPath": "conversationId",
             "columnName": "conversation_id",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "prevBatch",
-            "columnName": "prev_batch",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "nextBatch",
-            "columnName": "next_batch",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "currentBatch",
-            "columnName": "current_batch",
             "affinity": "TEXT"
           }
         ],
@@ -378,6 +368,41 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "room_gravity_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversation_id` TEXT, `fraction` REAL NOT NULL, `offset` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fraction",
+            "columnName": "fraction",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offset",
+            "columnName": "offset",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
           "columnNames": [
             "id"
           ]
@@ -466,7 +491,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b007ecd090184e0d444e934e3ccb871b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c48a11387f56a09732589d082d670578')"
     ]
   }
 }

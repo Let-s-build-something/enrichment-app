@@ -137,7 +137,7 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
 
     install(Logging) {
         logger = Logger.SIMPLE
-        level = LogLevel.BODY
+        level = LogLevel.HEADERS
 
         sanitizeHeader { header ->
             header == HttpHeaders.Authorization
@@ -167,8 +167,8 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     }
     HttpResponseValidator {
         handleResponseException { cause, request ->
-            when (cause) {
-                is ConnectTimeoutException, is SocketTimeoutException -> {
+            when {
+                cause is ConnectTimeoutException || cause is SocketTimeoutException || isConnectionException(cause) -> {
                     sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
                     println("Network timeout, response: ${request.url}, ${request.call.response.body<String>()}")
                 }
@@ -188,6 +188,8 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         }
     }
 }
+
+expect fun isConnectionException(cause: Throwable): Boolean
 
 /** Authorization type header with Firebase identification token */
 val IdToken: String
