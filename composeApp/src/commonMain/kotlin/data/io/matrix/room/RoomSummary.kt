@@ -65,7 +65,7 @@ data class RoomSummary(
     var members: List<ConversationRoomMember>? = null
 
     /** Either [canonicalAlias] or a default based on [heroes] */
-    val alias: String
+    val roomName: String
         get() = canonicalAlias ?: heroes?.joinToString(", ") ?: "Room ${tag ?: ""}"
 
     override fun toString(): String {

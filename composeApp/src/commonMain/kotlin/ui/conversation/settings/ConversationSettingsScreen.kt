@@ -3,6 +3,7 @@ package ui.conversation.settings
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -164,7 +165,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                         .fillMaxWidth(.5f),
                     media = detail.value?.summary?.avatar,
                     tag = detail.value?.summary?.tag,
-                    name = detail.value?.summary?.alias
+                    name = detail.value?.summary?.roomName
                 )
                 MinimalisticFilledIcon(
                     modifier = Modifier
@@ -179,9 +180,9 @@ fun ConversationSettingsContent(conversationId: String?) {
             }
         }
         item {
-            AliasContent(
+            RoomNameContent(
                 model = model,
-                alias = detail.value?.summary?.alias ?: ""
+                roomName = detail.value?.summary?.roomName ?: ""
             )
         }
         items(
@@ -258,28 +259,33 @@ fun ConversationSettingsContent(conversationId: String?) {
 }
 
 @Composable
-private fun AliasContent(
+private fun RoomNameContent(
     modifier: Modifier = Modifier,
     model: ConversationSettingsModel,
-    alias: String
+    roomName: String
 ) {
     val isLoading = model.isLoading.collectAsState()
-    val showNameChangeLauncher = remember { mutableStateOf(false) }
+    val showNameChangeLauncher = remember(roomName) { mutableStateOf(false) }
 
     Crossfade(targetState = showNameChangeLauncher.value) { change ->
         Row(
             modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             if(change) {
                 val focusRequester = remember { FocusRequester() }
-                val aliasState = remember {
-                    TextFieldState(alias)
+                val roomNameState = remember {
+                    TextFieldState(roomName)
                 }
                 val isValid = remember {
                     derivedStateOf {
-                        alias != aliasState.text && !isLoading.value
+                        roomName != roomNameState.text && !isLoading.value
                     }
+                }
+
+                LaunchedEffect(roomNameState.text) {
+                    if(roomNameState.text.isBlank()) showNameChangeLauncher.value = false
                 }
 
                 LaunchedEffect(Unit) {
@@ -296,12 +302,12 @@ private fun AliasContent(
                     ),
                     enabled = !isLoading.value,
                     onKeyboardAction = {
-                        if(isValid.value) model.requestAliasChange(aliasState.text)
+                        if(isValid.value) model.requestRoomNameChange(roomNameState.text)
                     },
                     paddingValues = PaddingValues(start = 16.dp),
                     prefixIcon = Icons.AutoMirrored.Outlined.Label,
-                    state = aliasState,
-                    isClearable = true
+                    state = roomNameState,
+                    isClearable = !isLoading.value
                 )
 
                 Crossfade(isLoading.value) {
@@ -319,7 +325,7 @@ private fun AliasContent(
                             }else LocalTheme.current.colors.disabled,
                             contentDescription = stringResource(Res.string.accessibility_change_username),
                             onTap = {
-                                if(isValid.value) model.requestAliasChange(aliasState.text)
+                                if(isValid.value) model.requestRoomNameChange(roomNameState.text)
                             }
                         )
                     }
@@ -327,7 +333,7 @@ private fun AliasContent(
             }else {
                 Text(
                     modifier = Modifier.padding(end = 8.dp),
-                    text = alias,
+                    text = roomName,
                     style = LocalTheme.current.styles.subheading
                 )
                 MinimalisticComponentIcon(

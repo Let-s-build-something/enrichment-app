@@ -139,7 +139,7 @@ fun ConversationScreen(
                             media = conversationDetail.value?.summary?.avatar,
                             tag = conversationDetail.value?.summary?.tag,
                             animate = true,
-                            name = conversationDetail.value?.summary?.alias
+                            name = conversationDetail.value?.summary?.roomName
                         )
                         Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                     }

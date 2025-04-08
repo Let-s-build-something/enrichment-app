@@ -18,11 +18,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.core.model.EventId
-import net.folivo.trixnity.core.model.RoomAliasId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.NameEventContent
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationDataManager
@@ -100,13 +100,26 @@ class ConversationSettingsModel(
         }
     }
 
-    fun requestAliasChange(alias: CharSequence) {
+    fun requestRoomNameChange(roomName: CharSequence) {
         _isLoading.value = true
         viewModelScope.launch {
-            sharedDataManager.matrixClient.value?.api?.room?.setRoomAlias(
+            sharedDataManager.matrixClient.value?.api?.room?.sendStateEvent(
                 roomId = RoomId(conversationId),
-                roomAliasId = RoomAliasId(alias.toString())
-            )
+                eventContent = NameEventContent(name = roomName.toString())
+            ).also { res ->
+                if(res?.getOrNull() != null) {
+                    dataManager.conversations.update { prev ->
+                        prev.apply {
+                            this[conversationId]?.copy(
+                                summary = this[conversationId]?.summary?.copy(canonicalAlias = roomName.toString())
+                            )?.let {
+                                set(conversationId, it)
+                                conversation.value = it
+                            }
+                        }
+                    }
+                }
+            }
             _isLoading.value = false
         }
     }

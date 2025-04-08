@@ -275,7 +275,7 @@ private fun NetworkItem(
             },
             mapToNetworkItem = {
                 NetworkItemIO(
-                    name = it.summary?.alias,
+                    name = it.summary?.roomName,
                     proximity = it.proximity,
                     publicId = it.id,
                     avatar = it.summary?.avatar

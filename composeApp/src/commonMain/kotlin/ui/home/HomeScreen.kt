@@ -324,7 +324,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                                         }else navController?.navigate(
                                             NavigationNode.Conversation(
                                                 conversationId = room?.id,
-                                                name = room?.summary?.alias
+                                                name = room?.summary?.roomName
                                             )
                                         )
                                     },
@@ -341,7 +341,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                                         }else {
                                             NavigationNode.ConversationInformation(
                                                 conversationId = room?.id,
-                                                name = room?.summary?.alias
+                                                name = room?.summary?.roomName
                                             )
                                         }
                                     }
@@ -548,7 +548,7 @@ private fun ConversationRoomItem(
                                     showAddMembers.value = true
                                 },
                                 newItem = NetworkItemIO(
-                                    name = room?.summary?.alias,
+                                    name = room?.summary?.roomName,
                                     tag = room?.summary?.tag,
                                     avatar = room?.summary?.avatar,
                                     publicId = room?.id ?: "-",
