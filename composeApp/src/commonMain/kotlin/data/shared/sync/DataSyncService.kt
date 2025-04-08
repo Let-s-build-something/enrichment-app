@@ -15,6 +15,7 @@ import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
+import io.github.oshai.kotlinlogging.KotlinLogging
 import korlibs.io.async.onCancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +53,8 @@ internal val dataSyncModule = module {
 }
 
 class DataSyncService {
+    private val logger = KotlinLogging.logger(name = "DataSyncServiceLogger")
+
     companion object {
         const val SYNC_INTERVAL = 60_000L
         private const val START_ANEW = false
@@ -72,19 +75,19 @@ class DataSyncService {
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
         if(!isRunning) {
-            isRunning = true
             this@DataSyncService.homeserver = homeserver
+            isRunning = true
 
             syncScope.launch {
+                this.coroutineContext.onCancel {
+                    isRunning = false
+                }
+
                 synMutex.withLock {
                     if(START_ANEW) {
                         matrixPagingMetaDao.removeAll()
                         conversationRoomDao.removeAll()
                         conversationMessageDao.removeAll()
-                    }
-
-                    this.coroutineContext.onCancel {
-                        isRunning = false
                     }
 
                     sharedDataManager.matrixClient.value?.let { client ->
@@ -130,8 +133,8 @@ class DataSyncService {
             )
         }
 
+        logger.debug { "enqueue, entityId: ${homeserver}_$owner" }
         client.api.sync.start(
-            filter = null,
             timeout = SYNC_INTERVAL.milliseconds,
             asUserId = UserId(owner),
             setPresence = when(sharedDataManager.currentUser.value?.configuration?.visibility) {
@@ -151,10 +154,11 @@ class DataSyncService {
                         entityType = PagingEntityType.Sync.name,
                         nextBatch = nextBatch,
                         currentBatch = currentBatch,
-                        // after getting a response, the currentBatch becomes prevBatch
                         prevBatch = prevBatch
                     )
-                )
+                ).also {
+                    logger.debug { "setBatchToken: $nextBatch, entityId: ${homeserver}_$owner" }
+                }
 
                 prevBatch = currentBatch
                 currentBatch = nextBatch
@@ -168,10 +172,7 @@ class DataSyncHandler: MessageProcessor() {
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
-    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     fun stop() {
-        syncScope.coroutineContext.cancelChildren()
         decryptionScope.coroutineContext.cancelChildren()
     }
 

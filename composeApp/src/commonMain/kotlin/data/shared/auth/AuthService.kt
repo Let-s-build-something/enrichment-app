@@ -3,9 +3,12 @@ package data.shared.auth
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
+import base.utils.Matrix.ErrorCode.UNKNOWN_TOKEN
 import base.utils.deviceName
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
+import data.io.base.AppPing
+import data.io.base.AppPingType
 import data.io.base.BaseResponse
 import data.io.matrix.auth.EmailLoginRequest
 import data.io.matrix.auth.MatrixAuthenticationResponse
@@ -15,6 +18,7 @@ import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
+import data.shared.sync.DataService
 import database.factory.SecretByteArray
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -61,6 +65,7 @@ class AuthService {
 
     private val _httpClient by lazy { KoinPlatform.getKoin().inject<HttpClient>() }
     private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
+    private val _dataService by lazy { KoinPlatform.getKoin().inject<DataService>() }
     private val _secureSettings by lazy { KoinPlatform.getKoin().inject<SecureAppSettings>() }
     private val _repository by lazy { KoinPlatform.getKoin().inject<SharedRepository>() }
     private val _json by lazy { KoinPlatform.getKoin().inject<Json>() }
@@ -69,6 +74,8 @@ class AuthService {
         get() = _httpClient.value
     private val dataManager
         get() = _dataManager.value
+    private val dataService
+        get() = _dataService.value
     private val secureSettings
         get() = _secureSettings.value
     private val repository
@@ -158,7 +165,6 @@ class AuthService {
                             initializeMatrixClient(auth = credentials)
                         }else {
                             if(credentials.refreshToken == null) {
-                                //dataManager.currentUser.value = null
                                 //dataService.appendPing(AppPing(AppPingType.HardLogout))
                                 logger.debug { "setupAutoLogin -> HardLogout" }
                             }else logger.debug { "setupAutoLogin -> expired, expect refresh soon." }
@@ -370,7 +376,9 @@ class AuthService {
                             )
                         }
                         is BaseResponse.Error -> {
-                            loginWithCredentials(false)
+                            if(response.code == UNKNOWN_TOKEN) {
+                                dataService.appendPing(AppPing(AppPingType.HardLogout))
+                            }else loginWithCredentials(false)
                         }
                         else -> {
                             delay(TOKEN_REFRESH_THRESHOLD_MS)

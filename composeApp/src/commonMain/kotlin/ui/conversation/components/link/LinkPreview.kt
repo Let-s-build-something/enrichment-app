@@ -1,5 +1,6 @@
 package ui.conversation.components.link
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,11 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.link_preview_error
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.AsyncSvgImage
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
 
@@ -89,26 +87,28 @@ fun LinkPreview(
                     }
                 }
 
-                Column(
-                    modifier = Modifier.padding(end = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    if(graphProtocol.value?.title != null || graphProtocol.value?.isEmpty == true) {
-                        Text(
-                            text = graphProtocol.value?.title ?: stringResource(Res.string.link_preview_error),
-                            style = LocalTheme.current.styles.title,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    graphProtocol.value?.description?.let { description ->
-                        Text(
-                            text = description,
-                            style = LocalTheme.current.styles.regular,
-                            maxLines = 5,
-                            minLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                if(graphProtocol.value?.isEmpty != true) {
+                    Column(
+                        modifier = Modifier.padding(end = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        AnimatedVisibility(graphProtocol.value?.title != null) {
+                            Text(
+                                text = graphProtocol.value?.title ?: "",
+                                style = LocalTheme.current.styles.title,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        AnimatedVisibility(graphProtocol.value?.description != null) {
+                            Text(
+                                text = graphProtocol.value?.description ?: "",
+                                style = LocalTheme.current.styles.regular,
+                                maxLines = 5,
+                                minLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }

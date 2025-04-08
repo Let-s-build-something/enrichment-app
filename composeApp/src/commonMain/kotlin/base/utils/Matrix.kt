@@ -15,6 +15,7 @@ object Matrix {
         const val FORBIDDEN = "M_FORBIDDEN"
         const val USER_IN_USE = "M_USER_IN_USE"
         const val UNKNOWN = "M_UNKNOWN"
+        const val UNKNOWN_TOKEN = "M_UNKNOWN_TOKEN"
         const val CREDENTIALS_IN_USE = "M_THREEPID_IN_USE"
         const val CREDENTIALS_DENIED = "M_THREEPID_DENIED"
     }

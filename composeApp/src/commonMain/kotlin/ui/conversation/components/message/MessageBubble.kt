@@ -387,15 +387,19 @@ private fun ContentLayout(
 
                     // message content + reply function + reactions
                     Box(
-                        (if (isReacting || data.anchorMessage != null) {
-                            Modifier.background(
-                                color = LocalTheme.current.colors.backgroundDark,
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                        } else Modifier)
-                            .animateContentSize(
-                                alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
-                                animationSpec = spring(stiffness = Spring.StiffnessHigh)
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .then(
+                                (if (isReacting || data.anchorMessage != null) {
+                                    Modifier.background(
+                                        color = LocalTheme.current.colors.backgroundDark,
+                                        shape = LocalTheme.current.shapes.componentShape
+                                    )
+                                } else Modifier)
+                                    .animateContentSize(
+                                        alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+                                        animationSpec = spring(stiffness = Spring.StiffnessHigh)
+                                    )
                             )
                     ) {
                         Column(
