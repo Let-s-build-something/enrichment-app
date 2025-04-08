@@ -18,6 +18,7 @@ import data.shared.SharedRepository
 import database.factory.SecretByteArray
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -56,6 +57,8 @@ internal val authModule = module {
  * The DAO informs us of all users on the device, whereas secure settings stores the credentials of the last login.
  */
 class AuthService {
+    private val logger = KotlinLogging.logger(name = "AuthServiceLogger")
+
     private val _httpClient by lazy { KoinPlatform.getKoin().inject<HttpClient>() }
     private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
     private val _secureSettings by lazy { KoinPlatform.getKoin().inject<SecureAppSettings>() }
@@ -89,8 +92,9 @@ class AuthService {
     private val matrixClientFactory by lazy {
         MatrixClientFactory(
             getLoginInfo = {
-                println("kostka_test, getLoginInfo: ${retrieveCredentials()}")
-                (retrieveCredentials()?.let { credentials ->
+                retrieveCredentials().also {
+                    logger.debug { "getLoginInfo, isFullyValid: ${it?.isFullyValid}" }
+                }?.let { credentials ->
                     if (credentials.accessToken != null
                         //&& credentials.refreshToken != null TODO some homeservers do not support refresh tokens
                         && credentials.userId != null
@@ -105,7 +109,7 @@ class AuthService {
                             )
                         )
                     } else Result.failure(Throwable())
-                } ?: Result.failure(Throwable()))
+                } ?: Result.failure(Throwable())
             },
             httpClientEngine = InterceptingEngine(
                 engine = KoinPlatform.getKoin().get(),
@@ -138,23 +142,26 @@ class AuthService {
         }
 
         withContext(Dispatchers.IO) {
-            retrieveCredentials()?.let { credentials ->
-                println("kostka_test, expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}, " +
-                        "isFullyValid: ${credentials.isFullyValid}, forceRefresh: $forceRefresh")
+            retrieveCredentials().also {
+                logger.debug { "setupAutoLogin, credentials: $it" }
+            }?.let { credentials ->
+                logger.debug { "expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}, " +
+                        "isFullyValid: ${credentials.isFullyValid}, forceRefresh: $forceRefresh"
+                }
 
                 when {
                     (!forceRefresh && credentials.isFullyValid)
                             || dataManager.networkConnectivity.value?.isNetworkAvailable == false -> {
                         updateUser(credentials = credentials)
                         if(!credentials.isExpired) {
-                            println("kostka_test, setupAutoLogin -> not expired. Initializing matrix.")
+                            logger.debug { "setupAutoLogin -> not expired. Initializing matrix." }
                             initializeMatrixClient(auth = credentials)
                         }else {
-                            /*if(credentials.refreshToken == null) {
-                                dataManager.currentUser.value = null
-                                dataService.appendPing(AppPing(AppPingType.HardLogout))
-                                println("kostka_test, setupAutoLogin -> HardLogout")
-                            }else println("kostka_test, setupAutoLogin -> expired, expect refresh soon.")*/
+                            if(credentials.refreshToken == null) {
+                                //dataManager.currentUser.value = null
+                                //dataService.appendPing(AppPing(AppPingType.HardLogout))
+                                logger.debug { "setupAutoLogin -> HardLogout" }
+                            }else logger.debug { "setupAutoLogin -> expired, expect refresh soon." }
                         }
                         enqueueRefreshToken(
                             refreshToken = credentials.refreshToken,
@@ -164,7 +171,7 @@ class AuthService {
                     }
                     // something's missing, we gotta get all the info first
                     else -> {
-                        println("kostka_test, setupAutoLogin -> login. AccessToken: ${credentials.accessToken}," +
+                        println("setupAutoLogin -> login. AccessToken: ${credentials.accessToken}," +
                                 " idToken: ${credentials.idToken}")
                         if(loginWithCredentials(forceRefresh = false)) setupAutoLogin(forceRefresh = false)
                     }
@@ -296,6 +303,8 @@ class AuthService {
                     value = credentials.pickleKey
                 )
             }
+            val newCredentials = retrieveCredentials()
+            logger.debug { "credentials after caching: $newCredentials" }
         }
     }
 
@@ -327,11 +336,11 @@ class AuthService {
         if(refreshToken != null && expiresAtMsEpoch != null && homeserver != null) {
             withContext(Dispatchers.IO) {
                 val delay = expiresAtMsEpoch - DateUtils.now.toEpochMilliseconds()
-                println("kostka_test, refreshToken -> delay: $delay")
+                logger.debug { "refreshToken -> delay: $delay" }
                 if(delay > 0) {
                     try { delay(delay) }catch (_: Exception) { }
                 }
-                println("kostka_test, refreshToken after delay, refreshing")
+                logger.debug { "refreshToken after delay, refreshing" }
                 httpClient.safeRequest<MatrixAuthenticationResponse> {
                     httpClient.post(urlString = "https://${homeserver}/_matrix/client/v3/refresh") {
                         setBody(
@@ -351,7 +360,7 @@ class AuthService {
                             )
                             initializeMatrixClient()
 
-                            println("kostka_test, expires in: ${response.data.expiresInMs}")
+                            logger.debug { "expires in: ${response.data.expiresInMs}" }
                             refreshToken(
                                 refreshToken = response.data.refreshToken,
                                 expiresAtMsEpoch = DateUtils.now.toEpochMilliseconds()
@@ -361,9 +370,7 @@ class AuthService {
                             )
                         }
                         is BaseResponse.Error -> {
-                            if(response.softLogout) {
-                                // TODO relogin via SSO etc.
-                            }else loginWithCredentials(false)
+                            loginWithCredentials(false)
                         }
                         else -> {
                             delay(TOKEN_REFRESH_THRESHOLD_MS)
@@ -404,11 +411,11 @@ class AuthService {
                         expiresAtMsEpoch = credentials.expiresAtMsEpoch,
                         homeserver = credentials.homeserver
                     )
-                    println("kostka_test, loginWithCredentials -> refresh -> isFullyValid: ${dataManager.currentUser.value?.isFullyValid}")
+                    logger.debug { "loginWithCredentials -> refresh -> isFullyValid: ${dataManager.currentUser.value?.isFullyValid}" }
                     dataManager.currentUser.value?.isFullyValid == true
                 }
                 credentials.canLogin && credentials.refreshToken == null -> {
-                    println("kostka_test, loginWithCredentials -> login")
+                    logger.debug { "loginWithCredentials -> login" }
                     loginWithIdentifier(
                         homeserver = credentials.homeserver ?: "",
                         identifier = MatrixIdentifierData(
@@ -453,7 +460,6 @@ class AuthService {
                     )
                 }
             }.also {
-                println("kostka_test, loginWithIdentifier, response: $it")
                 it.success?.data?.let { response ->
                     authFirebase(
                         accessToken = response.accessToken,
@@ -540,14 +546,13 @@ class AuthService {
     }
 
     private suspend fun initializeMatrixClient(auth: AuthItem? = null) {
-        println("kostka_test, initializeMatrixClient, is auth null: ${(auth ?: retrieveCredentials()) == null}")
         val credentials = auth ?: retrieveCredentials() ?: return
 
         if(dataManager.matrixClient.value == null) {
             dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
                 credentials = credentials
             ).also {
-                println("kostka_test, new Matrix client: $it")
+                logger.debug { "new Matrix client: $it" }
             }
         }
     }
@@ -561,7 +566,9 @@ class AuthService {
                 is SecretByteArray.AesHmacSha2 -> {
                     secureSettings.putString(
                         key = "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}",
-                        value = json.encodeToString(key)
+                        value = json.encodeToString(key).also {
+                            logger.debug { "saveDatabasePassword: $it, id: $id" }
+                        }
                     )
                 }
                 else -> {}
@@ -575,6 +582,8 @@ class AuthService {
                 "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}", ""
             ).takeIf { it.isNotBlank() }?.let {
                 json.decodeFromString<SecretByteArray.AesHmacSha2>(it)
+            }.also {
+                logger.debug { "getDatabasePassword: $it, id: $id" }
             }
         }
     }

@@ -24,6 +24,8 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
@@ -65,32 +67,33 @@ class DataSyncService {
     private var nextBatch: String? = null
     private var isRunning = false
     private val handler = DataSyncHandler()
+    private val synMutex = Mutex()
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
         if(!isRunning) {
-            println("kostka_test, datasync service sync, isFullyValid: ${
-                sharedDataManager.currentUser.value?.isFullyValid
-            }")
-            this.homeserver = homeserver
             isRunning = true
+            this@DataSyncService.homeserver = homeserver
+
             syncScope.launch {
-                if(START_ANEW) {
-                    matrixPagingMetaDao.removeAll()
-                    conversationRoomDao.removeAll()
-                    conversationMessageDao.removeAll()
-                }
+                synMutex.withLock {
+                    if(START_ANEW) {
+                        matrixPagingMetaDao.removeAll()
+                        conversationRoomDao.removeAll()
+                        conversationMessageDao.removeAll()
+                    }
 
-                this.coroutineContext.onCancel {
-                    isRunning = false
-                }
+                    this.coroutineContext.onCancel {
+                        isRunning = false
+                    }
 
-                sharedDataManager.matrixClient.value?.let { client ->
-                    delay?.let { delay(it) }
-                    if(sharedDataManager.currentUser.value?.isFullyValid == true) {
-                        enqueue(client = client)
-                    }else stop()
-                } ?: stop()
+                    sharedDataManager.matrixClient.value?.let { client ->
+                        delay?.let { delay(it) }
+                        if(sharedDataManager.currentUser.value?.isFullyValid == true) {
+                            enqueue(client = client)
+                        }else stop()
+                    } ?: stop()
+                }
             }
         }
     }

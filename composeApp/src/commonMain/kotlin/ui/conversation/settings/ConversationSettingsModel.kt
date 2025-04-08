@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.core.model.EventId
+import net.folivo.trixnity.core.model.RoomAliasId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
@@ -49,7 +49,7 @@ class ConversationSettingsModel(
     private val _changeAvatarResponse = MutableSharedFlow<Result<EventId>?>()
 
     /** Detailed information about this conversation */
-    val conversation = dataManager.conversations.map { it[conversationId] }
+    val conversation = MutableStateFlow(dataManager.conversations.value[conversationId])
     val isLoading = _isLoading.asStateFlow()
     val changeAvatarResponse = _changeAvatarResponse.asSharedFlow()
 
@@ -100,6 +100,18 @@ class ConversationSettingsModel(
         }
     }
 
+    fun requestAliasChange(alias: String) {
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.value?.api?.room?.setRoomAlias(
+                roomId = RoomId(conversationId),
+                roomAliasId = RoomAliasId(alias)
+            )
+        }
+    }
+
+    /**
+     * If [file] is not null, it is firstly uploaded to the server and then attempted to be used as a room avatar.
+     */
     fun requestAvatarChange(
         file: PlatformFile?,
         url: String?
@@ -142,7 +154,10 @@ class ConversationSettingsModel(
                             prev.apply {
                                 this[conversationId]?.copy(
                                     summary = this[conversationId]?.summary?.copy(avatar = media)
-                                )?.let { set(conversationId, it) }
+                                )?.let {
+                                    set(conversationId, it)
+                                    conversation.value = it
+                                }
                             }
                         }
                     }

@@ -87,6 +87,7 @@ open class SharedModel: ViewModel() {
 
     /** Initializes the user and returns whether successful */
     private suspend fun initUser(): Boolean {
+        println("kostka_test, initUser, idToken: ${sharedDataManager.currentUser.value?.idToken}")
         return Firebase.auth.currentUser?.let {
             if(sharedDataManager.currentUser.value?.idToken == null) {
                 try {

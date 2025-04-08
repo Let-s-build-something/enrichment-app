@@ -154,7 +154,7 @@ fun DeveloperContent(modifier: Modifier = Modifier) {
                 .zIndex(100f)
         )
 
-        AnimatedVisibility(consoleSize.value > 50f) {
+        if(consoleSize.value > ((if(isCompact) screenSize.height else screenSize.width) * 0.2f)) {
             Column(modifier = Modifier.fillMaxSize()) {
                 InformationContent(viewModel = viewModel, isCompact = isCompact)
             }

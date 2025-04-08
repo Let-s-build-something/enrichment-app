@@ -19,10 +19,10 @@ import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.plugins.plugin
 import io.ktor.client.statement.request
@@ -136,8 +136,8 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
 
     install(Logging) {
-        logger = Logger.SIMPLE
-        level = LogLevel.HEADERS
+        logger = Logger.DEFAULT
+        level = LogLevel.BODY
 
         sanitizeHeader { header ->
             header == HttpHeaders.Authorization
