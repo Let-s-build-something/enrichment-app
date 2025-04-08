@@ -5,6 +5,7 @@ import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.UNKNOWN_TOKEN
 import base.utils.deviceName
+import base.utils.sha256
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
 import data.io.base.AppPing
@@ -478,9 +479,11 @@ class AuthService {
 
                     cacheCredentials(
                         response = response,
-                        identifier = identifier,
+                        identifier = identifier ?: MatrixIdentifierData(
+                            address = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
+                        ),
                         homeserver = homeserver,
-                        password = password,
+                        password = password ?: sha256(it.success?.data?.userId),
                         deviceId = deviceId,
                         token = token
                     )

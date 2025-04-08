@@ -7,6 +7,7 @@ import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
 import base.utils.deeplinkHost
 import base.utils.openLink
+import base.utils.sha256
 import coil3.toUri
 import data.io.app.ClientStatus
 import data.io.app.SecureSettingsKeys
@@ -450,17 +451,17 @@ class LoginModel(
                     )
                 }
 
-                // Firebase should go out the window
-                val email = "jakub.kostka@augmy.org" //"${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
-                val password = "heslo,.1234"//sha256(it.success?.data?.userId)
-
                 authService.loginWithIdentifier(
                     setupAutoLogin = true,
                     homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
-                    identifier = MatrixIdentifierData(address = email),
-                    password = password,
+                    identifier = null,
+                    password = null,
                     token = token
                 ).let {
+                    // Firebase should go out the window
+                    val email = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
+                    val password = sha256(it.success?.data?.userId)
+
                     when {
                         it.success != null -> {
                             try {
