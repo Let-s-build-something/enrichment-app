@@ -41,6 +41,8 @@
   <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
   <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
+  <string name="login_oidc_disable">Disable OIDC</string>
+  <string name="login_oidc_enable">Enable OIDC</string>
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>

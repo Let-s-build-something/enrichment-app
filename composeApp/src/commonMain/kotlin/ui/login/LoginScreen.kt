@@ -97,6 +97,8 @@ import augmy.composeapp.generated.resources.login_error_invalid_credential
 import augmy.composeapp.generated.resources.login_error_no_windows
 import augmy.composeapp.generated.resources.login_error_security
 import augmy.composeapp.generated.resources.login_matrix_homeserver
+import augmy.composeapp.generated.resources.login_oidc_disable
+import augmy.composeapp.generated.resources.login_oidc_enable
 import augmy.composeapp.generated.resources.login_password_action_go
 import augmy.composeapp.generated.resources.login_password_condition_0
 import augmy.composeapp.generated.resources.login_password_condition_1
@@ -128,6 +130,7 @@ import augmy.interactive.shared.ui.components.CorrectionText
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
@@ -420,11 +423,12 @@ private fun ColumnScope.LoginScreenContent(
         it.stages?.contains(LoginEmail) == true
     } != false*/
 
+    val disableSsoFlow = remember { mutableStateOf(false) }
     val ssoFlow = remember(homeServerResponse.value) {
         derivedStateOf {
             homeServerResponse.value?.plan?.flows?.find {
                 it.type == Matrix.LOGIN_SSO
-            }
+            }.takeIf { !disableSsoFlow.value }
         }
     }
 
@@ -588,18 +592,32 @@ private fun ColumnScope.LoginScreenContent(
         }
     }
 
-    BrandHeaderButton(
+    Row(
         modifier = Modifier
             .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-            .fillMaxWidth()
-            .padding(vertical = 16.dp, horizontal = 16.dp),
-        text = stringResource(Res.string.login_password_action_go),
-        isEnabled = ssoFlow.value?.delegatedOidcCompatibility == true
-                || isPasswordValid && isEmailValid && isLoading.value.not(),
-        isLoading = isLoading.value,
-        onClick = sendRequest,
-        endImageVector = Icons.AutoMirrored.Outlined.ArrowForward
-    )
+            .padding(vertical = 16.dp, horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BrandHeaderButton(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.login_password_action_go),
+            isEnabled = ssoFlow.value?.delegatedOidcCompatibility == true
+                    || isPasswordValid && isEmailValid && isLoading.value.not(),
+            isLoading = isLoading.value,
+            onClick = sendRequest,
+            endImageVector = Icons.AutoMirrored.Outlined.ArrowForward
+        )
+        AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility == true) {
+            OutlinedButton(
+                text = stringResource(
+                    if(disableSsoFlow.value) Res.string.login_oidc_enable else Res.string.login_oidc_disable
+                )
+            ) {
+                disableSsoFlow.value = !disableSsoFlow.value
+            }
+        }
+    }
 
     AnimatedVisibility(
         modifier = Modifier.align(Alignment.CenterHorizontally),
