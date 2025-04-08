@@ -34,6 +34,7 @@ actual val settings: AppSettings = object : AppSettings, FlowSettings by DataSto
 )) {}
 
 actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
+    private val keyName = if(BuildKonfig.isDevelopment) "SecureDevAppKey" else "SecureAppKey"
     private val prefs: Preferences = Preferences.userNodeForPackage(SecureAppSettings::class.java)
     private var _secretKey: SecretKey? = null
     private val secretKey: SecretKey
@@ -88,7 +89,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
 
     override fun clear() {
         keys.forEach { key ->
-            if(persistentKeys.none { it.contains(key) }) remove(key)
+            if(key != keyName && persistentKeys.none { it.contains(key) }) remove(key)
         }
     }
 
@@ -111,6 +112,7 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
             String(cipher.doFinal(cipherText))
         } catch (e: AEADBadTagException) {
+            e.printStackTrace()
             prefs.clear()
             _secretKey = null
             ""
@@ -121,7 +123,6 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     }
 
     private fun generateOrLoadKey(): SecretKey {
-        val keyName = if(BuildKonfig.isDevelopment) "SecureDevAppKey" else "SecureAppKey"
         val storedKey = prefs.get(keyName, null)
         return if (storedKey != null) {
             try {

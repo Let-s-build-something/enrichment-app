@@ -132,6 +132,7 @@ class AuthService {
 
     fun clear() {
         stop()
+        logger.debug { "clear" }
         secureSettings.remove(SecureSettingsKeys.KEY_CREDENTIALS)
     }
 
@@ -378,6 +379,7 @@ class AuthService {
                         }
                         is BaseResponse.Error -> {
                             if(response.code == UNKNOWN_TOKEN) {
+                                logger.debug { "Attempt to hard logout" }
                                 dataService.appendPing(AppPing(AppPingType.HardLogout))
                             }else loginWithCredentials(false)
                         }

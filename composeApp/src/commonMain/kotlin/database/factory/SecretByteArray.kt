@@ -155,6 +155,7 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
     private suspend fun setSecretByteArrayKeyInSettings(
         secretByteArrayKey: SecretByteArrayKey?
     ) = withContext(Dispatchers.IO) {
+        if(secretByteArrayKey == null) return@withContext
         secureSettings.putString(
             key = KEY_DB_KEY,
             json.encodeToString(secretByteArrayKey)

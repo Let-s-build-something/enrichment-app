@@ -100,12 +100,14 @@ class ConversationSettingsModel(
         }
     }
 
-    fun requestAliasChange(alias: String) {
+    fun requestAliasChange(alias: CharSequence) {
+        _isLoading.value = true
         viewModelScope.launch {
             sharedDataManager.matrixClient.value?.api?.room?.setRoomAlias(
                 roomId = RoomId(conversationId),
-                roomAliasId = RoomAliasId(alias)
+                roomAliasId = RoomAliasId(alias.toString())
             )
+            _isLoading.value = false
         }
     }
 
