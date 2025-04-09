@@ -66,7 +66,9 @@ import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
 import data.io.base.AppPingType
 import data.shared.AppServiceModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -221,7 +223,9 @@ private fun AppContent(
                             navController.navigate(NavigationNode.Login())
                         }
                     }
-                    model.logoutCurrentUser()
+                    CoroutineScope(Job()).launch {
+                        model.logoutCurrentUser()
+                    }
                 }
             }
         }

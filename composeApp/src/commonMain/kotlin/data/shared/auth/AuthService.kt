@@ -94,6 +94,10 @@ class AuthService {
         const val TOKEN_REFRESH_THRESHOLD_MS = 2_000L
     }
 
+    suspend fun getDeviceId() = dataManager.localSettings.value?.deviceId ?: koin.secureSettings.getString(
+        SecureSettingsKeys.KEY_DEVICE_ID, ""
+    ).takeIf { it.isNotBlank() } ?: generateDeviceId()
+
     val awaitingAutologin: Boolean
         get() = secureSettings.hasKey(SecureSettingsKeys.KEY_CREDENTIALS)
 
@@ -103,15 +107,16 @@ class AuthService {
                 retrieveCredentials().also {
                     logger.debug { "getLoginInfo, isFullyValid: ${it?.isFullyValid}" }
                 }?.let { credentials ->
+                    val deviceId = dataManager.localSettings.value?.deviceId
                     if (credentials.accessToken != null
                         //&& credentials.refreshToken != null TODO some homeservers do not support refresh tokens
                         && credentials.userId != null
-                        && credentials.deviceId != null
+                        && deviceId != null
                     ) {
                         Result.success(
                             LoginInfo(
                                 userId = UserId(credentials.userId),
-                                deviceId = credentials.deviceId,
+                                deviceId = deviceId,
                                 accessToken = credentials.accessToken,
                                 refreshToken = credentials.refreshToken
                             )
@@ -188,13 +193,6 @@ class AuthService {
         }
     }
 
-    private suspend fun getDeviceId(userId: String?): String? = withContext(Dispatchers.IO) {
-        if(userId == null) return@withContext null
-        secureSettings.getString(
-            "${SecureSettingsKeys.KEY_DEVICE_ID}_${userId}", ""
-        ).takeIf { it.isNotBlank() }
-    }
-
     private suspend fun getPickleKey(userId: String?): String? = withContext(Dispatchers.IO) {
         if(userId == null) return@withContext null
         secureSettings.getString(
@@ -215,7 +213,6 @@ class AuthService {
                 val decoded = json.decodeFromString<AuthItem>(res)
                 val userId = storedUserId()
                 decoded.copy(
-                    deviceId = getDeviceId(userId),
                     pickleKey = getPickleKey(userId),
                     databasePassword = getDatabasePassword(userId),
                     userId = userId
@@ -240,7 +237,6 @@ class AuthService {
 
         dataManager.localSettings.update {
             (it ?: LocalSettings()).copy(
-                deviceId = credentials.deviceId ?: dataManager.localSettings.value?.deviceId,
                 pickleKey = credentials.pickleKey ?: dataManager.localSettings.value?.pickleKey
             )
         }
@@ -252,7 +248,6 @@ class AuthService {
         password: String? = null,
         token: String?,
         identifier: MatrixIdentifierData? = null,
-        deviceId: String? = null,
         response: MatrixAuthenticationResponse? = null
     ) {
         val user = dataManager.currentUser.value
@@ -277,7 +272,6 @@ class AuthService {
                 loginType = identifier?.type ?: previous?.loginType,
                 medium = identifier?.medium ?: previous?.medium,
                 address = identifier?.address ?: previous?.address,
-                deviceId = response?.deviceId ?: previous?.deviceId ?: deviceId ?: getDeviceId(userId),
                 pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString(),
                 displayName = user?.displayName ?: previous?.displayName,
                 tag = user?.tag ?: previous?.tag,
@@ -297,12 +291,6 @@ class AuthService {
                 secureSettings.putString(
                     key = SecureSettingsKeys.KEY_USER_ID,
                     value = credentials.userId
-                )
-            }
-            if(credentials.deviceId != null) {
-                secureSettings.putString(
-                    key = "${SecureSettingsKeys.KEY_DEVICE_ID}_${credentials.userId}",
-                    value = credentials.deviceId
                 )
             }
             if(credentials.pickleKey != null) {
@@ -363,7 +351,6 @@ class AuthService {
                                 homeserver = homeserver,
                                 password = null,
                                 identifier = null,
-                                deviceId = null,
                                 token = null
                             )
                             initializeMatrixClient()
@@ -395,20 +382,16 @@ class AuthService {
 
     private suspend fun loginWithCredentials(forceRefresh: Boolean): Boolean {
         retrieveCredentials()?.let { credentials ->
-            val deviceId = credentials.deviceId ?: generateDeviceId()
-
             return when {
                 !forceRefresh && !credentials.isExpired && credentials.accessToken != null && credentials.idToken == null -> {
                     authFirebase(
                         accessToken = credentials.accessToken,
                         refreshToken = credentials.refreshToken,
-                        expiresInMs = null,
-                        deviceId = deviceId
+                        expiresInMs = null
                     )
                     val isValid = dataManager.currentUser.value?.idToken != null
                     if(isValid) {
                         cacheCredentials(
-                            deviceId = deviceId,
                             response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0),
                             token = null
                         )
@@ -436,7 +419,6 @@ class AuthService {
                             user = credentials.userId
                         ),
                         password = credentials.password,
-                        deviceId = deviceId,
                         token = credentials.token
                     ).success?.data != null
                     false
@@ -454,7 +436,6 @@ class AuthService {
         identifier: MatrixIdentifierData?,
         password: String?,
         token: String?,
-        deviceId: String = generateDeviceId()
     ): BaseResponse<MatrixAuthenticationResponse> {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<MatrixAuthenticationResponse> {
@@ -462,10 +443,10 @@ class AuthService {
                     setBody(
                         EmailLoginRequest(
                             identifier = identifier,
-                            initialDeviceDisplayName = deviceName() ?: deviceId,
+                            initialDeviceDisplayName = deviceName() ?: currentPlatform.name,
                             password = password,
                             type = if(token != null) Matrix.LOGIN_TOKEN else Matrix.LOGIN_PASSWORD,
-                            deviceId = deviceId,
+                            deviceId = getDeviceId(),
                             token = token
                         )
                     )
@@ -475,8 +456,7 @@ class AuthService {
                     authFirebase(
                         accessToken = response.accessToken,
                         refreshToken = response.refreshToken,
-                        expiresInMs = response.expiresInMs,
-                        deviceId = deviceId
+                        expiresInMs = response.expiresInMs
                     )
 
                     cacheCredentials(
@@ -486,7 +466,6 @@ class AuthService {
                         ),
                         homeserver = homeserver,
                         password = password ?: sha256(it.success?.data?.userId),
-                        deviceId = deviceId,
                         token = token
                     )
                     initializeMatrixClient()
@@ -534,7 +513,6 @@ class AuthService {
         accessToken: String?,
         refreshToken: String?,
         expiresInMs: Long?,
-        deviceId: String?
     ) = withContext(Dispatchers.IO) {
         with(dataManager.currentUser) {
             // the init-app would fail due to missing idToken and accessToken
@@ -549,9 +527,7 @@ class AuthService {
                 val update = repository.authenticateUser(
                     refreshToken = refreshToken,
                     expiresInMs = expiresInMs,
-                    localSettings = dataManager.localSettings.value?.copy(
-                        deviceId = deviceId
-                    )
+                    localSettings = dataManager.localSettings.value
                 )
                 value = value?.update(update) ?: update
             }
@@ -563,7 +539,8 @@ class AuthService {
 
         if(dataManager.matrixClient.value == null) {
             dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
-                credentials = credentials
+                credentials = credentials,
+                deviceId = getDeviceId()
             ).also {
                 logger.debug { "new Matrix client: $it" }
             }
@@ -581,6 +558,12 @@ class AuthService {
                         key = "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}",
                         value = json.encodeToString(key).also {
                             logger.debug { "saveDatabasePassword: $it, id: $id" }
+                            /*
+                            "iv": "JEl0+ALmiiULFMFl4rjZUQ==",
+                            "ciphertext": "n0jaruh/eJV0vOkM4Ia0OjUiCbRexFPefue2blt+pE4=",
+                            "mac": "eKg1A3HYKRV+ToEAsOtVgTbQfdNe74Jxrv/9IkXD3pU="
+                            id: @lpoxasas:matrix.org
+                            */
                         }
                     )
                 }
@@ -601,8 +584,13 @@ class AuthService {
         }
     }
 
-    //mac: BkLukuyyfn9OQ2xoQ3c82orML8G0sVdj95NCN04o9b0
-
     @OptIn(ExperimentalUuidApi::class)
-    private fun generateDeviceId(): String = "${currentPlatform}_${Uuid.random().toHexString()}"
+    private suspend fun generateDeviceId(): String = withContext(Dispatchers.Default) {
+        "${currentPlatform}_${Uuid.random().toHexString()}".also {
+            secureSettings.putString(SecureSettingsKeys.KEY_DEVICE_ID, it)
+            dataManager.localSettings.update { prev ->
+                prev?.copy(deviceId = it) ?: LocalSettings(deviceId = it)
+            }
+        }
+    }
 }

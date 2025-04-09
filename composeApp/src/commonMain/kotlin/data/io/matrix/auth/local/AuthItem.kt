@@ -26,8 +26,6 @@ data class AuthItem(
     @Transient
     val userId: String? = null,
     @Transient
-    val deviceId: String? = null,
-    @Transient
     val databasePassword: SecretByteArray? = null,
     @Transient
     val pickleKey: String? = null,

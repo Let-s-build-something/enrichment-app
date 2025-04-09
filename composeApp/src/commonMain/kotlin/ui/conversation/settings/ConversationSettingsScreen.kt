@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -101,10 +100,6 @@ fun ConversationSettingsContent(conversationId: String?) {
     val detail = model.conversation.collectAsState(null)
     val members = model.members.collectAsLazyPagingItems()
     val listState = rememberLazyListState()
-
-    SideEffect {
-        println("kostka_test, detail avatar: ${detail.value?.summary?.avatar}")
-    }
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
             || (members.itemCount == 0 && !members.loadState.append.endOfPaginationReached)

@@ -5,10 +5,12 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import data.io.base.BaseResponse
 import data.io.base.paging.MatrixPagingMetaIO
+import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
+import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
@@ -31,6 +33,7 @@ import ui.login.safeRequest
 class ConversationSettingsRepository(
     private val httpClient: HttpClient,
     private val roomMemberDao: RoomMemberDao,
+    private val conversationRoomDao: ConversationRoomDao,
     private val matrixPagingDao: MatrixPagingMetaDao,
     mediaDataManager: MediaProcessorDataManager,
     fileAccess: FileAccess
@@ -42,6 +45,10 @@ class ConversationSettingsRepository(
     private var certainMembersCount: Int? = null
 
     private val requestMutex = Mutex()
+
+    suspend fun updateRoom(room: ConversationRoomIO) = withContext(Dispatchers.IO) {
+        conversationRoomDao.insert(room)
+    }
 
     /** Returns a flow of conversation messages */
     fun getMembersListFlow(

@@ -110,7 +110,15 @@ class AccountDashboardModel(
     }
 
     /** Logs out the currently signed in user */
-    override fun logoutCurrentUser() {
+    override suspend fun logoutCurrentUser() {
+        _isLoading.value = true
+        repository.logout()
+        super.logoutCurrentUser()
+        _signOutResponse.emit(true)
+        _isLoading.value = false
+    }
+
+    fun logout() {
         runBlocking {
             _isLoading.value = true
             repository.logout()

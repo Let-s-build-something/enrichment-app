@@ -20,9 +20,7 @@ import dev.gitlive.firebase.storage.Data
 import koin.AppSettings
 import koin.commonModule
 import koin.secureSettings
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -153,31 +151,32 @@ open class SharedModel: ViewModel() {
             "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId"
         )?.split(",")
             ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
+        // Jvm_3b158f7e3e20467681c9ac573ffb9fd6
 
         val update = LocalSettings(
             theme = theme,
             fcmToken = fcmToken,
             clientStatus = clientStatus,
-            networkColors = networkColors
+            networkColors = networkColors,
+            deviceId = authService.getDeviceId()
         )
         sharedDataManager.localSettings.value = sharedDataManager.localSettings.value?.update(update) ?: update
     }
 
     /** Logs out the currently signed in user */
-    open fun logoutCurrentUser() {
-        CoroutineScope(Job()).launch {
-            authService.clear()
-            secureSettings.clear()
-            Firebase.auth.signOut()
-            sharedDataManager.matrixClient.value?.logout()
-            sharedDataManager.currentUser.value = null
-            sharedDataManager.localSettings.value = null
-            sharedDataManager.matrixClient.value = null
-            dataSyncService.stop()
-            sharedDataManager.pingStream.value = setOf()
-            unloadKoinModules(commonModule)
-            loadKoinModules(commonModule)
-        }
+    open suspend fun logoutCurrentUser() {
+        dataSyncService.stop()
+        authService.clear()
+        secureSettings.clear()
+        Firebase.auth.signOut()
+        sharedDataManager.matrixClient.value?.logout()
+        sharedDataManager.currentUser.value = null
+        sharedDataManager.localSettings.value = null
+        sharedDataManager.matrixClient.value = null
+        sharedDataManager.pingStream.value = setOf()
+        unloadKoinModules(commonModule)
+        loadKoinModules(commonModule)
+        updateClientSettings()
     }
 }
 

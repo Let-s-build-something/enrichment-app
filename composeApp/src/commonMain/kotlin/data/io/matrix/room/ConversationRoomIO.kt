@@ -80,7 +80,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         else -> RoomType.Joined
     }
 ) {
-
     @Ignore
     @Transient
     var state: State? = null

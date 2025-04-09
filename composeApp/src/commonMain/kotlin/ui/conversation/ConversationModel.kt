@@ -94,8 +94,9 @@ open class ConversationModel(
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
+
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
-        if((conversationId.isNotBlank() && dataManager.conversations.value[conversationId] == null)
+        if((conversationId.isNotBlank() && dataManager.conversations.value.second[conversationId] == null)
             || isSpecial
         ) {
             withContext(Dispatchers.IO) {
@@ -103,7 +104,8 @@ open class ConversationModel(
                     conversationId = conversationId,
                     owner = matrixUserId
                 )?.let { data ->
-                    dataManager.conversations.value[conversationId] = data
+                    dataManager.updateConversations { it.apply { this[conversationId] = data } }
+                    dataManager.conversations.value.second[conversationId] = data
                 }
             }
         }
@@ -131,7 +133,7 @@ open class ConversationModel(
 
 
     /** Detailed information about this conversation */
-    val conversation = dataManager.conversations.map { it[conversationId] }
+    val conversation = dataManager.conversations.map { it.second[conversationId] }
 
     /** Current typing indicators, indicating typing statuses of other users */
     val typingIndicators = sharedDataManager.typingIndicators.map { indicators ->
@@ -139,7 +141,7 @@ open class ConversationModel(
             indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
                 if(userId.full != matrixUserId) {
                     ConversationTypingIndicator().apply {
-                        user = dataManager.conversations.value[conversationId]?.members?.find { user ->
+                        user = dataManager.conversations.value.second[conversationId]?.members?.find { user ->
                             user.userId == userId.full
                         }
                     }
@@ -176,7 +178,7 @@ open class ConversationModel(
         ).flow
             .cachedIn(viewModelScope)
             .let {
-                if(dataManager.conversations.value[conversationId] != null) {
+                if(dataManager.conversations.value.second[conversationId] != null) {
                     it.combine(conversation) { messages, detail ->
                         withContext(Dispatchers.Default) {
                             messages.map { message ->

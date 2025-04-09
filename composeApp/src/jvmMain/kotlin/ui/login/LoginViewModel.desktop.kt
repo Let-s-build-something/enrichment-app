@@ -107,8 +107,6 @@ actual class UserOperationService(private val repository: DesktopSignInRepositor
                 repository.deleteAccount(it)
             }
         }
-
-        println("kostka_test, signUpWithPassword: $res")
         return res
     }
 }

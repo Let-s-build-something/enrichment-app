@@ -180,7 +180,6 @@ class HomeModel(
             }
             val startTime = Clock.System.now().toEpochMilliseconds()
 
-            println("kostka_test, respondToInvitation, matrixUserId: $matrixUserId, client: ${sharedDataManager.matrixClient.value}")
             val result = repository.respondToInvitation(
                 client = sharedDataManager.matrixClient.value,
                 matrixUserId = matrixUserId,

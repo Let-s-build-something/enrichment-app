@@ -126,7 +126,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),
                 onClick = {
-                    model.logoutCurrentUser()
+                    model.logout()
                 }
             ),
             dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),

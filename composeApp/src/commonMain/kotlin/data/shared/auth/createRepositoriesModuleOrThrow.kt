@@ -47,8 +47,10 @@ class MatrixClientFactory(
 ) {
     private val repositoriesModuleCreation: CreateRepositoriesModule = KoinPlatform.getKoin().get()
 
-    suspend fun initializeMatrixClient(credentials: AuthItem): MatrixClient? {
-        println("kostka_test, initializeMatrixClient, userId: ${credentials.userId}")
+    suspend fun initializeMatrixClient(
+        credentials: AuthItem,
+        deviceId: String?
+    ): MatrixClient? {
         return if(credentials.userId != null) {
             (if(credentials.databasePassword != null) {
                 MatrixClient.fromStore(
@@ -58,7 +60,7 @@ class MatrixClientFactory(
                     ),
                     mediaStore = InMemoryMediaStore(),
                     configuration = {
-                        configureClient(credentials.deviceId)
+                        configureClient(deviceId)
                     },
                 ).getOrNullLoggingError()
             }else null) ?: MatrixClient.loginWith(
@@ -73,7 +75,7 @@ class MatrixClientFactory(
                 },
                 mediaStoreFactory = { InMemoryMediaStore() },
                 configuration = {
-                    configureClient(credentials.deviceId)
+                    configureClient(deviceId)
                 }
             ).getOrNullLoggingError()
         }else null

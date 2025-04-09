@@ -119,7 +119,7 @@ fun MediaElement(
             model.cacheFiles(media)
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(media.url) {
             model.cachedFiles.collectLatest {
                 it[media.url]?.let { response ->
                     onState(response)

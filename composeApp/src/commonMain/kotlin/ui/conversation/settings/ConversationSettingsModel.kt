@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
@@ -30,7 +30,7 @@ import ui.home.utils.NetworkItemUseCase
 import ui.login.AUGMY_HOME_SERVER
 
 val conversationSettingsModule = module {
-    factory { ConversationSettingsRepository(get(), get(), get(), get(), get()) }
+    factory { ConversationSettingsRepository(get(), get(), get(), get(), get(), get()) }
     viewModelOf(::ConversationSettingsModel)
 }
 
@@ -49,7 +49,7 @@ class ConversationSettingsModel(
     private val _changeAvatarResponse = MutableSharedFlow<Result<EventId>?>()
 
     /** Detailed information about this conversation */
-    val conversation = MutableStateFlow(dataManager.conversations.value[conversationId])
+    val conversation = dataManager.conversations.map { it.second[conversationId] }
     val isLoading = _isLoading.asStateFlow()
     val changeAvatarResponse = _changeAvatarResponse.asSharedFlow()
 
@@ -103,18 +103,16 @@ class ConversationSettingsModel(
     fun requestRoomNameChange(roomName: CharSequence) {
         _isLoading.value = true
         viewModelScope.launch {
-            sharedDataManager.matrixClient.value?.api?.room?.sendStateEvent(
+            sharedDataManager.matrixClient.value!!.api.room.sendStateEvent(
                 roomId = RoomId(conversationId),
                 eventContent = NameEventContent(name = roomName.toString())
             ).also { res ->
                 if(res?.getOrNull() != null) {
-                    dataManager.conversations.update { prev ->
+                    dataManager.updateConversations { prev ->
                         prev.apply {
-                            this[conversationId]?.copy(
-                                summary = this[conversationId]?.summary?.copy(canonicalAlias = roomName.toString())
-                            )?.let {
-                                set(conversationId, it)
-                                conversation.value = it
+                            this[conversationId]?.let {
+                                set(conversationId, it.copy(summary = it.summary?.copy(canonicalAlias = roomName.toString())))
+                                repository.updateRoom(it)
                             }
                         }
                     }
@@ -165,13 +163,11 @@ class ConversationSettingsModel(
                     )
                 ).also { res ->
                     if(res?.getOrNull() != null) {
-                        dataManager.conversations.update { prev ->
+                        dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.copy(
-                                    summary = this[conversationId]?.summary?.copy(avatar = media)
-                                )?.let {
-                                    set(conversationId, it)
-                                    conversation.value = it
+                                this[conversationId]?.let {
+                                    set(conversationId, it.copy(summary = it.summary?.copy(avatar = media)))
+                                    repository.updateRoom(it)
                                 }
                             }
                         }

@@ -159,7 +159,7 @@ fun ConversationScreen(
                 )
             },
             clearFocus = false,
-            title = name
+            title = conversationDetail.value?.summary?.roomName ?: name
         ) {
             Row(
                 modifier = Modifier.fillMaxHeight(),
