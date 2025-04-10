@@ -57,12 +57,10 @@ import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.core.PickerMode
 import io.github.vinceglb.filekit.core.PickerType
 import io.github.vinceglb.filekit.core.PlatformFile
-import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import net.folivo.trixnity.core.MatrixServerException
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.components.MediaElement
@@ -76,7 +74,7 @@ fun DialogChangeRoomAvatar(
     val snackbarHostState = LocalSnackbarHost.current
     val focusManager = LocalFocusManager.current
 
-    val isLoading = model.isLoading.collectAsState()
+    val ongoingChange = model.ongoingChange.collectAsState()
 
     val urlState = remember { TextFieldState() }
     val selectedImageUrl = rememberSaveable(detail?.id) {
@@ -106,10 +104,8 @@ fun DialogChangeRoomAvatar(
     }
 
     LaunchedEffect(Unit) {
-        model.changeAvatarResponse.collectLatest { res ->
-            val exception = res?.exceptionOrNull() as? MatrixServerException
-
-            if(exception?.statusCode == HttpStatusCode.Forbidden) {
+        model.ongoingChange.collectLatest { change ->
+            if(change?.state is BaseResponse.Error) {
                 CoroutineScope(Dispatchers.Main).launch {
                     snackbarHostState?.showSnackbar(
                         CustomSnackbarVisuals(
@@ -119,7 +115,7 @@ fun DialogChangeRoomAvatar(
                     )
                 }
                 onDismissRequest()
-            }else if (res?.isSuccess == true) {
+            }else if (change?.state is BaseResponse.Success) {
                 CoroutineScope(Dispatchers.Main).launch {
                     snackbarHostState?.showSnackbar(getString(Res.string.account_picture_change_success))
                 }
@@ -234,7 +230,7 @@ fun DialogChangeRoomAvatar(
                     )
                     BrandHeaderButton(
                         modifier = Modifier.weight(1f),
-                        isLoading = isLoading.value,
+                        isLoading = ongoingChange.value?.state is BaseResponse.Loading,
                         text = stringResource(Res.string.username_change_launcher_confirm),
                         isEnabled = selectedImageUrl.value != detail?.summary?.avatar?.url
                                 || (selectedFile.value != null && selectedFile.value?.name != detail?.summary?.avatar?.name),

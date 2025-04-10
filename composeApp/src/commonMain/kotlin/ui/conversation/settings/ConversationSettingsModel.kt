@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.MediaIO
 import data.shared.SharedModel
@@ -11,13 +12,10 @@ import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.extension
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
@@ -45,13 +43,17 @@ class ConversationSettingsModel(
         const val PAGE_ITEM_COUNT = 20
     }
 
-    private val _isLoading = MutableStateFlow(false)
-    private val _changeAvatarResponse = MutableSharedFlow<Result<EventId>?>()
+    sealed class ChangeType(open val state: BaseResponse<*>) {
+        data class Avatar(override val state: BaseResponse<*>): ChangeType(state)
+        data class Name(override val state: BaseResponse<*>): ChangeType(state)
+        data class Leave(override val state: BaseResponse<*>): ChangeType(state)
+    }
+
+    private val _ongoingChange = MutableStateFlow<ChangeType?>(null)
 
     /** Detailed information about this conversation */
     val conversation = dataManager.conversations.map { it.second[conversationId] }
-    val isLoading = _isLoading.asStateFlow()
-    val changeAvatarResponse = _changeAvatarResponse.asSharedFlow()
+    val ongoingChange = _ongoingChange.asStateFlow()
 
     val members: Flow<PagingData<ConversationRoomMember>> = repository.getMembersListFlow(
         config = PagingConfig(
@@ -101,24 +103,51 @@ class ConversationSettingsModel(
     }
 
     fun requestRoomNameChange(roomName: CharSequence) {
-        _isLoading.value = true
+        _ongoingChange.value = ChangeType.Name(BaseResponse.Loading)
         viewModelScope.launch {
-            sharedDataManager.matrixClient.value!!.api.room.sendStateEvent(
+            sharedDataManager.matrixClient.value?.api?.room?.sendStateEvent(
                 roomId = RoomId(conversationId),
                 eventContent = NameEventContent(name = roomName.toString())
             ).also { res ->
-                if(res?.getOrNull() != null) {
-                    dataManager.updateConversations { prev ->
-                        prev.apply {
-                            this[conversationId]?.let {
-                                set(conversationId, it.copy(summary = it.summary?.copy(canonicalAlias = roomName.toString())))
-                                repository.updateRoom(it)
+                _ongoingChange.value = ChangeType.Name(
+                    if(res?.getOrNull() != null) {
+                        dataManager.updateConversations { prev ->
+                            prev.apply {
+                                this[conversationId]?.let {
+                                    set(conversationId, it.copy(summary = it.summary?.copy(canonicalAlias = roomName.toString())))
+                                    repository.updateRoom(it)
+                                }
                             }
                         }
-                    }
-                }
+                        BaseResponse.Success(null)
+                    }else BaseResponse.Error()
+                )
             }
-            _isLoading.value = false
+        }
+    }
+
+    fun leaveRoom(reason: CharSequence) {
+        _ongoingChange.value = ChangeType.Leave(BaseResponse.Loading)
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.value?.api?.room?.leaveRoom(
+                roomId = RoomId(conversationId),
+                reason = reason.takeIf { it.isNotBlank() }?.toString()
+            ).also { res ->
+                _ongoingChange.value = ChangeType.Leave(
+                    if(res?.getOrNull() != null) {
+                        dataManager.updateConversations { prev ->
+                            prev.apply {
+                                remove(conversationId)
+                                repository.removeRoom(
+                                    conversationId = conversationId,
+                                    ownerPublicId = matrixUserId
+                                )
+                            }
+                        }
+                        BaseResponse.Success(null)
+                    }else BaseResponse.Error()
+                )
+            }
         }
     }
 
@@ -131,7 +160,7 @@ class ConversationSettingsModel(
     ) {
         if(sharedDataManager.matrixClient.value == null) return
 
-        _isLoading.value = true
+        _ongoingChange.value = ChangeType.Avatar(BaseResponse.Loading)
         viewModelScope.launch {
             var media = MediaIO(url = url)
             sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
@@ -151,17 +180,17 @@ class ConversationSettingsModel(
                 }
             }
 
-            _changeAvatarResponse.emit(
-                sharedDataManager.matrixClient.value?.api?.room?.sendStateEvent(
-                    roomId = RoomId(conversationId),
-                    eventContent = AvatarEventContent(
-                        url = media.url,
-                        info = ImageInfo(
-                            mimeType = media.mimetype,
-                            size = media.size
-                        )
+            sharedDataManager.matrixClient.value?.api?.room?.sendStateEvent(
+                roomId = RoomId(conversationId),
+                eventContent = AvatarEventContent(
+                    url = media.url,
+                    info = ImageInfo(
+                        mimeType = media.mimetype,
+                        size = media.size
                     )
-                ).also { res ->
+                )
+            ).also { res ->
+                _ongoingChange.value = ChangeType.Avatar(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
@@ -171,10 +200,10 @@ class ConversationSettingsModel(
                                 }
                             }
                         }
-                    }
-                }
-            )
-            _isLoading.value = false
+                        BaseResponse.Success(null)
+                    }else BaseResponse.Error()
+                )
+            }
         }
     }
 }

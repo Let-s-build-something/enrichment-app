@@ -210,6 +210,14 @@ fun ConversationScreen(
                                 slideOutHorizontally { -it }
                             }
                         )
+
+                        nestedNavController.collectResult(
+                            key = NavigationArguments.CONVERSATION_LEFT,
+                            defaultValue = false,
+                            listener = { left ->
+                                if(left) navController?.navigateUp()
+                            }
+                        )
                     }
                 }
             }

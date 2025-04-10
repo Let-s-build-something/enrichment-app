@@ -1,5 +1,6 @@
 package ui.conversation.settings
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,11 +19,13 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FaceRetouchingOff
 import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,16 +48,24 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
+import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_yes
+import augmy.composeapp.generated.resources.conversation_action_leave
+import augmy.composeapp.generated.resources.conversation_action_leave_hint
 import augmy.composeapp.generated.resources.conversation_kick_message
 import augmy.composeapp.generated.resources.conversation_kick_title
+import augmy.composeapp.generated.resources.conversation_left_message
 import augmy.composeapp.generated.resources.items_see_more
 import augmy.composeapp.generated.resources.screen_conversation_settings
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.input.CustomTextField
@@ -62,11 +73,17 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.BrandBaseScreen
 import base.navigation.NavIconType
+import base.navigation.NavigationArguments
 import base.utils.getOrNull
 import components.UserProfileImage
 import components.network.NetworkItemRow
+import data.io.base.BaseResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -97,14 +114,19 @@ fun ConversationSettingsContent(conversationId: String?) {
         }
     )
 
-    val detail = model.conversation.collectAsState(null)
-    val members = model.members.collectAsLazyPagingItems()
+    val navController = LocalNavController.current
+    val snackbarHost = LocalSnackbarHost.current
     val listState = rememberLazyListState()
+
+    val detail = model.conversation.collectAsState(null)
+    val ongoingChange = model.ongoingChange.collectAsState()
+    val members = model.members.collectAsLazyPagingItems()
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
             || (members.itemCount == 0 && !members.loadState.append.endOfPaginationReached)
 
     val showPictureChangeDialog = remember { mutableStateOf(false) }
+    val showLeaveDialog = remember { mutableStateOf(false) }
     val selectedMemberId = remember { mutableStateOf<String?>(null) }
     val kickMemberUserId = remember { mutableStateOf<String?>(null) }
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
@@ -134,12 +156,60 @@ fun ConversationSettingsContent(conversationId: String?) {
         )
     }
 
+    if(showLeaveDialog.value) {
+        val reasonState = remember { TextFieldState() }
+
+        AlertDialog(
+            message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_yes),
+                onClick = {
+                    model.leaveRoom(reason = reasonState.text)
+                }
+            ),
+            additionalContent = {
+                CustomTextField(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth(),
+                    hint = stringResource(Res.string.conversation_action_leave_hint),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done
+                    ),
+                    paddingValues = PaddingValues(start = 16.dp),
+                    prefixIcon = Icons.Outlined.QuestionAnswer,
+                    state = reasonState
+                )
+            },
+            dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
+            icon = Icons.AutoMirrored.Outlined.Logout,
+            onDismissRequest = {
+                showLeaveDialog.value = false
+            }
+        )
+    }
+
     LaunchedEffect(Unit) {
         snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
             if(it > 2) {
                 // TODO show members filter
             }else {
                 // TODO if members filter was visible, stop the pagination
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        model.ongoingChange.collectLatest { change ->
+            if(change is ConversationSettingsModel.ChangeType.Leave && change.state is BaseResponse.Success) {
+                CoroutineScope(Job()).launch {
+                    snackbarHost?.showSnackbar(getString(Res.string.conversation_left_message))
+                }
+                navController?.currentBackStackEntry?.savedStateHandle?.set(
+                    NavigationArguments.CONVERSATION_LEFT,
+                    true
+                )
             }
         }
     }
@@ -233,7 +303,10 @@ fun ConversationSettingsContent(conversationId: String?) {
                 }
             )
         }
-        if (!isLoadingInitialPage && members.itemCount > MAX_MEMBERS_COUNT && !enableMembersPaging.value) {
+        if (!isLoadingInitialPage
+            && (detail.value?.summary?.joinedMemberCount ?: 0)  > MAX_MEMBERS_COUNT
+            && !enableMembersPaging.value
+        ) {
             item {
                 Text(
                     modifier = Modifier.scalingClickable {
@@ -250,6 +323,29 @@ fun ConversationSettingsContent(conversationId: String?) {
                 )
             }
         }
+        item {
+            val isLoading = ongoingChange.value?.state is BaseResponse.Loading
+
+            OutlinedButton(
+                activeColor = SharedColors.RED_ERROR_50,
+                inactiveColor = SharedColors.RED_ERROR.copy(alpha = 0.25f),
+                enabled = !isLoading,
+                text = stringResource(Res.string.conversation_action_leave),
+                content = {
+                    AnimatedVisibility(isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .requiredSize(24.dp),
+                            color = SharedColors.RED_ERROR_50,
+                            trackColor = LocalTheme.current.colors.disabled
+                        )
+                    }
+                }
+            ) {
+                showLeaveDialog.value = true
+            }
+        }
     }
 }
 
@@ -259,10 +355,14 @@ private fun RoomNameContent(
     model: ConversationSettingsModel,
     roomName: String
 ) {
-    val isLoading = model.isLoading.collectAsState()
+    val ongoingChange = model.ongoingChange.collectAsState()
+    val isLoading = ongoingChange.value?.state is BaseResponse.Loading
     val showNameChangeLauncher = remember(roomName) { mutableStateOf(false) }
 
-    Crossfade(targetState = showNameChangeLauncher.value) { change ->
+    Crossfade(
+        modifier = modifier,
+        targetState = showNameChangeLauncher.value
+    ) { change ->
         Row(
             modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -275,7 +375,7 @@ private fun RoomNameContent(
                 }
                 val isValid = remember {
                     derivedStateOf {
-                        roomName != roomNameState.text && !isLoading.value
+                        roomName != roomNameState.text && !isLoading
                     }
                 }
 
@@ -295,18 +395,18 @@ private fun RoomNameContent(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Done
                     ),
-                    enabled = !isLoading.value,
+                    enabled = !isLoading,
                     onKeyboardAction = {
                         if(isValid.value) model.requestRoomNameChange(roomNameState.text)
                     },
                     paddingValues = PaddingValues(start = 16.dp),
                     prefixIcon = Icons.AutoMirrored.Outlined.Label,
                     state = roomNameState,
-                    isClearable = !isLoading.value
+                    isClearable = !isLoading
                 )
 
-                Crossfade(isLoading.value) {
-                    if(isLoading.value) {
+                Crossfade(isLoading && ongoingChange.value is ConversationSettingsModel.ChangeType.Name) {
+                    if(isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.requiredSize(32.dp),
                             color = LocalTheme.current.colors.brandMain,

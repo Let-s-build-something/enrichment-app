@@ -50,6 +50,13 @@ class ConversationSettingsRepository(
         conversationRoomDao.insert(room)
     }
 
+    suspend fun removeRoom(
+        conversationId: String,
+        ownerPublicId: String?
+    ) = withContext(Dispatchers.IO) {
+        conversationRoomDao.remove(id = conversationId, ownerPublicId = ownerPublicId)
+    }
+
     /** Returns a flow of conversation messages */
     fun getMembersListFlow(
         homeserver: () -> String,

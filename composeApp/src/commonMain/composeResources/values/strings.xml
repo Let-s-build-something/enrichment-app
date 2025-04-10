@@ -172,6 +172,9 @@
   <string name="conversation_detail_you">You</string>
   <string name="conversation_kick_title">Yeet</string>
   <string name="conversation_kick_message">You're about to kick %1$s from the conversation. Are you sure you want to do that? 🤓</string>
+  <string name="conversation_action_leave">Leave conversation</string>
+  <string name="conversation_action_leave_hint">You can say why here</string>
+  <string name="conversation_left_message">You will no longer see that conversation.</string>
   <string name="items_see_more">See %1$d more</string>
 
   <string name="message_room_invite">got invited.</string>
