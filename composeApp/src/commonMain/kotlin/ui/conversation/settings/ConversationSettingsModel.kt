@@ -7,6 +7,7 @@ import androidx.paging.cachedIn
 import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.MediaIO
+import data.io.user.NetworkItemIO
 import data.shared.SharedModel
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.extension
@@ -28,7 +29,7 @@ import ui.home.utils.NetworkItemUseCase
 import ui.login.AUGMY_HOME_SERVER
 
 val conversationSettingsModule = module {
-    factory { ConversationSettingsRepository(get(), get(), get(), get(), get(), get()) }
+    factory { ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get()) }
     viewModelOf(::ConversationSettingsModel)
 }
 
@@ -47,13 +48,16 @@ class ConversationSettingsModel(
         data class Avatar(override val state: BaseResponse<*>): ChangeType(state)
         data class Name(override val state: BaseResponse<*>): ChangeType(state)
         data class Leave(override val state: BaseResponse<*>): ChangeType(state)
+        data class InviteMember(override val state: BaseResponse<*>): ChangeType(state)
     }
 
     private val _ongoingChange = MutableStateFlow<ChangeType?>(null)
+    private val _selectedUser = MutableStateFlow<NetworkItemIO?>(null)
 
     /** Detailed information about this conversation */
     val conversation = dataManager.conversations.map { it.second[conversationId] }
     val ongoingChange = _ongoingChange.asStateFlow()
+    val selectedUser = _selectedUser.asStateFlow()
 
     val members: Flow<PagingData<ConversationRoomMember>> = repository.getMembersListFlow(
         config = PagingConfig(
@@ -113,8 +117,10 @@ class ConversationSettingsModel(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.let {
-                                    set(conversationId, it.copy(summary = it.summary?.copy(canonicalAlias = roomName.toString())))
+                                this[conversationId]?.copy(
+                                    summary = this[conversationId]?.summary?.copy(canonicalAlias = roomName.toString())
+                                )?.let {
+                                    set(conversationId, it)
                                     repository.updateRoom(it)
                                 }
                             }
@@ -142,6 +148,33 @@ class ConversationSettingsModel(
                                     conversationId = conversationId,
                                     ownerPublicId = matrixUserId
                                 )
+                            }
+                        }
+                        BaseResponse.Success(null)
+                    }else BaseResponse.Error()
+                )
+            }
+        }
+    }
+
+    fun selectUser(userId: String?) {
+        viewModelScope.launch {
+            _selectedUser.value = if(userId == null) null else repository.getUser(userId, matrixUserId)
+        }
+    }
+
+    fun inviteMembers(userId: String) {
+        _ongoingChange.value = ChangeType.InviteMember(BaseResponse.Loading)
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.value?.api?.room?.inviteUser(
+                roomId = RoomId(conversationId),
+                userId = UserId(userId)
+            ).also { res ->
+                _ongoingChange.value = ChangeType.InviteMember(
+                    if(res?.getOrNull() != null) {
+                        dataManager.updateConversations { prev ->
+                            prev.apply {
+                                // TODO change locally
                             }
                         }
                         BaseResponse.Success(null)
@@ -194,8 +227,10 @@ class ConversationSettingsModel(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.let {
-                                    set(conversationId, it.copy(summary = it.summary?.copy(avatar = media)))
+                                this[conversationId]?.copy(
+                                    summary = this[conversationId]?.summary?.copy(avatar = media)
+                                )?.let {
+                                    set(conversationId, it)
                                     repository.updateRoom(it)
                                 }
                             }

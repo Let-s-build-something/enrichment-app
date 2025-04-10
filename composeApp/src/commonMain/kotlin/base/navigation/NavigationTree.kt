@@ -11,6 +11,7 @@ import augmy.composeapp.generated.resources.screen_login
 import augmy.composeapp.generated.resources.screen_media_detail
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_search_network
+import augmy.composeapp.generated.resources.screen_search_user
 import augmy.composeapp.generated.resources.screen_water_please
 import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.Serializable
@@ -54,11 +55,20 @@ sealed class NavigationNode {
             }
     }
 
-    /** Easter-egg screen, just because */
+    /** Easter-egg screen - just because */
     @Serializable
     data object Water: NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_water_please
         override val deepLink: String? = null
+    }
+
+    @Serializable
+    data class SearchUser(
+        /** If true, there is no user detail and the user is just selected on tap */
+        val awaitingResult: Boolean = false
+    ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_search_user
+        override val deepLink: String = "users/search?awaitingResult=$awaitingResult"
     }
 
     /** Conversation detail screen */
@@ -168,6 +178,7 @@ sealed class NavigationNode {
             AccountDashboard,
             NetworkManagement(),
             ConversationSettings(),
+            SearchUser(),
             ConversationInformation(),
             MediaDetail(),
             MessageDetail()

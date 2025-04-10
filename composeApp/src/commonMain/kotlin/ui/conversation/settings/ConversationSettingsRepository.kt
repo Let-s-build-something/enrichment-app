@@ -8,9 +8,11 @@ import data.io.base.paging.MatrixPagingMetaIO
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessagesResponse
+import data.io.user.NetworkItemIO
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationRoomDao
+import database.dao.NetworkItemDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
@@ -33,6 +35,7 @@ import ui.login.safeRequest
 class ConversationSettingsRepository(
     private val httpClient: HttpClient,
     private val roomMemberDao: RoomMemberDao,
+    private val networkItemDao: NetworkItemDao,
     private val conversationRoomDao: ConversationRoomDao,
     private val matrixPagingDao: MatrixPagingMetaDao,
     mediaDataManager: MediaProcessorDataManager,
@@ -48,6 +51,13 @@ class ConversationSettingsRepository(
 
     suspend fun updateRoom(room: ConversationRoomIO) = withContext(Dispatchers.IO) {
         conversationRoomDao.insert(room)
+    }
+
+    suspend fun getUser(
+        userId: String,
+        ownerPublicId: String?
+    ): NetworkItemIO? = withContext(Dispatchers.IO) {
+        networkItemDao.get(publicId = userId, ownerPublicId = ownerPublicId)
     }
 
     suspend fun removeRoom(

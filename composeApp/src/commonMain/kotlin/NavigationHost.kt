@@ -32,6 +32,7 @@ import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.network.NetworkManagementScreen
 import ui.network.received.networkManagementModule
+import ui.search.user.SearchUserScreen
 import kotlin.jvm.JvmSuppressWildcards
 
 /** Host of the main navigation tree */
@@ -118,6 +119,9 @@ fun NavigationHost(
             }
             composable<NavigationNode.ConversationSettings> {
                 ConversationSettingsScreen(conversationId = it.arguments?.getString("conversationId"))
+            }
+            composable<NavigationNode.SearchUser> {
+                SearchUserScreen(awaitingResult = it.arguments?.getBoolean("awaitingResult"))
             }
             composable<NavigationNode.MessageDetail> {
                 loadKoinModules(messageDetailModule)

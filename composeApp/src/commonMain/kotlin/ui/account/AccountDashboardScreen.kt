@@ -122,6 +122,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
 
     if(showSignOutDialog.value) {
         AlertDialog(
+            title = stringResource(Res.string.account_dashboard_sign_out),
             message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),

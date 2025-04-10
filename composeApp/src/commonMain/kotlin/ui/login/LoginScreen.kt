@@ -41,7 +41,6 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -110,7 +109,6 @@ import augmy.composeapp.generated.resources.login_privacy_policy
 import augmy.composeapp.generated.resources.login_screen_type_sign_in
 import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
-import augmy.composeapp.generated.resources.login_success_snackbar_action
 import augmy.composeapp.generated.resources.login_terms_of_use
 import augmy.composeapp.generated.resources.login_username_condition_0
 import augmy.composeapp.generated.resources.login_username_condition_1
@@ -276,13 +274,10 @@ fun LoginScreen(
             errorMessage.value = when(res) {
                 LoginResultType.SUCCESS -> {
                     CoroutineScope(Dispatchers.Main).launch {
-                        if(snackbarHostState?.showSnackbar(
-                                message = getString(Res.string.login_success_snackbar),
-                                actionLabel = getString(Res.string.login_success_snackbar_action),
-                                duration = SnackbarDuration.Short
-                            ) == SnackbarResult.ActionPerformed) {
-                            navController?.navigate(NavigationNode.Water)
-                        }
+                        snackbarHostState?.showSnackbar(
+                            message = getString(Res.string.login_success_snackbar),
+                            duration = SnackbarDuration.Short
+                        )
                     }
                     navController?.popBackStack(NavigationNode.Home, inclusive = false)
                     null

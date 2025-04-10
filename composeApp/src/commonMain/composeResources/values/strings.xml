@@ -15,6 +15,7 @@
   <string name="screen_conversation_settings">Mr. Sett Ings</string>
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
+  <string name="screen_search_user">Let the manhunt begin</string>
 
   <string name="navigate_home">Back</string>
   <string name="navigate_back">Back</string>
@@ -174,8 +175,11 @@
   <string name="conversation_kick_message">You're about to kick %1$s from the conversation. Are you sure you want to do that? 🤓</string>
   <string name="conversation_action_leave">Leave conversation</string>
   <string name="conversation_action_leave_hint">You can say why here</string>
+  <string name="conversation_action_invite_title">Welcome aboard!</string>
+  <string name="conversation_action_invite_message">The following person will be added to this conversation, please confirm.</string>
   <string name="conversation_left_message">You will no longer see that conversation.</string>
-  <string name="items_see_more">See %1$d more</string>
+  <string name="conversation_members">Members</string>
+  <string name="items_see_more">See %1$s more</string>
 
   <string name="message_room_invite">got invited.</string>
   <string name="message_room_join">joined the room.</string>
@@ -253,6 +257,7 @@
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+  <string name="accessibility_add_new_member">Add new member</string>
   <string name="accessibility_show_password">Show password</string>
   <string name="accessibility_hide_password">Hide password</string>
   <string name="accessibility_change_avatar">Change avatar</string>

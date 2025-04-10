@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FaceRetouchingOff
+import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,6 +47,7 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_add_new_member
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
 import augmy.composeapp.generated.resources.account_sign_out_message
@@ -53,18 +55,23 @@ import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
+import augmy.composeapp.generated.resources.conversation_action_invite_message
+import augmy.composeapp.generated.resources.conversation_action_invite_title
 import augmy.composeapp.generated.resources.conversation_action_leave
 import augmy.composeapp.generated.resources.conversation_action_leave_hint
 import augmy.composeapp.generated.resources.conversation_kick_message
 import augmy.composeapp.generated.resources.conversation_kick_title
 import augmy.composeapp.generated.resources.conversation_left_message
+import augmy.composeapp.generated.resources.conversation_members
 import augmy.composeapp.generated.resources.items_see_more
+import augmy.composeapp.generated.resources.leave_app_dialog_title
 import augmy.composeapp.generated.resources.screen_conversation_settings
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
@@ -74,7 +81,9 @@ import augmy.interactive.shared.ui.theme.SharedColors
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationArguments
+import base.navigation.NavigationNode
 import base.utils.getOrNull
+import collectResult
 import components.UserProfileImage
 import components.network.NetworkItemRow
 import data.io.base.BaseResponse
@@ -120,6 +129,7 @@ fun ConversationSettingsContent(conversationId: String?) {
 
     val detail = model.conversation.collectAsState(null)
     val ongoingChange = model.ongoingChange.collectAsState()
+    val selectedUser = model.selectedUser.collectAsState()
     val members = model.members.collectAsLazyPagingItems()
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
@@ -156,10 +166,32 @@ fun ConversationSettingsContent(conversationId: String?) {
         )
     }
 
+    selectedUser.value?.let { user ->
+        AlertDialog(
+            title = stringResource(Res.string.conversation_action_invite_title),
+            message = AnnotatedString(stringResource(Res.string.conversation_action_invite_message)),
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_yes),
+                onClick = {
+                    model.inviteMembers(user.userMatrixId ?: "")
+                }
+            ),
+            additionalContent = {
+                // TODO user info about the selected users
+            },
+            dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
+            icon = Icons.Outlined.PersonAddAlt,
+            onDismissRequest = {
+                model.selectUser(null)
+            }
+        )
+    }
+
     if(showLeaveDialog.value) {
         val reasonState = remember { TextFieldState() }
 
         AlertDialog(
+            title = stringResource(Res.string.leave_app_dialog_title),
             message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),
@@ -189,6 +221,14 @@ fun ConversationSettingsContent(conversationId: String?) {
             }
         )
     }
+
+    navController?.collectResult<String?>(
+        key = NavigationArguments.SEARCH_USER_ID,
+        defaultValue = null,
+        listener = { userId ->
+            if (userId != null) model.selectUser(userId)
+        }
+    )
 
     LaunchedEffect(Unit) {
         snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
@@ -250,6 +290,31 @@ fun ConversationSettingsContent(conversationId: String?) {
                 roomName = detail.value?.summary?.roomName ?: ""
             )
         }
+        if(true/*detail.value?.summary?.isDirect == false*/) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        modifier = Modifier.padding(start = 6.dp),
+                        text = stringResource(Res.string.conversation_members),
+                        style = LocalTheme.current.styles.subheading.copy(
+                            color = LocalTheme.current.colors.secondary
+                        )
+                    )
+                    MinimalisticIcon(
+                        imageVector = Icons.Outlined.PersonAddAlt,
+                        contentDescription = stringResource(Res.string.accessibility_add_new_member),
+                        onTap = {
+                            navController?.navigate(
+                                NavigationNode.SearchUser(awaitingResult = true)
+                            )
+                        }
+                    )
+                }
+            }
+        }
         items(
             count = when {
                 members.itemCount == 0 && isLoadingInitialPage -> MAX_MEMBERS_COUNT
@@ -304,7 +369,7 @@ fun ConversationSettingsContent(conversationId: String?) {
             )
         }
         if (!isLoadingInitialPage
-            && (detail.value?.summary?.joinedMemberCount ?: 0)  > MAX_MEMBERS_COUNT
+            && members.itemCount > MAX_MEMBERS_COUNT
             && !enableMembersPaging.value
         ) {
             item {
@@ -315,7 +380,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                     },
                     text = stringResource(
                         Res.string.items_see_more,
-                        (detail.value?.summary?.joinedMemberCount ?: 0) - MAX_MEMBERS_COUNT
+                        detail.value?.summary?.joinedMemberCount?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
                     ),
                     style = LocalTheme.current.styles.category.copy(
                         color = LocalTheme.current.colors.secondary

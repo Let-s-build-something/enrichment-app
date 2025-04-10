@@ -147,8 +147,10 @@ fun BaseScreen(
                     modifier = contentModifier
                         .then(
                             if (containerColor != null) {
-                                platformModifier
-                                    .background(color = containerColor, shape = shape)
+                                platformModifier.background(
+                                    color = containerColor,
+                                    shape = if (LocalHeyIamScreen.current) RectangleShape else shape
+                                )
                             } else platformModifier
                         )
                         .then(if (LocalHeyIamScreen.current) Modifier else Modifier.clip(shape))
