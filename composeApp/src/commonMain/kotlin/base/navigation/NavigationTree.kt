@@ -1,8 +1,22 @@
 package base.navigation
 
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.screen_account_title
+import augmy.composeapp.generated.resources.screen_conversation
+import augmy.composeapp.generated.resources.screen_conversation_detail
+import augmy.composeapp.generated.resources.screen_conversation_info
+import augmy.composeapp.generated.resources.screen_conversation_settings
+import augmy.composeapp.generated.resources.screen_home
+import augmy.composeapp.generated.resources.screen_login
+import augmy.composeapp.generated.resources.screen_media_detail
+import augmy.composeapp.generated.resources.screen_network_management
+import augmy.composeapp.generated.resources.screen_search_network
+import augmy.composeapp.generated.resources.screen_search_user
+import augmy.composeapp.generated.resources.screen_water_please
 import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import org.jetbrains.compose.resources.StringResource
 
 /** Main holder of all navigation nodes */
 sealed class NavigationNode {
@@ -13,6 +27,8 @@ sealed class NavigationNode {
      */
     val route
         get() = this::class.qualifiedName
+
+    abstract val titleRes: StringResource?
 
     /**
      * Deeplink is the appendix of a brand link, which is shared between all client apps.
@@ -26,6 +42,7 @@ sealed class NavigationNode {
         val nonce: String? = null,
         val loginToken: String? = null
     ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_login
         override val deepLink: String
             get() {
                 val base = "login"
@@ -38,10 +55,21 @@ sealed class NavigationNode {
             }
     }
 
-    /** Easter-egg screen, just because */
+    /** Easter-egg screen - just because */
     @Serializable
     data object Water: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_water_please
         override val deepLink: String? = null
+    }
+
+    @Serializable
+    data class SearchUser(
+        /** If true, there is no user detail and the user is just selected on tap */
+        val awaitingResult: Boolean = false,
+        val excludeUsers: String = ""
+    ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_search_user
+        override val deepLink: String = "users/search?awaitingResult=$awaitingResult"
     }
 
     /** Conversation detail screen */
@@ -53,7 +81,17 @@ sealed class NavigationNode {
         /** Name of the conversation */
         val name: String? = null
     ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_conversation
         override val deepLink: String = "messages?conversation=$conversationId&name=$name"
+    }
+
+    @Serializable
+    data class ConversationSettings(
+        /** unique identifier of the conversation */
+        val conversationId: String? = null
+    ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_conversation_settings
+        override val deepLink: String = "settings?conversation=$conversationId"
     }
 
     /** Conversation detail screen */
@@ -65,24 +103,28 @@ sealed class NavigationNode {
         /** Name of the conversation */
         val name: String? = null
     ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_conversation_info
         override val deepLink: String = "conversation?conversation=$conversationId&name=$name"
     }
 
     /** dashboard screen for user information and general user-related actions */
     @Serializable
     data object AccountDashboard: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_account_title
         override val deepLink: String = "account/dashboard"
     }
 
     /** screen for searching within one's account, preferences, and settings */
     @Serializable
     data object SearchAccount: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_search_network
         override val deepLink: String = "account/search"
     }
 
     /** Screen for searching within one's network */
     @Serializable
     data object SearchNetwork: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_search_network
         override val deepLink: String = "network/search"
     }
 
@@ -92,12 +134,14 @@ sealed class NavigationNode {
         val displayName: String? = null,
         val tag: String? = null
     ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_network_management
         override val deepLink: String = "network"
     }
 
     /** home screen of the whole app */
     @Serializable
     data object Home: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_home
         override val deepLink: String? = null
     }
 
@@ -109,6 +153,7 @@ sealed class NavigationNode {
         val conversationId: String? = null,
         val title: String? = null
     ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_conversation_detail
         override val deepLink: String? = null
     }
 
@@ -122,6 +167,7 @@ sealed class NavigationNode {
         val selectedIndex: Int = 0,
         private val encodedMedia: List<String> = media.map { "${it.name}|||${it.mimetype}|||${it.url}|||${it.path}" }
     ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_media_detail
         override val deepLink: String? = null
     }
 
@@ -132,6 +178,9 @@ sealed class NavigationNode {
             Conversation(),
             AccountDashboard,
             NetworkManagement(),
+            ConversationSettings(),
+            SearchUser(),
+            ConversationInformation(),
             MediaDetail(),
             MessageDetail()
         )

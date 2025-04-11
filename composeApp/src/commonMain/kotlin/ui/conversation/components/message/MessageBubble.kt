@@ -387,15 +387,19 @@ private fun ContentLayout(
 
                     // message content + reply function + reactions
                     Box(
-                        (if (isReacting || data.anchorMessage != null) {
-                            Modifier.background(
-                                color = LocalTheme.current.colors.backgroundDark,
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                        } else Modifier)
-                            .animateContentSize(
-                                alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
-                                animationSpec = spring(stiffness = Spring.StiffnessHigh)
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .then(
+                                (if (isReacting || data.anchorMessage != null) {
+                                    Modifier.background(
+                                        color = LocalTheme.current.colors.backgroundDark,
+                                        shape = LocalTheme.current.shapes.componentShape
+                                    )
+                                } else Modifier)
+                                    .animateContentSize(
+                                        alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+                                        animationSpec = spring(stiffness = Spring.StiffnessHigh)
+                                    )
                             )
                     ) {
                         Column(
@@ -587,7 +591,7 @@ private fun ContentLayout(
                                                                 textAlign = TextAlign.Center
                                                             )
                                                         )
-                                                        if (reaction.user?.userPublicId == currentUserPublicId) {
+                                                        if (reaction.user?.userId == currentUserPublicId) {
                                                             Box(
                                                                 modifier = Modifier
                                                                     .height(2.dp)

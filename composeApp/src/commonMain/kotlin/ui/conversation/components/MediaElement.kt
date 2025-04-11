@@ -56,6 +56,7 @@ import chaintech.videoplayer.ui.preview.VideoPreviewComposable
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
 import components.AsyncSvgImage
 import components.PlatformFileImage
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.github.vinceglb.filekit.core.extension
@@ -86,12 +87,12 @@ fun MediaElement(
     contentScale: ContentScale = ContentScale.Inside,
     onTap: ((MediaType) -> Unit)? = null,
     enabled: Boolean = onTap != null,
-    onLongPress: () -> Unit = {}
+    onLongPress: () -> Unit = {},
+    onState: (BaseResponse<Any>) -> Unit = {}
 ) {
-    var finalMedia by remember {
-        mutableStateOf(
-            media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true }
-        )
+    val newMedia = media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true }
+    var finalMedia by remember(newMedia?.url) {
+        mutableStateOf(newMedia)
     }
     val mediaType = getMediaType(
         finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
@@ -111,16 +112,20 @@ fun MediaElement(
     )
 
     if(media?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) == true) {
-        val viewModel: MediaProcessorModel = koinViewModel()
+        val model: MediaProcessorModel = koinViewModel()
 
-        LaunchedEffect(media) {
-            viewModel.cacheFiles(media)
+        LaunchedEffect(media.url) {
+            onState(BaseResponse.Loading)
+            model.cacheFiles(media)
         }
 
-        LaunchedEffect(media) {
-            viewModel.cachedFiles.collectLatest {
-                it[media.url]?.let { newMedia ->
-                    finalMedia = newMedia
+        LaunchedEffect(media.url) {
+            model.cachedFiles.collectLatest {
+                it[media.url]?.let { response ->
+                    onState(response)
+                    response.success?.data?.let { newMedia ->
+                        finalMedia = newMedia
+                    }
                 }
             }
         }

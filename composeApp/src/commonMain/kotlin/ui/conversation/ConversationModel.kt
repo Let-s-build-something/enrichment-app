@@ -11,8 +11,6 @@ import base.utils.getUrlExtension
 import base.utils.sha256
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
-import data.io.matrix.media.MediaRepositoryConfig
-import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
@@ -30,9 +28,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -49,19 +47,20 @@ import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.experimental.pacing.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
-import ui.login.AUGMY_HOME_SERVER
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val conversationModule = module {
     includes(keyboardModule)
 
+    single { ConversationDataManager() }
     factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
     factory {
         ConversationModel(
             get<String>(),
             get<Boolean>(),
             get<ConversationRepository>(),
+            get<ConversationDataManager>(),
             get<EmojiUseCase>(),
             get<GifUseCase>(),
             get<PacingUseCase>(),
@@ -77,8 +76,10 @@ open class ConversationModel(
     private val conversationId: String,
     enableMessages: Boolean,
     private val repository: ConversationRepository,
+    private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase,
+
     // experimental
     private val pacingUseCase: PacingUseCase,
     private val gravityUseCase: GravityUseCase,
@@ -92,25 +93,67 @@ open class ConversationModel(
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
-    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
-    private val _conversationDetail = MutableStateFlow<ConversationRoomIO?>(null)
-    private val _typingIndicators = MutableStateFlow<Pair<Int, List<ConversationTypingIndicator>>>(-1 to listOf())
+    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
+        if((conversationId.isNotBlank() && dataManager.conversations.value.second[conversationId] == null)
+            || isSpecial
+        ) {
+            withContext(Dispatchers.IO) {
+                repository.getConversationDetail(
+                    conversationId = conversationId,
+                    owner = matrixUserId
+                )?.let { data ->
+                    dataManager.updateConversations { it.apply { this[conversationId] = data } }
+                    dataManager.conversations.value.second[conversationId] = data
+                }
+            }
+        }
+        withContext(Dispatchers.IO) {
+            savedMessage.value = settings.getStringOrNull(
+                "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
+            )?.take(messageMaxLength) ?: ""
+
+            if(dataManager.repositoryConfig.value == null || isSpecial) {
+                currentUser.value?.matrixHomeserver?.let { homeserver ->
+                    dataManager.repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
+                }
+            }
+        }
+
+        if(isSpecial) {
+            repository.invalidateLocalSource()
+        }
+    }
+
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
-    private val _repositoryConfig = MutableStateFlow<MediaRepositoryConfig?>(null)
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
-    var persistentPositionData: PersistentListData = PersistentListData()
+    var persistentPositionData: PersistentListData? = null
 
 
     /** Detailed information about this conversation */
-    val conversationDetail = _conversationDetail.asStateFlow()
+    val conversation = dataManager.conversations.map { it.second[conversationId] }
 
     /** Current typing indicators, indicating typing statuses of other users */
-    val typingIndicators = _typingIndicators.asStateFlow()
+    val typingIndicators = sharedDataManager.typingIndicators.map { indicators ->
+        withContext(Dispatchers.Default) {
+            indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
+                if(userId.full != matrixUserId) {
+                    ConversationTypingIndicator().apply {
+                        user = dataManager.conversations.value.second[conversationId]?.members?.find { user ->
+                            user.userId == userId.full
+                        }
+                    }
+                }else null
+            }.let {
+                // hashcode to enforce recomposition
+                it.hashCode() to it?.takeLast(MAX_TYPING_INDICATORS).orEmpty()
+            }
+        }
+    }
 
     /** Current configuration of media repository */
-    val repositoryConfig = _repositoryConfig.asStateFlow()
+    val repositoryConfig = dataManager.repositoryConfig.asStateFlow()
 
     /** Progress of the current upload */
     val uploadProgress = _uploadProgress.asStateFlow()
@@ -127,22 +170,20 @@ open class ConversationModel(
                 enablePlaceholders = true,
                 initialLoadSize = 30
             ),
-            homeserver = {
-                currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
-            },
+            homeserver = { homeserver },
             conversationId = conversationId
         ).flow
             .cachedIn(viewModelScope)
             .let {
-                if(_conversationDetail.value != null) {
-                    it.combine(_conversationDetail) { messages, detail ->
+                if(dataManager.conversations.value.second[conversationId] != null) {
+                    it.combine(conversation) { messages, detail ->
                         withContext(Dispatchers.Default) {
                             messages.map { message ->
                                 message.apply {
-                                    user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                                    anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                                    user = detail?.members?.find { user -> user.userId == authorPublicId }
+                                    anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
                                     reactions?.forEach { reaction ->
-                                        reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                                        reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
                                     }
                                 }
                             }
@@ -160,42 +201,8 @@ open class ConversationModel(
     private val messageMaxLength = 5000
 
     init {
-        if(conversationId.isNotBlank() && _conversationDetail.value?.id != conversationId) {
-            viewModelScope.launch {
-                repository.getConversationDetail(
-                    conversationId = conversationId,
-                    owner = matrixUserId
-                )?.let { data ->
-                    _conversationDetail.value = data
-                }
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            savedMessage.value = settings
-                .getStringOrNull("${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId")
-                ?.take(messageMaxLength)
-                ?: ""
-
-            currentUser.value?.matrixHomeserver?.let { homeserver ->
-                _repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
-            }
-        }
-
-        viewModelScope.launch(Dispatchers.Default) {
-            sharedDataManager.typingIndicators.collectLatest { indicators ->
-                _typingIndicators.value = indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
-                    if(userId.full != matrixUserId) {
-                        ConversationTypingIndicator().apply {
-                            user = _conversationDetail.value?.users?.find { user ->
-                                user.userMatrixId == userId.full
-                            }
-                        }
-                    }else null
-                }.let {
-                    // hashcode to enforce recomposition
-                    it.hashCode() to it?.takeLast(MAX_TYPING_INDICATORS).orEmpty()
-                }
-            }
+        viewModelScope.launch {
+            onDataRequest(isSpecial = false, isPullRefresh = false)
         }
     }
 
@@ -299,7 +306,7 @@ open class ConversationModel(
             var progressId = ""
             sendMessage(
                 conversationId = conversationId,
-                homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
+                homeserver = homeserver,
                 mediaFiles = mediaFiles,
                 onProgressChange = { progress ->
                     _uploadProgress.update {
@@ -386,21 +393,20 @@ open class ConversationModel(
         // real message
         msg = msg.copy(
             media = withContext(Dispatchers.Default) {
-                mediaFiles.mapNotNull { media ->
-                    val bytes = media.readBytes()
-                    val fileName = "${Uuid.random()}.${media.extension.lowercase()}"
+                mediaFiles.mapNotNull { file ->
+                    val bytes = file.readBytes()
                     if(bytes.isNotEmpty()) {
                         repository.uploadMedia(
                             mediaByteArray = bytes,
-                            fileName = fileName,
+                            fileName = file.name,
                             homeserver = homeserver,
-                            mimetype = MimeType.getByExtension(media.extension).mime
+                            mimetype = MimeType.getByExtension(file.extension).mime
                         )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
                             MediaIO(
                                 url = url,
                                 size = bytes.size.toLong(),
-                                name = fileName,
-                                mimetype = MimeType.getByExtension(media.extension).mime
+                                name = file.name,
+                                mimetype = MimeType.getByExtension(file.extension).mime
                             )
                         }
                     }else null
@@ -502,7 +508,7 @@ open class ConversationModel(
             sendMessage(
                 audioByteArray = byteArray,
                 conversationId = conversationId,
-                homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
+                homeserver = homeserver,
                 message = ConversationMessageIO()
             )
         }

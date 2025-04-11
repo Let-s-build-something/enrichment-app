@@ -1,6 +1,5 @@
 package data.io.base
 
-import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
@@ -54,13 +53,9 @@ sealed class BaseResponse<out T> {
                 HttpStatusCode.Accepted,
                 HttpStatusCode.NonAuthoritativeInformation -> Success(this.body<T>())
                 else -> try {
-                    this.body<Error>().apply {
-                        httpCode = status.value
-                    }
-                }catch (e: NoTransformationFoundException) {
-                    Error()
+                    this.body<Error>().apply { httpCode = status.value }
                 }catch (e: Exception) {
-                    Error()
+                    Error().apply { httpCode = status.value }
                 }
             }
         }

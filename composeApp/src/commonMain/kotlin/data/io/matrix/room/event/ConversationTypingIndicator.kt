@@ -1,7 +1,6 @@
 package data.io.matrix.room.event
 
 import androidx.room.Ignore
-import data.io.user.NetworkItemIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -27,7 +26,7 @@ data class ConversationTypingIndicator(
     /** User attached to this message */
     @Ignore
     @Transient
-    var user: NetworkItemIO? = null
+    var user: ConversationRoomMember? = null
 
     override fun toString(): String {
         return "{" +

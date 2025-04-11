@@ -204,7 +204,7 @@ private fun ContentElement(
                 contentAlignment = Alignment.Center
             ) {
                 AutoResizeText(
-                    modifier = Modifier.padding(bottom = 8.dp, top = 6.dp),
+                    modifier = Modifier.padding(vertical = 6.dp),
                     text = name.split("""\s""".toRegex()).let {
                         if(it.size > 1) {
                             it[0].take(1) + it[1].take(1)

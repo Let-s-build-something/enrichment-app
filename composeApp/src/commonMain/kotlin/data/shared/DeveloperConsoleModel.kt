@@ -2,6 +2,7 @@ package data.shared
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import data.io.app.SecureSettingsKeys
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
@@ -10,6 +11,7 @@ import database.dao.PagingMetaDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
 import koin.DeveloperUtils
+import koin.secureSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -89,6 +91,7 @@ class DeveloperConsoleModel(
             presenceEventDao.removeAll()
             pagingMetaDao.removeAll()
             matrixPagingMetaDao.removeAll()
+            secureSettings.remove(SecureSettingsKeys.KEY_DEVICE_ID)
             sharedDataManager.matrixClient.value?.clearCache()
             sharedDataManager.matrixClient.value?.clearMediaCache()
             super.logoutCurrentUser()

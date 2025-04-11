@@ -10,6 +10,7 @@ import base.utils.openLink
 import base.utils.sha256
 import coil3.toUri
 import data.io.app.ClientStatus
+import data.io.app.SecureSettingsKeys
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
 import data.io.identity_platform.IdentityMessageType
@@ -22,7 +23,6 @@ import data.io.matrix.auth.MatrixIdentifierData
 import data.io.user.RequestCreateUser
 import data.io.user.UserIO
 import data.shared.SharedModel
-import data.shared.auth.AuthService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuthEmailException
 import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
@@ -48,8 +49,7 @@ import kotlin.uuid.Uuid
 class LoginModel(
     private val serviceProvider: UserOperationService,
     private val dataManager: LoginDataManager,
-    private val repository: LoginRepository,
-    private val authService: AuthService
+    private val repository: LoginRepository
 ): SharedModel() {
     data class HomeServerResponse(
         val state: HomeServerState,
@@ -84,6 +84,14 @@ class LoginModel(
     val isLoading = _isLoading.asStateFlow()
     val homeServerResponse = dataManager.homeServerResponse.asStateFlow()
 
+    private var ssoNonce: String?
+        get() = runBlocking { settings.getStringOrNull(SecureSettingsKeys.KEY_LOGIN_NONCE) }
+        set(value) {
+            runBlocking {
+                if(value == null) settings.remove(SecureSettingsKeys.KEY_LOGIN_NONCE)
+                else settings.putString(SecureSettingsKeys.KEY_LOGIN_NONCE, value)
+            }
+        }
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -103,6 +111,7 @@ class LoginModel(
     /** Clears current Matrix progress and cached information */
     fun clearMatrixProgress() {
         _matrixProgress.value = null
+        ssoNonce = null
     }
 
     /** Validates Matrix username availability */
@@ -244,6 +253,7 @@ class LoginModel(
         screenType: LoginScreenType,
         response: MatrixAuthenticationResponse? = null
     ) {
+        _isLoading.value = true
         viewModelScope.launch {
             val res = if(screenType == LoginScreenType.SIGN_UP && response == null) {
                 val secret = Uuid.random().toString()
@@ -370,14 +380,15 @@ class LoginModel(
         password: String
     ) {
         val res = if(_matrixAuthResponse.value?.userId == null) {
+            val isUser = !username.isNullOrBlank()
             authService.loginWithIdentifier(
                 setupAutoLogin = false,
                 homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
-                    type = if(username != null) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
-                    medium = Matrix.Medium.EMAIL.takeIf { username != null },
-                    address = email.takeIf { username != null },
-                    user = username
+                    type = if(isUser) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
+                    medium = Matrix.Medium.EMAIL.takeIf { !isUser },
+                    address = email.takeIf { !isUser },
+                    user = username.takeIf { isUser }
                 ),
                 password = password,
                 token = null
@@ -414,48 +425,57 @@ class LoginModel(
     fun requestSsoRedirect(idpId: String?) {
         viewModelScope.launch {
             _isLoading.value = true
-            dataManager.ssoNonce = Uuid.random().toString()
-            val ssoNonce = dataManager.ssoNonce
+            val ssoNonce = Uuid.random().toString()
             val homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+            this@LoginModel.ssoNonce = "${ssoNonce}_$homeserver"
             val redirectUrl = "${deeplinkHost}${NavigationNode.Login(nonce = ssoNonce).deepLink}"
-            openLink("https://${homeserver}/_matrix/client/v3/login/sso/redirect/$idpId?redirectUrl=${redirectUrl.toUri()}")
+            openLink(
+                "https://${homeserver}/_matrix/client/v3/login/sso/redirect" +
+                        (if(idpId != null)"/$idpId" else "") +
+                        "?redirectUrl=${redirectUrl.toUri()}"
+            )
         }
     }
 
     fun loginWithToken(nonce: String, token: String) {
         _isLoading.value = true
+        val savedNonce = ssoNonce?.split("_")
         viewModelScope.launch {
-            if(nonce != dataManager.ssoNonce) {
+            if(nonce != savedNonce?.firstOrNull()) {
                 _loginResult.emit(LoginResultType.AUTH_SECURITY)
             }else {
-                _loginResult.emit(
-                    authService.loginWithIdentifier(
-                        setupAutoLogin = true,
-                        homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
-                        identifier = null,
-                        password = null,
-                        token = token
-                    ).let {
-                        when {
-                            it.success != null -> {
-                                val email = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
-                                val password = sha256(it.success?.data?.userId)
+                if(homeServerResponse.value == null) {
+                    dataManager.homeServerResponse.value = HomeServerResponse(
+                        address = savedNonce.lastOrNull() ?: "",
+                        state = HomeServerState.Valid
+                    )
+                }
 
-                                try {
-                                    Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                                } catch(e: FirebaseAuthUserCollisionException) {
-                                    Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                                } catch(e: Exception) {
-                                    Firebase.auth.signInAnonymously().user?.authenticateUser(email)
-                                }
+                authService.loginWithIdentifier(
+                    setupAutoLogin = true,
+                    homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                    identifier = null,
+                    password = null,
+                    token = token
+                ).let {
+                    // Firebase should go out the window
+                    val email = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
+                    val password = sha256(it.success?.data?.userId)
 
-                                LoginResultType.SUCCESS
+                    when {
+                        it.success != null -> {
+                            try {
+                                Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
+                            } catch(e: Exception) {
+                                Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
+                            } catch(e: FirebaseAuthUserCollisionException) {
+                                Firebase.auth.signInAnonymously().user?.authenticateUser(email)
                             }
-                            it.error?.code == Matrix.ErrorCode.FORBIDDEN -> LoginResultType.INVALID_CREDENTIAL
-                            else -> LoginResultType.FAILURE
                         }
+                        it.error?.code == Matrix.ErrorCode.FORBIDDEN -> _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
+                        else -> _loginResult.emit(LoginResultType.FAILURE)
                     }
-                )
+                }
             }
             _isLoading.value = false
         }

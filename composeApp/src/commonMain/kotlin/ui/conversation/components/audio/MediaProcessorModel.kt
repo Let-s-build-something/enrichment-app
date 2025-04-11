@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getExtensionFromMimeType
 import com.fleeksoft.ksoup.Ksoup
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.shared.SharedModel
 import database.file.FileAccess
@@ -141,61 +142,75 @@ class MediaProcessorModel(
         }
     }
 
+    private val cacheMutex = Mutex()
+
     /** Attempts to retrieve bytearrays out of urls and cache them */
     fun cacheFiles(vararg media: MediaIO?) {
         viewModelScope.launch {
-            _downloadProgress.value = MediaHttpProgress(
-                items = media.size,
-                item = 0,
-                progress = null
-            )
-            var bytesSentTotal = 0L
-            val totalContentSize = media.sumOf { it?.size ?: 0 }
-            val toBeScheduled = mutableListOf<MediaIO>()
-            media.forEachIndexed { index, unit ->
-                if(unit != null) {
-                    val unknownHomeserver = currentUser.value?.matrixHomeserver == null
-                    val downloadUrl = if(unit.url != null && !unknownHomeserver) {
-                        unit.url.takeIf { !it.startsWith(MATRIX_REPOSITORY_PREFIX) }
-                            ?: "https://${currentUser.value?.matrixHomeserver}/_matrix/client/v1/media/download/${unit.url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
-                    }else ""
+            cacheMutex.withLock {
+                _downloadProgress.value = MediaHttpProgress(
+                    items = media.size,
+                    item = 0,
+                    progress = null
+                )
+                var bytesSentTotal = 0L
+                val totalContentSize = media.sumOf { it?.size ?: 0 }
+                val toBeScheduled = mutableListOf<MediaIO>()
+                media.forEachIndexed { index, unit ->
+                    if(unit != null && dataManager.cachedFiles.value[unit.url] == null) {
+                        val unknownHomeserver = currentUser.value?.matrixHomeserver == null
+                        val downloadUrl = if(unit.url != null && !unknownHomeserver) {
+                            unit.url.takeIf { !it.startsWith(MATRIX_REPOSITORY_PREFIX) }
+                                ?: "https://${currentUser.value?.matrixHomeserver}/_matrix/client/v1/media/download/${unit.url.replace(MATRIX_REPOSITORY_PREFIX, "")}"
+                        }else ""
 
-                    repository.getFileByteArray(
-                        url = unit.url ?: "",
-                        downloadUrl = downloadUrl,
-                        extension = getExtensionFromMimeType(unit.mimetype),
-                        onProgressChange = { bytesSent, _ ->
-                            _downloadProgress.value = MediaHttpProgress(
-                                items = media.size,
-                                item = index + 1,
-                                progress = (bytesSentTotal + bytesSent)..totalContentSize
-                            )
+                        dataManager.cachedFiles.update {
+                            it.toMutableMap().apply {
+                                put(unit.url ?: "", BaseResponse.Loading)
+                            }
                         }
-                    ).let { result ->
-                        if(result == null && unknownHomeserver) {
-                            toBeScheduled.add(unit)
-                        }
-                        dataManager.cachedFiles.value = dataManager.cachedFiles.value.toMutableMap().apply {
-                            if(result != null) {
-                                bytesSentTotal += unit.size ?: 0
-                                put(
-                                    unit.url ?: "",
-                                    unit.copy(
-                                        path = result.path?.toString(),
-                                        mimetype = result.mimetype
-                                    )
+
+                        repository.getFileByteArray(
+                            url = unit.url ?: "",
+                            downloadUrl = downloadUrl,
+                            extension = getExtensionFromMimeType(unit.mimetype),
+                            onProgressChange = { bytesSent, _ ->
+                                _downloadProgress.value = MediaHttpProgress(
+                                    items = media.size,
+                                    item = index + 1,
+                                    progress = (bytesSentTotal + bytesSent)..totalContentSize
                                 )
+                            }
+                        ).let { result ->
+                            if(result == null && unknownHomeserver) {
+                                toBeScheduled.add(unit)
+                            }
+                            dataManager.cachedFiles.update {
+                                it.toMutableMap().apply {
+                                    put(
+                                        unit.url ?: "",
+                                        if(result != null) {
+                                            bytesSentTotal += unit.size ?: 0
+                                            BaseResponse.Success(
+                                                unit.copy(
+                                                    path = result.path?.toString(),
+                                                    mimetype = result.mimetype
+                                                )
+                                            )
+                                        }else BaseResponse.Error()
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
-            if(toBeScheduled.isNotEmpty()) {
-                schedulerMutex.withLock {
-                    awaitingDownloads.update { it + toBeScheduled }
+                if(toBeScheduled.isNotEmpty()) {
+                    schedulerMutex.withLock {
+                        awaitingDownloads.update { it + toBeScheduled }
+                    }
                 }
+                _downloadProgress.value = null
             }
-            _downloadProgress.value = null
         }
     }
 

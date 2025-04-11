@@ -137,7 +137,7 @@ fun ProximityPicker(
                                 if(selectedCategory == category) {
                                     Text(
                                         modifier = Modifier.weight(1f),
-                                        text = user.name ?: "",
+                                        text = user.displayName ?: "",
                                         style = LocalTheme.current.styles.category,
                                         maxLines = 1
                                     )

@@ -290,40 +290,58 @@ private fun initWindowsRegistry() {
 }
 
 private fun registerUriSchemeLinux() {
-    val appPath = System.getProperty("user.dir") + File.separator + "Augmy"
-    val desktopFilePath = System.getProperty("user.home") + "/.local/share/applications/augmy.desktop"
+    val home = System.getProperty("user.home")
+    val desktopFilePath = "$home/.local/share/applications/augmy.desktop"
+
+    // Determine the executable path based on build type
+    val execPath = if (BuildKonfig.isDevelopment) {
+        // Debug: Use the launcher script
+        "/home/jacob/StudioProjects/enrichment-app/composeApp/augmy-launcher.sh"
+    } else System.getProperty("user.dir") + File.separator + "Augmy"
+    println("execPath: $execPath")
+
     val desktopFileContent = """
         [Desktop Entry]
         Name=Augmy
-        Exec=$appPath %u
+        Exec=gnome-terminal -- $execPath %u
         Type=Application
-        MimeType=x-scheme-handler/augmy
+        MimeType=x-scheme-handler/augmy;
         Terminal=false
+        Categories=Utility;
     """.trimIndent()
 
     try {
-        // Create and write to the .desktop file
         val desktopFile = File(desktopFilePath)
-        desktopFile.parentFile.mkdirs() // Ensure directory exists
+        desktopFile.parentFile.mkdirs()
         desktopFile.writeText(desktopFileContent)
+        desktopFile.setExecutable(true)
 
-        // Register with xdg-mime and xdg-settings
         val commands = listOf(
             "xdg-mime default augmy.desktop x-scheme-handler/augmy",
-            "xdg-settings set default-url-scheme-handler augmy augmy.desktop"
+            "update-desktop-database ~/.local/share/applications"
         )
 
         for (cmd in commands) {
-            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
-            process.waitFor()
-            if (process.exitValue() == 0) {
-                println("Command succeeded: $cmd")
-            } else {
-                println("Command failed: $cmd")
-                process.errorStream.bufferedReader().use { it.lines().forEach { line -> println(line) } }
-            }
+            val process = ProcessBuilder("sh", "-c", cmd)
+                .redirectErrorStream(true)
+                .start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            println("Command: $cmd")
+            println("Exit Code: $exitCode")
+            println("Output:\n$output")
         }
+
+        // Optional: Confirm it's registered
+        val verify = ProcessBuilder("sh", "-c", "xdg-mime query default x-scheme-handler/augmy")
+            .redirectErrorStream(true)
+            .start()
+
+        val result = verify.inputStream.bufferedReader().readText().trim()
+        println("Verified x-scheme-handler/augmy: $result")
+
     } catch (e: Exception) {
+        println("Failed to register URI scheme:")
         e.printStackTrace()
     }
 }

@@ -125,7 +125,7 @@ fun NetworkPreferencesLauncher(
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
                             data = NetworkItemIO(
-                                name = stringResource(Res.string.network_preferences_default_name),
+                                displayName = stringResource(Res.string.network_preferences_default_name),
                                 lastMessage = stringResource(Res.string.network_preferences_default_message),
                                 tag = "E7D37F",
                                 avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")

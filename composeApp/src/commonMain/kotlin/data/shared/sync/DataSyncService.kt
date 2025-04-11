@@ -15,6 +15,7 @@ import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
+import io.github.oshai.kotlinlogging.KotlinLogging
 import korlibs.io.async.onCancel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,8 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
@@ -43,12 +46,15 @@ import org.koin.mp.KoinPlatform
 import kotlin.time.Duration.Companion.milliseconds
 
 internal val dataSyncModule = module {
+    factory { DataSyncHandler() }
     factory { DataSyncService() }
     single { DataSyncService() }
     single { DataService() }
 }
 
 class DataSyncService {
+    private val logger = KotlinLogging.logger(name = "DataSyncServiceLogger")
+
     companion object {
         const val SYNC_INTERVAL = 60_000L
         private const val START_ANEW = false
@@ -64,32 +70,33 @@ class DataSyncService {
     private var nextBatch: String? = null
     private var isRunning = false
     private val handler = DataSyncHandler()
+    private val synMutex = Mutex()
 
     /** Begins the synchronization process and runs it over and over as long as the app is running or stopped via [stop] */
     fun sync(homeserver: String, delay: Long? = null) {
         if(!isRunning) {
-            println("kostka_test, datasync service sync, isFullyValid: ${
-                sharedDataManager.currentUser.value?.isFullyValid
-            }")
-            this.homeserver = homeserver
+            this@DataSyncService.homeserver = homeserver
             isRunning = true
-            syncScope.launch {
-                if(START_ANEW) {
-                    matrixPagingMetaDao.removeAll()
-                    conversationRoomDao.removeAll()
-                    conversationMessageDao.removeAll()
-                }
 
+            syncScope.launch {
                 this.coroutineContext.onCancel {
                     isRunning = false
                 }
 
-                sharedDataManager.matrixClient.value?.let { client ->
-                    delay?.let { delay(it) }
-                    if(sharedDataManager.currentUser.value?.isFullyValid == true) {
-                        enqueue(client = client)
-                    }else stop()
-                } ?: stop()
+                synMutex.withLock {
+                    if(START_ANEW) {
+                        matrixPagingMetaDao.removeAll()
+                        conversationRoomDao.removeAll()
+                        conversationMessageDao.removeAll()
+                    }
+
+                    sharedDataManager.matrixClient.value?.let { client ->
+                        delay?.let { delay(it) }
+                        if(sharedDataManager.currentUser.value?.isFullyValid == true) {
+                            enqueue(client = client)
+                        }else stop()
+                    } ?: stop()
+                }
             }
         }
     }
@@ -126,8 +133,8 @@ class DataSyncService {
             )
         }
 
+        logger.debug { "enqueue, entityId: ${homeserver}_$owner" }
         client.api.sync.start(
-            filter = null,
             timeout = SYNC_INTERVAL.milliseconds,
             asUserId = UserId(owner),
             setPresence = when(sharedDataManager.currentUser.value?.configuration?.visibility) {
@@ -147,10 +154,11 @@ class DataSyncService {
                         entityType = PagingEntityType.Sync.name,
                         nextBatch = nextBatch,
                         currentBatch = currentBatch,
-                        // after getting a response, the currentBatch becomes prevBatch
                         prevBatch = prevBatch
                     )
-                )
+                ).also {
+                    logger.debug { "setBatchToken: $nextBatch, entityId: ${homeserver}_$owner" }
+                }
 
                 prevBatch = currentBatch
                 currentBatch = nextBatch
@@ -159,15 +167,12 @@ class DataSyncService {
     }
 }
 
-internal class DataSyncHandler: MessageProcessor() {
+class DataSyncHandler: MessageProcessor() {
 
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
-    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     fun stop() {
-        syncScope.coroutineContext.cancelChildren()
         decryptionScope.coroutineContext.cancelChildren()
     }
 

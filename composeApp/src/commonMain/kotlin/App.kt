@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +51,6 @@ import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalHeyIamScreen
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
-import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -66,8 +66,11 @@ import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
 import data.io.base.AppPingType
 import data.shared.AppServiceModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -109,8 +112,7 @@ fun App(model: AppServiceModel = koinViewModel()) {
         isDarkTheme = when(localSettings.value?.theme) {
             ThemeChoice.DARK -> true
             ThemeChoice.LIGHT -> false
-            ThemeChoice.SYSTEM -> isSystemInDarkTheme()
-            null -> true
+            else -> isSystemInDarkTheme()
         }
     ) {
         Scaffold(
@@ -134,7 +136,6 @@ fun App(model: AppServiceModel = koinViewModel()) {
             val navController = rememberNavController()
 
             CompositionLocalProvider(
-                LocalNavController provides navController,
                 LocalSnackbarHost provides snackbarHostState,
                 LocalDeviceType provides windowSizeClass.widthSizeClass,
                 LocalIsMouseUser provides mouseUser.value
@@ -153,6 +154,7 @@ private fun AppContent(
     val backPressDispatcher = LocalBackPressDispatcher.current
     val deviceType = LocalDeviceType.current
     val snackbarHost = LocalSnackbarHost.current
+    val scope = rememberCoroutineScope()
 
     val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
@@ -212,14 +214,17 @@ private fun AppContent(
     LaunchedEffect(Unit) {
         model.pingStream.collectLatest { stream ->
             withContext(Dispatchers.Default) {
-                stream.find { it.type == AppPingType.HardLogout }?.let { ping ->
-                    model.logoutCurrentUser()
-                    model.consumePing(ping)
-                    if(snackbarHost?.showSnackbar(
-                            message = getString(Res.string.hard_logout_message),
-                            actionLabel = getString(Res.string.hard_logout_action)
-                        ) == SnackbarResult.ActionPerformed) {
-                        navController.navigate(NavigationNode.Login())
+                if(stream.any { it.type == AppPingType.HardLogout }) {
+                    scope.launch {
+                        if(snackbarHost?.showSnackbar(
+                                message = getString(Res.string.hard_logout_message),
+                                actionLabel = getString(Res.string.hard_logout_action)
+                            ) == SnackbarResult.ActionPerformed) {
+                            navController.navigate(NavigationNode.Login())
+                        }
+                    }
+                    CoroutineScope(Job()).launch {
+                        model.logoutCurrentUser()
                     }
                 }
             }

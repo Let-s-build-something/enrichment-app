@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
@@ -79,7 +80,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         else -> RoomType.Joined
     }
 ) {
-
     @Ignore
     @Transient
     var state: State? = null
@@ -107,20 +107,45 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             inviteState = other.inviteState ?: inviteState,
             knockState = other.knockState ?: knockState,
             ownerPublicId = other.ownerPublicId ?: ownerPublicId,
-            primaryKey = other.primaryKey
-        )
+            primaryKey = other.primaryKey,
+            prevBatch = other.prevBatch ?: prevBatch,
+            lastMessageTimestamp = other.lastMessageTimestamp ?: lastMessageTimestamp,
+            historyVisibility = other.historyVisibility ?: historyVisibility,
+            algorithm = other.algorithm ?: algorithm,
+            type = other.type
+        ).apply {
+            members = other.members
+        }
     }
 
     /** Users participating in the conversation */
     @Ignore
-    val users: List<NetworkItemIO>? = null
+    var members: List<ConversationRoomMember>? = null
 
     /** Converts this item to a network item representation */
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
-        name = summary?.alias,
+        displayName = summary?.roomName,
         tag = summary?.tag,
         avatar = summary?.avatar,
         lastMessage = summary?.lastMessage?.content
     )
+
+    override fun toString(): String {
+        return "{" +
+                "id: $id, " +
+                "summary: $summary, " +
+                "proximity: $proximity, " +
+                "unreadNotifications: $unreadNotifications, " +
+                "inviteState: $inviteState, " +
+                "knockState: $knockState, " +
+                "ownerPublicId: $ownerPublicId, " +
+                "primaryKey: $primaryKey, " +
+                "prevBatch: $prevBatch, " +
+                "lastMessageTimestamp: $lastMessageTimestamp, " +
+                "historyVisibility: $historyVisibility, " +
+                "algorithm: $algorithm, " +
+                "type: $type" +
+                "}"
+    }
 }

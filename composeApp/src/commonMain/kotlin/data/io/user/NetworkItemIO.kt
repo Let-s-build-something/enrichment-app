@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import data.io.social.network.conversation.message.MediaIO
 import database.AppRoomDatabase
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import kotlin.uuid.ExperimentalUuidApi
@@ -15,9 +16,11 @@ import kotlin.uuid.Uuid
 @Entity(tableName = AppRoomDatabase.TABLE_NETWORK_ITEM)
 data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** username of the current user */
-    val name: String? = null,
+    @ColumnInfo("display_name")
+    @SerialName("display_name")
+    val displayName: String? = null,
 
-    /** tag of the current user, unique in combination with [name]  */
+    /** tag of the current user, unique in combination with [displayName]  */
     val tag: String? = null,
 
     /** Public identification of this entity */
@@ -28,13 +31,16 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("user_public_id")
     val userPublicId: String? = null,
 
-    /** Matrix public user identifier */
-    @ColumnInfo("user_matrix_id")
-    val userMatrixId: String? = null,
+    @SerialName("user_id")
+    @ColumnInfo("user_id")
+    val userId: String? = null,
 
-    /** url of a photo of this object */
     @ColumnInfo("photo_media")
     val avatar: MediaIO? = null,
+
+    @SerialName("avatar_url")
+    @ColumnInfo("avatar_url")
+    val avatarUrl: String? = null,
 
     /** Whether the user is a mutually included */
     @ColumnInfo("is_mutual")
@@ -59,7 +65,7 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Database flag: an identifier of the owner of this item */
     @ColumnInfo("owner_user_id")
-    val ownerUserId: String? = null,
+    var ownerUserId: String? = null,
 
     val presence: PresenceEventContent? = null,
 

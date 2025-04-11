@@ -1,7 +1,7 @@
 package data.io.social.network.conversation.message
 
 import androidx.room.Ignore
-import data.io.user.NetworkItemIO
+import data.io.matrix.room.event.ConversationRoomMember
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -17,5 +17,5 @@ data class MessageReactionIO(
     /** Author user information */
     @Ignore
     @Transient
-    var user: NetworkItemIO? = null
+    var user: ConversationRoomMember? = null
 }

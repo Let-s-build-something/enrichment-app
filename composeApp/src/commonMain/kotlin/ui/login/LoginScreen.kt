@@ -5,6 +5,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Face
@@ -39,7 +41,6 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -57,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -94,6 +96,8 @@ import augmy.composeapp.generated.resources.login_error_invalid_credential
 import augmy.composeapp.generated.resources.login_error_no_windows
 import augmy.composeapp.generated.resources.login_error_security
 import augmy.composeapp.generated.resources.login_matrix_homeserver
+import augmy.composeapp.generated.resources.login_oidc_disable
+import augmy.composeapp.generated.resources.login_oidc_enable
 import augmy.composeapp.generated.resources.login_password_action_go
 import augmy.composeapp.generated.resources.login_password_condition_0
 import augmy.composeapp.generated.resources.login_password_condition_1
@@ -105,13 +109,13 @@ import augmy.composeapp.generated.resources.login_privacy_policy
 import augmy.composeapp.generated.resources.login_screen_type_sign_in
 import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
-import augmy.composeapp.generated.resources.login_success_snackbar_action
 import augmy.composeapp.generated.resources.login_terms_of_use
 import augmy.composeapp.generated.resources.login_username_condition_0
 import augmy.composeapp.generated.resources.login_username_condition_1
 import augmy.composeapp.generated.resources.login_username_hint
 import augmy.composeapp.generated.resources.no_email_client_error
 import augmy.composeapp.generated.resources.screen_login
+import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -124,6 +128,7 @@ import augmy.interactive.shared.ui.components.CorrectionText
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
@@ -269,13 +274,10 @@ fun LoginScreen(
             errorMessage.value = when(res) {
                 LoginResultType.SUCCESS -> {
                     CoroutineScope(Dispatchers.Main).launch {
-                        if(snackbarHostState?.showSnackbar(
-                                message = getString(Res.string.login_success_snackbar),
-                                actionLabel = getString(Res.string.login_success_snackbar_action),
-                                duration = SnackbarDuration.Short
-                            ) == SnackbarResult.ActionPerformed) {
-                            navController?.navigate(NavigationNode.Water)
-                        }
+                        snackbarHostState?.showSnackbar(
+                            message = getString(Res.string.login_success_snackbar),
+                            duration = SnackbarDuration.Short
+                        )
                     }
                     navController?.popBackStack(NavigationNode.Home, inclusive = false)
                     null
@@ -329,8 +331,16 @@ fun LoginScreen(
         title = stringResource(Res.string.screen_login),
         navIconType = NavIconType.BACK
     ) {
+        val listState = rememberScrollState()
+
         ModalScreenContent(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .onMouseScroll { direction, amount ->
+                    coroutineScope.launch {
+                        listState.scrollBy(amount.toFloat() * direction)
+                    }
+                }
+                .verticalScroll(listState),
             verticalArrangement = Arrangement.Center
         ) {
             MultiChoiceSwitch(
@@ -359,6 +369,7 @@ fun LoginScreen(
                         image = if(type == LoginScreenType.SIGN_UP) {
                             Asset.Image.SignUp
                         }else Asset.Image.SignIn,
+                        contentScale = ContentScale.Fit,
                         contentDescription = stringResource(
                             if(type == LoginScreenType.SIGN_UP) {
                                 Res.string.accessibility_sign_up_illustration
@@ -376,7 +387,7 @@ fun LoginScreen(
                 passwordState = passwordState,
                 usernameState = usernameState
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(120.dp))
         }
     }
 }
@@ -407,9 +418,19 @@ private fun ColumnScope.LoginScreenContent(
         it.stages?.contains(LoginEmail) == true
     } != false*/
 
+    val disableSsoFlow = remember { mutableStateOf(false) }
+    val ssoFlow = remember(homeServerResponse.value) {
+        derivedStateOf {
+            homeServerResponse.value?.plan?.flows?.find {
+                it.type == Matrix.LOGIN_SSO
+            }.takeIf { !disableSsoFlow.value }
+        }
+    }
+
     val sendRequest = {
-        model.setLoading(true)
-        model.signUpWithPassword(
+        if(ssoFlow.value?.delegatedOidcCompatibility == true) {
+            model.requestSsoRedirect(null)
+        }else model.signUpWithPassword(
             email = emailState.text.toString(),
             password = passwordState.text.toString(),
             screenType = screenType,
@@ -444,11 +465,11 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    AnimatedVisibility(homeServerResponse.value?.supportsEmail != true) {
-        val cancellableScope = rememberCoroutineScope()
-        val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
+    AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility != true) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val cancellableScope = rememberCoroutineScope()
+            val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
 
-        if(screenType == LoginScreenType.SIGN_UP) {
             LaunchedEffect(usernameState.text) {
                 cancellableScope.coroutineContext.cancelChildren()
                 cancellableScope.launch {
@@ -459,93 +480,95 @@ private fun ColumnScope.LoginScreenContent(
                     )
                 }
             }
-        }
 
-        CustomTextField(
-            modifier = Modifier
-                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                .fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            prefixIcon = Icons.Outlined.Face,
-            hint = stringResource(Res.string.login_username_hint),
-            errorText = if(usernameState.text.isEmpty()) {
-                null
-            } else error,
-            state = usernameState,
-            lineLimits = TextFieldLineLimits.SingleLine,
-            shape = LocalTheme.current.shapes.rectangularActionShape
-        )
-    }
-    AnimatedVisibility(visible = supportsEmail) {
-        CustomTextField(
-            modifier = Modifier
-                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                .fillMaxWidth()
-                .onFocusChanged { state ->
-                    isEmailFocused.value = state.isFocused
-                },
-            hint = stringResource(Res.string.login_password_email_hint),
-            prefixIcon = Icons.Outlined.AlternateEmail,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            state = emailState,
-            errorText = if(isEmailValid || emailState.text.isEmpty() || isEmailFocused.value) {
-                null
-            } else errorMessage.value ?: stringResource(Res.string.login_email_error),
-            paddingValues = PaddingValues(start = 16.dp)
-        )
-    }
-
-    CustomTextField(
-        modifier = Modifier
-            .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-            .fillMaxWidth(),
-        hint = stringResource(Res.string.login_password_password_hint),
-        prefixIcon = Icons.Outlined.Key,
-        state = passwordState,
-        isCorrect = isPasswordValid,
-        errorText = if(isPasswordValid.not() && passwordState.text.isNotEmpty()) " " else null,
-        textObfuscationMode = if(passwordVisible.value) {
-            TextObfuscationMode.Visible
-        }else TextObfuscationMode.RevealLastTyped,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Done
-        ),
-        onKeyboardAction = {
-            if(isPasswordValid && isEmailValid) {
-                sendRequest()
-            }
-        },
-        trailingIcon = {
-            Crossfade(
-                targetState = passwordVisible.value, label = "",
-            ) { isPasswordVisible ->
-                MinimalisticIcon(
-                    contentDescription = stringResource(
-                        if(isPasswordVisible) {
-                            Res.string.accessibility_hide_password
-                        }else Res.string.accessibility_show_password
+            CustomTextField(
+                modifier = Modifier
+                    .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                    .fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                prefixIcon = Icons.Outlined.Face,
+                hint = stringResource(Res.string.login_username_hint),
+                errorText = if(usernameState.text.isEmpty()) {
+                    null
+                } else error,
+                state = usernameState,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = LocalTheme.current.shapes.rectangularActionShape
+            )
+            AnimatedVisibility(visible = supportsEmail) {
+                CustomTextField(
+                    modifier = Modifier
+                        .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                        .fillMaxWidth()
+                        .onFocusChanged { state ->
+                            isEmailFocused.value = state.isFocused
+                        },
+                    hint = stringResource(Res.string.login_password_email_hint),
+                    prefixIcon = Icons.Outlined.AlternateEmail,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
                     ),
-                    imageVector = if(isPasswordVisible) {
-                        Icons.Outlined.Visibility
-                    }else Icons.Outlined.VisibilityOff,
-                    tint = LocalTheme.current.colors.secondary
-                ) {
-                    passwordVisible.value = !passwordVisible.value
-                }
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    state = emailState,
+                    errorText = if(isEmailValid || emailState.text.isEmpty() || isEmailFocused.value) {
+                        null
+                    } else errorMessage.value ?: stringResource(Res.string.login_email_error),
+                    paddingValues = PaddingValues(start = 16.dp)
+                )
             }
-        },
-        inputTransformation = {
-            this.delete(PASSWORD_MAX_LENGTH, this.length)
-        },
-        paddingValues = PaddingValues(start = 16.dp)
-    )
+
+            CustomTextField(
+                modifier = Modifier
+                    .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                    .fillMaxWidth(),
+                hint = stringResource(Res.string.login_password_password_hint),
+                prefixIcon = Icons.Outlined.Key,
+                state = passwordState,
+                isCorrect = isPasswordValid,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                errorText = if(isPasswordValid.not() && passwordState.text.isNotEmpty()) " " else null,
+                textObfuscationMode = if(passwordVisible.value) {
+                    TextObfuscationMode.Visible
+                }else TextObfuscationMode.RevealLastTyped,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                onKeyboardAction = {
+                    if(isPasswordValid && isEmailValid) {
+                        sendRequest()
+                    }
+                },
+                trailingIcon = {
+                    Crossfade(
+                        targetState = passwordVisible.value, label = "",
+                    ) { isPasswordVisible ->
+                        MinimalisticIcon(
+                            contentDescription = stringResource(
+                                if(isPasswordVisible) {
+                                    Res.string.accessibility_hide_password
+                                }else Res.string.accessibility_show_password
+                            ),
+                            imageVector = if(isPasswordVisible) {
+                                Icons.Outlined.Visibility
+                            }else Icons.Outlined.VisibilityOff,
+                            tint = LocalTheme.current.colors.secondary
+                        ) {
+                            passwordVisible.value = !passwordVisible.value
+                        }
+                    }
+                },
+                inputTransformation = {
+                    this.delete(PASSWORD_MAX_LENGTH, this.length)
+                },
+                paddingValues = PaddingValues(start = 16.dp)
+            )
+        }
+    }
 
     AnimatedVisibility(screenType == LoginScreenType.SIGN_UP) {
         Column(
@@ -564,16 +587,32 @@ private fun ColumnScope.LoginScreenContent(
         }
     }
 
-    BrandHeaderButton(
+    Row(
         modifier = Modifier
             .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-            .fillMaxWidth()
-            .padding(vertical = 16.dp, horizontal = 16.dp),
-        text = stringResource(Res.string.login_password_action_go),
-        isEnabled = isPasswordValid && isEmailValid && isLoading.value.not(),
-        isLoading = isLoading.value,
-        onClick = sendRequest
-    )
+            .padding(vertical = 16.dp, horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BrandHeaderButton(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.login_password_action_go),
+            isEnabled = ssoFlow.value?.delegatedOidcCompatibility == true
+                    || isPasswordValid && isEmailValid && isLoading.value.not(),
+            isLoading = isLoading.value,
+            onClick = sendRequest,
+            endImageVector = Icons.AutoMirrored.Outlined.ArrowForward
+        )
+        AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility == true) {
+            OutlinedButton(
+                text = stringResource(
+                    if(disableSsoFlow.value) Res.string.login_oidc_enable else Res.string.login_oidc_disable
+                )
+            ) {
+                disableSsoFlow.value = !disableSsoFlow.value
+            }
+        }
+    }
 
     AnimatedVisibility(
         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -602,54 +641,39 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    val ssoFlow = remember(homeServerResponse.value) {
-        derivedStateOf {
-            homeServerResponse.value?.plan?.flows?.find {
-                it.type == Matrix.LOGIN_SSO
-            }
-        }
-    }
-
     AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
                 .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
                 .fillMaxWidth()
-                .align(alignment = Alignment.CenterHorizontally),
-            horizontalArrangement = Arrangement.Center,
+                .wrapContentHeight()
+                .animateContentSize(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .wrapContentHeight()
-                    .animateContentSize(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ssoFlow.value?.identityProviders?.forEach { identityProvider ->
-                    when(identityProvider.brand) {
-                        Matrix.Brand.GOOGLE -> {
-                            Image(
-                                modifier = Modifier
-                                    .height(42.dp)
-                                    .scalingClickable {
-                                        model.requestSsoRedirect(identityProvider.id)
-                                    },
-                                painter = painterResource(LocalTheme.current.icons.googleSignUp ),
-                                contentDescription = null
-                            )
-                        }
-                        Matrix.Brand.APPLE -> {
-                            Image(
-                                modifier = Modifier
-                                    .height(42.dp)
-                                    .scalingClickable {
-                                        model.requestSsoRedirect(identityProvider.id)
-                                    },
-                                painter = painterResource(LocalTheme.current.icons.appleSignUp ),
-                                contentDescription = null
-                            )
-                        }
+            ssoFlow.value?.identityProviders?.forEach { identityProvider ->
+                when(identityProvider.brand) {
+                    Matrix.Brand.GOOGLE -> {
+                        Image(
+                            modifier = Modifier
+                                .height(42.dp)
+                                .scalingClickable {
+                                    model.requestSsoRedirect(identityProvider.id)
+                                },
+                            painter = painterResource(LocalTheme.current.icons.googleSignUp ),
+                            contentDescription = null
+                        )
+                    }
+                    Matrix.Brand.APPLE -> {
+                        Image(
+                            modifier = Modifier
+                                .height(42.dp)
+                                .scalingClickable {
+                                    model.requestSsoRedirect(identityProvider.id)
+                                },
+                            painter = painterResource(LocalTheme.current.icons.appleSignUp ),
+                            contentDescription = null
+                        )
                     }
                 }
             }

@@ -22,7 +22,7 @@ import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.NetworkItemDao
+import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.core.PlatformFile
 import io.ktor.client.HttpClient
@@ -56,13 +56,13 @@ open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
     internal val conversationRoomDao: ConversationRoomDao,
-    private val networkItemDao: NetworkItemDao,
-    private val mediaDataManager: MediaProcessorDataManager,
-    private val fileAccess: FileAccess
-) {
+    private val roomMemberDao: RoomMemberDao,
+    mediaDataManager: MediaProcessorDataManager,
+    fileAccess: FileAccess
+): MediaRepository(httpClient, mediaDataManager, fileAccess) {
     private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
+    private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
 
-    private val dataSyncHandler = DataSyncHandler()
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
     protected var certainMessageCount: Int? = null
@@ -168,7 +168,7 @@ open class ConversationRepository(
                                     ).also {
                                         val newPrevBatch = if(res.messages.isEmpty()
                                             && res.events == 0
-                                            && res.members == 0
+                                            && res.members.isEmpty()
                                         )null else res.prevBatch
 
                                         conversationRoomDao.setPrevBatch(
@@ -203,9 +203,8 @@ open class ConversationRepository(
         owner: String?
     ): ConversationRoomIO? = withContext(Dispatchers.IO) {
         conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
-            summary?.members = networkItemDao.getItems(
-                userPublicIds = summary?.heroes?.map { it.full },
-                ownerPublicId = ownerPublicId
+            summary?.members = roomMemberDao.get(
+                userIds = summary?.heroes?.map { it.full }.orEmpty()
             )
         }
     }
@@ -349,6 +348,13 @@ open class ConversationRepository(
             get(url = Url("https://$homeserver/_matrix/client/v1/media/config"))
         }
     }
+}
+
+open class MediaRepository(
+    private val httpClient: HttpClient,
+    private val mediaDataManager: MediaProcessorDataManager,
+    private val fileAccess: FileAccess
+) {
 
     /**
      * Uploads media to the server
@@ -378,11 +384,13 @@ open class ConversationRepository(
                             mediaDataManager.cachedFiles.value = mediaDataManager.cachedFiles.value.toMutableMap().apply {
                                 put(
                                     path.toString(),
-                                    MediaIO(
-                                        url = uri,
-                                        mimetype = mimetype,
-                                        size = mediaByteArray.size.toLong(),
-                                        name = fileName
+                                    BaseResponse.Success(
+                                        MediaIO(
+                                            url = uri,
+                                            mimetype = mimetype,
+                                            size = mediaByteArray.size.toLong(),
+                                            name = fileName
+                                        )
                                     )
                                 )
                             }

@@ -10,7 +10,7 @@ import org.koin.dsl.module
 
 internal val networkItemModule = module {
     factory { NetworkItemDataManager() }
-    factory { NetworkItemRepository(get(), get(), get()) }
+    factory { NetworkItemRepository(get(), get(), get(), get()) }
     single { NetworkItemDataManager() }
     factory { NetworkItemUseCase(get(), get()) }
 }

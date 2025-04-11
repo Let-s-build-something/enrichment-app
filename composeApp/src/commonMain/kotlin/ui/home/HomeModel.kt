@@ -6,6 +6,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
+import augmy.interactive.shared.utils.PersistentListData
 import base.utils.asSimpleString
 import base.utils.tagToColor
 import components.pull_refresh.RefreshableViewModel
@@ -59,6 +60,9 @@ class HomeModel(
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
     )
+
+    // firstVisibleItemIndex to firstVisibleItemScrollOffset
+    var persistentPositionData: PersistentListData? = null
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -176,7 +180,6 @@ class HomeModel(
             }
             val startTime = Clock.System.now().toEpochMilliseconds()
 
-            println("kostka_test, respondToInvitation, matrixUserId: $matrixUserId, client: ${sharedDataManager.matrixClient.value}")
             val result = repository.respondToInvitation(
                 client = sharedDataManager.matrixClient.value,
                 matrixUserId = matrixUserId,

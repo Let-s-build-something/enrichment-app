@@ -37,6 +37,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.core.PlatformFile
 import kotlinx.coroutines.delay
 import ui.conversation.components.link.LinkPreview
@@ -109,9 +110,9 @@ fun LazyItemScope.ConversationMessageContent(
                         )
                         .zIndex(4f)
                         .size(profileImageSize),
-                    media = data?.user?.avatar,
-                    tag = data?.user?.tag,
-                    name = data?.user?.name
+                    media = MediaIO(url = data?.user?.content?.avatarUrl),
+                    tag = null,//data?.user?.tag,
+                    name = data?.user?.content?.displayName
                 )
             }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
                 Spacer(Modifier.width(profileImageSize + 22.dp))

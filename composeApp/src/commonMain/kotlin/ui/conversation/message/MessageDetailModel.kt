@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.conversation.ConversationDataManager
 import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.experimental.gravity.GravityUseCase
@@ -30,6 +31,7 @@ internal val messageDetailModule = module {
             get(),
             get(),
             get(),
+            get(),
             get()
         )
     }
@@ -40,6 +42,7 @@ class MessageDetailModel(
     private val messageId: String?,
     conversationId: String?,
     private val repository: MessageDetailRepository,
+    dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase,
     pacingUseCase: PacingUseCase,
@@ -53,20 +56,21 @@ class MessageDetailModel(
     gifUseCase = gifUseCase,
     pacingUseCase = pacingUseCase,
     gravityUseCase = gravityUseCase,
-    fileAccess = fileAccess
+    fileAccess = fileAccess,
+    dataManager = dataManager
 ) {
 
     private val _message = MutableStateFlow<ConversationMessageIO?>(null)
 
     /** Locally retrieved information */
     val message = _message
-        .combine(conversationDetail) { message, detail ->
+        .combine(conversation) { message, detail ->
             withContext(Dispatchers.Default) {
                 message?.apply {
-                    user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                    anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                    user = detail?.members?.find { user -> user.userId == authorPublicId }
+                    anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
                     reactions?.forEach { reaction ->
-                        reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                        reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
                     }
                 }
             }
@@ -82,14 +86,14 @@ class MessageDetailModel(
         conversationId = conversationId
     ).flow
         .cachedIn(viewModelScope)
-        .combine(conversationDetail) { messages, detail ->
+        .combine(conversation) { messages, detail ->
             withContext(Dispatchers.Default) {
                 messages.map {
                     it.apply {
-                        user = detail?.users?.find { user -> user.publicId == authorPublicId }
-                        anchorMessage?.user = detail?.users?.find { user -> user.publicId == anchorMessage?.authorPublicId }
+                        user = detail?.members?.find { user -> user.userId == authorPublicId }
+                        anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
                         reactions?.forEach { reaction ->
-                            reaction.user = detail?.users?.find { user -> user.publicId == reaction.authorPublicId }
+                            reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
                         }
                     }
                 }
@@ -104,9 +108,6 @@ class MessageDetailModel(
 
     private suspend fun requestMessage() {
         if(messageId == null) return
-        _message.value = repository.getMessage(
-            id = messageId,
-            ownerPublicId = matrixUserId
-        )
+        _message.value = repository.getMessage(id = messageId)
     }
 }

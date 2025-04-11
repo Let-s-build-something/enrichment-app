@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -65,6 +64,8 @@ import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.PersistentListData
+import augmy.interactive.shared.utils.persistedLazyGridState
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -98,19 +99,24 @@ import kotlin.uuid.Uuid
  */
 @OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
+fun HomeScreen(model: HomeModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
 
-    val conversationRooms = viewModel.conversationRooms.collectAsLazyPagingItems()
-    val categories = viewModel.categories.collectAsState(initial = listOf())
-    val customColors = viewModel.customColors.collectAsState(initial = mapOf())
+    val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
+    val categories = model.categories.collectAsState(initial = listOf())
+    val customColors = model.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
             || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
     val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
-    val listState = rememberLazyGridState()
+    val gridState = persistedLazyGridState(
+        persistentData = model.persistentPositionData ?: PersistentListData(),
+        onDispose = { lastInfo ->
+            model.persistentPositionData = lastInfo
+        }
+    )
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
     val selectedItem = rememberSaveable {
@@ -124,11 +130,13 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        conversationRooms.refresh()
+        if(model.persistentPositionData != null) {
+            conversationRooms.refresh()
+        }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.pingStream.collectLatest { stream ->
+        model.pingStream.collectLatest { stream ->
             stream.forEach {
                 if(it.type == AppPingType.ConversationDashboard) {
                     conversationRooms.refresh()
@@ -139,7 +147,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
 
     if(selectedUser.value != null) {
         UserProfileLauncher(
-            userProfile = selectedUser.value,
+            user = selectedUser.value,
             onDismissRequest = {
                 selectedUser.value = null
             }
@@ -148,7 +156,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
 
     if(showTuner.value) {
         NetworkPreferencesLauncher(
-            viewModel = viewModel,
+            viewModel = model,
             onDismissRequest = {
                 showTuner.value = false
             }
@@ -172,11 +180,11 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
         onRefresh = {
             conversationRooms.refresh()
             coroutineScope.launch {
-                listState.animateScrollToItem(0)
+                gridState.animateScrollToItem(0)
             }
         },
         showDefaultActions = true,
-        viewModel = viewModel,
+        viewModel = model,
         actionIcons = { isExpanded ->
             ActionBarIcon(
                 text = if(isExpanded) stringResource(Res.string.screen_search_network) else null,
@@ -210,7 +218,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                             NetworkProximityCategory.Peers
                         }else NetworkProximityCategory.Family)
                     }
-                    viewModel.filterNetworkItems(filter = newList)
+                    model.filterNetworkItems(filter = newList)
                 },
                 selectedItems = categories.value
             )
@@ -238,7 +246,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                 }
                 Crossfade(isCompactView.value) { isList ->
                     if(isList) {
-                        val networkItems = viewModel.networkItems.collectAsState(null)
+                        val networkItems = model.networkItems.collectAsState(null)
 
                         LazyVerticalGrid(
                             modifier = Modifier
@@ -251,7 +259,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                                     orientation = Orientation.Vertical,
                                     state = rememberDraggableState { delta ->
                                         coroutineScope.launch {
-                                            listState.scrollBy(-delta)
+                                            gridState.scrollBy(-delta)
                                         }
                                     }
                                 )
@@ -259,7 +267,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                             columns = GridCells.Fixed(
                                 if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
                             ),
-                            state = listState,
+                            state = gridState,
                             verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
                         ) {
                             item(span = { GridItemSpan(maxLineSpan) }) {}
@@ -289,7 +297,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                                     modifier = Modifier
                                         .animateItem()
                                         .fillMaxWidth(),
-                                    model = viewModel,
+                                    model = model,
                                     room = room,
                                     selectedItem = selectedItem.value,
                                     requestProximityChange = { proximity ->
@@ -297,9 +305,9 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                                             room.summary.members?.firstOrNull()
                                         }else null
 
-                                        viewModel.requestProximityChange(
+                                        model.requestProximityChange(
                                             conversationId = room?.id,
-                                            publicId = singleUser?.publicId,
+                                            publicId = singleUser?.userId,
                                             proximity = proximity,
                                             onOperationDone = {
                                                 if(selectedItem.value == room?.id) {
@@ -316,7 +324,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                                         }else navController?.navigate(
                                             NavigationNode.Conversation(
                                                 conversationId = room?.id,
-                                                name = room?.summary?.alias
+                                                name = room?.summary?.roomName
                                             )
                                         )
                                     },
@@ -327,13 +335,13 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                                         if(room?.summary?.isDirect == true) {
                                             coroutineScope.launch(Dispatchers.Default) {
                                                 selectedUser.value = networkItems.value?.find {
-                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()?.full
+                                                    it.userId == room.summary.heroes?.firstOrNull()?.full
                                                 }
                                             }
                                         }else {
                                             NavigationNode.ConversationInformation(
                                                 conversationId = room?.id,
-                                                name = room?.summary?.alias
+                                                name = room?.summary?.roomName
                                             )
                                         }
                                     }
@@ -358,7 +366,7 @@ fun HomeScreen(viewModel: HomeModel = koinViewModel()) {
                     }else {
                         SocialCircleContent(
                             modifier = Modifier.fillMaxSize(),
-                            viewModel = viewModel
+                            viewModel = model
                         )
                     }
                 }
@@ -426,7 +434,7 @@ private fun ConversationRoomItem(
                 isLoading = isLoading.value,
                 heading = stringResource(
                     Res.string.invite_conversation_heading,
-                    room.summary.members?.firstOrNull()?.name ?: "?"
+                    room.summary.members?.firstOrNull()?.content?.displayName ?: "?"
                 ),
                 newItemHint = stringResource(Res.string.invite_new_item_conversation),
                 items = conversations.value,
@@ -434,7 +442,7 @@ private fun ConversationRoomItem(
                 onInvite = { checkedItems, message, newName ->
                     model.inviteToConversation(
                         conversationId = if(newName != null) null else checkedItems.firstOrNull()?.id,
-                        userPublicIds = room.summary.members?.firstOrNull()?.userPublicId?.let { listOf(it) },
+                        userPublicIds = room.summary.members?.firstOrNull()?.userId?.let { listOf(it) },
                         message = message,
                         newName = newName
                     )
@@ -540,7 +548,7 @@ private fun ConversationRoomItem(
                                     showAddMembers.value = true
                                 },
                                 newItem = NetworkItemIO(
-                                    name = room?.summary?.alias,
+                                    displayName = room?.summary?.roomName,
                                     tag = room?.summary?.tag,
                                     avatar = room?.summary?.avatar,
                                     publicId = room?.id ?: "-",

@@ -19,10 +19,10 @@ import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.observer.ResponseObserver
 import io.ktor.client.plugins.plugin
 import io.ktor.client.statement.request
@@ -136,7 +136,7 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
 
     install(Logging) {
-        logger = Logger.SIMPLE
+        logger = Logger.DEFAULT
         level = LogLevel.BODY
 
         sanitizeHeader { header ->
@@ -167,8 +167,8 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     }
     HttpResponseValidator {
         handleResponseException { cause, request ->
-            when (cause) {
-                is ConnectTimeoutException, is SocketTimeoutException -> {
+            when {
+                cause is ConnectTimeoutException || cause is SocketTimeoutException || isConnectionException(cause) -> {
                     sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
                     println("Network timeout, response: ${request.url}, ${request.call.response.body<String>()}")
                 }
@@ -188,6 +188,8 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         }
     }
 }
+
+expect fun isConnectionException(cause: Throwable): Boolean
 
 /** Authorization type header with Firebase identification token */
 val IdToken: String

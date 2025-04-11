@@ -3,7 +3,6 @@ package base.global.verification
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
 import data.shared.SharedModel
-import data.shared.auth.AuthService
 import korlibs.io.async.onCancel
 import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.CoroutineScope
@@ -64,9 +63,7 @@ sealed class LauncherState {
     data object Hidden: LauncherState()
 }
 
-class VerificationModel(
-    private val authService: AuthService
-): SharedModel() {
+class VerificationModel: SharedModel() {
     val isLoading = MutableStateFlow(false)
     private val _launcherState = MutableStateFlow<LauncherState>(LauncherState.Hidden)
     private val _verificationResult = MutableStateFlow<Result<Unit>?>(null)

@@ -64,16 +64,12 @@ fun ReplyIndication(
                 )
             }
             Column(
-                modifier = Modifier
-                    .padding(top = 8.dp, start = 6.dp)
-                //.weight(1f)
-                //.width(IntrinsicSize.Min)
+                modifier = Modifier.padding(top = 8.dp, start = 6.dp)
             ) {
                 Text(
-                    //modifier = Modifier.fillMaxWidth(),
                     text = if(isCurrentUser) {
                         stringResource(Res.string.conversation_reply_prefix_self)
-                    }else data.user?.name?.plus(":") ?: "",
+                    }else data.user?.content?.displayName?.plus(":") ?: "",
                     style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

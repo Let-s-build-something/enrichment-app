@@ -2,15 +2,18 @@ package data.io.matrix.room.event.serialization
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
+import net.folivo.trixnity.clientserverapi.model.keys.ClaimKeys
 import net.folivo.trixnity.core.model.events.EventContent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.StateEventContent
@@ -119,6 +122,32 @@ fun createEventSerializersModule(
         contextual(globalAccountDataEventSerializer)
         contextual(roomAccountDataEventSerializer)
         contextual(eventTypeSerializer)
+        contextual(ClaimKeys.Response::class, ClaimKeysResponseSerializer)
+    }
+}
+
+object ClaimKeysResponseSerializer : KSerializer<ClaimKeys.Response> {
+    override val descriptor: SerialDescriptor = ClaimKeys.Response.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: ClaimKeys.Response) {
+        encoder.encodeSerializableValue(ClaimKeys.Response.serializer(), value)
+    }
+
+    override fun deserialize(decoder: Decoder): ClaimKeys.Response {
+        val jsonDecoder = decoder as? JsonDecoder ?: throw IllegalStateException("This serializer can only be used with JSON")
+        val jsonElement = jsonDecoder.decodeJsonElement()
+        val jsonObject = jsonElement.jsonObject
+
+        val modifiedJson = if ("failures" !in jsonObject) {
+            buildJsonObject {
+                jsonObject.forEach { (key, value) -> put(key, value) }
+                put("failures", buildJsonObject { })
+            }
+        } else {
+            jsonElement
+        }
+
+        return jsonDecoder.json.decodeFromJsonElement(ClaimKeys.Response.serializer(), modifiedJson)
     }
 }
 

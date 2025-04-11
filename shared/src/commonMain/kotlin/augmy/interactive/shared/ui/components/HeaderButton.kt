@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -101,14 +103,14 @@ private fun HeaderButton(
                 style = textStyle.copy(color = animContentColor)
             )
         }
-        if(endImageVector != null) {
+        androidx.compose.animation.AnimatedVisibility(endImageVector != null) {
             Icon(
                 modifier = Modifier
                     .padding(start = 4.dp)
                     .requiredSize(
                         with(density) { textStyle.fontSize.toDp() }
                     ),
-                imageVector = endImageVector,
+                imageVector = endImageVector ?: Icons.Outlined.Close,
                 contentDescription = null,
                 tint = animContentColor
             )
@@ -184,6 +186,7 @@ fun BrandHeaderButton(
     text: String = "",
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
+    endImageVector: ImageVector? = null,
     onClick: () -> Unit = {}
 ) {
     LoadingHeaderButton(
@@ -196,7 +199,8 @@ fun BrandHeaderButton(
         contentColor = LocalTheme.current.colors.tetrial,
         containerColor = if(isLoading) {
             LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
-        }else LocalTheme.current.colors.brandMainDark
+        }else LocalTheme.current.colors.brandMainDark,
+        endImageVector = endImageVector
     )
 }
 
@@ -222,7 +226,7 @@ private fun LoadingHeaderButton(
         onClick = onClick,
         showBorder = showBorder,
         shape = shape,
-        endImageVector = endImageVector,
+        endImageVector = if(!isLoading && isEnabled) endImageVector else null,
         textStyle = textStyle,
         additionalContent = {
             additionalContent()

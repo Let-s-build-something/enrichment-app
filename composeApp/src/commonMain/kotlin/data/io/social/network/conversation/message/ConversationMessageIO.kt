@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import base.utils.LinkUtils
-import data.io.user.NetworkItemIO
+import data.io.matrix.room.event.ConversationRoomMember
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
@@ -80,7 +80,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** User attached to this message */
     @Ignore
     @Transient
-    var user: NetworkItemIO? = null
+    var user: ConversationRoomMember? = null
 
     /** Converts this message to an anchor message */
     @Ignore

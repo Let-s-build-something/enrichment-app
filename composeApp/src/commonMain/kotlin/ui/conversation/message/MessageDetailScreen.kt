@@ -52,6 +52,7 @@ import base.utils.openLink
 import components.UserProfileImage
 import components.buildAnnotatedLinkString
 import data.io.base.AppPingType
+import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
@@ -120,6 +121,7 @@ fun MessageDetailScreen(
         subtitle = message.value?.sentAt?.formatAsRelative()
     ) {
         ConversationComponent(
+            modifier = Modifier.fillMaxSize(),
             listModifier = Modifier
                 .padding(
                     horizontal = if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 0.dp else 16.dp
@@ -163,14 +165,14 @@ fun MessageDetailScreen(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),
-                                        media = message.value?.user?.avatar,
-                                        tag = message.value?.user?.tag,
+                                        media = MediaIO(url = message.value?.user?.content?.avatarUrl),
+                                        tag = null,//message.value?.user?.tag,
                                         animate = true,
-                                        name = message.value?.user?.name
+                                        name = message.value?.user?.content?.displayName
                                     )
                                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                                     Text(
-                                        text = message.value?.user?.name ?: "",
+                                        text = message.value?.user?.content?.displayName ?: "",
                                         style = LocalTheme.current.styles.title
                                     )
                                 }
@@ -264,7 +266,7 @@ fun MessageDetailScreen(
                                                         textAlign = TextAlign.Center
                                                     )
                                                 )
-                                                if (reaction.user?.userPublicId == viewModel.matrixUserId) {
+                                                if (reaction.user?.userId == viewModel.matrixUserId) {
                                                     Box(
                                                         modifier = Modifier
                                                             .height(2.dp)

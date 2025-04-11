@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -47,6 +46,7 @@ import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.verticallyDraggable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -84,7 +84,7 @@ fun ConversationComponent(
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
     val listState = persistedLazyListState(
-        persistentData = model.persistentPositionData,
+        persistentData = model.persistentPositionData ?: PersistentListData(),
         onDispose = { lastInfo ->
             model.persistentPositionData = lastInfo
         }
@@ -161,11 +161,10 @@ fun ConversationComponent(
                         }
                     }
                 })
-            }
-            .fillMaxSize(),
+            },
         contentAlignment = Alignment.BottomCenter
     ) {
-        val typingIndicators = model.typingIndicators.collectAsState()
+        val typingIndicators = model.typingIndicators.collectAsState(initial = 0 to listOf())
 
         if(typingIndicators.value.second.isNotEmpty()) {
             Box(
@@ -314,7 +313,7 @@ fun ConversationComponent(
                                             conversationId = conversationId,
                                             title = if(isCurrentUser) {
                                                 getString(Res.string.conversation_detail_you)
-                                            } else data?.user?.name
+                                            } else data?.user?.content?.displayName
                                         )
                                     )
                                 }
@@ -345,6 +344,7 @@ fun ConversationComponent(
 
         SendMessagePanel(
             modifier = Modifier
+                .fillMaxWidth()
                 .background(
                     color = LocalTheme.current.colors.backgroundDark,
                     shape = RoundedCornerShape(

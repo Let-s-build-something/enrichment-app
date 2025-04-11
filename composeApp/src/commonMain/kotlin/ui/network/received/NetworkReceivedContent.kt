@@ -155,7 +155,7 @@ fun NetworkReceivedContent(
                                     showProximityPicker.value = NetworkItemIO(
                                         publicId = data.publicId,
                                         avatar = data.avatar,
-                                        name = data.displayName,
+                                        displayName = data.displayName,
                                         tag = data.tag
                                     )
                                 }else viewModel.acceptRequest(publicId = data.publicId, proximity = null)

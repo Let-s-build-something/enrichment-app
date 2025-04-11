@@ -4,13 +4,22 @@ import androidx.lifecycle.viewModelScope
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
+import data.io.user.UserIO
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.auth.auth
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +62,50 @@ class AppServiceModel(
                 }.let { status ->
                     clientStatus.emit(status ?: ClientStatus.NEW)
                 }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            delay(50)
+            sharedDataManager.isToolbarExpanded.value = settings.getBooleanOrNull(SettingsKeys.KEY_TOOLBAR_EXPANDED) != false
+        }
+
+        viewModelScope.launch {
+            delay(200)
+            sharedDataManager.matrixClient.combine(currentUser) { client, user ->
+                client to user
+            }.collectLatest { client ->
+                println("kostka_test, awaiting sync: client: ${client.first}, user: ${client.second}")
+                if(client.first != null && client.second?.isFullyValid == true) {
+                    client.second?.matrixHomeserver?.let { homeserver ->
+                        dataSyncService.sync(homeserver = homeserver)
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            delay(200)
+            // TODO there should be a variant for unsigned invalid clients as well, probably only a ping of sorts
+            networkConnectivity.collectLatest {
+                sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
+                    while(it?.isNetworkAvailable == false) {
+                        dataSyncService.stop()
+                        dataSyncService.sync(homeserver = homeserver, delay = 2000)
+                        delay(3000)
+                    }
+                }
+            }
+        }
+
+        // update idToken whenever it changes
+        Firebase.auth.idTokenChanged.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            Firebase.auth.currentUser
+        ).onEach { firebaseUser ->
+            if(firebaseUser != null) {
+                val update = UserIO(idToken = firebaseUser.getIdToken(false))
+                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(update) ?: update
             }
         }
     }

@@ -214,7 +214,7 @@ fun SocialItemActions(
 }
 
 @Composable
-private fun ScalingIcon(
+fun ScalingIcon(
     color: Color,
     imageVector: ImageVector,
     contentDescription: String,

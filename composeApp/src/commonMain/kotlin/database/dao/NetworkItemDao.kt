@@ -16,7 +16,7 @@ interface NetworkItemDao {
     SELECT ni.*, p.content AS presence
     FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} AS ni
     LEFT JOIN ${AppRoomDatabase.TABLE_PRESENCE_EVENT} AS p
-    ON ni.user_matrix_id = p.user_id_full
+    ON ni.user_id = p.user_id_full
     WHERE owner_user_id = :ownerPublicId
     ORDER BY proximity DESC
     LIMIT :limit
@@ -25,7 +25,7 @@ interface NetworkItemDao {
     suspend fun getPaginated(
         ownerPublicId: String?,
         limit: Int,
-        offset: Int
+        offset: Int = 0
     ): List<NetworkItemIO>
 
     /** Returns all network items related to an owner as defined by [ownerPublicId] */
@@ -34,6 +34,13 @@ interface NetworkItemDao {
     suspend fun getNonFiltered(
         ownerPublicId: String?
     ): List<NetworkItemIO>
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}
+            WHERE display_name like '%' || :prompt || '%'
+            OR user_id  like '%' || :prompt || '%'
+            """)
+    suspend fun searchByPrompt(prompt: String): List<NetworkItemIO>
 
     /** Returns all network items within the list [userPublicIds] */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
@@ -46,11 +53,11 @@ interface NetworkItemDao {
 
     /** Retrieves a single item */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE public_id = :publicId " +
+            "WHERE user_id = :userId " +
             "AND owner_user_id = :ownerPublicId " +
             "LIMIT 1")
     suspend fun get(
-        publicId: String?,
+        userId: String?,
         ownerPublicId: String?
     ): NetworkItemIO?
 
@@ -87,6 +94,9 @@ interface NetworkItemDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<NetworkItemIO>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: NetworkItemIO)
 
     /** Removes all items from the database */
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}")

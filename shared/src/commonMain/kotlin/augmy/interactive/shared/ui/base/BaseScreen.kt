@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -130,7 +131,7 @@ fun BaseScreen(
         content = { paddingValues ->
             ShelledContent(
                 modifier = Modifier.padding(paddingValues),
-                appBarVisible = appBarVisible,
+                appBarVisible = appBarVisible && !LocalHeyIamScreen.current,
                 title = title,
                 subtitle = subtitle,
                 headerPrefix = headerPrefix,
@@ -146,11 +147,13 @@ fun BaseScreen(
                     modifier = contentModifier
                         .then(
                             if (containerColor != null) {
-                                platformModifier
-                                    .background(color = containerColor, shape = shape)
+                                platformModifier.background(
+                                    color = containerColor,
+                                    shape = if (LocalHeyIamScreen.current) RectangleShape else shape
+                                )
                             } else platformModifier
                         )
-                        .clip(shape)
+                        .then(if (LocalHeyIamScreen.current) Modifier else Modifier.clip(shape))
                         .onSizeChanged {
                             contentSize.value = with(density) {
                                 IntSize(
@@ -256,11 +259,11 @@ private fun DesktopLayout(
                 .fillMaxHeight()
                 .background(
                     LocalTheme.current.colors.brandMain,
-                    shape = RoundedCornerShape(
+                    shape = if (appBarVisible) RoundedCornerShape(
                         bottomEnd = 24.dp,
                         topEnd = 36.dp,
                         //bottomStart = 24.dp
-                    )
+                    )else RectangleShape
                 )
         ) {
             if(appBarVisible) {

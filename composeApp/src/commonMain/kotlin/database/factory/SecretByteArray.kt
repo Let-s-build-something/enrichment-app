@@ -1,6 +1,7 @@
 package database.factory
 
 import data.io.app.SecureSettingsKeys.KEY_DB_KEY
+import data.io.app.SecureSettingsKeys.SECRET_BYTE_ARRAY_KEY_KEY
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.decodeBase64Bytes
 import io.ktor.util.encodeBase64
@@ -71,8 +72,6 @@ interface ConvertSecretByteArray {
     suspend operator fun invoke(secret: SecretByteArray): ByteArray
 }
 
-const val SECRET_BYTE_ARRAY_KEY_KEY = "secret_byte_array_key_key"
-
 fun convertSecretByteArrayModule() = module {
     single<ConvertSecretByteArray> {
         val getSecretByteArrayKey = get<GetSecretByteArrayKey>()
@@ -136,20 +135,27 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
                 newKey
             }else existingKey
         } catch (exc: Exception) {
+            exc.printStackTrace()
             log.error(exc) { "Cannot read or set secret ('$SECRET_BYTE_ARRAY_KEY_KEY')." }
             null
         }
     }
 
     private suspend fun getSecretByteArrayKeyFromSettings() = withContext(Dispatchers.IO) {
-        secureSettings.getStringOrNull(KEY_DB_KEY)?.let {
-            json.decodeFromString<SecretByteArrayKey>(it)
+        try {
+            secureSettings.getStringOrNull(KEY_DB_KEY)?.let {
+                json.decodeFromString<SecretByteArrayKey>(it)
+            }
+        }catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
     private suspend fun setSecretByteArrayKeyInSettings(
         secretByteArrayKey: SecretByteArrayKey?
     ) = withContext(Dispatchers.IO) {
+        if(secretByteArrayKey == null) return@withContext
         secureSettings.putString(
             key = KEY_DB_KEY,
             json.encodeToString(secretByteArrayKey)
@@ -159,14 +165,25 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
     private val mutex = Mutex()
     override suspend fun invoke(sizeOnCreate: Int): ByteArray = mutex.withLock {
         val existing = getSecretByteArrayKeyFromSettings()
-        if (existing != null) convert(existing, getSecretByteArrayKeyKey(sizeOnCreate))
-        else {
-            log.debug { "there is no SecretByteArrayKey yet, generate new one" }
-            val newKey = SecureRandom.nextBytes(sizeOnCreate)
-            val secretByteArrayKey = convert(newKey, getSecretByteArrayKeyKey(sizeOnCreate))
-            setSecretByteArrayKeyInSettings(secretByteArrayKey)
-            newKey
+
+        if (existing != null) {
+            try {
+                convert(existing, getSecretByteArrayKeyKey(sizeOnCreate))
+            }catch (e: Exception) {
+                e.printStackTrace()
+                createKey(sizeOnCreate)
+            }
+        } else {
+            createKey(sizeOnCreate)
         }
+    }
+
+    private suspend fun createKey(sizeOnCreate: Int): ByteArray {
+        log.debug { "there is no SecretByteArrayKey yet, generate new one" }
+        val newKey = SecureRandom.nextBytes(sizeOnCreate)
+        val secretByteArrayKey = convert(newKey, getSecretByteArrayKeyKey(sizeOnCreate))
+        setSecretByteArrayKeyInSettings(secretByteArrayKey)
+        return newKey
     }
 
     private suspend fun convert(

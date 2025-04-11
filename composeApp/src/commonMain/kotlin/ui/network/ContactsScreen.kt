@@ -97,7 +97,7 @@ fun ContactsScreen() {
 
     if(selectedProfile.value != null) {
         UserProfileLauncher(
-            userProfile = selectedProfile.value,
+            user = selectedProfile.value,
             onDismissRequest = {
                 selectedProfile.value = null
             }
@@ -228,12 +228,12 @@ private fun SocialCircleTier(
                         .aspectRatio(1f),
                     media = data.avatar,
                     tag = data.tag,
-                    name = data.name
+                    name = data.displayName
                 )
                 if(showNames) {
                     Text(
                         modifier = Modifier.padding(4.dp),
-                        text = data.name ?: "",
+                        text = data.displayName ?: "",
                         style = LocalTheme.current.styles.category.copy(
                             fontSize = with(density) {
                                 (height / 3).dp.toSp().value.coerceAtMost(14f).sp

@@ -38,8 +38,10 @@ import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
+import augmy.interactive.shared.ui.components.highlightedText
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
+import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 
 /**
@@ -52,6 +54,7 @@ fun NetworkItemRow(
     modifier: Modifier = Modifier,
     isChecked: Boolean? = null,
     data: NetworkItemIO?,
+    highlight: String? = null,
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
     onAvatarClick: (() -> Unit)? = null,
@@ -67,6 +70,7 @@ fun NetworkItemRow(
                 indicatorColor = indicatorColor,
                 isChecked = isChecked,
                 isSelected = isSelected,
+                highlight = highlight,
                 actions = actions,
                 onAvatarClick = onAvatarClick,
                 data = data,
@@ -83,6 +87,7 @@ private fun ContentLayout(
     indicatorColor: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
+    highlight: String? = null,
     data: NetworkItemIO,
     onAvatarClick: (() -> Unit)? = null,
     content: @Composable RowScope.() -> Unit = {},
@@ -122,9 +127,9 @@ private fun ContentLayout(
                     }
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                     .size(48.dp),
-                media = data.avatar,
+                media = data.avatar ?: data.avatarUrl?.let { MediaIO(url = it) },
                 tag = data.tag,
-                name = data.name
+                name = data.displayName
             )
             Column(
                 modifier = Modifier
@@ -134,7 +139,10 @@ private fun ContentLayout(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = data.name ?: "",
+                    text = highlightedText(
+                        highlight = highlight,
+                        text = data.displayName ?: ""
+                    ),
                     style = LocalTheme.current.styles.category,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -145,6 +153,16 @@ private fun ContentLayout(
                         style = LocalTheme.current.styles.regular,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }else if(data.userId != null) {
+                    Text(
+                        text = highlightedText(
+                            highlight = highlight,
+                            text = data.userId
+                        ),
+                        style = LocalTheme.current.styles.regular
+                            .copy(color = LocalTheme.current.colors.disabled),
+                        maxLines = 1
                     )
                 }
             }

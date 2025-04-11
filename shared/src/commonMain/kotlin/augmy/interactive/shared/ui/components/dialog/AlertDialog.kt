@@ -14,10 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -57,11 +54,7 @@ fun AlertDialog(
                     if(title != null) {
                         Text(
                             text = title,
-                            style = TextStyle(
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = LocalTheme.current.colors.primary
-                            )
+                            style = LocalTheme.current.styles.title
                         )
                     }
                 }
@@ -77,10 +70,7 @@ fun AlertDialog(
                     if(message != null) {
                         Text(
                             text = message,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = LocalTheme.current.colors.primary
-                            )
+                            style = LocalTheme.current.styles.regular
                         )
                     }
                     additionalContent?.invoke()

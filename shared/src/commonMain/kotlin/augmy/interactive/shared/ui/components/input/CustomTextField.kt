@@ -56,7 +56,7 @@ import augmy.shared.generated.resources.Res
 import augmy.shared.generated.resources.accessibility_clear
 import org.jetbrains.compose.resources.stringResource
 
-const val DELAY_BETWEEN_TYPING_SHORT = 300L
+const val DELAY_BETWEEN_TYPING_SHORT = 400L
 
 /**
  * Brand specific customized [BasicTextField] supporting error state via [errorText], [suggestText], [isCorrect], and trailing icon

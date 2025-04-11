@@ -71,8 +71,7 @@ fun UserProfileLauncher(
         initialValue = SheetValue.Expanded,
         skipHiddenState = false
     ),
-    publicId: String? = null,
-    userProfile: NetworkItemIO? = null
+    user: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
     val viewModel: UserProfileModel = koinViewModel()
@@ -154,7 +153,7 @@ fun UserProfileLauncher(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = it.data.targetPublicId,
-                                name = responseProfile.value.success?.data?.name
+                                name = responseProfile.value.success?.data?.displayName
                             )
                         )
                     }
@@ -181,8 +180,8 @@ fun UserProfileLauncher(
     }
 
     LaunchedEffect(Unit) {
-        publicId?.let {
-            viewModel.getUserProfile(publicId)
+        user?.publicId?.takeIf { it.isNotBlank() }?.let {
+            viewModel.getUserProfile(it)
         }
     }
 
@@ -201,7 +200,7 @@ fun UserProfileLauncher(
                 if(isLoading) {
                     ShimmerContent(pictureSize = pictureSize)
                 }else {
-                    (userProfile ?: responseProfile.value.success?.data)?.let { profile ->
+                    (user ?: responseProfile.value.success?.data)?.let { profile ->
                         DataContent(
                             userProfile = profile,
                             pictureSize = pictureSize,
@@ -264,12 +263,12 @@ private fun DataContent(
                 animate = true,
                 media = userProfile.avatar,
                 tag = userProfile.tag,
-                name = userProfile.name
+                name = userProfile.displayName
             )
         }
         Text(
             modifier = Modifier.padding(start = 16.dp),
-            text = userProfile.name ?: "",
+            text = userProfile.displayName ?: "",
             style = LocalTheme.current.styles.subheading
         )
     }
@@ -289,7 +288,7 @@ private fun DataContent(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = userProfile.publicId,
-                                name = userProfile.name
+                                name = userProfile.displayName
                             )
                         )
                     }
@@ -302,7 +301,7 @@ private fun DataContent(
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
                         viewModel.includeNewUser(
-                            displayName = userProfile.name ?: "",
+                            displayName = userProfile.displayName ?: "",
                             tag = userProfile.tag ?: ""
                         )
                     }

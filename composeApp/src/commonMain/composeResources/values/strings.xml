@@ -8,8 +8,15 @@
   <string name="screen_account_logout">I\'m outta here!</string>
   <string name="screen_network_management">Your social network</string>
   <string name="screen_search_network">Search</string>
+  <string name="screen_conversation">Conversation</string>
+  <string name="screen_conversation_detail">Thread</string>
+  <string name="screen_media_detail">Cheese!</string>
+  <string name="screen_conversation_info">For the curious</string>
+  <string name="screen_conversation_settings">Mr. Sett Ings</string>
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
+  <string name="screen_search_user">Let the manhunt begin</string>
+  <string name="screen_user_default">Newfound pirate</string>
 
   <string name="navigate_home">Back</string>
   <string name="navigate_back">Back</string>
@@ -36,6 +43,8 @@
   <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
   <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
+  <string name="login_oidc_disable">Disable OIDC</string>
+  <string name="login_oidc_enable">Enable OIDC</string>
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
@@ -163,6 +172,15 @@
   <string name="conversation_reply_heading">Replying to...</string>
   <string name="conversation_reply_prefix_self">You:</string>
   <string name="conversation_detail_you">You</string>
+  <string name="conversation_kick_title">Yeet</string>
+  <string name="conversation_kick_message">You're about to kick %1$s from the conversation. Are you sure you want to do that? 🤓</string>
+  <string name="conversation_action_leave">Leave conversation</string>
+  <string name="conversation_action_leave_hint">You can say why here</string>
+  <string name="conversation_action_invite_title">Welcome aboard!</string>
+  <string name="conversation_action_invite_message">The following person will be added to this conversation, please confirm.</string>
+  <string name="conversation_left_message">You will no longer see that conversation.</string>
+  <string name="conversation_members">Members</string>
+  <string name="items_see_more">See %1$s more</string>
 
   <string name="message_room_invite">got invited.</string>
   <string name="message_room_join">joined the room.</string>
@@ -170,6 +188,7 @@
   <string name="message_room_leave">left.</string>
   <string name="message_room_ban">got banned.</string>
   <string name="message_decryption_failed">Failed to decrypt this message, try again.</string>
+  <string name="error_permission">You don't have permission to do that.</string>
 
   <string name="device_verification_passphrase_hint">PIN code</string>
   <string name="device_verification_bootstrap_title">Create a new PIN for your account🗝️</string>
@@ -203,6 +222,7 @@
   <string name="emojis_preference_set_hint">Click on an emoji you want to change and, then, select its replacement.</string>
   <string name="action_filter_emojis">Filter emojis</string>
   <string name="action_search_gifs">Search GIPHY</string>
+  <string name="action_search_users">Search the horizon</string>
 
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
@@ -239,6 +259,7 @@
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+  <string name="accessibility_add_new_member">Add new member</string>
   <string name="accessibility_show_password">Show password</string>
   <string name="accessibility_hide_password">Hide password</string>
   <string name="accessibility_change_avatar">Change avatar</string>
@@ -247,7 +268,7 @@
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload from files</string>
-  <string name="accessibility_upload_url">Upload from URL input</string>
+  <string name="accessibility_upload_url">User an URL</string>
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>
