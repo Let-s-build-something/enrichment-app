@@ -97,7 +97,7 @@ fun ContactsScreen() {
 
     if(selectedProfile.value != null) {
         UserProfileLauncher(
-            userProfile = selectedProfile.value,
+            user = selectedProfile.value,
             onDismissRequest = {
                 selectedProfile.value = null
             }

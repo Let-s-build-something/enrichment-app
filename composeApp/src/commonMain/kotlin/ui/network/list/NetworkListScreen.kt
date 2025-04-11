@@ -107,7 +107,7 @@ fun NetworkListContent(
 
     if(selectedUser.value != null) {
         UserProfileLauncher(
-            userProfile = selectedUser.value,
+            user = selectedUser.value,
             onDismissRequest = {
                 selectedUser.value = null
             }

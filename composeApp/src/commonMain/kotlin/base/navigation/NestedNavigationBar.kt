@@ -27,15 +27,13 @@ fun NestedNavigationBar(
     modifier: Modifier = Modifier,
     navController: NavController
 ) {
-    val previousDestination = remember {
-        mutableStateOf<NavigationNode?>(null)
+    val destinationInfo = remember {
+        mutableStateOf<Pair<Boolean, NavigationNode?>?>(null)
     }
     val listener = remember {
-        NavController.OnDestinationChangedListener { controller, _, _ ->
-            val route = controller.previousBackStackEntry?.destination?.route
-
-            previousDestination.value = NavigationNode.allNodes.find { node ->
-                (route?.substringBeforeOrNull("?") ?: route) == node.route
+        NavController.OnDestinationChangedListener { controller, destination, _ ->
+            destinationInfo.value = (controller.previousBackStackEntry != null) to NavigationNode.allNodes.find { node ->
+                (destination.route?.substringBeforeOrNull("?") ?: destination.route) == node.route
             }
         }
     }
@@ -50,7 +48,7 @@ fun NestedNavigationBar(
 
     AnimatedVisibility(
         modifier = modifier,
-        visible = previousDestination.value != null
+        visible = destinationInfo.value?.first == true
     ) {
         Row(
             modifier = modifier.scalingClickable(hoverEnabled = false) {
@@ -66,7 +64,7 @@ fun NestedNavigationBar(
             )
             Text(
                 modifier = Modifier.padding(start = 4.dp),
-                text = previousDestination.value?.titleRes?.let {
+                text = destinationInfo.value?.second?.titleRes?.let {
                     stringResource(it)
                 } ?: "",
                 style = LocalTheme.current.styles.regular

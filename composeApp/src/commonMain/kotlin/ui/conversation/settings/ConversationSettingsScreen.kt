@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.FaceRetouchingOff
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PersonRemove
@@ -34,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -88,10 +90,12 @@ import components.UserProfileImage
 import components.network.NetworkItemRow
 import data.io.base.BaseResponse
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -126,6 +130,7 @@ fun ConversationSettingsContent(conversationId: String?) {
     val navController = LocalNavController.current
     val snackbarHost = LocalSnackbarHost.current
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     val detail = model.conversation.collectAsState(null)
     val ongoingChange = model.ongoingChange.collectAsState()
@@ -169,18 +174,22 @@ fun ConversationSettingsContent(conversationId: String?) {
     selectedUser.value?.let { user ->
         AlertDialog(
             title = stringResource(Res.string.conversation_action_invite_title),
-            message = AnnotatedString(stringResource(Res.string.conversation_action_invite_message)),
             confirmButtonState = ButtonState(
-                text = stringResource(Res.string.button_yes),
+                text = stringResource(Res.string.button_confirm),
                 onClick = {
                     model.inviteMembers(user.userId ?: "")
                 }
             ),
             additionalContent = {
-                // TODO user info about the selected users
+                NetworkItemRow(data = user)
+                Text(
+                    modifier = Modifier.padding(top = 4.dp),
+                    text = stringResource(Res.string.conversation_action_invite_message),
+                    style = LocalTheme.current.styles.regular
+                )
             },
             dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
-            icon = Icons.Outlined.PersonAddAlt,
+            icon = Icons.Outlined.Face,
             onDismissRequest = {
                 model.selectUser(null)
             }
@@ -290,7 +299,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                 roomName = detail.value?.summary?.roomName ?: ""
             )
         }
-        if(true/*detail.value?.summary?.isDirect == false*/) {
+        if(detail.value?.summary?.isDirect != true) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -299,17 +308,24 @@ fun ConversationSettingsContent(conversationId: String?) {
                     Text(
                         modifier = Modifier.padding(start = 6.dp),
                         text = stringResource(Res.string.conversation_members),
-                        style = LocalTheme.current.styles.subheading.copy(
-                            color = LocalTheme.current.colors.secondary
+                        style = LocalTheme.current.styles.title.copy(
+                            color = LocalTheme.current.colors.disabled
                         )
                     )
                     MinimalisticIcon(
                         imageVector = Icons.Outlined.PersonAddAlt,
                         contentDescription = stringResource(Res.string.accessibility_add_new_member),
                         onTap = {
-                            navController?.navigate(
-                                NavigationNode.SearchUser(awaitingResult = true)
-                            )
+                            scope.launch {
+                                navController?.navigate(
+                                    NavigationNode.SearchUser(
+                                        awaitingResult = true,
+                                        excludeUsers = withContext(Dispatchers.Default) {
+                                            members.itemSnapshotList.joinToString(",") { it?.userId ?: "" }
+                                        }
+                                    )
+                                )
+                            }
                         }
                     )
                 }
@@ -319,7 +335,7 @@ fun ConversationSettingsContent(conversationId: String?) {
             count = when {
                 members.itemCount == 0 && isLoadingInitialPage -> MAX_MEMBERS_COUNT
                 enableMembersPaging.value -> members.itemCount
-                else -> MAX_MEMBERS_COUNT
+                else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
             },
             key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
         ) { index ->
@@ -389,9 +405,11 @@ fun ConversationSettingsContent(conversationId: String?) {
             }
         }
         item {
-            val isLoading = ongoingChange.value?.state is BaseResponse.Loading
+            val isLoading = ongoingChange.value is ConversationSettingsModel.ChangeType.Leave
+                    && ongoingChange.value?.state is BaseResponse.Loading
 
             OutlinedButton(
+                modifier = Modifier.padding(top = 32.dp),
                 activeColor = SharedColors.RED_ERROR_50,
                 inactiveColor = SharedColors.RED_ERROR.copy(alpha = 0.25f),
                 enabled = !isLoading,

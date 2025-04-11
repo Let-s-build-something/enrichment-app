@@ -2,6 +2,7 @@ package ui.search.user
 
 import data.io.matrix.user.SearchUserRequest
 import data.io.matrix.user.SearchUserResponse
+import data.io.user.NetworkItemIO
 import database.dao.NetworkItemDao
 import database.dao.matrix.RoomMemberDao
 import io.ktor.client.HttpClient
@@ -42,5 +43,9 @@ class SearchUserRepository(
                 }
             }.success?.data?.results?.plus(localSearch)
         }else localSearch
+    }
+
+    suspend fun saveUser(user: NetworkItemIO) = withContext(Dispatchers.IO) {
+        networkItemDao.insert(user)
     }
 }

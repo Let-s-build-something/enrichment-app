@@ -121,7 +121,10 @@ fun NavigationHost(
                 ConversationSettingsScreen(conversationId = it.arguments?.getString("conversationId"))
             }
             composable<NavigationNode.SearchUser> {
-                SearchUserScreen(awaitingResult = it.arguments?.getBoolean("awaitingResult"))
+                SearchUserScreen(
+                    awaitingResult = it.arguments?.getBoolean("awaitingResult"),
+                    excludeUsers = it.arguments?.getString("excludeUsers")?.split(",")
+                )
             }
             composable<NavigationNode.MessageDetail> {
                 loadKoinModules(messageDetailModule)

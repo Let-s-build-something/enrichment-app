@@ -65,7 +65,7 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Database flag: an identifier of the owner of this item */
     @ColumnInfo("owner_user_id")
-    val ownerUserId: String? = null,
+    var ownerUserId: String? = null,
 
     val presence: PresenceEventContent? = null,
 

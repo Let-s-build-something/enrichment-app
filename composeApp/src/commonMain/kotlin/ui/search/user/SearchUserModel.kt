@@ -29,13 +29,31 @@ class SearchUserModel(
     val users = _users.asStateFlow()
 
     /** Queries both for local and remote users that match the searched term */
-    fun queryUsers(prompt: CharSequence) {
+    fun queryUsers(prompt: CharSequence, excludeUsers: List<String>) {
+        if(prompt.isBlank()) return
+
         viewModelScope.launch(Dispatchers.Default) {
             _users.value = repository.queryForUsers(
                 limit = ITEMS_COUNT,
                 homeserver = homeserver,
                 prompt = prompt.toString()
-            )?.distinctBy { it.userId }
+            )?.distinctBy { it.userId }.let { list ->
+                if(excludeUsers.isNotEmpty()) {
+                    list?.filter { excludeUsers.contains(it.userId).not() }
+                }else list
+            }
+        }
+    }
+
+    fun saveUser(
+        user: NetworkItemIO,
+        onResult: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            repository.saveUser(user.also {
+                it.ownerUserId = matrixUserId
+            })
+            onResult()
         }
     }
 }

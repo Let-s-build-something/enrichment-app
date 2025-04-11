@@ -71,8 +71,7 @@ fun UserProfileLauncher(
         initialValue = SheetValue.Expanded,
         skipHiddenState = false
     ),
-    publicId: String? = null,
-    userProfile: NetworkItemIO? = null
+    user: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
     val viewModel: UserProfileModel = koinViewModel()
@@ -181,8 +180,8 @@ fun UserProfileLauncher(
     }
 
     LaunchedEffect(Unit) {
-        publicId?.let {
-            viewModel.getUserProfile(publicId)
+        user?.publicId?.takeIf { it.isNotBlank() }?.let {
+            viewModel.getUserProfile(it)
         }
     }
 
@@ -201,7 +200,7 @@ fun UserProfileLauncher(
                 if(isLoading) {
                     ShimmerContent(pictureSize = pictureSize)
                 }else {
-                    (userProfile ?: responseProfile.value.success?.data)?.let { profile ->
+                    (user ?: responseProfile.value.success?.data)?.let { profile ->
                         DataContent(
                             userProfile = profile,
                             pictureSize = pictureSize,

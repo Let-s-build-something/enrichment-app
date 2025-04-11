@@ -57,7 +57,7 @@ class ConversationSettingsRepository(
         userId: String,
         ownerPublicId: String?
     ): NetworkItemIO? = withContext(Dispatchers.IO) {
-        networkItemDao.get(publicId = userId, ownerPublicId = ownerPublicId)
+        networkItemDao.get(userId = userId, ownerPublicId = ownerPublicId)
     }
 
     suspend fun removeRoom(

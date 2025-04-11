@@ -53,11 +53,11 @@ interface NetworkItemDao {
 
     /** Retrieves a single item */
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
-            "WHERE public_id = :publicId " +
+            "WHERE user_id = :userId " +
             "AND owner_user_id = :ownerPublicId " +
             "LIMIT 1")
     suspend fun get(
-        publicId: String?,
+        userId: String?,
         ownerPublicId: String?
     ): NetworkItemIO?
 
@@ -94,6 +94,9 @@ interface NetworkItemDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<NetworkItemIO>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: NetworkItemIO)
 
     /** Removes all items from the database */
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}")
