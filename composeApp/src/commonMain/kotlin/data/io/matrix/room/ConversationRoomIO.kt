@@ -125,7 +125,7 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Converts this item to a network item representation */
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
-        name = summary?.roomName,
+        displayName = summary?.roomName,
         tag = summary?.tag,
         avatar = summary?.avatar,
         lastMessage = summary?.lastMessage?.content

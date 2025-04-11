@@ -5,6 +5,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -53,10 +54,9 @@ fun NavigationHost(
         {
             fadeOut(animationSpec = tween(700))
         },
+    additionalContent: (@Composable () -> Unit)? = null
 ) {
-    CompositionLocalProvider(
-        LocalNavController provides navController
-    ) {
+    CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(
             modifier = modifier,
             navController = navController,
@@ -133,6 +133,19 @@ fun NavigationHost(
             }
         }
     }
+}
+
+@Composable
+private fun CombinedComposable(
+    contentOne: (@Composable () -> Unit)? = null,
+    contentTwo: @Composable () -> Unit
+) {
+    if(contentOne != null) {
+        Column {
+            contentOne()
+            contentTwo()
+        }
+    }else contentTwo()
 }
 
 @Composable

@@ -335,7 +335,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                                         if(room?.summary?.isDirect == true) {
                                             coroutineScope.launch(Dispatchers.Default) {
                                                 selectedUser.value = networkItems.value?.find {
-                                                    it.userMatrixId == room.summary.heroes?.firstOrNull()?.full
+                                                    it.userId == room.summary.heroes?.firstOrNull()?.full
                                                 }
                                             }
                                         }else {
@@ -548,7 +548,7 @@ private fun ConversationRoomItem(
                                     showAddMembers.value = true
                                 },
                                 newItem = NetworkItemIO(
-                                    name = room?.summary?.roomName,
+                                    displayName = room?.summary?.roomName,
                                     tag = room?.summary?.tag,
                                     avatar = room?.summary?.avatar,
                                     publicId = room?.id ?: "-",

@@ -173,7 +173,7 @@ fun ConversationSettingsContent(conversationId: String?) {
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),
                 onClick = {
-                    model.inviteMembers(user.userMatrixId ?: "")
+                    model.inviteMembers(user.userId ?: "")
                 }
             ),
             additionalContent = {

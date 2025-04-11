@@ -12,6 +12,7 @@ import augmy.composeapp.generated.resources.screen_media_detail
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_search_network
 import augmy.composeapp.generated.resources.screen_search_user
+import augmy.composeapp.generated.resources.screen_user_default
 import augmy.composeapp.generated.resources.screen_water_please
 import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.Serializable
@@ -69,6 +70,12 @@ sealed class NavigationNode {
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_search_user
         override val deepLink: String = "users/search?awaitingResult=$awaitingResult"
+    }
+
+    @Serializable
+    data class UserDetail(val userMatrixId: String): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_user_default
+        override val deepLink: String = "users/$userMatrixId"
     }
 
     /** Conversation detail screen */

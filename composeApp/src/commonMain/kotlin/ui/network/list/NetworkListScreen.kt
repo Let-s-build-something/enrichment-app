@@ -260,7 +260,7 @@ private fun NetworkItem(
             items = conversations.value,
             heading = stringResource(
                 Res.string.invite_conversation_heading,
-                data?.name ?: ""
+                data?.displayName ?: ""
             ),
             newItemHint = stringResource(Res.string.invite_new_item_conversation),
             multiSelect = false,
@@ -275,7 +275,7 @@ private fun NetworkItem(
             },
             mapToNetworkItem = {
                 NetworkItemIO(
-                    name = it.summary?.roomName,
+                    displayName = it.summary?.roomName,
                     proximity = it.proximity,
                     publicId = it.id,
                     avatar = it.summary?.avatar

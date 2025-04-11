@@ -53,7 +53,7 @@ class NetworkAddNewRepository(
                         excludeId = excludeId
                     ).map { conversation ->
                         NetworkItemIO(
-                            name = conversation.summary?.roomName,
+                            displayName = conversation.summary?.roomName,
                             avatar = conversation.summary?.avatar,
                             tag = conversation.summary?.tag
                         )

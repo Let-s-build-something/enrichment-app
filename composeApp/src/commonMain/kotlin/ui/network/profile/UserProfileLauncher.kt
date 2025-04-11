@@ -154,7 +154,7 @@ fun UserProfileLauncher(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = it.data.targetPublicId,
-                                name = responseProfile.value.success?.data?.name
+                                name = responseProfile.value.success?.data?.displayName
                             )
                         )
                     }
@@ -264,12 +264,12 @@ private fun DataContent(
                 animate = true,
                 media = userProfile.avatar,
                 tag = userProfile.tag,
-                name = userProfile.name
+                name = userProfile.displayName
             )
         }
         Text(
             modifier = Modifier.padding(start = 16.dp),
-            text = userProfile.name ?: "",
+            text = userProfile.displayName ?: "",
             style = LocalTheme.current.styles.subheading
         )
     }
@@ -289,7 +289,7 @@ private fun DataContent(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = userProfile.publicId,
-                                name = userProfile.name
+                                name = userProfile.displayName
                             )
                         )
                     }
@@ -302,7 +302,7 @@ private fun DataContent(
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
                         viewModel.includeNewUser(
-                            displayName = userProfile.name ?: "",
+                            displayName = userProfile.displayName ?: "",
                             tag = userProfile.tag ?: ""
                         )
                     }

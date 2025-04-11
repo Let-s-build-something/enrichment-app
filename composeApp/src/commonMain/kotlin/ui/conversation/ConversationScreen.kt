@@ -5,8 +5,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -29,7 +31,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.compose.rememberNavController
@@ -194,25 +195,27 @@ fun ConversationScreen(
                     if(showSettings.value) {
                         val nestedNavController = rememberNavController()
 
-                        NavigationHost(
-                            modifier = Modifier.fillMaxSize(),
-                            startDestination = NavigationNode.ConversationSettings(conversationId),
-                            navController = nestedNavController,
-                            enterTransition = {
-                                slideInHorizontally { -it * 2 }
-                            },
-                            exitTransition = {
-                                slideOutHorizontally { -it * 2 }
-                            }
-                        )
-
-                        NestedNavigationBar(
-                            modifier = Modifier
-                                .zIndex(2f)
-                                .fillMaxWidth()
-                                .padding(start = 6.dp),
-                            navController = nestedNavController
-                        )
+                        Column {
+                            NestedNavigationBar(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 6.dp, top = 2.dp),
+                                navController = nestedNavController
+                            )
+                            NavigationHost(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(color = LocalTheme.current.colors.backgroundLight),
+                                startDestination = NavigationNode.ConversationSettings(conversationId),
+                                navController = nestedNavController,
+                                enterTransition = {
+                                    slideInHorizontally { -it * 2 }
+                                },
+                                exitTransition = {
+                                    slideOutHorizontally { -it * 2 }
+                                }
+                            )
+                        }
 
                         nestedNavController.collectResult(
                             key = NavigationArguments.CONVERSATION_LEFT,

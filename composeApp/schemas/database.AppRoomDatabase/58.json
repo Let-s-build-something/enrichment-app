@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 57,
-    "identityHash": "abe6faa603c576c0bb9ef21e4696febf",
+    "version": 58,
+    "identityHash": "04782c3073566ff8daac77ee81557fb9",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -334,7 +334,7 @@
       },
       {
         "tableName": "room_member_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `content` TEXT NOT NULL, `displayName` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `content` TEXT NOT NULL, `display_name` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "userId",
@@ -350,7 +350,7 @@
           },
           {
             "fieldPath": "displayName",
-            "columnName": "displayName",
+            "columnName": "display_name",
             "affinity": "TEXT"
           },
           {
@@ -501,7 +501,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'abe6faa603c576c0bb9ef21e4696febf')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '04782c3073566ff8daac77ee81557fb9')"
     ]
   }
 }

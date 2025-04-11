@@ -26,7 +26,6 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationDataManager
 import ui.home.utils.NetworkItemUseCase
-import ui.login.AUGMY_HOME_SERVER
 
 val conversationSettingsModule = module {
     factory { ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get()) }
@@ -64,9 +63,7 @@ class ConversationSettingsModel(
             pageSize = PAGE_ITEM_COUNT,
             enablePlaceholders = true
         ),
-        homeserver = {
-            currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
-        },
+        homeserver = { homeserver },
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)
 

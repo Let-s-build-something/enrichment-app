@@ -47,7 +47,6 @@ import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.experimental.pacing.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
-import ui.login.AUGMY_HOME_SERVER
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -171,9 +170,7 @@ open class ConversationModel(
                 enablePlaceholders = true,
                 initialLoadSize = 30
             ),
-            homeserver = {
-                currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
-            },
+            homeserver = { homeserver },
             conversationId = conversationId
         ).flow
             .cachedIn(viewModelScope)
@@ -309,7 +306,7 @@ open class ConversationModel(
             var progressId = ""
             sendMessage(
                 conversationId = conversationId,
-                homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
+                homeserver = homeserver,
                 mediaFiles = mediaFiles,
                 onProgressChange = { progress ->
                     _uploadProgress.update {
@@ -511,7 +508,7 @@ open class ConversationModel(
             sendMessage(
                 audioByteArray = byteArray,
                 conversationId = conversationId,
-                homeserver = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER,
+                homeserver = homeserver,
                 message = ConversationMessageIO()
             )
         }

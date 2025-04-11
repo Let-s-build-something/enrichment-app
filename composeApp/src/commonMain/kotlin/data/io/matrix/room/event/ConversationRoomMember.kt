@@ -19,6 +19,9 @@ data class ConversationRoomMember(
 
     val content: MemberEventContent,
 
+    @ColumnInfo("display_name")
+    val displayName: String? = content.displayName,
+
     @ColumnInfo("room_id")
     val roomId: String,
 
@@ -31,7 +34,8 @@ data class ConversationRoomMember(
 ) {
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
-        name = content.displayName ?: UserId(userId).localpart,
+        userId = userId,
+        displayName = displayName ?: UserId(userId).localpart,
         avatar = MediaIO(url = content.avatarUrl)
     )
 }

@@ -32,6 +32,7 @@ import kotlinx.coroutines.withContext
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
+import ui.login.AUGMY_HOME_SERVER
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedModel: ViewModel() {
@@ -48,6 +49,9 @@ open class SharedModel: ViewModel() {
 
     val matrixUserId: String?
         get() = currentUser.value?.matrixUserId ?: authService.storedUserId()
+
+    val homeserver: String
+        get() = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
 
     val awaitingAutologin: Boolean
         get() = authService.awaitingAutologin

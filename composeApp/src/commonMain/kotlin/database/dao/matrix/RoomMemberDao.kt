@@ -38,6 +38,13 @@ interface RoomMemberDao {
         offset: Int
     ): List<ConversationRoomMember>
 
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+            WHERE display_name like '%' || :prompt || '%'
+            OR user_id  like '%' || :prompt || '%'
+            """)
+    suspend fun searchByPrompt(prompt: String): List<ConversationRoomMember>
+
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
             "WHERE room_id = :roomId ")
     suspend fun getCount(roomId: String?): Int
