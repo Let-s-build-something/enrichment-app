@@ -87,6 +87,14 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings {
     override val size: Int
         get() = keys.size
 
+    override fun clear(force: Boolean) {
+        if(force) {
+            keys.forEach { key ->
+                if(key != keyName) remove(key)
+            }
+        }else clear()
+    }
+
     override fun clear() {
         keys.forEach { key ->
             if(key != keyName && persistentKeys.none { it == key || key.contains(it) }) {

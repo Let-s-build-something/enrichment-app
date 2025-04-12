@@ -45,6 +45,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.verticallyDraggable
 import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
@@ -322,22 +323,30 @@ fun ConversationComponent(
                     }
                 }
 
-                ConversationMessageContent(
-                    data = data?.copy(
-                        transcribed = data.transcribed == true || isTranscribed.value,
-                        anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id }
-                    ),
-                    isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
-                    isNextMessageSameAuthor = isNextMessageSameAuthor,
-                    currentUserPublicId = model.matrixUserId ?: "",
-                    reactingToMessageId = reactingToMessageId,
-                    model = bubbleModel,
-                    replyToMessage = replyToMessage,
-                    scrollToMessage = scrollToMessage,
-                    preferredEmojis = preferredEmojis.value,
-                    temporaryFiles = model.temporaryFiles.value.toMap(),
-                    isMyLastMessage = lastCurrentUserMessage.value == index
-                )
+                if(data?.verification != null) {
+                    BrandHeaderButton(
+                        text = "Accept verification request from ${data.user?.displayName}"
+                    ) {
+                        model.acceptUserVerification(eventId = data.id)
+                    }
+                }else {
+                    ConversationMessageContent(
+                        data = data?.copy(
+                            transcribed = data.transcribed == true || isTranscribed.value,
+                            anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id }
+                        ),
+                        isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
+                        isNextMessageSameAuthor = isNextMessageSameAuthor,
+                        currentUserPublicId = model.matrixUserId ?: "",
+                        reactingToMessageId = reactingToMessageId,
+                        model = bubbleModel,
+                        replyToMessage = replyToMessage,
+                        scrollToMessage = scrollToMessage,
+                        preferredEmojis = preferredEmojis.value,
+                        temporaryFiles = model.temporaryFiles.value.toMap(),
+                        isMyLastMessage = lastCurrentUserMessage.value == index
+                    )
+                }
             }
             lazyScope()
         }

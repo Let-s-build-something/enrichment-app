@@ -1,5 +1,6 @@
 package data.shared.sync
 
+import augmy.interactive.shared.ext.ifNull
 import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.base.paging.MatrixPagingMetaIO
@@ -94,11 +95,17 @@ class DataSyncService {
                         delay?.let { delay(it) }
                         if(sharedDataManager.currentUser.value?.isFullyValid == true) {
                             enqueue(client = client)
-                        }else stop()
-                    } ?: stop()
+                        }else {
+                            logger.debug { "user is not valid, stopping" }
+                            stop()
+                        }
+                    }.ifNull {
+                        logger.debug { "matrix client is null, stopping" }
+                        stop()
+                    }
                 }
             }
-        }
+        }else logger.debug { "already running, signal ignored" }
     }
 
     fun stop() {

@@ -557,13 +557,7 @@ class AuthService {
                     secureSettings.putString(
                         key = "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}",
                         value = json.encodeToString(key).also {
-                            logger.debug { "saveDatabasePassword: $it, id: $id" }
-                            /*
-                            "iv": "JEl0+ALmiiULFMFl4rjZUQ==",
-                            "ciphertext": "n0jaruh/eJV0vOkM4Ia0OjUiCbRexFPefue2blt+pE4=",
-                            "mac": "eKg1A3HYKRV+ToEAsOtVgTbQfdNe74Jxrv/9IkXD3pU="
-                            id: @lpoxasas:matrix.org
-                            */
+                            logger.debug { "saveDatabasePassword, id: $id" }
                         }
                     )
                 }
@@ -579,7 +573,7 @@ class AuthService {
             ).takeIf { it.isNotBlank() }?.let {
                 json.decodeFromString<SecretByteArray.AesHmacSha2>(it)
             }.also {
-                logger.debug { "getDatabasePassword: $it, id: $id" }
+                logger.debug { "getDatabasePassword, id: $id" }
             }
         }
     }

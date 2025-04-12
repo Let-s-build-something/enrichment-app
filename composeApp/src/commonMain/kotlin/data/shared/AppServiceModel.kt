@@ -1,6 +1,7 @@
 package data.shared
 
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.ext.ifNull
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
@@ -75,12 +76,15 @@ class AppServiceModel(
             sharedDataManager.matrixClient.combine(currentUser) { client, user ->
                 client to user
             }.collectLatest { client ->
-                println("kostka_test, awaiting sync: client: ${client.first}, user: ${client.second}")
                 if(client.first != null && client.second?.isFullyValid == true) {
                     client.second?.matrixHomeserver?.let { homeserver ->
                         dataSyncService.sync(homeserver = homeserver)
+                    }.ifNull {
+                        println("kostka_test, awaiting sync: no matrix homeserver")
                     }
-                }
+                }else if (client.first == null) {
+                    println("kostka_test, awaiting sync: client is null")
+                }else println("kostka_test, awaiting sync: user is not valid")
             }
         }
         viewModelScope.launch {

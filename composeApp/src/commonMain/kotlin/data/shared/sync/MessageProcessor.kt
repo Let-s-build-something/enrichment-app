@@ -8,6 +8,7 @@ import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
+import data.io.social.network.conversation.message.VerificationRequestInfo
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
@@ -128,8 +129,14 @@ abstract class MessageProcessor {
         events.forEach { event ->
             when(val content = event.content) {
                 is RoomMessageEventContent.VerificationRequest -> {
-                    // TODO #86c2y88ex user verification within Rooms
-                    content.process()
+                    content.methods.firstOrNull()
+                    ConversationMessageIO(
+                        verification = VerificationRequestInfo(
+                            to = content.to.full,
+                            fromDevice = content.fromDevice,
+                            methods = content.methods
+                        )
+                    )
                 }
                 is MemberEventContent -> {
                     (event.stateKeyOrNull ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->

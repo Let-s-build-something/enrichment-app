@@ -56,6 +56,7 @@ import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_verify
 import augmy.composeapp.generated.resources.button_yes
 import augmy.composeapp.generated.resources.conversation_action_invite_message
 import augmy.composeapp.generated.resources.conversation_action_invite_title
@@ -378,6 +379,14 @@ fun ConversationSettingsContent(conversationId: String?) {
                             contentDescription = stringResource(Res.string.button_block),
                             onClick = {
                                 kickMemberUserId.value = member?.userId
+                            }
+                        )
+                        ScalingIcon(
+                            color = SharedColors.YELLOW.copy(.6f),
+                            imageVector = Icons.Outlined.Check,
+                            contentDescription = stringResource(Res.string.button_verify),
+                            onClick = {
+                                model.verifyUser(userId = member?.userId ?: "")
                             }
                         )
                     }

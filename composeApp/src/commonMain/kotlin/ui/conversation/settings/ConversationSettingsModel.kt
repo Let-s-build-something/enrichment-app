@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
@@ -151,6 +152,14 @@ class ConversationSettingsModel(
                     }else BaseResponse.Error()
                 )
             }
+        }
+    }
+
+    fun verifyUser(userId: String) {
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.value?.verification?.createUserVerificationRequest(
+                theirUserId = UserId(userId)
+            )
         }
     }
 

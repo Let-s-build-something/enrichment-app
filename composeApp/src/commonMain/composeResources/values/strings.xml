@@ -234,6 +234,7 @@
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Remove</string>
+  <string name="button_verify">Verify</string>
   <string name="button_mute">Mute</string>
   <string name="button_search">Search</string>
   <string name="button_tune">Tune</string>
