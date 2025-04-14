@@ -4,10 +4,9 @@ import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import data.io.matrix.room.RoomSummary
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
-import data.io.social.network.conversation.message.VerificationRequestInfo
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.serialization.json.Json
@@ -74,16 +73,6 @@ class AppDatabaseConverter {
 
     @TypeConverter
     fun toGravityData(value: String): GravityData {
-        return json.decodeFromString(value)
-    }
-
-    @TypeConverter
-    fun fromVerificationRequestInfo(value: ConversationMessageIO.VerificationRequestInfo): String {
-        return json.encodeToString(value)
-    }
-
-    @TypeConverter
-    fun toVerificationRequestInfo(value: String): ConversationMessageIO.VerificationRequestInfo {
         return json.decodeFromString(value)
     }
     
