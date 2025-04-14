@@ -1,24 +1,25 @@
 package data.shared.sync
 
-import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.message_decryption_failed
+import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
-import data.io.social.network.conversation.message.VerificationRequestInfo
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.RoomMemberDao
+import io.github.oshai.kotlinlogging.KotlinLogging
+import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -30,6 +31,9 @@ import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
 import net.folivo.trixnity.core.model.events.m.RelatesTo
+import net.folivo.trixnity.core.model.events.m.key.verification.VerificationCancelEventContent
+import net.folivo.trixnity.core.model.events.m.key.verification.VerificationDoneEventContent
+import net.folivo.trixnity.core.model.events.m.key.verification.VerificationStep
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
@@ -38,12 +42,15 @@ import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.File
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
-import org.jetbrains.compose.resources.getString
 import org.koin.mp.KoinPlatform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 abstract class MessageProcessor {
+
+    companion object {
+        const val DECRYPTION_TIMEOUT_MS = 50L
+    }
 
     protected val dataService: DataService by KoinPlatform.getKoin().inject()
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
@@ -52,7 +59,7 @@ abstract class MessageProcessor {
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
 
     protected val decryptionScope = CoroutineScope(Dispatchers.Default)
-
+    private val logger = KotlinLogging.logger(name = "MessageProcessor")
 
     data class SaveEventsResult(
         val messages: List<ConversationMessageIO>,
@@ -72,28 +79,33 @@ abstract class MessageProcessor {
                 roomId = roomId
             )
 
+            val decryptedMessages = mutableListOf<ConversationMessageIO>()
             result.encryptedEvents.forEach { encrypted ->
-                saveEncryptedEvent(
+                returnOrSaveEncryptedEvent(
                     messageId = encrypted.first,
-                    event = encrypted.second
-                )
+                    event = encrypted.second,
+                    roomId = roomId,
+                    receipts = result.receipts
+                )?.let {
+                    decryptedMessages.add(it)
+                }
             }
             roomMemberDao.insertAll(result.members)
 
-            val messages = result.messages.mapNotNull {
-                if(conversationMessageDao.insertIgnore(it) == -1L) {
+            val messages = result.messages.plus(decryptedMessages).mapNotNull {
+                if (conversationMessageDao.insertIgnore(it) == -1L) {
                     conversationMessageDao.insertReplace(it)
                     null
                 } else it
             }
             val members = result.members.mapNotNull {
-                if(roomMemberDao.insertIgnore(it) == -1L) {
+                if (roomMemberDao.insertIgnore(it) == -1L) {
                     roomMemberDao.insertReplace(it)
                     null
                 } else it
             }
 
-            if(result.messages.isNotEmpty()) {
+            if (result.messages.isNotEmpty()) {
                 // add the anchor messages
                 val updates = withContext(Dispatchers.Default) {
                     result.messages.filter { it.anchorMessageId != null }.map {
@@ -127,19 +139,10 @@ abstract class MessageProcessor {
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
 
         events.forEach { event ->
-            when(val content = event.content) {
-                is RoomMessageEventContent.VerificationRequest -> {
-                    content.methods.firstOrNull()
-                    ConversationMessageIO(
-                        verification = VerificationRequestInfo(
-                            to = content.to.full,
-                            fromDevice = content.fromDevice,
-                            methods = content.methods
-                        )
-                    )
-                }
+            when (val content = event.content) {
                 is MemberEventContent -> {
-                    (event.stateKeyOrNull ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
+                    (event.stateKeyOrNull
+                        ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
                             ConversationRoomMember(
                                 content = content,
@@ -150,7 +153,7 @@ abstract class MessageProcessor {
                             )
                         )
                     }
-                    if(event is RoomEvent.StateEvent) {
+                    if (event is RoomEvent.StateEvent) {
                         (event as? RoomEvent.StateEvent<MemberEventContent>)?.let {
                             memberUpdates.add(it)
                         }
@@ -164,6 +167,7 @@ abstract class MessageProcessor {
                         )
                     }
                 }
+
                 is ReceiptEventContent -> {
                     (event as? ClientEvent<ReceiptEventContent>)?.let {
                         // TODO save receipts to DB
@@ -171,15 +175,18 @@ abstract class MessageProcessor {
                     }
                     null
                 }
+
                 is OlmEncryptedToDeviceEventContent, is MegolmEncryptedMessageEventContent -> {
-                    if(event is RoomEvent.MessageEvent) {
+                    if (event is RoomEvent.MessageEvent) {
                         val id = event.idOrNull?.full ?: Uuid.random().toString()
                         encryptedEvents.add(id to event)
-                        ConversationMessageIO(state = MessageState.Decrypting)
-                    }else null
+                        //ConversationMessageIO(state = MessageState.Decrypting)
+                    }
+                    null
                 }
+
                 is MessageEventContent -> content.process()
-                else -> ConversationMessageIO()
+                else -> null
                 /*EmptyEventContent -> TODO()
                 is EphemeralDataUnitContent -> TODO()
                 is EphemeralEventContent -> TODO()
@@ -191,18 +198,12 @@ abstract class MessageProcessor {
                 is UnknownEventContent -> TODO()
                 is ToDeviceEventContent -> TODO()*/
             }?.also { message ->
-                // add general info
                 messages.add(
-                    message.copy(
-                        id = event.idOrNull?.full ?: message.id,
-                        authorPublicId = event.senderOrNull?.full,
-                        sentAt = event.originTimestampOrNull?.let { millis ->
-                            Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
-                        },
-                        state = message.state ?: if(receipts.find { it.idOrNull?.full == event.idOrNull?.full } != null) {
-                            MessageState.Read
-                        }else MessageState.Sent,
-                        conversationId = roomId
+                    message.addGeneralInfo(
+                        roomId = roomId,
+                        receipts = receipts,
+                        event = event,
+                        messageId = message.id
                     )
                 )
             }
@@ -217,78 +218,134 @@ abstract class MessageProcessor {
         )
     }
 
-    private fun saveEncryptedEvent(
+    private suspend fun returnOrSaveEncryptedEvent(
         messageId: String,
-        event: RoomEvent.MessageEvent<*>
-    ) {
-        decryptEvent(
-            event = event,
-            onResult = { content ->
-                withContext(Dispatchers.IO) {
-                    val message = conversationMessageDao.get(messageId)?.update(
-                        content?.process() ?: ConversationMessageIO(content = getString(Res.string.message_decryption_failed))
-                    )
-                    message?.copy(
-                        state = if(message.authorPublicId == sharedDataManager.currentUser.value?.matrixUserId) {
-                            MessageState.Sent
-                        } else MessageState.Read
-                    )?.let { decryptedMessage ->
-                        conversationMessageDao.insertReplace(decryptedMessage)
-                        conversationRoomDao.getItem(
-                            id = decryptedMessage.conversationId,
-                            ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
-                        ).also { data ->
-                            if(data?.summary?.lastMessage?.id == decryptedMessage.id) {
-                                conversationRoomDao.insert(data.copy(
-                                    summary = data.summary.copy(lastMessage = decryptedMessage)
-                                ))
-                            }
-                        }
+        roomId: String,
+        receipts: List<ClientEvent<ReceiptEventContent>>,
+        event: RoomEvent.MessageEvent<*>,
+        save: Boolean = false
+    ): ConversationMessageIO? = withContext(Dispatchers.IO) {
+        val decryptionStart = DateUtils.now.toEpochMilliseconds()
+        withTimeoutOrNull(DECRYPTION_TIMEOUT_MS) {
+            decryptEvent(event = event)?.let { content ->
+                when (content) {
+                    is VerificationCancelEventContent, is VerificationDoneEventContent -> {
+                        conversationMessageDao.remove(event.idOrNull?.full ?: messageId)
+                        null
+                    }
+                    else -> content.process()?.addGeneralInfo(
+                        roomId = roomId,
+                        receipts = receipts,
+                        event = event,
+                        messageId = messageId
+                    )?.let { update ->
+                        val message = conversationMessageDao.get(messageId)?.update(update) ?: update
 
-                        decryptedMessage.conversationId?.let { identifier ->
-                            dataService.appendPing(
-                                AppPing(
-                                    type = AppPingType.Conversation,
-                                    identifiers = listOf(identifier)
+                        message.copy(
+                            state = if (message.authorPublicId == sharedDataManager.currentUser.value?.matrixUserId) {
+                                MessageState.Sent
+                            } else MessageState.Read
+                        ).also { decryptedMessage ->
+                            if(save) {
+                                conversationMessageDao.insertReplace(decryptedMessage)
+                                conversationRoomDao.getItem(
+                                    id = decryptedMessage.conversationId,
+                                    ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
+                                ).also { data ->
+                                    if (data?.summary?.lastMessage?.id == decryptedMessage.id) {
+                                        conversationRoomDao.insert(
+                                            data.copy(
+                                                summary = data.summary.copy(lastMessage = decryptedMessage)
+                                            )
+                                        )
+                                    }
+                                }
+
+                                dataService.appendPing(
+                                    AppPing(
+                                        type = AppPingType.Conversation,
+                                        identifier = roomId
+                                    )
                                 )
-                            )
+                            }
+                            logger.debug {
+                                "decrypted message within ${DateUtils.now.toEpochMilliseconds() - decryptionStart}ms"
+                            }
                         }
                     }
                 }
             }
-        )
-    }
-
-    private fun decryptEvent(
-        event: RoomEvent.MessageEvent<*>,
-        onResult: suspend (MessageEventContent?) -> Unit
-    ) {
-        decryptionScope.launch {
-            sharedDataManager.matrixClient.value?.roomEventEncryptionServices?.decrypt(event)?.let {
-                onResult(it.getOrNull())
+        }.also {
+            // the decryption timed-out -> put it to the background
+            if(it == null && !save) {
+                logger.debug { "failed to decrypt within given timeout, putting decryption to background" }
+                decryptionScope.launch {
+                    returnOrSaveEncryptedEvent(
+                        messageId = messageId,
+                        roomId = roomId,
+                        receipts = receipts,
+                        event = event,
+                        save = true
+                    )
+                }
             }
         }
     }
 
-    private fun MessageEventContent.process(): ConversationMessageIO {
-        val file = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }
-        val body = (this as? RoomMessageEventContent)?.body?.takeIf {
-            it != file?.body
-        }
-        return ConversationMessageIO(
-            content = body,
-            media = file?.let {
-                listOf(
-                    MediaIO(
-                        url = it.url,
-                        mimetype = it.info?.mimeType,
-                        name = it.fileName,
-                        size = it.info?.size
+    private fun ConversationMessageIO.addGeneralInfo(
+        event: ClientEvent<*>,
+        messageId: String,
+        receipts: List<ClientEvent<ReceiptEventContent>>,
+        roomId: String
+    ): ConversationMessageIO = this.copy(
+        id = event.idOrNull?.full ?: messageId,
+        authorPublicId = event.senderOrNull?.full,
+        sentAt = event.originTimestampOrNull?.let { millis ->
+            Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+        },
+        state = if(receipts.find { it.idOrNull?.full == event.idOrNull?.full } != null) {
+            MessageState.Read
+        }else MessageState.Sent,
+        conversationId = roomId
+    )
+
+    private suspend fun decryptEvent(event: RoomEvent.MessageEvent<*>): MessageEventContent? {
+        return sharedDataManager.matrixClient.value?.roomEventEncryptionServices?.decrypt(event)?.getOrNullLoggingError()
+    }
+
+    private fun MessageEventContent.process(): ConversationMessageIO? {
+        return when(this) {
+            is VerificationStep -> null
+            is RoomMessageEventContent.VerificationRequest -> {
+                ConversationMessageIO(
+                    verification = ConversationMessageIO.VerificationRequestInfo(
+                        fromDeviceId = fromDevice,
+                        methods = methods,
+                        to = to.full
                     )
                 )
-            },
-            anchorMessageId = this.relatesTo?.replyTo?.eventId?.full,
-            parentAnchorMessageId = (relatesTo as? RelatesTo.Thread)?.eventId?.full
-        )
+            }
+            else -> {
+                val file = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }
+                val body = (this as? RoomMessageEventContent)?.body?.takeIf {
+                    it != file?.body
+                }
+                ConversationMessageIO(
+                    content = body,
+                    media = file?.let {
+                        listOf(
+                            MediaIO(
+                                url = it.url,
+                                mimetype = it.info?.mimeType,
+                                name = it.fileName,
+                                size = it.info?.size
+                            )
+                        )
+                    },
+                    anchorMessageId = this.relatesTo?.replyTo?.eventId?.full,
+                    parentAnchorMessageId = (relatesTo as? RelatesTo.Thread)?.eventId?.full
+                )
+            }
+        }
     }
 }

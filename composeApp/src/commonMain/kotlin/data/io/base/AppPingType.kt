@@ -4,7 +4,7 @@ import augmy.interactive.shared.utils.DateUtils
 
 data class AppPing(
     val type: AppPingType,
-    val identifiers: List<String> = listOf(),
+    val identifier: String = "",
     val timestamp: Long = DateUtils.now.toEpochMilliseconds()
 )
 

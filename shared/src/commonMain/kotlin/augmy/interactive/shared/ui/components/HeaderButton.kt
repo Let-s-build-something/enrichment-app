@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,10 @@ private fun HeaderButton(
     contentColor: Color,
     containerColor: Color,
     showBorder: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 14.dp,
+        horizontal = 24.dp
+    ),
     endImageVector: ImageVector? = null,
     additionalContent: @Composable RowScope.() -> Unit = {},
     isEnabled: Boolean = true,
@@ -87,10 +92,7 @@ private fun HeaderButton(
                     )
                 }else Modifier
             )
-            .padding(
-                vertical = 14.dp,
-                horizontal = 24.dp
-            ),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -184,6 +186,10 @@ fun ErrorHeaderButton(
 fun BrandHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 14.dp,
+        horizontal = 24.dp
+    ),
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
     endImageVector: ImageVector? = null,
@@ -193,6 +199,7 @@ fun BrandHeaderButton(
         modifier = modifier,
         text = text,
         isEnabled = isEnabled,
+        contentPadding = contentPadding,
         onClick = onClick,
         isLoading = isLoading,
         showBorder = isEnabled,
@@ -210,6 +217,10 @@ private fun LoadingHeaderButton(
     text: String = "",
     contentColor: Color,
     containerColor: Color,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 14.dp,
+        horizontal = 24.dp
+    ),
     showBorder: Boolean = true,
     isEnabled: Boolean = true,
     endImageVector: ImageVector? = null,
@@ -225,6 +236,7 @@ private fun LoadingHeaderButton(
         isEnabled = isEnabled,
         onClick = onClick,
         showBorder = showBorder,
+        contentPadding = contentPadding,
         shape = shape,
         endImageVector = if(!isLoading && isEnabled) endImageVector else null,
         textStyle = textStyle,
