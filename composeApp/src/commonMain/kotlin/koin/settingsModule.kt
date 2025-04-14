@@ -8,7 +8,9 @@ import com.russhwolf.settings.coroutines.FlowSettings
 import org.koin.dsl.module
 
 interface AppSettings: FlowSettings
-interface SecureAppSettings: Settings
+interface SecureAppSettings: Settings {
+    fun clear(force: Boolean)
+}
 
 internal val settingsModule = module {
     single<AppSettings> { settings }

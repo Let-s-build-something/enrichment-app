@@ -38,6 +38,14 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings, Obser
     )
 ) {
 
+    override fun clear(force: Boolean) {
+        if(force) {
+            keys.forEach { key ->
+                remove(key)
+            }
+        }else clear()
+    }
+
     override fun clear() {
         keys.forEach { key ->
             if(persistentKeys.none { it == key || key.contains(it) }) remove(key)

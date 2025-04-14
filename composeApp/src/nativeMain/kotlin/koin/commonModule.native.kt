@@ -21,6 +21,14 @@ actual val secureSettings: SecureAppSettings = object : SecureAppSettings, Setti
     service = if(BuildKonfig.isDevelopment) "secure_app_preferences_dev" else "secure_app_preferences"
 ) {
 
+    override fun clear(force: Boolean) {
+        if(force) {
+            keys.forEach { key ->
+                remove(key)
+            }
+        }else clear()
+    }
+
     override fun clear() {
         keys.forEach { key ->
             if(persistentKeys.none { it == key || key.contains(it) }) remove(key)

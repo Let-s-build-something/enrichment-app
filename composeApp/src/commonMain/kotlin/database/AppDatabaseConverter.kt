@@ -7,23 +7,17 @@ import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
-import kotlinx.datetime.Instant
+import data.io.social.network.conversation.message.VerificationRequestInfo
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
-import kotlinx.datetime.serializers.InstantIso8601Serializer
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.InvitedRoom
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.JoinedRoom.UnreadNotificationCounts
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.KnockedRoom.InviteState
-import net.folivo.trixnity.core.model.EventId
-import net.folivo.trixnity.core.model.EventIdSerializer
-import net.folivo.trixnity.core.model.RoomId
-import net.folivo.trixnity.core.model.RoomIdSerializer
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
-import net.folivo.trixnity.core.model.keys.Key
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.experimental.gravity.GravityData
 
@@ -50,6 +44,16 @@ class AppDatabaseConverter {
     
     @TypeConverter
     fun toRoomSummary(value: String): RoomSummary {
+        return json.decodeFromString(value)
+    }
+
+    @TypeConverter
+    fun fromVerificationRequestInfo(value: VerificationRequestInfo): String {
+        return json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toVerificationRequestInfo(value: String): VerificationRequestInfo {
         return json.decodeFromString(value)
     }
     

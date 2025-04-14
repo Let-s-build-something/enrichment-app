@@ -2,7 +2,6 @@ package data.shared
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
-import data.io.app.SecureSettingsKeys
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
@@ -91,7 +90,7 @@ class DeveloperConsoleModel(
             presenceEventDao.removeAll()
             pagingMetaDao.removeAll()
             matrixPagingMetaDao.removeAll()
-            secureSettings.remove(SecureSettingsKeys.KEY_DEVICE_ID)
+            secureSettings.clear(force = true)
             sharedDataManager.matrixClient.value?.clearCache()
             sharedDataManager.matrixClient.value?.clearMediaCache()
             super.logoutCurrentUser()
