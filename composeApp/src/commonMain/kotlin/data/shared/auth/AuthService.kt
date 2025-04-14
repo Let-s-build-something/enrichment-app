@@ -578,8 +578,6 @@ class AuthService {
                 "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}", ""
             ).takeIf { it.isNotBlank() }?.let {
                 json.decodeFromString<SecretByteArray.AesHmacSha2>(it)
-            }.also {
-                logger.debug { "getDatabasePassword: $it, id: $id" }
             }
         }
     }
