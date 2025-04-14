@@ -20,6 +20,7 @@ import data.io.user.UserIO
 import data.shared.SharedDataManager
 import data.shared.SharedRepository
 import data.shared.sync.DataService
+import data.shared.sync.DataSyncService
 import database.factory.SecretByteArray
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -70,6 +71,7 @@ class AuthService {
     private val _secureSettings by lazy { KoinPlatform.getKoin().inject<SecureAppSettings>() }
     private val _repository by lazy { KoinPlatform.getKoin().inject<SharedRepository>() }
     private val _json by lazy { KoinPlatform.getKoin().inject<Json>() }
+    private val _syncService by lazy { KoinPlatform.getKoin().inject<DataSyncService>() }
 
     private val httpClient
         get() = _httpClient.value
@@ -83,6 +85,8 @@ class AuthService {
         get() = _repository.value
     private val json
         get() = _json.value
+    private val syncService
+        get() = _syncService.value
 
     private val enqueueScope = CoroutineScope(Job())
     private val mutex = Mutex()
@@ -543,8 +547,10 @@ class AuthService {
                 deviceId = getDeviceId()
             ).also {
                 logger.debug { "new Matrix client: $it" }
+                // attempt to start up the app
+                syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
             }
-        }
+        }else syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
     }
 
     private fun saveDatabasePassword(
@@ -558,12 +564,6 @@ class AuthService {
                         key = "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}",
                         value = json.encodeToString(key).also {
                             logger.debug { "saveDatabasePassword: $it, id: $id" }
-                            /*
-                            "iv": "JEl0+ALmiiULFMFl4rjZUQ==",
-                            "ciphertext": "n0jaruh/eJV0vOkM4Ia0OjUiCbRexFPefue2blt+pE4=",
-                            "mac": "eKg1A3HYKRV+ToEAsOtVgTbQfdNe74Jxrv/9IkXD3pU="
-                            id: @lpoxasas:matrix.org
-                            */
                         }
                     )
                 }

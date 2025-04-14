@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.outlined.FaceRetouchingOff
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.QuestionAnswer
+import androidx.compose.material.icons.outlined.SensorOccupied
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +59,7 @@ import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_verify
 import augmy.composeapp.generated.resources.button_yes
 import augmy.composeapp.generated.resources.conversation_action_invite_message
 import augmy.composeapp.generated.resources.conversation_action_invite_title
@@ -371,7 +375,8 @@ fun ConversationSettingsContent(conversationId: String?) {
                 data = member?.toNetworkItem(),
                 isSelected = isSelected,
                 actions = {
-                    Row(modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)) {
+                    Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                        Spacer(Modifier.width(6.dp))
                         ScalingIcon(
                             color = SharedColors.RED_ERROR.copy(.6f),
                             imageVector = Icons.Outlined.FaceRetouchingOff,
@@ -380,6 +385,16 @@ fun ConversationSettingsContent(conversationId: String?) {
                                 kickMemberUserId.value = member?.userId
                             }
                         )
+                        if(detail.value?.summary?.isDirect != true) {
+                            ScalingIcon(
+                                color = SharedColors.YELLOW.copy(.6f),
+                                imageVector = Icons.Outlined.SensorOccupied,
+                                contentDescription = stringResource(Res.string.button_verify),
+                                onClick = {
+                                    model.verifyUser(userId = member?.userId)
+                                }
+                            )
+                        }
                     }
                 }
             )

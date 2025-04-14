@@ -157,7 +157,10 @@ internal val DefaultLocalSerializerMappings = createEventSerializersModule(
         messageOf<ReactionEventContent>("m.reaction")
         messageOf<RedactionEventContent>("m.room.redaction")
         messageOf("m.room.encrypted", EncryptedMessageEventContentSerializer)
-        messageOf<VerificationStartEventContent>("m.key.verification.start")
+        messageOf<VerificationStartEventContent>(
+            "m.key.verification.start",
+            serializer = VerificationStartEventContentSerializer
+        )
         messageOf<VerificationReadyEventContent>("m.key.verification.ready")
         messageOf<VerificationDoneEventContent>("m.key.verification.done")
         messageOf<VerificationCancelEventContent>("m.key.verification.cancel")

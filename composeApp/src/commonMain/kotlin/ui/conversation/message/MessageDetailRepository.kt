@@ -17,7 +17,6 @@ import ui.conversation.ConversationRoomSource
 import ui.conversation.GetMessagesResponse
 import ui.conversation.components.audio.MediaProcessorDataManager
 
-
 class MessageDetailRepository(
     private val conversationMessageDao: ConversationMessageDao,
     private val roomMemberDao: RoomMemberDao,

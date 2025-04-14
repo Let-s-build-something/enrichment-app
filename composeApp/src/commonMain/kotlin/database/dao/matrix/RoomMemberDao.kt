@@ -28,6 +28,7 @@ interface RoomMemberDao {
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
             WHERE room_id = :roomId
+            AND user_id != :ignoreUserId
             ORDER BY timestamp DESC 
             LIMIT :limit
             OFFSET :offset
@@ -35,7 +36,8 @@ interface RoomMemberDao {
     suspend fun getPaginated(
         roomId: String?,
         limit: Int,
-        offset: Int
+        offset: Int,
+        ignoreUserId: String?,
     ): List<ConversationRoomMember>
 
     @Query("""

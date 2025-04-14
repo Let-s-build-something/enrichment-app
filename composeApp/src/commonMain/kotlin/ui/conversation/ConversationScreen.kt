@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,8 @@ import base.navigation.NavigationNode
 import base.navigation.NestedNavigationBar
 import collectResult
 import components.UserProfileImage
+import components.pull_refresh.LocalRefreshCallback
+import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.io.base.AppPingType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -90,7 +93,9 @@ fun ConversationScreen(
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if(model.persistentPositionData != null) messages.refresh()
+        if(model.persistentPositionData != null) {
+            messages.refresh()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -100,9 +105,12 @@ fun ConversationScreen(
     LaunchedEffect(Unit) {
         model.pingStream.collectLatest { stream ->
             stream.forEach {
-                if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
+                if(conversationId != null
+                    && it.type == AppPingType.Conversation
+                    && it.identifier == conversationId
+                ) {
                     messages.refresh()
-                    model.consumePing(it)
+                    model.consumePing(conversationId)
                 }
             }
         }
@@ -125,11 +133,12 @@ fun ConversationScreen(
         reactingToMessageId.value = null
     }
 
-    Row {
+    CompositionLocalProvider(
+        LocalRefreshCallback provides {
+            model.requestData(isSpecial = true, isPullRefresh = true)
+        }
+    ) {
         BrandBaseScreen(
-            modifier = Modifier
-                .weight(1f)
-                .animateContentSize(),
             navIconType = NavIconType.BACK,
             headerPrefix = {
                 AnimatedVisibility(conversationDetail.value != null) {
@@ -199,7 +208,7 @@ fun ConversationScreen(
                             NestedNavigationBar(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 6.dp, top = 2.dp),
+                                    .padding(top = 2.dp),
                                 navController = nestedNavController
                             )
                             NavigationHost(

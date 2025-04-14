@@ -59,6 +59,7 @@ import ui.conversation.components.TypingIndicator
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.ConversationMessageContent
+import ui.conversation.message.UserVerificationMessage
 
 /**
  * Component containing a list of messages derived from [messages] with shimmer loading effect which can be modified by [shimmerItemCount]
@@ -322,22 +323,26 @@ fun ConversationComponent(
                     }
                 }
 
-                ConversationMessageContent(
-                    data = data?.copy(
-                        transcribed = data.transcribed == true || isTranscribed.value,
-                        anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id }
-                    ),
-                    isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
-                    isNextMessageSameAuthor = isNextMessageSameAuthor,
-                    currentUserPublicId = model.matrixUserId ?: "",
-                    reactingToMessageId = reactingToMessageId,
-                    model = bubbleModel,
-                    replyToMessage = replyToMessage,
-                    scrollToMessage = scrollToMessage,
-                    preferredEmojis = preferredEmojis.value,
-                    temporaryFiles = model.temporaryFiles.value.toMap(),
-                    isMyLastMessage = lastCurrentUserMessage.value == index
-                )
+                if(data?.verification != null) {
+                    UserVerificationMessage(data = data)
+                } else {
+                    ConversationMessageContent(
+                        data = data?.copy(
+                            transcribed = data.transcribed == true || isTranscribed.value,
+                            anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id }
+                        ),
+                        isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
+                        isNextMessageSameAuthor = isNextMessageSameAuthor,
+                        currentUserPublicId = model.matrixUserId ?: "",
+                        reactingToMessageId = reactingToMessageId,
+                        model = bubbleModel,
+                        replyToMessage = replyToMessage,
+                        scrollToMessage = scrollToMessage,
+                        preferredEmojis = preferredEmojis.value,
+                        temporaryFiles = model.temporaryFiles.value.toMap(),
+                        isMyLastMessage = lastCurrentUserMessage.value == index
+                    )
+                }
             }
             lazyScope()
         }

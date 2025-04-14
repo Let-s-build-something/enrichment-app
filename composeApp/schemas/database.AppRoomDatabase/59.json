@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 57,
-    "identityHash": "abe6faa603c576c0bb9ef21e4696febf",
+    "version": 59,
+    "identityHash": "6123a11c5a165f78b135e02d2c33dee3",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -223,7 +223,7 @@
       },
       {
         "tableName": "room_conversation_message_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `gravityData` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `reactions` TEXT, `show_preview` INTEGER, `anchor_message` TEXT, `gravityData` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `verification` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -300,6 +300,11 @@
             "fieldPath": "conversationId",
             "columnName": "conversation_id",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "verification",
+            "columnName": "verification",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -334,7 +339,7 @@
       },
       {
         "tableName": "room_member_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `content` TEXT NOT NULL, `displayName` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `content` TEXT NOT NULL, `display_name` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "userId",
@@ -350,7 +355,7 @@
           },
           {
             "fieldPath": "displayName",
-            "columnName": "displayName",
+            "columnName": "display_name",
             "affinity": "TEXT"
           },
           {
@@ -501,7 +506,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'abe6faa603c576c0bb9ef21e4696febf')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6123a11c5a165f78b135e02d2c33dee3')"
     ]
   }
 }
