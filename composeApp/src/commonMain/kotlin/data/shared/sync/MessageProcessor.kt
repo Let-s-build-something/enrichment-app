@@ -180,8 +180,9 @@ abstract class MessageProcessor {
                     if (event is RoomEvent.MessageEvent) {
                         val id = event.idOrNull?.full ?: Uuid.random().toString()
                         encryptedEvents.add(id to event)
-                        ConversationMessageIO(state = MessageState.Decrypting)
-                    } else null
+                        //ConversationMessageIO(state = MessageState.Decrypting)
+                    }
+                    null
                 }
 
                 is MessageEventContent -> content.process()
@@ -316,15 +317,13 @@ abstract class MessageProcessor {
         return when(this) {
             is VerificationStep -> null
             is RoomMessageEventContent.VerificationRequest -> {
-                // only receiving request, no need to show this to senders
-                if(this.to.full != sharedDataManager.currentUser.value?.matrixUserId) {
-                    ConversationMessageIO(
-                        verification = ConversationMessageIO.VerificationRequestInfo(
-                            fromDeviceId = fromDevice,
-                            methods = methods
-                        )
+                ConversationMessageIO(
+                    verification = ConversationMessageIO.VerificationRequestInfo(
+                        fromDeviceId = fromDevice,
+                        methods = methods,
+                        to = to.full
                     )
-                }else null
+                )
             }
             else -> {
                 val file = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }

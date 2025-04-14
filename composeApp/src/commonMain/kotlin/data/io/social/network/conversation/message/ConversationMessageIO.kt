@@ -83,7 +83,8 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @Serializable
     data class VerificationRequestInfo(
         val fromDeviceId: String,
-        val methods: Set<VerificationMethod>
+        val methods: Set<VerificationMethod>,
+        val to: String
     )
 
     /** User attached to this message */
