@@ -10,7 +10,6 @@ import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.call.body
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.HttpRequestRetry
@@ -167,10 +166,10 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
     }
     HttpResponseValidator {
         handleResponseException { cause, request ->
+            cause.printStackTrace()
             when {
                 cause is ConnectTimeoutException || cause is SocketTimeoutException || isConnectionException(cause) -> {
                     sharedModel.updateNetworkConnectivity(isNetworkAvailable = false)
-                    println("Network timeout, response: ${request.url}, ${request.call.response.body<String>()}")
                 }
             }
         }
