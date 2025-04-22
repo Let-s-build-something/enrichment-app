@@ -39,7 +39,7 @@ class DataSyncService {
 
     companion object {
         const val SYNC_INTERVAL = 60_000L
-        private const val START_ANEW = true // for debug use
+        private const val START_ANEW = false // for debug use
     }
 
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()

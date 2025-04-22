@@ -62,6 +62,7 @@ fun UserVerificationMessage(
         }
     }
 
+    // TODO separation between my request and their request
     Box(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center

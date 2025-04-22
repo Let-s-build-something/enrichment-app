@@ -165,7 +165,7 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         }
     }
     HttpResponseValidator {
-        handleResponseException { cause, request ->
+        handleResponseException { cause, _ ->
             cause.printStackTrace()
             when {
                 cause is ConnectTimeoutException || cause is SocketTimeoutException || isConnectionException(cause) -> {

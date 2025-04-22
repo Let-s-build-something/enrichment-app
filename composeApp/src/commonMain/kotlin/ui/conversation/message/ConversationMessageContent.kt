@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -187,7 +186,6 @@ fun LazyItemScope.ConversationMessageContent(
                         messageContent.getLinkAnnotations(0, messageContent.length).firstOrNull()?.let { link ->
                             LinkPreview(
                                 modifier = Modifier
-                                    .widthIn(max = (screenSize.width * .8f).dp)
                                     .pointerInput(data.id) {
                                         detectMessageInteraction(
                                             onTap = {
@@ -196,10 +194,10 @@ fun LazyItemScope.ConversationMessageContent(
                                             onDragChange = onDragChange,
                                             onDrag = onDrag
                                         )
-                                    }
-                                    .clip(shape = shape),
+                                    },
+                                shape = shape,
                                 url = messageContent.subSequence(link.start, link.end).toString(),
-                                alignment = if(isCurrentUser) Alignment.Start else Alignment.End
+                                alignment = Alignment.CenterHorizontally
                             )
                         }
                     }

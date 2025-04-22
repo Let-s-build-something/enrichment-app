@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Text
@@ -18,12 +18,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.AsyncSvgImage
 import org.koin.compose.viewmodel.koinViewModel
@@ -34,11 +38,13 @@ import ui.conversation.components.audio.MediaProcessorModel
 fun LinkPreview(
     modifier: Modifier = Modifier,
     url: String,
+    shape: Shape = RectangleShape,
     alignment: Alignment.Horizontal,
-    imageSize: IntSize = IntSize(height = 200, width = 250),
+    imageSize: IntSize = IntSize(height = 160, width = 0),
     textBackground: Color = LocalTheme.current.colors.backgroundDark
 ) {
     val density = LocalDensity.current
+    val screenSize = LocalScreenSize.current
     val processorModel: MediaProcessorModel = koinViewModel(key = url)
     val graphProtocol = processorModel.graphProtocol.collectAsState()
 
@@ -50,19 +56,24 @@ fun LinkPreview(
 
     if(graphProtocol.value != null) {
         Column(
-            modifier = modifier.background(color = textBackground),
+            modifier = modifier
+                .width(IntrinsicSize.Min)
+                .background(color = textBackground, shape = shape),
             horizontalAlignment = alignment
         ) {
             graphProtocol.value?.imageUrl?.let { image ->
                 AsyncSvgImage(
                     modifier = modifier
-                        .height(height = (imageSize.height.takeIf { it != 0 } ?: 160).dp)
-                        .then(if(imageSize.width.takeIf { it != 0 } != null) {
-                            Modifier.width(imageSize.width.dp)
-                        } else Modifier)
-                        .wrapContentWidth(),
+                        .align(Alignment.CenterHorizontally)
+                        .sizeIn(
+                            minHeight = imageSize.height.dp,
+                            maxHeight = screenSize.height.times(.3f).dp,
+                            minWidth = 200.dp
+                        )
+                        .wrapContentWidth()
+                        .clip(shape),
                     model = image,
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             }
             Row(

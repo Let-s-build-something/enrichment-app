@@ -216,7 +216,7 @@ fun MessageDetailScreen(
                                     style = LocalTheme.current.styles.title.copy(
                                         color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
                                         fontFamily = FontFamily(fontQuicksandMedium)
-                                    ),
+                                    ).toSpanStyle(),
                                     timings = message.value?.timings.orEmpty(),
                                     onFinish = {
                                         transcribing.value = false
