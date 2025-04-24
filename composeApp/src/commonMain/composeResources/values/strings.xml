@@ -182,6 +182,8 @@
   <string name="conversation_action_invite_message">The following person will be added to this conversation, please confirm.</string>
   <string name="conversation_left_message">You will no longer see that conversation.</string>
   <string name="conversation_members">Members</string>
+  <string name="conversation_mode_default">Default</string>
+  <string name="conversation_mode_experimental">Experimental</string>
   <string name="items_see_more">See %1$s more</string>
 
   <string name="message_room_invite">got invited.</string>
