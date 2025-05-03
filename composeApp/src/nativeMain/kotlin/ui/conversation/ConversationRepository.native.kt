@@ -1,6 +1,6 @@
 package ui.conversation
 
-import data.shared.fromByteArrayToData
+import base.utils.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
 import kotlinx.coroutines.Dispatchers

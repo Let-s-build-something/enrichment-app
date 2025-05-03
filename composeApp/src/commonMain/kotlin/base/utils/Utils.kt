@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import app.cash.paging.compose.LazyPagingItems
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import coil3.toUri
+import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.core.PlatformFile
 
 /** Returns item at a specific index and handles indexOutOfBounds exception */
@@ -73,3 +74,6 @@ expect fun sha256(value: Any?): String
 
 /** Retrieves the current device name */
 expect fun deviceName(): String?
+
+/** Converts ByteArray, which is more Java specific into Data, which is multiplatform */
+expect fun fromByteArrayToData(byteArray: ByteArray): Data

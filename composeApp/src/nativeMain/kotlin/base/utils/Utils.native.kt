@@ -2,7 +2,9 @@ package base.utils
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.core.PlatformFile
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.memScoped
@@ -10,6 +12,8 @@ import kotlinx.cinterop.usePinned
 import org.jetbrains.skia.Image
 import platform.CoreCrypto.CC_SHA256
 import platform.CoreCrypto.CC_SHA256_DIGEST_LENGTH
+import platform.Foundation.NSData
+import platform.Foundation.create
 import platform.UIKit.UIDevice
 
 
@@ -46,4 +50,11 @@ actual fun sha256(value: Any?): String {
 /** Retrieves the current device name */
 actual fun deviceName(): String? {
     return UIDevice.currentDevice.name
+}
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+actual fun fromByteArrayToData(byteArray: ByteArray): Data {
+    return byteArray.usePinned { pinned ->
+        Data(NSData.create(bytes = pinned.addressOf(0), length = byteArray.size.toULong()))
+    }
 }

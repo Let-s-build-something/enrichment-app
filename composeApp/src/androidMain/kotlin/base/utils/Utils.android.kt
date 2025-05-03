@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.core.PlatformFile
 import org.koin.mp.KoinPlatform.getKoin
 import java.security.MessageDigest
@@ -32,3 +33,5 @@ actual fun deviceName(): String? {
     val context = getKoin().get<Context>()
     return Settings.Global.getString(context.contentResolver, "device_name")
 }
+
+actual fun fromByteArrayToData(byteArray: ByteArray): Data = Data(byteArray)

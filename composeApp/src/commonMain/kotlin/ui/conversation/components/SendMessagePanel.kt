@@ -532,7 +532,7 @@ internal fun BoxScope.SendMessagePanel(
                 )
                 Column {
                     LinkPreview(
-                        modifier = Modifier.clip(shape),
+                        shape = shape,
                         url = url,
                         textBackground = Color.Transparent,
                         imageSize = IntSize(height = 140, width = 0),

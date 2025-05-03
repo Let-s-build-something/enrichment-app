@@ -9,7 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
@@ -29,7 +29,7 @@ import ui.conversation.components.REGEX_GRAPHEME
 fun buildTempoString(
     key: Any? = null,
     text: AnnotatedString,
-    style: TextStyle,
+    style: SpanStyle,
     enabled: Boolean,
     timings: List<Long>,
     onFinish: () -> Unit
@@ -72,19 +72,19 @@ fun buildTempoString(
 
     return when {
         timings.isEmpty() -> buildAnnotatedString {
-            withStyle(style.toSpanStyle()) { append(text) }
+            withStyle(style) { append(text) }
         }
         !enabled -> {
             buildAnnotatedString {
+                append(text)
                 graphemes.value?.toList()?.forEachIndexed { index, matchResult ->
-                    withStyle(
-                        style.toSpanStyle().copy(
-                            fontWeight = if(aboveMedianIndexes.value?.contains(index) == true) {
-                                FontWeight.ExtraBold
-                            }else null
+                    if (aboveMedianIndexes.value?.contains(index) == true) {
+                        val range = matchResult.range
+                        addStyle(
+                            style = style.copy(fontWeight = FontWeight.ExtraBold),
+                            start = range.first,
+                            end = range.last + 1
                         )
-                    ) {
-                        append(matchResult.value)
                     }
                 }
             }
@@ -143,13 +143,14 @@ fun buildTempoString(
                             style = style.copy(
                                 color = style.color.copy(alpha = if(isTicked.value) 1f else 0f),
                                 letterSpacing = 0.sp
-                            ).toSpanStyle()
+                            )
                         ) {
                             append("|")
                         }
                     }
-                    withStyle(
-                        style.toSpanStyle().copy(
+                    val range = matchResult.range
+                    addStyle(
+                        style = style.copy(
                             color = when {
                                 index < currentPosition -> style.color
                                 else -> style.color.copy(alpha = .4f)
@@ -159,10 +160,10 @@ fun buildTempoString(
                             ) {
                                 FontWeight.ExtraBold
                             }else null
-                        )
-                    ) {
-                        append(matchResult.value)
-                    }
+                        ),
+                        start = range.first,
+                        end = range.last + 1
+                    )
                 }
             }
         }

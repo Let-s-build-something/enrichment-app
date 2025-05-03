@@ -11,6 +11,7 @@ import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.user.NetworkItemIO
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
+import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
 import database.dao.matrix.MatrixPagingMetaDao
@@ -37,6 +38,7 @@ class ConversationSettingsRepository(
     private val roomMemberDao: RoomMemberDao,
     private val networkItemDao: NetworkItemDao,
     private val conversationRoomDao: ConversationRoomDao,
+    private val conversationMessageDao: ConversationMessageDao,
     private val matrixPagingDao: MatrixPagingMetaDao,
     mediaDataManager: MediaProcessorDataManager,
     fileAccess: FileAccess
@@ -67,10 +69,15 @@ class ConversationSettingsRepository(
         conversationRoomDao.remove(id = conversationId, ownerPublicId = ownerPublicId)
     }
 
+    suspend fun removeMessage(id: String): Boolean = withContext(Dispatchers.IO) {
+        conversationMessageDao.remove(id = id) > 0L
+    }
+
     /** Returns a flow of conversation messages */
     fun getMembersListFlow(
         homeserver: () -> String,
         config: PagingConfig,
+        ignoreUserId: String?,
         conversationId: String? = null
     ): Pager<Int, ConversationRoomMember> {
         return Pager(
@@ -92,7 +99,8 @@ class ConversationSettingsRepository(
                                 roomMemberDao.getPaginated(
                                     roomId = conversationId,
                                     limit = config.pageSize,
-                                    offset = page * config.pageSize
+                                    offset = page * config.pageSize,
+                                    ignoreUserId = ignoreUserId
                                 ).let { res ->
                                     if(res.isNotEmpty()) {
                                         GetMembersResponse(
@@ -111,7 +119,7 @@ class ConversationSettingsRepository(
                                     )?.let { res ->
                                         certainMembersCount = certainMembersCount?.plus(res.messages.size)
                                         GetMembersResponse(
-                                            data = res.members,
+                                            data = res.members.filter { it.userId != ignoreUserId },
                                             hasNext = res.prevBatch != null && res.messages.isNotEmpty()
                                         ).also {
                                             val newPrevBatch = if(res.messages.isEmpty()

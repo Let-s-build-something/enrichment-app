@@ -175,10 +175,6 @@ class VerificationModel: SharedModel() {
         isLoading.value = true
         viewModelScope.launch {
             (_launcherState.value as? LauncherState.ComparisonByUser)?.data?.send(matches)
-
-            if(!matches) {
-                (_launcherState.value as? LauncherState.ComparisonByUser)?.data?.send(matches)
-            }
         }
     }
 

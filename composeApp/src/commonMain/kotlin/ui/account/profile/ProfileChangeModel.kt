@@ -1,10 +1,10 @@
 package ui.account.profile
 
 import androidx.lifecycle.viewModelScope
+import base.utils.fromByteArrayToData
 import data.io.base.BaseResponse
 import data.io.social.username.ResponseDisplayNameChange
 import data.shared.SharedModel
-import data.shared.fromByteArrayToData
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.storage.storage
 import kotlinx.coroutines.Dispatchers
