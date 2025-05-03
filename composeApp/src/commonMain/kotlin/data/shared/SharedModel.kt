@@ -15,7 +15,6 @@ import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
-import dev.gitlive.firebase.storage.Data
 import koin.AppSettings
 import koin.commonModule
 import koin.secureSettings
@@ -182,5 +181,3 @@ open class SharedModel: ViewModel() {
         updateClientSettings()
     }
 }
-
-expect fun fromByteArrayToData(byteArray: ByteArray): Data
