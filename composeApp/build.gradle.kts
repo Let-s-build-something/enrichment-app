@@ -58,8 +58,6 @@ kotlin {
         summary = "Expressive messenger"
         homepage = "https://augmy.org"
 
-        // Optional properties
-        // Configure the Pod name here instead of changing the Gradle project name
         name = "ComposeApp"
 
         podfile = project.file("../iosApp/Podfile")
@@ -73,19 +71,13 @@ kotlin {
         pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
 
         framework {
-            // Required properties
-            // Framework name configuration. Use this property instead of deprecated 'frameworkName'
             baseName = "ComposeApp"
-
-            // Optional properties
-            // Specify the framework linking type. It's dynamic by default.
             isStatic = true
 
             binaryOption("bundleId", "augmy.interactive.com")
             binaryOption("bundleVersion", "$vCode")
         }
 
-        // Maps custom Xcode configuration to NativeBuildType
         xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
         xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
