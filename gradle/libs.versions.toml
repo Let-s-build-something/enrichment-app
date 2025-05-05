@@ -8,8 +8,7 @@ version-code = "52"
 
 androidx-activityCompose = "1.10.1"
 composeWebviewMultiplatform = "1.9.40"
-kotlin = "2.1.20-RC"
-kotlinTest = "2.1.20-RC"
+kotlin = "2.1.21-RC"
 ksp = "2.1.20-RC-1.0.30"
 ktor = "3.1.1"
 ksoup = "0.2.2"
@@ -102,8 +101,8 @@ ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version
 ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 
-kotlin-test-common = { group = "org.jetbrains.kotlin", name = "kotlin-test-common", version.ref = "kotlinTest" }
-kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlinTest" }
+kotlin-test-common = { group = "org.jetbrains.kotlin", name = "kotlin-test-common", version.ref = "kotlin" }
+kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlin" }
 
 ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
@@ -148,7 +147,7 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "jv
 [bundles]
 kotlin-test = [
     "kotlin-test-common",
-    "kotlin-test-junit5",
+    #"kotlin-test-junit5",
 ]
 ktor-common = [
     "ktor-client-core",
