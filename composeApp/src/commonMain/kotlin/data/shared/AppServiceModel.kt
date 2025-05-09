@@ -1,7 +1,6 @@
 package data.shared
 
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ext.ifNull
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
@@ -18,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -73,30 +71,15 @@ class AppServiceModel(
 
         viewModelScope.launch {
             delay(200)
-            sharedDataManager.matrixClient.combine(currentUser) { client, user ->
-                client to user
-            }.collectLatest { client ->
-                if(client.first != null && client.second?.isFullyValid == true) {
-                    client.second?.matrixHomeserver?.let { homeserver ->
-                        dataSyncService.sync(homeserver = homeserver)
-                    }.ifNull {
-                        println("kostka_test, awaiting sync: no matrix homeserver")
-                    }
-                }else if (client.first == null) {
-                    println("kostka_test, awaiting sync: client is null")
-                }else println("kostka_test, awaiting sync: user is not valid")
-            }
-        }
-        viewModelScope.launch {
-            delay(200)
-            // TODO there should be a variant for unsigned invalid clients as well, probably only a ping of sorts
+            var lastConnectivity = networkConnectivity.value?.isNetworkAvailable
             networkConnectivity.collectLatest {
+                // retry for signed in users, we don't really care about unsigned
                 sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
-                    while(it?.isNetworkAvailable == false) {
+                    if(lastConnectivity == false && it?.isNetworkAvailable == true) {
                         dataSyncService.stop()
                         dataSyncService.sync(homeserver = homeserver, delay = 2000)
-                        delay(3000)
                     }
+                    lastConnectivity = it?.isNetworkAvailable
                 }
             }
         }

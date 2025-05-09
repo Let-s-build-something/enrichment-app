@@ -20,4 +20,13 @@ data class GraphProtocol(
                 && description?.isBlank() != false
                 && imageUrl?.isBlank() != false
                 && iconUrl?.isBlank() != false
+
+    override fun toString(): String {
+        return "{" +
+                "iconUrl=$iconUrl, " +
+                "title=$title, " +
+                "description=$description, " +
+                "imageUrl=$imageUrl" +
+                "}"
+    }
 }

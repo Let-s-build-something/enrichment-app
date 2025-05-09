@@ -1,0 +1,80 @@
+package ui.conversation.prototype
+
+import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingConfig
+import androidx.paging.cachedIn
+import androidx.paging.map
+import database.file.FileAccess
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.withContext
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
+import ui.conversation.ConversationDataManager
+import ui.conversation.ConversationModel
+import ui.conversation.ConversationRepository
+import ui.conversation.components.emoji.EmojiUseCase
+import ui.conversation.components.experimental.gravity.GravityUseCase
+import ui.conversation.components.experimental.pacing.PacingUseCase
+import ui.conversation.components.gif.GifUseCase
+
+internal val prototypeConversationModule = module {
+    factory {
+        PrototypeConversationModel(
+            get<String>(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get()
+        )
+    }
+    viewModelOf(::PrototypeConversationModel)
+}
+
+class PrototypeConversationModel(
+    conversationId: String?,
+    dataManager: ConversationDataManager,
+    repository: ConversationRepository,
+    emojiUseCase: EmojiUseCase,
+    gifUseCase: GifUseCase,
+    pacingUseCase: PacingUseCase,
+    gravityUseCase: GravityUseCase,
+    fileAccess: FileAccess
+): ConversationModel(
+    conversationId = conversationId ?: "",
+    repository = repository,
+    emojiUseCase = emojiUseCase,
+    gifUseCase = gifUseCase,
+    pacingUseCase = pacingUseCase,
+    gravityUseCase = gravityUseCase,
+    fileAccess = fileAccess,
+    dataManager = dataManager
+) {
+
+    val messages = repository.getMessagesListFlow(
+        config = PagingConfig(
+            pageSize = 50,
+            enablePlaceholders = true,
+            initialLoadSize = 50
+        ),
+        homeserver = { homeserver },
+        conversationId = conversationId
+    ).flow
+        .cachedIn(viewModelScope)
+        .combine(conversation) { messages, detail ->
+            withContext(Dispatchers.Default) {
+                messages.map {
+                    it.apply {
+                        user = detail?.members?.find { user -> user.userId == authorPublicId }
+                        anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
+                        reactions?.forEach { reaction ->
+                            reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
+                        }
+                    }
+                }
+            }
+        }
+}

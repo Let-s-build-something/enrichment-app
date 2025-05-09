@@ -80,7 +80,7 @@ internal val conversationModule = module {
 /** Communication between the UI, the control layers, and control and data layers */
 open class ConversationModel(
     private val conversationId: String,
-    enableMessages: Boolean,
+    enableMessages: Boolean = true,
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,

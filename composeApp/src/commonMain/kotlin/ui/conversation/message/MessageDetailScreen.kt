@@ -93,12 +93,14 @@ fun MessageDetailScreen(
     LaunchedEffect(Unit) {
         viewModel.pingStream.collectLatest { stream ->
             stream.forEach {
-                if(it.type == AppPingType.Conversation
-                    && (it.identifiers.contains(messageId)
-                            || it.identifiers.contains(conversationId))
-                ) {
-                    replies.refresh()
-                    viewModel.consumePing(it)
+                if(it.type == AppPingType.Conversation) {
+                    if(it.identifier == messageId) {
+                        replies.refresh()
+                        viewModel.consumePing(messageId)
+                    }else if(it.identifier == conversationId) {
+                        replies.refresh()
+                        viewModel.consumePing(conversationId)
+                    }
                 }
             }
         }
@@ -214,7 +216,7 @@ fun MessageDetailScreen(
                                     style = LocalTheme.current.styles.title.copy(
                                         color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
                                         fontFamily = FontFamily(fontQuicksandMedium)
-                                    ),
+                                    ).toSpanStyle(),
                                     timings = message.value?.timings.orEmpty(),
                                     onFinish = {
                                         transcribing.value = false

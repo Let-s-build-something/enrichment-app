@@ -10,7 +10,6 @@ import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
-import data.io.base.AppPing
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
@@ -29,6 +28,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
@@ -49,6 +49,9 @@ open class SharedModel: ViewModel() {
 
     val matrixUserId: String?
         get() = currentUser.value?.matrixUserId ?: authService.storedUserId()
+
+    val matrixClient: MatrixClient?
+        get() = sharedDataManager.matrixClient.value
 
     val homeserver: String
         get() = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
@@ -119,15 +122,11 @@ open class SharedModel: ViewModel() {
         )
     }
 
-    fun consumePing(ping: AppPing) {
-        sharedDataManager.pingStream.value = sharedDataManager.pingStream.value.minus(ping)
-    }
-
     suspend fun consumePing(identifier: String) = withContext(Dispatchers.Default) {
-        sharedDataManager.pingStream.update {
-            it.filter { ping ->
-                !ping.identifiers.contains(identifier)
-            }.toSet()
+        sharedDataManager.pingStream.update { prev ->
+            prev.toMutableSet().apply {
+                removeAll { it.identifier == identifier }
+            }
         }
     }
 
