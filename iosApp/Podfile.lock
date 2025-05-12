@@ -101,11 +101,6 @@ PODS:
 
 DEPENDENCIES:
   - ComposeApp (from `../composeApp`)
-  - FirebaseAuth
-  - FirebaseCore
-  - FirebaseMessaging
-  - FirebaseStorage
-  - GoogleSignIn
 
 SPEC REPOS:
   trunk:
@@ -155,6 +150,6 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
 
-PODFILE CHECKSUM: 141d6f4a36865cb43b8870221b32af4d5009870e
+PODFILE CHECKSUM: 93ba1a7588152ea904f2b262f4e5eb72dac766f0
 
 COCOAPODS: 1.16.2

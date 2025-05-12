@@ -9,9 +9,4 @@ target 'iosApp' do
   platform :ios, '15.3'
   # Pods for iosApp
 	pod 'ComposeApp', :path => '../composeApp'
-	pod 'FirebaseCore'
-  	pod 'FirebaseAuth'
-  	pod 'FirebaseStorage'
-  	pod 'GoogleSignIn'
-	pod 'FirebaseMessaging'
 end
