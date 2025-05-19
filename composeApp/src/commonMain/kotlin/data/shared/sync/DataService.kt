@@ -28,26 +28,27 @@ class DataService {
 
     fun appendPing(ping: AppPing) {
         pingScope.launch(Dispatchers.Default) {
-            mutex.withLock(ping.identifiers.hashCode() + ping.type.hashCode()) {
+            mutex.withLock(ping.identifier.hashCode() + ping.type.hashCode()) {
                 val time = DateUtils.now.toEpochMilliseconds()
                 val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
-                lastPingTime = lastPingTime.coerceAtLeast(time) + 200L
+                lastPingTime = lastPingTime.coerceAtLeast(time) + 300L
 
                 if(calculatedDelay > 0) {
-                    val uniqueIds = ping.identifiers.filter { !jobs.contains(it) }
-                    if(uniqueIds.isEmpty() && ping.identifiers.isNotEmpty()) return@launch // obsolete ping
-                    jobs.addAll(uniqueIds)
+                    // obsolete ping
+                    if(jobs.none { it == ping.identifier }) {
+                        jobs.add(ping.identifier)
 
-                    delay(calculatedDelay)
+                        delay(calculatedDelay)
 
-                    jobs.removeAll(uniqueIds)
-                }
+                        jobs.remove(ping.identifier)
 
-                sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
-                    retainAll {
-                        DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
+                        sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
+                            retainAll {
+                                DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
+                            }
+                        }.plus(ping)
                     }
-                }.plus(ping)
+                }
             }
         }
     }

@@ -109,6 +109,8 @@
 
   <string name="message_decrypting">This message couldn't be decrypted:(</string>
   <string name="message_read_more">Read more</string>
+  <string name="message_user_verification">%1$s asked for a verification.</string>
+  <string name="message_user_verification_error">This verification request is not valid anymore.</string>
   <string name="invite_new_item_conversation">Name of the conversation</string>
   <string name="invite_new_item_button">Create new</string>
   <string name="invite_network_items_heading">There's only one way to figure out whether they'll fit in. Select people who should be invited.</string>
@@ -180,6 +182,8 @@
   <string name="conversation_action_invite_message">The following person will be added to this conversation, please confirm.</string>
   <string name="conversation_left_message">You will no longer see that conversation.</string>
   <string name="conversation_members">Members</string>
+  <string name="conversation_mode_default">Default</string>
+  <string name="conversation_mode_experimental">Experimental</string>
   <string name="items_see_more">See %1$s more</string>
 
   <string name="message_room_invite">got invited.</string>

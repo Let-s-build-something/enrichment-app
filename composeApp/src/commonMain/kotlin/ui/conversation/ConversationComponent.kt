@@ -45,7 +45,6 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.verticallyDraggable
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
@@ -60,6 +59,7 @@ import ui.conversation.components.TypingIndicator
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.ConversationMessageContent
+import ui.conversation.message.UserVerificationMessage
 
 /**
  * Component containing a list of messages derived from [messages] with shimmer loading effect which can be modified by [shimmerItemCount]
@@ -324,12 +324,8 @@ fun ConversationComponent(
                 }
 
                 if(data?.verification != null) {
-                    BrandHeaderButton(
-                        text = "Accept verification request from ${data.user?.displayName}"
-                    ) {
-                        model.acceptUserVerification(eventId = data.id)
-                    }
-                }else {
+                    UserVerificationMessage(data = data)
+                } else {
                     ConversationMessageContent(
                         data = data?.copy(
                             transcribed = data.transcribed == true || isTranscribed.value,

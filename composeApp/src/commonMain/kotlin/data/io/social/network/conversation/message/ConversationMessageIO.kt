@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.events.m.RelatesTo
+import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
 import ui.conversation.components.experimental.gravity.GravityData
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -79,6 +80,13 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     val verification: VerificationRequestInfo? = null
 ) {
 
+    @Serializable
+    data class VerificationRequestInfo(
+        val fromDeviceId: String,
+        val methods: Set<VerificationMethod>,
+        val to: String
+    )
+
     /** User attached to this message */
     @Ignore
     @Transient
@@ -108,7 +116,8 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
             state = other.state ?: state,
             timings = other.timings ?: timings,
             conversationId = other.conversationId ?: conversationId,
-            transcribed = other.transcribed ?: transcribed
+            transcribed = other.transcribed ?: transcribed,
+            verification = other.verification ?: verification
         )
     }
 

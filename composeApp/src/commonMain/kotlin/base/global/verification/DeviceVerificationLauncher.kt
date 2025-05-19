@@ -528,7 +528,7 @@ fun SelfVerificationMethod.isVerify() = this is SelfVerificationMethod.AesHmacSh
         || this is SelfVerificationMethod.AesHmacSha2RecoveryKey
 
 @Composable
-private fun EmojiEntity(
+fun EmojiEntity(
     modifier: Modifier,
     emoji: Pair<String, Map<String, String>>
 ) {

@@ -2,6 +2,7 @@ package ui.conversation
 
 import NavigationHost
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -37,11 +39,16 @@ import androidx.navigation.compose.rememberNavController
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.action_settings
+import augmy.composeapp.generated.resources.conversation_mode_default
+import augmy.composeapp.generated.resources.conversation_mode_experimental
+import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
+import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
@@ -50,6 +57,8 @@ import base.navigation.NavigationNode
 import base.navigation.NestedNavigationBar
 import collectResult
 import components.UserProfileImage
+import components.pull_refresh.LocalRefreshCallback
+import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.io.base.AppPingType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -59,6 +68,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
+import ui.conversation.prototype.PrototypeConversation
 
 /** Number of network items within one screen to be shimmered */
 private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
@@ -88,9 +98,17 @@ fun ConversationScreen(
     val showSettings = rememberSaveable {
         mutableStateOf(false)
     }
+    val modeSwitchState = rememberMultiChoiceState(
+        items = mutableListOf(
+            stringResource(Res.string.conversation_mode_default),
+            stringResource(Res.string.conversation_mode_experimental)
+        )
+    )
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if(model.persistentPositionData != null) messages.refresh()
+        if(model.persistentPositionData != null) {
+            messages.refresh()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -100,9 +118,12 @@ fun ConversationScreen(
     LaunchedEffect(Unit) {
         model.pingStream.collectLatest { stream ->
             stream.forEach {
-                if(it.type == AppPingType.Conversation && it.identifiers.contains(conversationId)) {
+                if(conversationId != null
+                    && it.type == AppPingType.Conversation
+                    && it.identifier == conversationId
+                ) {
                     messages.refresh()
-                    model.consumePing(it)
+                    model.consumePing(conversationId)
                 }
             }
         }
@@ -125,11 +146,12 @@ fun ConversationScreen(
         reactingToMessageId.value = null
     }
 
-    Row {
+    CompositionLocalProvider(
+        LocalRefreshCallback provides {
+            model.requestData(isSpecial = true, isPullRefresh = true)
+        }
+    ) {
         BrandBaseScreen(
-            modifier = Modifier
-                .weight(1f)
-                .animateContentSize(),
             navIconType = NavIconType.BACK,
             headerPrefix = {
                 AnimatedVisibility(conversationDetail.value != null) {
@@ -167,25 +189,34 @@ fun ConversationScreen(
                 modifier = Modifier.fillMaxHeight(),
                 verticalAlignment = Alignment.Bottom
             ) {
-                ConversationComponent(
-                    modifier = Modifier.weight(1f),
-                    listModifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    verticalArrangement = Arrangement.Bottom,
-                    lazyScope = {
-                        item(key = "topPadding") {
-                            Spacer(Modifier.height(42.dp))
-                        }
-                    },
-                    messages = messages,
-                    conversationId = conversationId,
-                    shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-                    model = model,
-                    emptyLayout = {
-                        // TODO
+                Crossfade(targetState = modeSwitchState.selectedTabIndex.value) { selectedIndex ->
+                    if(selectedIndex == 1) {
+                        PrototypeConversation(
+                            modifier = Modifier.weight(1f),
+                            conversationId = conversationId
+                        )
+                    }else {
+                        ConversationComponent(
+                            modifier = Modifier.weight(1f),
+                            listModifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(),
+                            verticalArrangement = Arrangement.Bottom,
+                            lazyScope = {
+                                item(key = "topPadding") {
+                                    Spacer(Modifier.height(42.dp))
+                                }
+                            },
+                            messages = messages,
+                            conversationId = conversationId,
+                            shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
+                            model = model,
+                            emptyLayout = {
+                                // TODO
+                            }
+                        )
                     }
-                )
+                }
                 Box(
                     modifier = Modifier
                         .animateContentSize(alignment = Alignment.TopEnd)
@@ -196,10 +227,18 @@ fun ConversationScreen(
                         val nestedNavController = rememberNavController()
 
                         Column {
+                            if(BuildKonfig.isDevelopment) {
+                                MultiChoiceSwitch(
+                                    modifier = Modifier
+                                        .padding(horizontal = 8.dp)
+                                        .fillMaxWidth(),
+                                    state = modeSwitchState
+                                )
+                            }
                             NestedNavigationBar(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 6.dp, top = 2.dp),
+                                    .padding(top = 2.dp),
                                 navController = nestedNavController
                             )
                             NavigationHost(
