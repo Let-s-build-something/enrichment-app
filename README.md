@@ -1,6 +1,70 @@
-We make online communication more authentic, making it feel more human again.
-People fall for fake profiles and AI messages for a reason. A profile is just a collection of information about a given person, interchangeable, just plain text and images, no matter the author. Similarly, a message remains the same no matter who sends it, making its author and the context in which it was written almost irrelevant.
+# 🌱 Augmy: Say What You Mean, Express What You Feel
 
-This fundamental flaw in how our expressions are translated into content online is exactly the reason why we consume social interactions online, and rarely truly interact.
+**Augmy is an app that empowers you to express your true feelings with clarity and emotion**, offering a deeper way to connect through chat beyond words and labels.
 
-Our app messenger, Augmy, helps users to communicate more naturally and meaningfully, making it easier to express themselves and understand others. Each message has embedded nuances gathered from the way an author voiced themselves, which allows others to grasp the message as it was meant, in its full color. We also collaborate with researchers to streamline their work, making studies on communication online quicker and more cost-effective. Our goal is to automate sampling, development, and collection within users' natural environment, not just a limited prototype. It is also important to us to share our technology and know-how with other businesses that strive to make their users' communication meaningful and expressive. Augmy or its subparts can be easily integrated into any app or platform, enhancing communication anywhere needed, for whichever purpose.
+---
+<br><br>
+
+## 🧠 Real People, Real Spaces
+
+Online spaces are increasingly turning into a combination of AI-generated slop and inauthentic, overly curated texts and profiles that may as well be AI-generated.
+
+**Fuck the robots**, we've got to make some space for ourselves in this binary world and empower what makes us human.
+
+Even if people do try to express themselves and their ideas in a "human way", it can't possibly ever overcome the limits given by centralized tech companies that build their apps only as tools — rigid software.
+
+They are not designed to be social spaces, where people spend a large portion of their lives and interact with the people they care about every day.
+
+---
+<br>
+
+![Screencast](https://github.com/user-attachments/assets/da79c4f3-40b9-40eb-b19f-9fca776f35f5)
+
+---
+<br><br>
+
+## 🛠️ Independent and Community-Driven
+
+We have no investors, nor any large parent company over our heads.  
+That's why we can also focus on things that don't directly contribute to any profits.
+
+There are obvious drawbacks, though, so **we would greatly appreciate your support!**  
+Every supporter has a say in the development, so you not only contribute to our cause, **you partake in it**.
+
+**[☕ Support us on Ko-fi](https://ko-fi.com/augmy)**
+
+---
+<br><br>
+
+## (R)evolutionizing Communication
+
+That's the reason behind **Augmy** — humanize interactions online and bring (r)evolution into practice in how we communicate today.
+
+Forget about being an essayist and expressive writer in order to tell how you feel.  
+We've got to start from scratch, forget about the limits we've imposed on ourselves and, instead, attempt to find **new ways, better ways**.
+
+---
+
+<br><br>
+
+## 📚 Learn More
+
+Anyone interested in the core theoretical aspects of this movement can visit the website:  
+👉 [https://augmy.org/research](https://augmy.org/research)
+
+Practical elements are in work in this repository and will be released openly for anyone to use and we are also working on universally applying our solutions to all communication technologies.
+
+Small demo on top of existing messaging:
+
+![untitled-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/24c29d6c-326d-4a67-a656-ae8a104a618c)
+---
+<br><br>
+
+
+## 📡 Join the Movement
+If you want to join the cause, or have access to organizations with communication products and are interested in spreading the movement further:
+
+📧 Contact us at [brand@augmy.org](mailto:brand@augmy.org)  
+📅 Or [schedule a free call](https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ31KABYeIhB3qiFWBCUizjZysR2-rcCr6LGXm8WZSY2YRuadboAeNJIj8WzvIYR068uJFsa2CZ)
+
+<br><br><br><br>

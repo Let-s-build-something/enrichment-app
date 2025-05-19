@@ -41,7 +41,6 @@ class DataService {
                         delay(calculatedDelay)
 
                         jobs.remove(ping.identifier)
-                        println("kostka_test, appendPing: ${ping.identifier}")
 
                         sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
                             retainAll {
