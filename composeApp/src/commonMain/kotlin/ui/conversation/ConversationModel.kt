@@ -28,18 +28,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.folivo.trixnity.client.verification
-import net.folivo.trixnity.client.verification.ActiveVerificationState
-import net.folivo.trixnity.core.model.EventId
-import net.folivo.trixnity.core.model.RoomId
-import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
@@ -187,7 +181,7 @@ open class ConversationModel(
                             messages.map { message ->
                                 message.apply {
                                     user = detail?.members?.find { user -> user.userId == authorPublicId }
-                                    anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
+                                    anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage.authorPublicId }
                                     reactions?.forEach { reaction ->
                                         reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
                                     }
@@ -455,9 +449,9 @@ open class ConversationModel(
                     // GIPHY asset
                     if(!gifAsset?.original.isNullOrBlank()) {
                         MediaIO(
-                            url = gifAsset?.original,
+                            url = gifAsset.original,
                             mimetype = MimeType.IMAGE_GIF.mime,
-                            name = gifAsset?.description
+                            name = gifAsset.description
                         )
                     }
                 }
@@ -492,50 +486,6 @@ open class ConversationModel(
             }
         }
         println("kostka_test, new message sent: $msg")
-    }
-
-    fun acceptUserVerification(eventId: String?) {
-        if(eventId == null) throw Exception("Event id is null")
-        println("kostka_test, acceptUserVerification, client: ${sharedDataManager.matrixClient.value}, eventId: $eventId, roomId: $conversationId")
-        viewModelScope.launch {
-            sharedDataManager.matrixClient.value?.verification?.getActiveUserVerification(
-                roomId = RoomId(conversationId),
-                eventId = EventId(eventId)
-            )?.state.also {
-                println("kostka_test, active user verification state: $it")
-            }?.collectLatest { state ->
-                println("kostka_test, active user verification state: $state")
-                when(state) {
-                    is ActiveVerificationState.AcceptedByOtherDevice -> {
-
-                    }
-                    is ActiveVerificationState.Cancel -> {
-
-                    }
-                    is ActiveVerificationState.Done -> {
-
-                    }
-                    is ActiveVerificationState.OwnRequest -> {
-
-                    }
-                    is ActiveVerificationState.Ready -> {
-                        state.start(VerificationMethod.Sas)
-                    }
-                    is ActiveVerificationState.Start -> {
-
-                    }
-                    is ActiveVerificationState.TheirRequest -> {
-                        state.ready()
-                    }
-                    is ActiveVerificationState.WaitForDone -> {
-
-                    }
-                    is ActiveVerificationState.Undefined -> {
-
-                    }
-                }
-            }
-        }
     }
 
     /** Makes a request to add or change reaction to a message */

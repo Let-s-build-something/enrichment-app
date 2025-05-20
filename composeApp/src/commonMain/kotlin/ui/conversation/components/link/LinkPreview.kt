@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -58,7 +59,8 @@ fun LinkPreview(
         Column(
             modifier = modifier
                 .width(IntrinsicSize.Min)
-                .background(color = textBackground, shape = shape),
+                .background(color = textBackground, shape = shape)
+                .heightIn(max = screenSize.height.times(.3f).dp),
             horizontalAlignment = alignment
         ) {
             graphProtocol.value?.imageUrl?.let { image ->
@@ -67,7 +69,6 @@ fun LinkPreview(
                         .align(Alignment.CenterHorizontally)
                         .sizeIn(
                             minHeight = imageSize.height.dp,
-                            maxHeight = screenSize.height.times(.3f).dp,
                             minWidth = 200.dp
                         )
                         .wrapContentWidth()

@@ -76,7 +76,7 @@ fun buildTempoString(
         }
         !enabled -> {
             buildAnnotatedString {
-                append(text)
+                withStyle(style) { append(text) }
                 graphemes.value?.toList()?.forEachIndexed { index, matchResult ->
                     if (aboveMedianIndexes.value?.contains(index) == true) {
                         val range = matchResult.range

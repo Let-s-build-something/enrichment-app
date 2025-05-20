@@ -110,7 +110,14 @@
   <string name="message_decrypting">This message couldn't be decrypted:(</string>
   <string name="message_read_more">Read more</string>
   <string name="message_user_verification">%1$s asked for a verification.</string>
+  <string name="message_user_verification_self">You sent a user verification request.</string>
   <string name="message_user_verification_error">This verification request is not valid anymore.</string>
+  <string name="message_user_verification_awaiting">Awaiting response</string>
+  <string name="message_user_verification_ready">User is selecting a verification method</string>
+  <string name="message_user_verification_start">Starting verification...</string>
+  <string name="message_user_verification_emoji">Does the other user have the same emojis as you?</string>
+  <string name="message_user_verification_digit">Does the other user have the same digits as you?</string>
+  <string name="message_user_verification_canceled">Request canceled.</string>
   <string name="invite_new_item_conversation">Name of the conversation</string>
   <string name="invite_new_item_button">Create new</string>
   <string name="invite_network_items_heading">There's only one way to figure out whether they'll fit in. Select people who should be invited.</string>
@@ -239,6 +246,7 @@
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Remove</string>
   <string name="button_verify">Verify</string>
+  <string name="button_accept">Accept</string>
   <string name="button_mute">Mute</string>
   <string name="button_search">Search</string>
   <string name="button_tune">Tune</string>
@@ -272,8 +280,8 @@
   <string name="accessibility_save">Save</string>
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
-  <string name="accessibility_upload_files">Upload from files</string>
-  <string name="accessibility_upload_url">User an URL</string>
+  <string name="accessibility_upload_files">Upload image</string>
+  <string name="accessibility_upload_url">From link</string>
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>

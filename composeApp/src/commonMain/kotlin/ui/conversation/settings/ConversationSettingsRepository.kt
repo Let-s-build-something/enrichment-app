@@ -69,8 +69,10 @@ class ConversationSettingsRepository(
         conversationRoomDao.remove(id = conversationId, ownerPublicId = ownerPublicId)
     }
 
-    suspend fun removeMessage(id: String): Boolean = withContext(Dispatchers.IO) {
-        conversationMessageDao.remove(id = id) > 0L
+    suspend fun getPendingVerifications(
+        senderUserId: String?
+    ) = withContext(Dispatchers.IO) {
+        conversationMessageDao.getPendingVerifications(senderUserId = senderUserId)
     }
 
     /** Returns a flow of conversation messages */

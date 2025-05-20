@@ -43,8 +43,8 @@ private fun HeaderButton(
     containerColor: Color,
     showBorder: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(
-        vertical = 14.dp,
-        horizontal = 24.dp
+        vertical = 10.dp,
+        horizontal = 16.dp
     ),
     endImageVector: ImageVector? = null,
     additionalContent: @Composable RowScope.() -> Unit = {},
@@ -187,8 +187,8 @@ fun BrandHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     contentPadding: PaddingValues = PaddingValues(
-        vertical = 14.dp,
-        horizontal = 24.dp
+        vertical = 10.dp,
+        horizontal = 16.dp
     ),
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
@@ -218,8 +218,8 @@ private fun LoadingHeaderButton(
     contentColor: Color,
     containerColor: Color,
     contentPadding: PaddingValues = PaddingValues(
-        vertical = 14.dp,
-        horizontal = 24.dp
+        vertical = 10.dp,
+        horizontal = 16.dp
     ),
     showBorder: Boolean = true,
     isEnabled: Boolean = true,

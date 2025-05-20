@@ -5,9 +5,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import base.global.verification.ComparisonByUserData
-import base.global.verification.emojisWithTranslation
-import data.io.base.AppPing
-import data.io.base.AppPingType
 import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.MediaIO
@@ -20,21 +17,13 @@ import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.client.verification
-import net.folivo.trixnity.client.verification.ActiveSasVerificationMethod
-import net.folivo.trixnity.client.verification.ActiveSasVerificationState
-import net.folivo.trixnity.client.verification.ActiveUserVerification
 import net.folivo.trixnity.client.verification.ActiveVerificationState
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
-import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
-import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod.Sas
-import net.folivo.trixnity.core.model.events.m.key.verification.VerificationRequestToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
@@ -60,7 +49,6 @@ class ConversationSettingsModel(
         const val MAX_MEMBERS_COUNT = 8
         const val PAGE_ITEM_COUNT = 20
     }
-    private val supportedVerificationMethods = setOf(Sas)
 
     sealed class ChangeType(open val state: BaseResponse<*>) {
         data class Avatar(override val state: BaseResponse<*>): ChangeType(state)
@@ -93,15 +81,6 @@ class ConversationSettingsModel(
 
     /** Removes a member out of a conversation */
     fun kickMember(memberId: String) {
-        viewModelScope.launch {
-            sharedDataManager.matrixClient.value?.api?.room?.kickUser(
-                roomId = RoomId(conversationId),
-                userId = UserId(memberId)
-            )
-        }
-    }
-
-    fun ignoreMember(memberId: String) {
         viewModelScope.launch {
             sharedDataManager.matrixClient.value?.api?.room?.kickUser(
                 roomId = RoomId(conversationId),
@@ -184,120 +163,36 @@ class ConversationSettingsModel(
         }
     }
 
-    fun matchChallenge(matches: Boolean) {
-        (_ongoingChange.value as? ChangeType.VerifyMember)?.data?.let { data ->
-            viewModelScope.launch {
-                _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Loading)
-                data.send(matches)
-            }
-        }
-    }
+    fun ActiveVerificationState.isFinished() = this is ActiveVerificationState.Cancel
+            || this is ActiveVerificationState.Done
+            || this is ActiveVerificationState.WaitForDone
 
     fun verifyUser(userId: String?) {
         if(userId == null) return
         _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Loading)
         viewModelScope.launch {
-            matrixClient?.verification?.createUserVerificationRequest(UserId(userId))
-                ?.getOrNullLoggingError()
-                ?.roomId
-                .let { roomId ->
-                    _ongoingChange.value = ChangeType.VerifyMember(
-                        if(roomId != null) BaseResponse.Success(roomId.full) else BaseResponse.Error()
-                    )
+            var valid = true
+            // TODO progress tracking in the UI but controls will be in the chat (better availability)
+            repository.getPendingVerifications(senderUserId = matrixUserId).forEach { message ->
+                if(message.verification?.to == userId) {
+                    matrixClient?.verification?.getActiveUserVerification(
+                        roomId = RoomId(conversationId),
+                        eventId = EventId(message.id)
+                    )?.state?.value?.let {
+                        if(!it.isFinished()) valid = false
+                    }
                 }
-        }
-    }
+            }
 
-    private var activeUserVerification: ActiveUserVerification? = null
-
-    /** user-initiated request to follow on the give [eventId] user verification process. */
-    fun confirmUserVerification(eventId: String) {
-        _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Loading)
-        viewModelScope.launch {
-            matrixClient?.verification?.getActiveUserVerification(
-                roomId = RoomId(conversationId),
-                eventId = EventId(eventId)
-            ).also {
-                println("kostka_test, ongoing user verification: $it")
-                activeUserVerification = it
-                if(it == null) {
-                    if(repository.removeMessage(id = eventId)) {
-                        sharedDataManager.pingStream.update { prev ->
-                            prev.plus(AppPing(type = AppPingType.Conversation, identifier = conversationId))
-                        }
+            if(valid) {
+                matrixClient?.verification?.createUserVerificationRequest(UserId(userId))
+                    ?.getOrNullLoggingError()
+                    ?.roomId
+                    .let { roomId ->
+                        _ongoingChange.value = ChangeType.VerifyMember(
+                            if(roomId != null) BaseResponse.Success(roomId.full) else BaseResponse.Error()
+                        )
                     }
-                    _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Error())
-                }
-            }?.state?.collectLatest { state ->
-                println("kostka_test, ongoing user verification state: $state")
-                when(state) {
-                    is ActiveVerificationState.TheirRequest -> {
-                        when(val content = state.content) {
-                            is VerificationRequestToDeviceEventContent -> {
-                                content.methods.forEach { method ->
-                                    when(method) {
-                                        Sas -> {
-                                            println("kostka_test, marking Sas as ready")
-                                            state.ready()
-                                            /*startSasVerification(
-                                                client = client,
-                                                transactionId = content.transactionId
-                                            )*/
-                                        }
-                                        is VerificationMethod.Unknown -> {
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    is ActiveVerificationState.Start -> {
-                        when(val method = state.method) {
-                            is ActiveSasVerificationMethod -> {
-                                method.state.collectLatest { sasState ->
-                                    when(sasState) {
-                                        is ActiveSasVerificationState.ComparisonByUser -> {
-                                            _ongoingChange.value = ChangeType.VerifyMember(
-                                                data = ComparisonByUserData(
-                                                    onSend = { matches ->
-                                                        if(matches) sasState.match() else sasState.noMatch()
-                                                    },
-                                                    decimals = sasState.decimal,
-                                                    emojis = sasState.emojis.mapNotNull {
-                                                        emojisWithTranslation[it.first]
-                                                    }
-                                                ),
-                                                state = BaseResponse.Idle
-                                            )
-                                        }
-                                        is ActiveSasVerificationState.TheirSasStart -> {
-                                            println("kostka_test, sasState accept")
-                                            if(state.senderUserId.full != matrixUserId) {
-                                                sasState.accept()
-                                            }
-                                        }
-                                        is ActiveSasVerificationState.Accept -> {}
-                                        is ActiveSasVerificationState.OwnSasStart -> {}
-                                        is ActiveSasVerificationState.WaitForKeys -> {}
-                                        ActiveSasVerificationState.WaitForMacs -> {}
-                                    }
-                                    println("kostka_test, sasState: $sasState")
-                                }
-                            }
-                        }
-                    }
-                    is ActiveVerificationState.Ready -> {
-                        state.methods.firstOrNull { supportedVerificationMethods.contains(it) }?.let { method ->
-                            println("kostka_test, NOT starting $method")
-                            //state.start(method)
-                        }
-                    }
-                    is ActiveVerificationState.Done -> {
-                        _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Success(null))
-                    }
-                    is ActiveVerificationState.Cancel -> _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Error())
-                    else -> {}
-                }
             }
         }
     }

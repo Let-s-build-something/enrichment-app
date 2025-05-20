@@ -55,6 +55,14 @@ interface ConversationMessageDao {
             "LIMIT 1")
     suspend fun get(messageId: String?): ConversationMessageIO?
 
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} 
+        WHERE author_public_id = :senderUserId 
+        AND verification IS NOT NULL
+        ORDER BY sent_at DESC
+    """)
+    suspend fun getPendingVerifications(senderUserId: String?): List<ConversationMessageIO>
+
     /** marks a message as transcribed */
     @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "SET transcribed = :transcribed " +
