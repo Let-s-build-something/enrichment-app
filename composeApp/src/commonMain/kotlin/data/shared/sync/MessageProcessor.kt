@@ -1,5 +1,7 @@
 package data.shared.sync
 
+import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.message_alias_change
 import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
 import data.io.base.AppPingType
@@ -34,6 +36,7 @@ import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationCancelEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationDoneEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationStep
+import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
@@ -42,6 +45,7 @@ import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.File
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
+import org.jetbrains.compose.resources.getString
 import org.koin.mp.KoinPlatform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -184,7 +188,16 @@ abstract class MessageProcessor {
                     }
                     null
                 }
-
+                is CanonicalAliasEventContent -> {
+                    ConversationMessageIO(
+                        content = getString(
+                            Res.string.message_alias_change,
+                            (content.alias ?: content.aliases?.firstOrNull())?.full ?: "",
+                            event.senderOrNull?.full ?: ""
+                        ),
+                        authorPublicId = ""
+                    )
+                }
                 is MessageEventContent -> content.process()
                 else -> null
                 /*EmptyEventContent -> TODO()
@@ -299,7 +312,7 @@ abstract class MessageProcessor {
         roomId: String
     ): ConversationMessageIO = this.copy(
         id = event.idOrNull?.full ?: messageId,
-        authorPublicId = event.senderOrNull?.full,
+        authorPublicId = this.authorPublicId ?: event.senderOrNull?.full,
         sentAt = event.originTimestampOrNull?.let { millis ->
             Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
         },

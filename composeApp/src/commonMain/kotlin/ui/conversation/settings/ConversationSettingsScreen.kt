@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -69,8 +70,13 @@ import augmy.composeapp.generated.resources.conversation_kick_message
 import augmy.composeapp.generated.resources.conversation_kick_title
 import augmy.composeapp.generated.resources.conversation_left_message
 import augmy.composeapp.generated.resources.conversation_members
+import augmy.composeapp.generated.resources.device_verification_success
 import augmy.composeapp.generated.resources.items_see_more
 import augmy.composeapp.generated.resources.leave_app_dialog_title
+import augmy.composeapp.generated.resources.message_user_verification_awaiting
+import augmy.composeapp.generated.resources.message_user_verification_canceled
+import augmy.composeapp.generated.resources.message_user_verification_ready
+import augmy.composeapp.generated.resources.message_user_verification_start
 import augmy.composeapp.generated.resources.screen_conversation_settings
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -100,12 +106,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.verification.ActiveVerificationState
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.settings.ConversationSettingsModel.Companion.MAX_MEMBERS_COUNT
+import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -267,6 +275,7 @@ fun ConversationSettingsContent(conversationId: String?) {
         }
     }
 
+    //TODO different layout for direct conversations
     LazyColumn(
         modifier = Modifier
             .background(color = LocalTheme.current.colors.backgroundDark)
@@ -351,6 +360,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                     hoverEnabled = !isSelected,
                     scaleInto = .9f,
                     onTap = {
+                        model.checkVerificationState(userId = member?.id)
                         selectedMemberId.value = if(selectedMemberId.value == member?.id) null else member?.id
                     }
                 )
@@ -375,25 +385,63 @@ fun ConversationSettingsContent(conversationId: String?) {
                 data = member?.toNetworkItem(),
                 isSelected = isSelected,
                 actions = {
-                    Row(modifier = Modifier.padding(bottom = 4.dp)) {
-                        Spacer(Modifier.width(6.dp))
-                        ScalingIcon(
-                            color = SharedColors.RED_ERROR.copy(.6f),
-                            imageVector = Icons.Outlined.FaceRetouchingOff,
-                            contentDescription = stringResource(Res.string.button_block),
-                            onClick = {
-                                kickMemberUserId.value = member?.userId
+                    Column {
+                        val verifications = model.verifications.collectAsState()
+                        val verification = verifications.value[member?.id]
+
+                        AnimatedVisibility(verification != null) {
+                            Row(
+                                modifier = Modifier
+                                    .background(
+                                        color = LocalTheme.current.colors.backgroundDark,
+                                        shape = LocalTheme.current.shapes.rectangularActionShape
+                                    )
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        when(verification?.state?.value) {
+                                            is ActiveVerificationState.Done -> Res.string.device_verification_success
+                                            is ActiveVerificationState.Ready -> Res.string.message_user_verification_ready
+                                            is ActiveVerificationState.Start -> Res.string.message_user_verification_start
+                                            is ActiveVerificationState.Cancel -> Res.string.message_user_verification_canceled
+                                            else -> Res.string.message_user_verification_awaiting
+                                        }
+                                    ),
+                                    style = LocalTheme.current.styles.regular
+                                )
+
+                                AnimatedVisibility(verification?.state?.value?.isFinished() == false) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.requiredSize(24.dp),
+                                        color = LocalTheme.current.colors.disabled,
+                                        trackColor = LocalTheme.current.colors.disabledComponent
+                                    )
+                                }
                             }
-                        )
-                        if(detail.value?.summary?.isDirect != true) {
+                        }
+                        Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                            Spacer(Modifier.width(6.dp))
                             ScalingIcon(
-                                color = SharedColors.YELLOW.copy(.6f),
-                                imageVector = Icons.Outlined.SensorOccupied,
-                                contentDescription = stringResource(Res.string.button_verify),
+                                color = SharedColors.RED_ERROR.copy(.6f),
+                                imageVector = Icons.Outlined.FaceRetouchingOff,
+                                contentDescription = stringResource(Res.string.button_block),
                                 onClick = {
-                                    model.verifyUser(userId = member?.userId)
+                                    kickMemberUserId.value = member?.userId
                                 }
                             )
+                            AnimatedVisibility(ongoingChange.value !is ConversationSettingsModel.ChangeType.VerifyMember) {
+                                ScalingIcon(
+                                    color = SharedColors.YELLOW.copy(.6f),
+                                    imageVector = Icons.Outlined.SensorOccupied,
+                                    contentDescription = stringResource(Res.string.button_verify),
+                                    onClick = {
+                                        model.verifyUser(userId = member?.userId)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

@@ -123,7 +123,7 @@ class VerificationModel: SharedModel() {
                         }
                     }
                     is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
-                        println("kostka_test, selfVerificationMethod, methods: ${verification.methods}")
+                        println("kostka_test, selfVerificationMethod, methods: ${verification.methods.map { it::class }}")
 
                         _launcherState.value = if(verification.methods.isEmpty()) {
                             LauncherState.Bootstrap

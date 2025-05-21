@@ -33,21 +33,21 @@ class DataService {
                 val calculatedDelay = if(lastPingTime == 0L) 0 else lastPingTime - time
                 lastPingTime = lastPingTime.coerceAtLeast(time) + 300L
 
-                if(calculatedDelay > 0) {
-                    // obsolete ping
-                    if(jobs.none { it == ping.identifier }) {
-                        jobs.add(ping.identifier)
+                // obsolete ping
+                if(jobs.none { it == ping.identifier }) {
+                    jobs.add(ping.identifier)
 
+                    if(calculatedDelay > 0) {
                         delay(calculatedDelay)
-
-                        jobs.remove(ping.identifier)
-
-                        sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
-                            retainAll {
-                                DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
-                            }
-                        }.plus(ping)
                     }
+
+                    jobs.remove(ping.identifier)
+
+                    sharedDataManager.pingStream.value = LinkedHashSet(sharedDataManager.pingStream.value).apply {
+                        retainAll {
+                            DateUtils.now.toEpochMilliseconds().minus(it.timestamp) < PING_EXPIRY_MS
+                        }
+                    }.plus(ping)
                 }
             }
         }

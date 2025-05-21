@@ -18,8 +18,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.client.verification
+import net.folivo.trixnity.client.verification.ActiveUserVerification
 import net.folivo.trixnity.client.verification.ActiveVerificationState
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
@@ -48,6 +50,10 @@ class ConversationSettingsModel(
     companion object {
         const val MAX_MEMBERS_COUNT = 8
         const val PAGE_ITEM_COUNT = 20
+
+        fun ActiveVerificationState.isFinished() = this is ActiveVerificationState.Cancel
+                || this is ActiveVerificationState.Done
+                || this is ActiveVerificationState.WaitForDone
     }
 
     sealed class ChangeType(open val state: BaseResponse<*>) {
@@ -63,11 +69,13 @@ class ConversationSettingsModel(
 
     private val _ongoingChange = MutableStateFlow<ChangeType?>(null)
     private val _selectedUser = MutableStateFlow<NetworkItemIO?>(null)
+    private val _verifications = MutableStateFlow<HashMap<String, ActiveUserVerification?>>(hashMapOf())
 
     /** Detailed information about this conversation */
     val conversation = dataManager.conversations.map { it.second[conversationId] }
     val ongoingChange = _ongoingChange.asStateFlow()
     val selectedUser = _selectedUser.asStateFlow()
+    val verifications = _verifications.asStateFlow()
 
     val members: Flow<PagingData<ConversationRoomMember>> = repository.getMembersListFlow(
         config = PagingConfig(
@@ -163,32 +171,42 @@ class ConversationSettingsModel(
         }
     }
 
-    fun ActiveVerificationState.isFinished() = this is ActiveVerificationState.Cancel
-            || this is ActiveVerificationState.Done
-            || this is ActiveVerificationState.WaitForDone
+    suspend fun getActiveVerification(
+        userId: String,
+        unfinishedOnly: Boolean = false
+    ) = repository.getPendingVerifications(
+        senderUserId = matrixUserId
+    ).mapNotNull { message ->
+        if(message.verification?.to == userId) {
+            matrixClient?.verification?.getActiveUserVerification(
+                roomId = RoomId(conversationId),
+                eventId = EventId(message.id)
+            )?.takeIf { !unfinishedOnly || it.state.value.isFinished() == false }
+        } else null
+    }
+
+    /** Check for a given user's verification state */
+    fun checkVerificationState(userId: String?) {
+        if(userId == null) return
+        viewModelScope.launch {
+            _verifications.update {
+                it.apply {
+                    set(userId, getActiveVerification(userId).firstOrNull())
+                }
+            }
+        }
+    }
 
     fun verifyUser(userId: String?) {
         if(userId == null) return
         _ongoingChange.value = ChangeType.VerifyMember(BaseResponse.Loading)
         viewModelScope.launch {
-            var valid = true
-            // TODO progress tracking in the UI but controls will be in the chat (better availability)
-            repository.getPendingVerifications(senderUserId = matrixUserId).forEach { message ->
-                if(message.verification?.to == userId) {
-                    matrixClient?.verification?.getActiveUserVerification(
-                        roomId = RoomId(conversationId),
-                        eventId = EventId(message.id)
-                    )?.state?.value?.let {
-                        if(!it.isFinished()) valid = false
-                    }
-                }
-            }
-
-            if(valid) {
+            if(getActiveVerification(userId = userId, unfinishedOnly = true).isEmpty()) {
                 matrixClient?.verification?.createUserVerificationRequest(UserId(userId))
                     ?.getOrNullLoggingError()
                     ?.roomId
                     .let { roomId ->
+                        checkVerificationState(userId)
                         _ongoingChange.value = ChangeType.VerifyMember(
                             if(roomId != null) BaseResponse.Success(roomId.full) else BaseResponse.Error()
                         )
