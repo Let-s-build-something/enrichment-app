@@ -1,5 +1,6 @@
 package data.io.matrix.room
 
+import androidx.room.Ignore
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
@@ -58,10 +59,13 @@ data class RoomSummary(
             invitationMessage = other.invitationMessage ?: invitationMessage,
             invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
             joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
-        )
+        ).apply {
+            members = other.members.takeIf { !it.isNullOrEmpty() } ?: members
+        }
     }
 
     /** List of members */
+    @Ignore
     var members: List<ConversationRoomMember>? = null
 
     /** Either [canonicalAlias] or a default based on [heroes] */
@@ -76,6 +80,7 @@ data class RoomSummary(
                 "avatar: $avatar, " +
                 "isDirect: $isDirect, " +
                 "invitationMessage: $invitationMessage, " +
+                "members: $members, " +
                 "invitedMemberCount: $invitedMemberCount, " +
                 "joinedMemberCount: $joinedMemberCount, " +
                 "lastMessage: $lastMessage" +

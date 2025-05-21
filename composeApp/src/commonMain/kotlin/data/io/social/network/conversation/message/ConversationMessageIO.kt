@@ -9,7 +9,6 @@ import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
@@ -76,7 +75,9 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo(name = "conversation_id")
     var conversationId: String? = null,
 
-    val verification: VerificationRequestInfo? = null
+    val verification: VerificationRequestInfo? = null,
+
+    val user: ConversationRoomMember? = null
 ) {
 
     @Serializable
@@ -85,11 +86,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         val methods: Set<VerificationMethod>,
         val to: String
     )
-
-    /** User attached to this message */
-    @Ignore
-    @Transient
-    var user: ConversationRoomMember? = null
 
     /** Converts this message to an anchor message */
     @Ignore
@@ -101,6 +97,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         anchorMessageId = anchorMessageId
     )
 
+    @Ignore
     fun update(other: ConversationMessageIO): ConversationMessageIO {
         return this.copy(
             content = other.content ?: content,
@@ -116,7 +113,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
             timings = other.timings ?: timings,
             conversationId = other.conversationId ?: conversationId,
             transcribed = other.transcribed ?: transcribed,
-            verification = other.verification ?: verification
+            verification = other.verification ?: verification,
         )
     }
 

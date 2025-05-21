@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -58,7 +59,10 @@ import ui.conversation.components.SendMessagePanel
 import ui.conversation.components.TypingIndicator
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.message.MessageBubbleModel
+import ui.conversation.message.AUTHOR_SYSTEM
 import ui.conversation.message.ConversationMessageContent
+import ui.conversation.message.MessageType
+import ui.conversation.message.SystemMessage
 import ui.conversation.message.user_verification.UserVerificationMessage
 
 /**
@@ -238,94 +242,115 @@ fun ConversationComponent(
             ) { index ->
                 val data = messages.getOrNull(index)
 
-                val isCurrentUser = data?.authorPublicId == model.matrixUserId
-                val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
-                val nextItem = messages.getOrNull(index - 1)
-                val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
-
-                if(isCurrentUser && !isNextMessageSameAuthor && lastCurrentUserMessage.value > index) {
-                    lastCurrentUserMessage.value = index
+                val messageType = when {
+                    data?.authorPublicId == model.matrixUserId -> MessageType.CurrentUser
+                    data?.authorPublicId == AUTHOR_SYSTEM -> MessageType.System
+                    data == null -> if((0..1).random() == 0) MessageType.CurrentUser else MessageType.OtherUser
+                    else -> MessageType.OtherUser
                 }
-                val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.transcribed == true) }
 
-                if(data?.id != null && !isCurrentUser && !data.content.isNullOrBlank()) {
+                if(messageType == MessageType.System) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        if(data?.verification != null) {
+                            UserVerificationMessage(data = data)
+                        }else {
+                            SystemMessage(data = data)
+                        }
+                    }
+                }else {
+                    val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
+                    val nextItem = messages.getOrNull(index - 1)
+                    val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
+
                     LaunchedEffect(Unit) {
-                        if(data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
-                            transcribedItem.value = index to data.id
-                        }else if ((transcribedItem.value?.first ?: -1) == index
-                            && data.id != transcribedItem.value?.second
+                        if(messageType == MessageType.CurrentUser
+                            && !isNextMessageSameAuthor
+                            && lastCurrentUserMessage.value > index
                         ) {
-                            transcribedItem.value = null
-                        }
-
-                        if(data.transcribed == true && transcribedItem.value?.second == data.id) {
-                            transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
+                            lastCurrentUserMessage.value = index
                         }
                     }
-                }
+                    val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.transcribed == true) }
 
-                DisposableEffect(null) {
-                    onDispose {
-                        if(transcribedItem.value?.second == data?.id) transcribedItem.value = null
-                    }
-                }
-
-                val bubbleModel = remember(data?.id) {
-                    object: MessageBubbleModel {
-                        override val transcribe = derivedStateOf {
-                            !isCurrentUser && transcribedItem.value?.second == data?.id
-                                    && !isTranscribed.value
-                        }
-
-                        override fun onTranscribed() {
-                            isTranscribed.value = true
-                            model.markMessageAsTranscribed(id = data?.id)
-                            transcribedItem.value = if(index > 0) {
-                                index + 1 to nextItem?.id.orEmpty()
-                            }else null
-                        }
-
-                        override fun onReactionRequest(isReacting: Boolean) {
-                            reactingToMessageId.value = if(isReacting) data?.id else null
-                        }
-
-                        override fun onReactionChange(emoji: String) {
-                            model.reactToMessage(content = emoji, messageId = data?.id)
-                            reactingToMessageId.value = null
-                        }
-
-                        override fun onAdditionalReactionRequest() {
-                            showEmojiPreferencesId.value = data?.id
-                        }
-
-                        override fun onReplyRequest() {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(index = 0)
+                    if(data?.id != null && messageType == MessageType.OtherUser && !data.content.isNullOrBlank()) {
+                        LaunchedEffect(Unit) {
+                            if(data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
+                                transcribedItem.value = index to data.id
+                            }else if ((transcribedItem.value?.first ?: -1) == index
+                                && data.id != transcribedItem.value?.second
+                            ) {
+                                transcribedItem.value = null
                             }
-                            replyToMessage.value = data
-                        }
 
-                        override fun openDetail() {
-                            if(thread == null) {
+                            if(data.transcribed == true && transcribedItem.value?.second == data.id) {
+                                transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
+                            }
+                        }
+                    }
+
+                    DisposableEffect(null) {
+                        onDispose {
+                            if(transcribedItem.value?.second == data?.id) transcribedItem.value = null
+                        }
+                    }
+
+                    val bubbleModel = remember(data?.id) {
+                        object: MessageBubbleModel {
+                            override val transcribe = derivedStateOf {
+                                messageType == MessageType.OtherUser
+                                        && transcribedItem.value?.second == data?.id
+                                        && !isTranscribed.value
+                            }
+
+                            override fun onTranscribed() {
+                                isTranscribed.value = true
+                                model.markMessageAsTranscribed(id = data?.id)
+                                transcribedItem.value = if(index > 0) {
+                                    index + 1 to nextItem?.id.orEmpty()
+                                }else null
+                            }
+
+                            override fun onReactionRequest(isReacting: Boolean) {
+                                reactingToMessageId.value = if(isReacting) data?.id else null
+                            }
+
+                            override fun onReactionChange(emoji: String) {
+                                model.reactToMessage(content = emoji, messageId = data?.id)
+                                reactingToMessageId.value = null
+                            }
+
+                            override fun onAdditionalReactionRequest() {
+                                showEmojiPreferencesId.value = data?.id
+                            }
+
+                            override fun onReplyRequest() {
                                 coroutineScope.launch {
-                                    navController?.navigate(
-                                        NavigationNode.MessageDetail(
-                                            messageId = data?.id ?: "",
-                                            conversationId = conversationId,
-                                            title = if(isCurrentUser) {
-                                                getString(Res.string.conversation_detail_you)
-                                            } else data?.user?.content?.displayName
+                                    listState.animateScrollToItem(index = 0)
+                                }
+                                replyToMessage.value = data
+                            }
+
+                            override fun openDetail() {
+                                if(thread == null) {
+                                    coroutineScope.launch {
+                                        navController?.navigate(
+                                            NavigationNode.MessageDetail(
+                                                messageId = data?.id ?: "",
+                                                conversationId = conversationId,
+                                                title = if(messageType == MessageType.CurrentUser) {
+                                                    getString(Res.string.conversation_detail_you)
+                                                } else data?.user?.content?.displayName
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if(data?.verification != null) {
-                    UserVerificationMessage(data = data)
-                } else {
                     ConversationMessageContent(
                         data = data?.copy(
                             transcribed = data.transcribed == true || isTranscribed.value,
@@ -340,7 +365,8 @@ fun ConversationComponent(
                         scrollToMessage = scrollToMessage,
                         preferredEmojis = preferredEmojis.value,
                         temporaryFiles = model.temporaryFiles.value.toMap(),
-                        isMyLastMessage = lastCurrentUserMessage.value == index
+                        isMyLastMessage = lastCurrentUserMessage.value == index,
+                        messageType = messageType
                     )
                 }
             }

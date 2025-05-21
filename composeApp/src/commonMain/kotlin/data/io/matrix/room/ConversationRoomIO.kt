@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import data.io.matrix.room.event.ConversationRoomMember
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
@@ -113,14 +112,8 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             historyVisibility = other.historyVisibility ?: historyVisibility,
             algorithm = other.algorithm ?: algorithm,
             type = other.type
-        ).apply {
-            members = other.members
-        }
+        )
     }
-
-    /** Users participating in the conversation */
-    @Ignore
-    var members: List<ConversationRoomMember>? = null
 
     /** Converts this item to a network item representation */
     fun toNetworkItem() = NetworkItemIO(

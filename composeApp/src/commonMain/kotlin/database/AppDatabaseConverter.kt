@@ -3,6 +3,7 @@ package database
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
@@ -63,6 +64,16 @@ class AppDatabaseConverter {
     
     @TypeConverter
     fun toPresenceEventContent(value: String): PresenceEventContent {
+        return json.decodeFromString(value)
+    }
+
+    @TypeConverter
+    fun fromConversationRoomMember(value: ConversationRoomMember): String {
+        return json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toConversationRoomMember(value: String): ConversationRoomMember {
         return json.decodeFromString(value)
     }
 

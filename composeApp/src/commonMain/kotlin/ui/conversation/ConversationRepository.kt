@@ -11,6 +11,7 @@ import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.message.ConversationMessageIO
@@ -43,6 +44,8 @@ import net.folivo.trixnity.client.room.encrypt
 import net.folivo.trixnity.client.roomEventEncryptionServices
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
 import net.folivo.trixnity.core.model.events.m.room.FileInfo
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
@@ -202,14 +205,33 @@ open class ConversationRepository(
         conversationId: String,
         owner: String?
     ): ConversationRoomIO? = withContext(Dispatchers.IO) {
-        conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.apply {
-            summary?.members = roomMemberDao.get(
-                userIds = summary?.heroes?.map { it.full }.orEmpty()
+        conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.let { room ->
+            val members = roomMemberDao.get(
+                userIds = room.summary?.heroes?.map { it.full }.orEmpty()
+            ).let { local ->
+                // if there are missing members, let's use API
+                if (local.size < (room.summary?.heroes?.size?.plus(1) ?: 1) || local.isEmpty()) {
+                    (sharedDataManager.matrixClient.value?.api?.room?.getMembers(
+                        roomId = RoomId(conversationId)
+                    )?.getOrNull()?.toList() as? List<ClientEvent<*>>)?.let { memberEvents ->
+                        dataSyncHandler.saveEvents(
+                            roomId = conversationId,
+                            prevBatch = null,
+                            events = memberEvents
+                        ).members
+                    }?.plus(local)?.distinctBy { it.userId } ?: local
+                } else local
+            }
+
+            room.copy(
+                summary = (room.summary ?: RoomSummary(heroes = members.map { UserId(it.userId) })).apply {
+                    this.members = members
+                }
             )
         }
     }
 
-    /** Returns a detailed information about a conversation */
+    /** Informs Matrix about typing progress */
     suspend fun updateTypingIndicator(
         conversationId: String,
         indicator: ConversationTypingIndicator

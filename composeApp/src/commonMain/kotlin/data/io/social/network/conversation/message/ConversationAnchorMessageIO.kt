@@ -1,11 +1,9 @@
 package data.io.social.network.conversation.message
 
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.giphy.GifAsset
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -38,10 +36,7 @@ data class ConversationAnchorMessageIO(
     /** Index within the whole data set ASC */
     val index: Int? = null,
 
-    val anchorMessageId: String? = null
-) {
-    /** User attached to this message */
-    @Ignore
-    @Transient
-    var user: ConversationRoomMember? = null
-}
+    val anchorMessageId: String? = null,
+
+    val user: ConversationRoomMember? = null
+)

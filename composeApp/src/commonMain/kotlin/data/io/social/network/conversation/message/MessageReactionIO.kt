@@ -1,9 +1,7 @@
 package data.io.social.network.conversation.message
 
-import androidx.room.Ignore
 import data.io.matrix.room.event.ConversationRoomMember
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 /** A singular reaction to a message */
 @Serializable
@@ -12,10 +10,7 @@ data class MessageReactionIO(
     val content: String? = null,
 
     /** Public id of the author of this message */
-    val authorPublicId: String? = null
-) {
-    /** Author user information */
-    @Ignore
-    @Transient
-    var user: ConversationRoomMember? = null
-}
+    val authorPublicId: String? = null,
+
+    val user: ConversationRoomMember? = null
+)

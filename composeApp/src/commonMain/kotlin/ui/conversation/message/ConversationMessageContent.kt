@@ -45,6 +45,14 @@ import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.components.message.ReplyIndication
 import ui.conversation.media.MediaRow
 
+const val AUTHOR_SYSTEM = "SYSTEM"
+
+enum class MessageType {
+    CurrentUser,
+    OtherUser,
+    System
+}
+
 /**
  * All content relevant to a single message within a conversation
  * This means media, audio, attachments, reactions, etc.
@@ -56,6 +64,7 @@ fun LazyItemScope.ConversationMessageContent(
     currentUserPublicId: String?,
     isPreviousMessageSameAuthor: Boolean,
     isNextMessageSameAuthor: Boolean,
+    messageType: MessageType,
     isMyLastMessage: Boolean,
     model: MessageBubbleModel,
     reactingToMessageId: MutableState<String?>,
@@ -66,9 +75,6 @@ fun LazyItemScope.ConversationMessageContent(
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
 
-    val isCurrentUser = if(data != null) {
-        data.authorPublicId == currentUserPublicId
-    } else (0..1).random() == 0
     val scrollPosition = rememberSaveable(data?.id) {
         mutableStateOf(0)
     }
@@ -90,119 +96,131 @@ fun LazyItemScope.ConversationMessageContent(
                 bottom = if(isNextMessageSameAuthor) 1.dp else LocalTheme.current.shapes.betweenItemsSpace.div(2)
             )
             .animateItem(),
-        horizontalArrangement = if(isCurrentUser) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = when (messageType) {
+            MessageType.CurrentUser -> Arrangement.End
+            else -> Arrangement.Start
+        },
         verticalAlignment = Alignment.Bottom
     ) {
-        val profileImageSize = with(density) { 38.sp.toDp() }
 
-        if(!isCurrentUser) {
-            if(!isNextMessageSameAuthor) {
-                UserProfileImage(
-                    modifier = Modifier
-                        .padding(
-                            start = 12.dp,
-                            end = 10.dp,
-                            // offset if there are reactions (because those offset the message content)
-                            bottom = if(!data?.reactions.isNullOrEmpty()) {
-                                with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
-                            }else 0.dp
-                        )
-                        .zIndex(4f)
-                        .size(profileImageSize),
-                    media = MediaIO(url = data?.user?.content?.avatarUrl),
-                    tag = null,//data?.user?.tag,
-                    name = data?.user?.content?.displayName
-                )
-            }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
-                Spacer(Modifier.width(profileImageSize + 22.dp))
-            }
-        }
+            val profileImageSize = with(density) { 38.sp.toDp() }
 
-        MessageBubble(
-            data = data,
-            isReacting = reactingToMessageId.value == data?.id,
-            currentUserPublicId = currentUserPublicId ?: "",
-            hasPrevious = isPreviousMessageSameAuthor,
-            hasNext = isNextMessageSameAuthor,
-            isReplying = replyToMessage.value?.id == data?.id,
-            isMyLastMessage = isMyLastMessage,
-            preferredEmojis = preferredEmojis,
-            model = model,
-            additionalContent = { onDragChange, onDrag, messageContent ->
-                val rememberedHeight = rememberSaveable(data?.id) {
-                    mutableStateOf(0f)
+            if(messageType == MessageType.OtherUser) {
+                if(!isNextMessageSameAuthor) {
+                    UserProfileImage(
+                        modifier = Modifier
+                            .padding(
+                                start = 12.dp,
+                                end = 10.dp,
+                                // offset if there are reactions (because those offset the message content)
+                                bottom = if(!data?.reactions.isNullOrEmpty()) {
+                                    with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
+                                }else 0.dp
+                            )
+                            .zIndex(4f)
+                            .size(profileImageSize),
+                        media = MediaIO(url = data?.user?.content?.avatarUrl),
+                        tag = null,//data?.user?.tag,
+                        name = data?.user?.content?.displayName
+                    )
+                }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
+                    Spacer(Modifier.width(profileImageSize + 22.dp))
                 }
-                val shape = if(data?.content.isNullOrBlank()) {
-                    LocalTheme.current.shapes.rectangularActionShape
-                }else RoundedCornerShape(
-                    topStart = LocalTheme.current.shapes.rectangularActionRadius,
-                    topEnd = LocalTheme.current.shapes.rectangularActionRadius
-                )
-                val heightModifier = Modifier
-                    .heightIn(max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp)
-                    .clip(shape)
+            }
 
-                Column(
-                    modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
-                        .wrapContentHeight()
-                        .onSizeChanged {
-                            if(it.height != 0) {
-                                with(density) {
-                                    rememberedHeight.value = it.height.toDp().value
+            MessageBubble(
+                data = data,
+                isReacting = reactingToMessageId.value == data?.id,
+                currentUserPublicId = currentUserPublicId ?: "",
+                hasPrevious = isPreviousMessageSameAuthor,
+                hasNext = isNextMessageSameAuthor,
+                isReplying = replyToMessage.value?.id == data?.id,
+                isMyLastMessage = isMyLastMessage,
+                preferredEmojis = preferredEmojis,
+                model = model,
+                additionalContent = { onDragChange, onDrag, messageContent ->
+                    val rememberedHeight = rememberSaveable(data?.id) {
+                        mutableStateOf(0f)
+                    }
+                    val shape = if(data?.content.isNullOrBlank()) {
+                        LocalTheme.current.shapes.rectangularActionShape
+                    }else RoundedCornerShape(
+                        topStart = LocalTheme.current.shapes.rectangularActionRadius,
+                        topEnd = LocalTheme.current.shapes.rectangularActionRadius
+                    )
+                    val heightModifier = Modifier
+                        .heightIn(max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp)
+                        .clip(shape)
+
+                    val horizontalAlignment = when(messageType) {
+                        MessageType.CurrentUser -> Alignment.End
+                        MessageType.OtherUser -> Alignment.Start
+                        else -> Alignment.CenterHorizontally
+                    }
+                    Column(
+                        modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                            .wrapContentHeight()
+                            .onSizeChanged {
+                                if(it.height != 0) {
+                                    with(density) {
+                                        rememberedHeight.value = it.height.toDp().value
+                                    }
                                 }
                             }
-                        }
-                        .align(if(isCurrentUser) Alignment.End else Alignment.Start),
-                    horizontalAlignment = if(isCurrentUser) Alignment.End else Alignment.Start
-                ) {
-                    data?.anchorMessage?.let { anchorData ->
-                        ReplyIndication(
-                            modifier = Modifier
-                                .wrapContentWidth()
-                                .padding(start = 12.dp),
-                            data = anchorData,
-                            onClick = {
-                                scrollToMessage(anchorData.id, anchorData.index)
-                            },
-                            isCurrentUser = anchorData.authorPublicId == currentUserPublicId
-                        )
-                    }
-
-                    MediaRow(
-                        modifier = heightModifier,
-                        data = data,
-                        media = data?.media.orEmpty(),
-                        scrollState = mediaRowState,
-                        temporaryFiles = temporaryFiles,
-                        isCurrentUser = isCurrentUser,
-                        onDragChange = onDragChange,
-                        onDrag = onDrag,
-                        onLongPress = {
-                            reactingToMessageId.value = data?.id
-                        }
-                    )
-
-                    if(data?.showPreview == true && data.content?.isNotBlank() == true) {
-                        messageContent.getLinkAnnotations(0, messageContent.length).firstOrNull()?.let { link ->
-                            LinkPreview(
+                            .align(horizontalAlignment),
+                        horizontalAlignment = horizontalAlignment
+                    ) {
+                        data?.anchorMessage?.let { anchorData ->
+                            ReplyIndication(
                                 modifier = Modifier
-                                    .pointerInput(data.id) {
-                                        detectMessageInteraction(
-                                            onTap = {
-                                                link.item.linkInteractionListener?.onClick(link.item)
-                                            },
-                                            onDragChange = onDragChange,
-                                            onDrag = onDrag
-                                        )
-                                    },
-                                shape = shape,
-                                url = messageContent.subSequence(link.start, link.end).toString(),
-                                alignment = Alignment.CenterHorizontally
+                                    .wrapContentWidth()
+                                    .padding(start = 12.dp),
+                                data = anchorData,
+                                onClick = {
+                                    scrollToMessage(anchorData.id, anchorData.index)
+                                },
+                                isCurrentUser = anchorData.authorPublicId == currentUserPublicId
                             )
+                        }
+
+                        MediaRow(
+                            modifier = heightModifier,
+                            data = data,
+                            media = data?.media.orEmpty(),
+                            scrollState = mediaRowState,
+                            temporaryFiles = temporaryFiles,
+                            isCurrentUser = messageType == MessageType.CurrentUser,
+                            onDragChange = onDragChange,
+                            onDrag = onDrag,
+                            onLongPress = {
+                                reactingToMessageId.value = data?.id
+                            }
+                        )
+
+                        if (data?.showPreview == true && data.content?.isNotBlank() == true) {
+                            messageContent.getLinkAnnotations(0, messageContent.length)
+                                .firstOrNull()?.let { link ->
+                                LinkPreview(
+                                    modifier = Modifier
+                                        .pointerInput(data.id) {
+                                            detectMessageInteraction(
+                                                onTap = {
+                                                    link.item.linkInteractionListener?.onClick(link.item)
+                                                },
+                                                onDragChange = onDragChange,
+                                                onDrag = onDrag
+                                            )
+                                        },
+                                    shape = shape,
+                                    url = messageContent.subSequence(link.start, link.end)
+                                        .toString(),
+                                    alignment = Alignment.CenterHorizontally
+                                )
+                            }
                         }
                     }
                 }
-            }
-        )
+            )
+
     }
 }
