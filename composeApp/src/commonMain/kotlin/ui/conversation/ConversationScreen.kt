@@ -189,15 +189,14 @@ fun ConversationScreen(
                 modifier = Modifier.fillMaxHeight(),
                 verticalAlignment = Alignment.Bottom
             ) {
-                Crossfade(targetState = modeSwitchState.selectedTabIndex.value) { selectedIndex ->
+                Crossfade(
+                    modifier = Modifier.weight(1f),
+                    targetState = modeSwitchState.selectedTabIndex.value
+                ) { selectedIndex ->
                     if(selectedIndex == 1) {
-                        PrototypeConversation(
-                            modifier = Modifier.weight(1f),
-                            conversationId = conversationId
-                        )
+                        PrototypeConversation(conversationId = conversationId)
                     }else {
                         ConversationComponent(
-                            modifier = Modifier.weight(1f),
                             listModifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentHeight(),
@@ -229,9 +228,7 @@ fun ConversationScreen(
                         Column {
                             if(BuildKonfig.isDevelopment) {
                                 MultiChoiceSwitch(
-                                    modifier = Modifier
-                                        .padding(horizontal = 8.dp)
-                                        .fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     state = modeSwitchState
                                 )
                             }

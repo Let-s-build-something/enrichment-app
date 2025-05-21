@@ -58,7 +58,7 @@ class DataSyncHandler: MessageProcessor() {
                 var historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null
                 var algorithm: EncryptionEventContent? = null
 
-                mutableListOf<ClientEvent<*>>()
+                val events = mutableListOf<ClientEvent<*>>()
                     .apply {
                         addAll(room.accountData?.events.orEmpty())
                         addAll(room.ephemeral?.events.orEmpty())
@@ -92,21 +92,21 @@ class DataSyncHandler: MessageProcessor() {
                         with(event) {
                             when (this) {
                                 is RoomEvent.MessageEvent -> {
-                                    this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
+                                    copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
                                 }
                                 is RoomEvent.StateEvent -> {
-                                    this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
+                                    copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
                                 }
                                 is ClientEvent.RoomAccountDataEvent -> {
-                                    this.copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
+                                    copy(roomId = roomId.takeIf { it.full.isNotBlank() } ?: RoomId(room.id))
                                 }
                                 is ClientEvent.StrippedStateEvent -> {
-                                    this.copy(roomId = roomId.takeIf { !it?.full.isNullOrBlank() } ?: RoomId(room.id))
+                                    copy(roomId = roomId.takeIf { !it?.full.isNullOrBlank() } ?: RoomId(room.id))
                                 }
                                 is ClientEvent.EphemeralEvent -> {
-                                    this.copy(roomId = roomId.takeIf { !it?.full.isNullOrBlank() } ?: RoomId(room.id))
+                                    copy(roomId = roomId.takeIf { !it?.full.isNullOrBlank() } ?: RoomId(room.id))
                                 }
-                                else -> event
+                                else -> this
                             }
                         }
                     }
@@ -116,8 +116,8 @@ class DataSyncHandler: MessageProcessor() {
                         avatar = avatar?.url?.let {
                             MediaIO(
                                 url = it,
-                                mimetype = avatar?.info?.mimeType,
-                                size = avatar?.info?.size
+                                mimetype = avatar.info?.mimeType,
+                                size = avatar.info?.size
                             )
                         },
                         canonicalAlias = alias ?: name
@@ -130,7 +130,7 @@ class DataSyncHandler: MessageProcessor() {
                 )
 
                 saveEvents(
-                    events = room.timeline?.events.orEmpty(),
+                    events = events,
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
                     roomId = newItem.id
                 ).also { res ->
@@ -143,11 +143,13 @@ class DataSyncHandler: MessageProcessor() {
                         )
                     }
 
-                    val lastMessage = res.messages.lastOrNull()
+                    val lastMessage = res.messages.firstOrNull { !it.content.isNullOrBlank() }
 
                     // either update existing one, or insert new one
                     newItem.copy(
-                        summary = newItem.summary?.copy(lastMessage = lastMessage) ?: RoomSummary(lastMessage = lastMessage),
+                        summary = newItem.summary?.copy(
+                            lastMessage = lastMessage ?: newItem.summary.lastMessage
+                        ) ?: RoomSummary(lastMessage = lastMessage),
                         lastMessageTimestamp = lastMessage?.sentAt
                     ).let { roomUpdate ->
                         (conversationRoomDao.getItem(

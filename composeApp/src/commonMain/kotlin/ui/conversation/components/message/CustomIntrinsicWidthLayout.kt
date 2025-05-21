@@ -20,23 +20,22 @@ fun CustomIntrinsicWidthLayout(
     ) { measurables, constraints ->
         val placeables = mutableListOf<Placeable>()
         val layoutWidth: Int
-        var layoutHeight = 0
 
         if (hasAttachment && measurables.isNotEmpty()) {
             // When hasAttachment, use the first child's intrinsic width
             val firstChildMeasurable = measurables[0]
             val firstChildPlaceable = firstChildMeasurable.measure(
-                constraints.copy(minWidth = 0, maxWidth = Constraints.Infinity)
+                constraints.copy(minWidth = 0, maxWidth = constraints.maxWidth)
             )
-            val minWidth = firstChildPlaceable.width
+            val minWidth = firstChildPlaceable.width.coerceAtMost(constraints.maxWidth)
             placeables.add(firstChildPlaceable)
 
             // Measure remaining children with the first child's width as maxWidth
             for (i in 1 until measurables.size) {
                 val placeable = measurables[i].measure(
                     constraints.copy(
-                        minWidth = minWidth,
-                        maxWidth = minOf(minWidth, constraints.maxWidth)
+                        minWidth = 0,
+                        maxWidth = minWidth
                     )
                 )
                 placeables.add(placeable)
@@ -57,12 +56,7 @@ fun CustomIntrinsicWidthLayout(
             layoutWidth = maxChildWidth.coerceIn(constraints.minWidth, constraints.maxWidth)
         }
 
-        // Calculate total height by stacking children vertically
-        for (placeable in placeables) {
-            layoutHeight += placeable.height
-        }
-
-        layout(layoutWidth, layoutHeight) {
+        layout(layoutWidth, placeables.sumOf { it.height }) {
             var yOffset = 0
             for (placeable in placeables) {
                 val xOffset = when (alignment) {

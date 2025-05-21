@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import base.utils.LinkUtils
 import data.io.matrix.room.event.ConversationRoomMember
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
@@ -133,10 +132,4 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
             else -> null
         }
     }
-
-    /** Whether content contains any website url */
-    val containsUrl: Boolean
-        get() = showPreview == true
-                && content != null
-                && LinkUtils.urlRegex.containsMatchIn(content)
 }

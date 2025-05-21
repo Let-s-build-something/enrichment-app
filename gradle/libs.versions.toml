@@ -8,8 +8,9 @@ version-code = "52"
 
 androidx-activityCompose = "1.10.1"
 composeWebviewMultiplatform = "1.9.40"
-kotlin = "2.1.21-RC"
-ksp = "2.1.21-RC-2.0.0"
+kotlin = "2.1.20"
+kotlinTest = "2.1.20"
+ksp = "2.1.20-2.0.0"
 ktor = "3.1.1"
 ksoup = "0.2.2"
 navigationCompose = "2.8.0-alpha12"
@@ -19,8 +20,8 @@ mediaPlayerChaintech = "1.0.31"
 kotlinCrypto = "0.5.3"
 koin = "4.0.2"
 pagingCompose = "3.3.0-alpha02-0.5.1"
-room = "2.7.0-rc02"
-sqlite-bundled = "2.5.0-rc02"
+room = "2.7.1"
+sqlite-bundled = "2.5.1"
 lifecycle = "2.8.4"
 googleId = "1.1.1"
 firebaseJavaSdk = "0.4.6"
@@ -34,15 +35,15 @@ kotlinxSerialization = "1.8.0"
 kotlinx-datetime = "0.6.2"
 fileKit = "0.8.8"
 multiplatformSettings = "1.3.0"
-datastore = "1.1.3"
-workRuntimeKtx = "2.10.0"
+datastore = "1.1.6"
+workRuntimeKtx = "2.10.1"
 trixnity = "4.13.3"
 oshaiKotlinLogging = "7.0.5" # https://github.com/oshai/kotlin-logging/releases
 
 # Android
 accompanistPermissions = "0.37.0"
 credentials = "1.5.0"
-androidxSplashscreen = "1.2.0-beta01"
+androidxSplashscreen = "1.2.0-beta02"
 androidFirebaseAuth = "23.2.0"
 androidFirebaseCommon = "21.0.0"
 androidFirebaseMessaging = "24.1.1"
@@ -51,7 +52,7 @@ androidFirebaseMessaging = "24.1.1"
 jvmGoogleCloudStorage = "2.46.0"
 jvmCredentialStore = "243.23654.166"
 jvmLogback = "1.5.17"
-securityCryptoKtx = "1.1.0-alpha06"
+securityCryptoKtx = "1.1.0-alpha07"
 
 
 [libraries]
@@ -101,8 +102,8 @@ ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version
 ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 
-kotlin-test-common = { group = "org.jetbrains.kotlin", name = "kotlin-test-common", version.ref = "kotlin" }
-kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlin" }
+kotlin-test-common = { group = "org.jetbrains.kotlin", name = "kotlin-test-common", version.ref = "kotlinTest" }
+#kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlinTest" }
 
 ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }

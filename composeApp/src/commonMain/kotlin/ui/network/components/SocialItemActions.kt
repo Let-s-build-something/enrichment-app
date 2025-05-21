@@ -218,6 +218,7 @@ fun ScalingIcon(
     color: Color,
     imageVector: ImageVector,
     contentDescription: String,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Box(
@@ -228,7 +229,7 @@ fun ScalingIcon(
     ) {
         Row(
             modifier = Modifier
-                .scalingClickable {
+                .scalingClickable(enabled) {
                     onClick()
                 }
                 .background(

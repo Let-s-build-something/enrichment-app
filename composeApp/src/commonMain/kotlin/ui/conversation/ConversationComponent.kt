@@ -59,7 +59,7 @@ import ui.conversation.components.TypingIndicator
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.ConversationMessageContent
-import ui.conversation.message.UserVerificationMessage
+import ui.conversation.message.user_verification.UserVerificationMessage
 
 /**
  * Component containing a list of messages derived from [messages] with shimmer loading effect which can be modified by [shimmerItemCount]

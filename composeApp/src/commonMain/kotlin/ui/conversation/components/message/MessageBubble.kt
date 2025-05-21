@@ -191,7 +191,6 @@ private fun ContentLayout(
     val hoverInteractionSource = remember(data.id) { MutableInteractionSource() }
     val processor = if(data.media?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
-    val hasAttachment = remember(data.id) { data.media?.isEmpty() == false || data.containsUrl }
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
     val awaitingTranscription = !isCurrentUser
@@ -218,6 +217,9 @@ private fun ContentLayout(
             ).toSpanStyle()
         )
     }else AnnotatedString("")
+    val hasAttachment = remember(data.id) {
+        data.media?.isEmpty() == false || textContent.hasLinkAnnotations(0, textContent.length)
+    }
 
 
     val isDragged = remember(data.id) {
@@ -568,7 +570,7 @@ private fun MessageContent(
         )
     }
 
-    Box(modifier = Modifier.animateContentSize(
+    Box(modifier = modifier.animateContentSize(
         alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
         animationSpec = spring(stiffness = Spring.StiffnessHigh)
     )) {
@@ -593,6 +595,9 @@ private fun MessageContent(
                             } else LocalTheme.current.colors.backgroundContrast,
                             shape = shape
                         )
+                        .then(
+                            if(hasAttachment) Modifier.fillMaxWidth() else Modifier
+                        )
                         .padding(
                             vertical = 10.dp,
                             horizontal = 14.dp
@@ -601,9 +606,6 @@ private fun MessageContent(
                     Text(
                         modifier = Modifier
                             .widthIn(max = (screenSize.width * .8f).dp)
-                            .then(
-                                if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                            )
                             .then(if(model.transcribe.value) Modifier else Modifier),
                         text = if(data.state == MessageState.Decrypting) {
                             AnnotatedString(stringResource(Res.string.message_decrypting))

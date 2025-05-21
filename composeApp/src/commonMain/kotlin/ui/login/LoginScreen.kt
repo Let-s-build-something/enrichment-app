@@ -115,6 +115,7 @@ import augmy.composeapp.generated.resources.login_username_condition_1
 import augmy.composeapp.generated.resources.login_username_hint
 import augmy.composeapp.generated.resources.no_email_client_error
 import augmy.composeapp.generated.resources.screen_login
+import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
@@ -603,7 +604,9 @@ private fun ColumnScope.LoginScreenContent(
             onClick = sendRequest,
             endImageVector = Icons.AutoMirrored.Outlined.ArrowForward
         )
-        AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility == true) {
+        AnimatedVisibility(
+            ssoFlow.value?.delegatedOidcCompatibility == true && BuildKonfig.isDevelopment
+        ) {
             OutlinedButton(
                 text = stringResource(
                     if(disableSsoFlow.value) Res.string.login_oidc_enable else Res.string.login_oidc_disable
