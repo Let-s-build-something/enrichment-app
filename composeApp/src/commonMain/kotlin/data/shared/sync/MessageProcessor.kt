@@ -2,6 +2,7 @@ package data.shared.sync
 
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_alias_change
+import augmy.composeapp.generated.resources.message_avatar_change
 import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
 import data.io.base.AppPingType
@@ -36,6 +37,7 @@ import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationCancelEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationDoneEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationStep
+import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
@@ -47,6 +49,7 @@ import net.folivo.trixnity.core.model.events.senderOrNull
 import net.folivo.trixnity.core.model.events.stateKeyOrNull
 import org.jetbrains.compose.resources.getString
 import org.koin.mp.KoinPlatform
+import ui.conversation.message.AUTHOR_SYSTEM
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -102,12 +105,7 @@ abstract class MessageProcessor {
                     null
                 } else it
             }
-            val members = result.members.mapNotNull {
-                if (roomMemberDao.insertIgnore(it) == -1L) {
-                    roomMemberDao.insertReplace(it)
-                    null
-                } else it
-            }
+            roomMemberDao.insertAll(result.members)
 
             if (result.messages.isNotEmpty()) {
                 // add the anchor messages
@@ -123,7 +121,7 @@ abstract class MessageProcessor {
 
             SaveEventsResult(
                 messages = messages,
-                members = members,
+                members = result.members,
                 events = events.size,
                 prevBatch = prevBatch
             )
@@ -138,14 +136,13 @@ abstract class MessageProcessor {
     ): ProcessedEvents = withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
         val members = mutableListOf<ConversationRoomMember>()
-        val memberUpdates = mutableListOf<RoomEvent.StateEvent<MemberEventContent>>()
         val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
 
         events.forEach { event ->
             when (val content = event.content) {
                 is MemberEventContent -> {
-                    (event.stateKeyOrNull
+                    (event.stateKeyOrNull ?: event.senderOrNull?.full
                         ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
                             ConversationRoomMember(
@@ -157,17 +154,21 @@ abstract class MessageProcessor {
                             )
                         )
                     }
-                    if (event is RoomEvent.StateEvent) {
+                    /*if (event is RoomEvent.StateEvent) {
                         (event as? RoomEvent.StateEvent<MemberEventContent>)?.let {
                             memberUpdates.add(it)
                         }
-                    }
+                    }*/
                     content.displayName?.let { displayName ->
                         ConversationMessageIO(
                             content = content.membership.asMessage(
                                 isSelf = content.displayName == sharedDataManager.currentUser.value?.matrixDisplayName,
                                 displayName = displayName
-                            )
+                            ),
+                            media = listOf(
+                                MediaIO(url = content.avatarUrl)
+                            ),
+                            authorPublicId = AUTHOR_SYSTEM
                         )
                     }
                 }
@@ -188,6 +189,16 @@ abstract class MessageProcessor {
                     }
                     null
                 }
+                is AvatarEventContent -> {
+                    ConversationMessageIO(
+                        content = getString(
+                            Res.string.message_avatar_change,
+                            event.senderOrNull?.full ?: ""
+                        ),
+                        media = listOf(MediaIO(url = content.url)),
+                        authorPublicId = AUTHOR_SYSTEM
+                    )
+                }
                 is CanonicalAliasEventContent -> {
                     ConversationMessageIO(
                         content = getString(
@@ -195,7 +206,8 @@ abstract class MessageProcessor {
                             (content.alias ?: content.aliases?.firstOrNull())?.full ?: "",
                             event.senderOrNull?.full ?: ""
                         ),
-                        authorPublicId = ""
+                        media = listOf(MediaIO(name = event.senderOrNull?.full ?: "")),
+                        authorPublicId = AUTHOR_SYSTEM
                     )
                 }
                 is MessageEventContent -> content.process()
@@ -225,7 +237,6 @@ abstract class MessageProcessor {
         ProcessedEvents(
             messages = messages,
             members = members,
-            memberUpdates = memberUpdates,
             receipts = receipts,
             encryptedEvents = encryptedEvents
         )
@@ -335,7 +346,8 @@ abstract class MessageProcessor {
                         fromDeviceId = fromDevice,
                         methods = methods,
                         to = to.full
-                    )
+                    ),
+                    authorPublicId = AUTHOR_SYSTEM
                 )
             }
             else -> {

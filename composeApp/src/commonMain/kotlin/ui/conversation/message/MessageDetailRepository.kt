@@ -2,7 +2,6 @@ package ui.conversation.message
 
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
@@ -19,7 +18,7 @@ import ui.conversation.components.audio.MediaProcessorDataManager
 
 class MessageDetailRepository(
     private val conversationMessageDao: ConversationMessageDao,
-    private val roomMemberDao: RoomMemberDao,
+    roomMemberDao: RoomMemberDao,
     httpClient: HttpClient,
     fileAccess: FileAccess,
     conversationRoomDao: ConversationRoomDao,
@@ -36,15 +35,7 @@ class MessageDetailRepository(
     /** Retrieves singular message from the local DB */
     suspend fun getMessage(id: String): ConversationMessageIO? {
         return withContext(Dispatchers.IO) {
-            conversationMessageDao.get(id)?.also {
-                it.user = getUser(id = it.authorPublicId)
-            }
-        }
-    }
-
-    private suspend fun getUser(id: String?): ConversationRoomMember? {
-        return if(id == null) null else withContext(Dispatchers.IO) {
-            roomMemberDao.get(userId = id)
+            conversationMessageDao.get(id)
         }
     }
 

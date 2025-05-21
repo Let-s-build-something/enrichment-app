@@ -105,6 +105,7 @@ open class ConversationModel(
                 )?.let { data ->
                     dataManager.updateConversations { it.apply { this[conversationId] = data } }
                     dataManager.conversations.value.second[conversationId] = data
+                    println("kostka_test, onDataRequest, members: ${data.summary?.members?.size}")
                 }
             }
         }
@@ -140,7 +141,7 @@ open class ConversationModel(
             indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
                 if(userId.full != matrixUserId) {
                     ConversationTypingIndicator().apply {
-                        user = dataManager.conversations.value.second[conversationId]?.members?.find { user ->
+                        user = dataManager.conversations.value.second[conversationId]?.summary?.members?.find { user ->
                             user.userId == userId.full
                         }
                     }
@@ -174,22 +175,20 @@ open class ConversationModel(
             conversationId = conversationId
         ).flow
             .cachedIn(viewModelScope)
-            .let {
-                if(dataManager.conversations.value.second[conversationId] != null) {
-                    it.combine(conversation) { messages, detail ->
-                        withContext(Dispatchers.Default) {
-                            messages.map { message ->
-                                message.apply {
-                                    user = detail?.members?.find { user -> user.userId == authorPublicId }
-                                    anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage.authorPublicId }
-                                    reactions?.forEach { reaction ->
-                                        reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }else it
+            .combine(conversation) { messages, detail ->
+                messages.map { message ->
+                    message.copy(
+                        user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
+                        anchorMessage = message.anchorMessage?.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
+                        ),
+                        reactions = message.reactions?.map { reaction ->
+                            reaction.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                            )
+                        }?.toList().orEmpty()
+                    )
+                }
             }
     }else flow { PagingData.empty<ConversationMessageIO>() }
 
@@ -485,7 +484,6 @@ open class ConversationModel(
                 }
             }
         }
-        println("kostka_test, new message sent: $msg")
     }
 
     /** Makes a request to add or change reaction to a message */

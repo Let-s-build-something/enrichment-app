@@ -19,6 +19,8 @@ import ui.conversation.components.emoji.EmojiUseCase
 import ui.conversation.components.experimental.gravity.GravityUseCase
 import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.gif.GifUseCase
+import kotlin.collections.map
+import kotlin.collections.orEmpty
 
 internal val messageDetailModule = module {
     factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
@@ -66,13 +68,17 @@ class MessageDetailModel(
     val message = _message
         .combine(conversation) { message, detail ->
             withContext(Dispatchers.Default) {
-                message?.apply {
-                    user = detail?.members?.find { user -> user.userId == authorPublicId }
-                    anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
-                    reactions?.forEach { reaction ->
-                        reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
-                    }
-                }
+                message?.copy(
+                    user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
+                    anchorMessage = message.anchorMessage?.copy(
+                        user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
+                    ),
+                    reactions = message.reactions?.map { reaction ->
+                        reaction.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                        )
+                    }?.toList().orEmpty()
+                )
             }
         }
 
@@ -88,14 +94,18 @@ class MessageDetailModel(
         .cachedIn(viewModelScope)
         .combine(conversation) { messages, detail ->
             withContext(Dispatchers.Default) {
-                messages.map {
-                    it.apply {
-                        user = detail?.members?.find { user -> user.userId == authorPublicId }
-                        anchorMessage?.user = detail?.members?.find { user -> user.userId == anchorMessage?.authorPublicId }
-                        reactions?.forEach { reaction ->
-                            reaction.user = detail?.members?.find { user -> user.userId == reaction.authorPublicId }
-                        }
-                    }
+                messages.map { message ->
+                    message.copy(
+                        user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
+                        anchorMessage = message.anchorMessage?.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
+                        ),
+                        reactions = message.reactions?.map { reaction ->
+                            reaction.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                            )
+                        }?.toList().orEmpty()
+                    )
                 }
             }
         }
