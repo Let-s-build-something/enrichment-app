@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,7 +92,7 @@ import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
 import augmy.composeapp.generated.resources.file_too_large
 import augmy.interactive.shared.ext.contentReceiver
-import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -453,7 +454,7 @@ internal fun BoxScope.SendMessagePanel(
                         .fillMaxWidth()
                         .heightIn(max = MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
-                        .horizontallyDraggable(state = mediaListState),
+                        .draggable(state = mediaListState, orientation = Orientation.Horizontal),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
                     Spacer(Modifier)

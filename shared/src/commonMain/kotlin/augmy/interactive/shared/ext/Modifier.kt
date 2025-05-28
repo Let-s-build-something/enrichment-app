@@ -207,15 +207,18 @@ fun Modifier.onMouseScroll(
 }
 
 /** Makes a horizontally scrollable layout draggable for desktop */
-fun Modifier.horizontallyDraggable(state: ScrollState) = composed {
+fun Modifier.draggable(
+    orientation: Orientation = Orientation.Vertical,
+    state: ScrollState
+) = composed {
     if(LocalIsMouseUser.current) {
         val coroutineScope = rememberCoroutineScope()
 
         draggable(
-            orientation = Orientation.Horizontal,
+            orientation = orientation,
             state = rememberDraggableState { delta ->
                 coroutineScope.launch {
-                    state.scrollBy(-delta)
+                    state.scrollBy(delta.times(if(orientation == Orientation.Horizontal) -1 else 1))
                 }
             }
         )
@@ -223,15 +226,18 @@ fun Modifier.horizontallyDraggable(state: ScrollState) = composed {
 }
 
 /** Makes a vertically scrollable layout draggable for desktop */
-fun Modifier.verticallyDraggable(listState: LazyListState) = composed {
+fun Modifier.draggable(
+    listState: LazyListState,
+    orientation: Orientation = Orientation.Vertical
+) = composed {
     if(LocalIsMouseUser.current) {
         val coroutineScope = rememberCoroutineScope()
 
         draggable(
-            orientation = Orientation.Vertical,
+            orientation = orientation,
             state = rememberDraggableState { delta ->
                 coroutineScope.launch {
-                    listState.scrollBy(delta)
+                    listState.scrollBy(delta.times(if(orientation == Orientation.Horizontal) -1 else 1))
                 }
             },
         )
