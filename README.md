@@ -68,3 +68,8 @@ If you want to join the cause, or have access to organizations with communicatio
 📅 Or [schedule a free call](https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ31KABYeIhB3qiFWBCUizjZysR2-rcCr6LGXm8WZSY2YRuadboAeNJIj8WzvIYR068uJFsa2CZ)
 
 <br><br><br><br>
+
+This project includes code derived from the [Trixnity Messenger project](https://gitlab.com/connect2x/trixnity-messenger/trixnity-messenger),
+which is licensed under the GNU Affero General Public License v3.0.
+
+All modifications to the original code are also licensed under the AGPL v3.
