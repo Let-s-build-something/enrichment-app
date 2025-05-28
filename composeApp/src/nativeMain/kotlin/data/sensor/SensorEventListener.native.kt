@@ -1,5 +1,9 @@
 package data.sensor
 
-actual fun registerGravityListener(listener: SensorEventListener, sensorDelay: SensorDelay) {}
+actual suspend fun getAllSensors(): List<SensorEventListener>? {
+    return null
+}
 
-actual fun unregisterGravityListener(listener: SensorEventListener) {}
+actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener? {
+    return null
+}

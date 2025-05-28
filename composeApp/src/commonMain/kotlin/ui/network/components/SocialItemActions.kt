@@ -2,6 +2,7 @@ package ui.network.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +44,7 @@ import augmy.composeapp.generated.resources.network_dialog_message_block
 import augmy.composeapp.generated.resources.network_dialog_message_mute
 import augmy.composeapp.generated.resources.network_dialog_title_block
 import augmy.composeapp.generated.resources.network_dialog_title_mute
-import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
@@ -173,7 +174,7 @@ fun SocialItemActions(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .horizontalScroll(actionsState)
-                .horizontallyDraggable(actionsState)
+                .draggable(state = actionsState, orientation = Orientation.Horizontal)
                 .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
         ) {

@@ -98,7 +98,7 @@ fun <T>AddToLauncher(
         ) {
             stickyHeader {
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = checkedItems.size > 0 || newItemState?.text?.isNotBlank() == true,
+                    visible = checkedItems.isNotEmpty() || newItemState?.text?.isNotBlank() == true,
                     enter = slideInVertically (
                         initialOffsetY = { -it },
                         animationSpec = tween(DEFAULT_ANIMATION_LENGTH_SHORT)

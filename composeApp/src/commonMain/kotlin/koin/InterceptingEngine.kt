@@ -2,7 +2,7 @@ package koin
 
 import base.utils.NetworkSpeed
 import base.utils.speedInMbps
-import data.shared.DeveloperConsoleModel
+import ui.dev.DeveloperConsoleModel
 import data.shared.SharedDataManager
 import data.shared.SharedModel
 import data.shared.auth.AuthService

@@ -44,7 +44,7 @@ import androidx.paging.LoadState
 import app.cash.paging.compose.LazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_detail_you
-import augmy.interactive.shared.ext.verticallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
@@ -214,8 +214,7 @@ fun ConversationComponent(
         content()
 
         LazyColumn(
-            modifier = listModifier
-                .verticallyDraggable(listState),
+            modifier = listModifier.draggable(listState),
             reverseLayout = true,
             verticalArrangement = verticalArrangement,
             state = listState

@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.detectMessageInteraction
-import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -95,7 +95,7 @@ fun MediaRow(
             modifier = modifier
                 .wrapContentWidth()
                 .horizontalScroll(state = scrollState)
-                .horizontallyDraggable(state = scrollState)
+                .draggable(state = scrollState)
                 .hoverable(
                     enabled = isMouseUser,
                     interactionSource = hoverInteractionSource

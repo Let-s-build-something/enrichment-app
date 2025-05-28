@@ -262,10 +262,10 @@ private fun LazyGridItemScope.EmojiImpl(
                     Text(
                         modifier = Modifier
                             .scalingClickable {
+                                onEmojiSelected(emoji, "${emojiData.name}_$index")
                                 coroutineScope.launch {
                                     state.onDispose()
                                 }
-                                onEmojiSelected(emoji, "${emojiData.name}_$index")
                             }
                             .size(46.dp)
                             .padding(4.dp)

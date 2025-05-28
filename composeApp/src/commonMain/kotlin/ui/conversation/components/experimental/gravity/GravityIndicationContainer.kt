@@ -23,10 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.sensor.SensorDelay
-import data.sensor.SensorEvent
-import data.sensor.SensorEventListener
-import data.sensor.registerGravityListener
-import data.sensor.unregisterGravityListener
+import data.sensor.getGravityListener
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -50,52 +47,45 @@ fun GravityIndicationContainer(
         }
     }else null
 
-    if(enabled && !gravityData?.values.isNullOrEmpty() && index?.value != gravityData?.values?.size) {
+    if(enabled && !gravityData?.values.isNullOrEmpty() && index?.value != gravityData.values.size) {
         val scope = rememberCoroutineScope()
         val offset = remember(gravityData) {
-            Animatable(gravityData?.values?.firstOrNull()?.offset ?: 0f)
+            Animatable(gravityData.values.firstOrNull()?.offset ?: 0f)
         }
         val fraction = remember(gravityData) {
-            Animatable(gravityData?.values?.firstOrNull()?.fraction ?: 0f)
+            Animatable(gravityData.values.firstOrNull()?.fraction ?: 0f)
         }
         val gravityValues = remember {
             mutableStateOf<Triple<Float, Float, Float>?>(null)
         }
 
         val listener = remember {
-            object: SensorEventListener {
-                override lateinit var instance: Any
-                override var isInitialized: Boolean = false
-
-                override fun onSensorChanged(event: SensorEvent?) {
+            getGravityListener(
+                onSensorChanged = { event ->
                     event?.values?.let {
                         gravityValues.value = Triple(it[0], it[1], it[2])
                     }
                 }
-                override fun onAccuracyChanged(accuracy: Int) {}
-            }
+            )
         }
 
         LifecycleResumeEffect(gravityData) {
             scope.coroutineContext.cancelChildren()
             scope.launch {
-                while(index?.value != null && index.value < (gravityData?.values?.size ?: 0)) {
-                    gravityData?.tickMs?.let { delay(it) }
-                    gravityData?.values?.getOrNull(index.value)?.let {
+                while(index?.value != null && index.value < gravityData.values.size) {
+                    delay(gravityData.tickMs)
+                    gravityData.values.getOrNull(index.value)?.let {
                         fraction.animateTo(it.fraction)
                         offset.animateTo(it.offset)
                     }
                     index.value += 1
                 }
-                index?.value = gravityData?.values?.size ?: 0
+                index?.value = gravityData.values.size
             }
-            registerGravityListener(
-                listener = listener,
-                sensorDelay = SensorDelay.Normal
-            )
+            listener?.register(sensorDelay = SensorDelay.Normal)
 
             onPauseOrDispose {
-                unregisterGravityListener(listener)
+                listener?.unregister()
             }
         }
 

@@ -1,7 +1,13 @@
-package data.shared
+package ui.dev
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import data.io.app.SettingsKeys.KEY_STREAMING_URL
+import data.io.base.BaseResponse
+import data.sensor.SensorDelay
+import data.sensor.SensorEventListener
+import data.sensor.getAllSensors
+import data.shared.SharedModel
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
@@ -13,6 +19,7 @@ import koin.DeveloperUtils
 import koin.secureSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -57,6 +64,9 @@ class DeveloperConsoleModel(
     private val presenceEventDao: PresenceEventDao,
     private val matrixPagingMetaDao: MatrixPagingMetaDao
 ): SharedModel() {
+    private val _streamingUrlResponse = MutableStateFlow<BaseResponse<*>>(BaseResponse.Idle)
+    private val _availableSensors = MutableStateFlow(listOf<SensorEventListener>())
+    private val _activeSensors = MutableStateFlow(listOf<String>())
 
     /** developer console size */
     val developerConsoleSize = dataManager.developerConsoleSize.asStateFlow()
@@ -68,8 +78,22 @@ class DeveloperConsoleModel(
     val hostOverride
         get() = dataManager.hostOverride.value
 
+    var streamingUrl = ""
+    val streamingUrlResponse = _streamingUrlResponse.asStateFlow()
+    val availableSensors = _availableSensors.asStateFlow()
+    val activeSensors = _activeSensors.asStateFlow()
+
 
     //======================================== functions ==========================================
+
+    init {
+        viewModelScope.launch {
+            streamingUrl = settings.getString(KEY_STREAMING_URL, "")
+            println("kostka_test, sensors: ${getAllSensors()?.also {
+                _availableSensors.value = it
+            }}")
+        }
+    }
 
     /** Changes the state of the developer console */
     fun changeDeveloperConsole(size: Float = developerConsoleSize.value) {
@@ -79,6 +103,47 @@ class DeveloperConsoleModel(
     /** Overrides current host */
     fun changeHost(host: CharSequence) {
         dataManager.hostOverride.value = host.toString().takeIf { it.isNotBlank() }
+    }
+
+    fun selectStreamingUrl(uri: CharSequence) {
+        viewModelScope.launch {
+            streamingUrl = uri.toString()
+            settings.getString(uri.toString(), "")
+        }
+    }
+
+    fun registerSensor(
+        sensor: SensorEventListener,
+        delay: SensorDelay
+    ) {
+        viewModelScope.launch {
+            _activeSensors.update {
+                it.toMutableSet().apply {
+                    add(sensor.uid)
+                }.toList()
+            }
+            sensor.register(sensorDelay = delay)
+        }
+    }
+
+    fun changeSensorDelay(sensor: SensorEventListener, delay: SensorDelay) {
+        if (_activeSensors.value.contains(sensor.uid)) {
+            viewModelScope.launch {
+                sensor.unregister()
+                sensor.register(sensorDelay = delay)
+            }
+        }
+    }
+
+    fun unRegisterSensor(sensor: SensorEventListener) {
+        viewModelScope.launch {
+            _activeSensors.update {
+                it.toMutableList().apply {
+                    remove(sensor.uid)
+                }
+            }
+            sensor.unregister()
+        }
     }
 
     fun deleteLocalData() {
