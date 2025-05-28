@@ -15,21 +15,11 @@ interface SensorEventListener {
     var isInitialized: Boolean
     var listener: ((event: SensorEvent?) -> Unit)?
     fun onSensorChanged(event: SensorEvent?)
-    fun onAccuracyChanged(accuracy: Int)
 
     val id: Int
     val name: String
-    val vendor: String
-    val maximumRange: Float
-    val resolution: Float
     var delay: SensorDelay
 
     fun register(sensorDelay: SensorDelay = SensorDelay.Normal)
     fun unregister()
-    fun addListener(listener: (event: SensorEvent?) -> Unit) {
-        this.listener = listener
-    }
-
-    val uid: String
-        get() = "${name}_$id"
 }

@@ -31,13 +31,8 @@ private fun Sensor.toSensorEventListener(): SensorEventListener {
             listener?.invoke(event)
         }
 
-        override fun onAccuracyChanged(accuracy: Int) {}
-
         override val id: Int = this@toSensorEventListener.id
         override val name: String = this@toSensorEventListener.name
-        override val vendor: String = this@toSensorEventListener.vendor
-        override val maximumRange: Float = this@toSensorEventListener.maximumRange
-        override val resolution: Float = this@toSensorEventListener.resolution
         override var delay: SensorDelay = SensorDelay.Normal
 
         override fun register(sensorDelay: SensorDelay) {
@@ -45,10 +40,7 @@ private fun Sensor.toSensorEventListener(): SensorEventListener {
                 override fun onSensorChanged(event: SensorEvent?) {
                     onSensorChanged(event = event?.toSensorEvent())
                 }
-                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-                    onAccuracyChanged(accuracy = accuracy)
-                    println("kostka_test, onAccuracyChanged: $accuracy, sensor: $sensor")
-                }
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
             }
             delay = sensorDelay
             instance = eventListener

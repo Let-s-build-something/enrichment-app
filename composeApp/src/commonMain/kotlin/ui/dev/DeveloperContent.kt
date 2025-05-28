@@ -2,7 +2,6 @@ package ui.dev
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
@@ -206,11 +205,6 @@ private fun SectionIndicator(
                 onClick()
             }
             .padding(6.dp)
-            .border(
-                color = tint.value,
-                width = .5.dp,
-                shape = LocalTheme.current.shapes.componentShape
-            )
             .padding(4.dp),
         imageVector = imageVector,
         tint = tint.value,

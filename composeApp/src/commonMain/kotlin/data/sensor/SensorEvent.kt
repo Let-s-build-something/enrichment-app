@@ -2,9 +2,9 @@ package data.sensor
 
 data class SensorEvent(
     //val sensor: Sensor,
-    val accuracy: Int?,
     val timestamp: Long?,
-    val values: FloatArray?
+    val values: FloatArray?,
+    val accuracy: Int? = null
 ) {
 
     override fun equals(other: Any?): Boolean {
