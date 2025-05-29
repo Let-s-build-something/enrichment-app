@@ -1,5 +1,6 @@
 package data.sensor
 
+import augmy.interactive.shared.ext.ifNull
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
@@ -9,6 +10,9 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.augmy.macos.getBatteryLevel
+import org.augmy.macos.getForegroundApp
+import org.augmy.macos.getMainDisplayBrightness
 import platform.CoreMotion.CMAltimeter
 import platform.CoreMotion.CMMotionManager
 import platform.CoreMotion.CMPedometer
@@ -34,6 +38,7 @@ enum class SensorType {
     StepCounter,
     Proximity,
     BatteryLevel,
+    ForegroundApp,
     ScreenBrightness
 }
 
@@ -166,30 +171,46 @@ private fun createListener(
                     }
                 }
                 SensorType.ScreenBrightness -> {
-                    if (timerScope == null) {
-                        timerScope = CoroutineScope(Job())
-                    }else timerScope?.coroutineContext?.cancelChildren()
-
-                    timerScope?.launch {
-                        while (true) {
-                            val brightness = UIScreen.mainScreen.brightness.toFloat()
+                    registerManualCollector {
+                        val brightness = getMainDisplayBrightness() ?: UIScreen.mainScreen.brightness.toFloat()
+                        onSensorChanged(
+                            SensorEvent(listOf(brightness).toFloatArray())
+                        )
+                    }
+                }
+                SensorType.ForegroundApp -> {
+                    registerManualCollector {
+                        getForegroundApp()?.let { appInfo ->
                             onSensorChanged(
-                                SensorEvent(listOf(brightness).toFloatArray())
+                                SensorEvent(
+                                    visibleWindowValues = listOf(
+                                        VisibleWindowValue(name = appInfo.localizedName, command = appInfo.bundleIdentifier)
+                                    ),
+                                    values = null
+                                )
                             )
-                            delay(delay.milliseconds)
                         }
                     }
                 }
                 SensorType.BatteryLevel -> {
-                    device.setBatteryMonitoringEnabled(true)
-                    NSNotificationCenter.defaultCenter.addObserverForName(
-                        name = "UIDeviceBatteryLevelDidChangeNotification",
-                        `object` = null,
-                        queue = queue
-                    ) { _ ->
-                        onSensorChanged(
-                            SensorEvent(listOf(UIDevice.currentDevice.batteryLevel).toFloatArray())
-                        )
+                    getBatteryLevel()?.let { brightness ->
+                        registerManualCollector {
+                            onSensorChanged(
+                                SensorEvent(listOf(brightness.toFloat()).toFloatArray())
+                            )
+                        }
+                        brightness
+                    }.ifNull {
+                        device.setBatteryMonitoringEnabled(true)
+                        NSNotificationCenter.defaultCenter.addObserverForName(
+                            name = "UIDeviceBatteryLevelDidChangeNotification",
+                            `object` = null,
+                            queue = queue
+                        ) { _ ->
+                            onSensorChanged(
+                                SensorEvent(listOf(UIDevice.currentDevice.batteryLevel).toFloatArray())
+                            )
+                        }
                     }
                 }
                 SensorType.Proximity -> {
@@ -219,16 +240,31 @@ private fun createListener(
                 SensorType.Pressure -> altimeter.stopRelativeAltitudeUpdates()
                 SensorType.StepCounter -> pedometer.stopPedometerUpdates()
                 SensorType.BatteryLevel -> device.setBatteryMonitoringEnabled(false)
-                SensorType.ScreenBrightness -> {
-                    timerScope?.coroutineContext?.cancelChildren()
-                    timerScope = null
-                }
                 SensorType.Proximity -> device.setProximityMonitoringEnabled(false)
+                else -> {}
             }
+
+            timerScope?.coroutineContext?.cancelChildren()
+            timerScope = null
         }
 
         override fun onSensorChanged(event: SensorEvent?) {
             listener?.invoke(event)
+        }
+
+        private fun registerManualCollector(
+            onCollection: () -> Unit
+        ) {
+            if (timerScope == null) {
+                timerScope = CoroutineScope(Job())
+            }else timerScope?.coroutineContext?.cancelChildren()
+
+            timerScope?.launch {
+                while (true) {
+                    onCollection()
+                    delay(delay.milliseconds)
+                }
+            }
         }
     }
 }
@@ -264,6 +300,9 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? = withContext(Dis
     }
     if (device.isProximityMonitoringEnabled()) {
         available += createListener(SensorType.Proximity)
+    }
+    if (getForegroundApp() != null) {
+        available += createListener(SensorType.ForegroundApp)
     }
 
     available

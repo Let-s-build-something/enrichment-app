@@ -140,6 +140,7 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(project(":shared"))
+            implementation(project(":macos"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)

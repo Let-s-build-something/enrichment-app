@@ -243,7 +243,7 @@ private fun SensorSelectionLauncher(
                                 onItemCreation = { _, index, _ ->
                                     Text(
                                         modifier = Modifier
-                                            .weight(1f)
+                                            .fillMaxWidth()
                                             .padding(horizontal = 6.dp),
                                         text = SensorDelay.entries[index].name,
                                         style = LocalTheme.current.styles.subheading.copy(
