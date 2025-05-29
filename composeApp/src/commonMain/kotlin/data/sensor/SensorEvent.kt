@@ -5,7 +5,7 @@ import augmy.interactive.shared.utils.DateUtils
 data class SensorEvent(
     //val sensor: Sensor,
     val values: FloatArray?,
-    val timestamp: Long? = DateUtils.now.toEpochMilliseconds(),
+    val timestamp: Long = DateUtils.now.toEpochMilliseconds(),
     val accuracy: Int? = null,
     val visibleWindowValues: List<VisibleWindowValue>? = null
 ) {

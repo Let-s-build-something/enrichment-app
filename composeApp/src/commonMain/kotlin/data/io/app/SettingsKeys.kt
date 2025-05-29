@@ -44,4 +44,5 @@ object SettingsKeys {
 
     // DEV use only
     const val KEY_STREAMING_URL = "streaming_url"
+    const val KEY_STREAMING_DIRECTORY = "streaming_directory"
 }

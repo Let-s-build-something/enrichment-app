@@ -2,6 +2,10 @@ package ui.dev
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.utils.DateUtils
+import augmy.interactive.shared.utils.DateUtils.formatAs
+import base.utils.getDownloadsPath
+import data.io.app.SettingsKeys.KEY_STREAMING_DIRECTORY
 import data.io.app.SettingsKeys.KEY_STREAMING_URL
 import data.io.base.BaseResponse
 import data.sensor.SensorDelay
@@ -15,12 +19,21 @@ import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
+import io.github.vinceglb.filekit.core.PlatformDirectory
 import koin.DeveloperUtils
 import koin.secureSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import okio.SYSTEM
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import kotlin.uuid.ExperimentalUuidApi
@@ -79,6 +92,7 @@ class DeveloperConsoleModel(
         get() = dataManager.hostOverride.value
 
     var streamingUrl = ""
+    var streamingDirectory = ""
     val streamingUrlResponse = _streamingUrlResponse.asStateFlow()
     val availableSensors = _availableSensors.asStateFlow()
     val activeSensors = _activeSensors.asStateFlow()
@@ -89,9 +103,11 @@ class DeveloperConsoleModel(
     init {
         viewModelScope.launch {
             streamingUrl = settings.getString(KEY_STREAMING_URL, "")
-            println("kostka_test, sensors: ${getAllSensors()?.also {
+            streamingDirectory = settings.getString(KEY_STREAMING_DIRECTORY, "")
+
+            getAllSensors()?.also {
                 _availableSensors.value = it
-            }}")
+            }
         }
     }
 
@@ -112,9 +128,107 @@ class DeveloperConsoleModel(
         }
     }
 
+    fun selectStreamingDirectory(directory: PlatformDirectory?) {
+        viewModelScope.launch {
+            FileSystem.SYSTEM.write(
+                file = (directory?.path?.toPath() ?: getDownloadsPath().toPath())
+                    .div("${DateUtils.localNow.formatAs("dd-MM-yyyy_HH-mm-ss")}.txt"),
+            ) {
+
+            }
+        }
+    }
+
+    fun registerAllSensors() {
+        viewModelScope.launch {
+            _activeSensors.value = _availableSensors.value.mapNotNull {
+                if(_activeSensors.value.contains(it.uid)) {
+                    null
+                }else {
+                    it.register()
+                    it.uid
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        _availableSensors.value.filter {
+            it.uid in _activeSensors.value
+        }.forEach {
+            it.unregister()
+        }
+        super.onCleared()
+    }
+
+    fun unregisterAllSensors() {
+        viewModelScope.launch {
+            _availableSensors.value.filter {
+                it.uid in _activeSensors.value
+            }.forEach {
+                it.unregister()
+            }
+            _activeSensors.value = listOf()
+        }
+    }
+
+    fun resetAllSensors() {
+        viewModelScope.launch {
+            _availableSensors.value.forEach {
+                it.data.value = listOf()
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    fun exportData(directory: PlatformDirectory?) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val json = Json { prettyPrint = false }
+
+                val sensorList = _availableSensors.value.filter { it.uid in _activeSensors.value }
+
+                FileSystem.SYSTEM.write(
+                    file = (directory?.path?.toPath() ?: getDownloadsPath().toPath())
+                        .div("${DateUtils.localNow.formatAs("dd-MM-yyyy_HH-mm-ss")}.txt"),
+                ) {
+                    writeUtf8("{\n")
+
+                    sensorList.forEachIndexed { sensorIndex, sensor ->
+                        writeUtf8("\t\"${sensor.name}\": [\n")
+
+                        val dataList = sensor.data.value
+                        sensor.data.value.forEachIndexed { dataIndex, data ->
+                            val values = data.values?.let { json.encodeToString(it) }
+
+                            (values ?: data.visibleWindowValues?.mapNotNull {
+                                it.command
+                            }?.let { json.encodeToString(it) })?.let { values ->
+                                val timestamp = json.encodeToString(data.timestamp)
+
+                                writeUtf8("\t\t{ \"values\": $values, \"timestamp\": $timestamp }")
+                                if (dataIndex != dataList.lastIndex) writeUtf8(",")
+                                writeUtf8("\n")
+                            }
+                        }
+                        writeUtf8("\t]")
+                        if (sensorIndex != sensorList.lastIndex) writeUtf8(",")
+                        writeUtf8("\n")
+                    }
+
+                    writeUtf8("}")
+                }
+
+                sensorList.forEach {
+                    it.data.value = listOf()
+                }
+            }
+        }
+    }
+
     fun registerSensor(
         sensor: SensorEventListener,
-        delay: SensorDelay
+        delay: SensorDelay = SensorDelay.Slow
     ) {
         viewModelScope.launch {
             _activeSensors.update {

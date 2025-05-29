@@ -31,6 +31,7 @@ fun AlertDialog(
     message: AnnotatedString? = null,
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
+    intrinsicContent: Boolean = true,
     additionalContent: @Composable (() -> Unit)? = null,
     properties: DialogProperties = dismissibleDialogProperties,
     onDismissRequest: () -> Unit,
@@ -63,9 +64,11 @@ fun AlertDialog(
         text = if(message != null || additionalContent != null) {
             {
                 Column(
-                    modifier = Modifier
-                        .height(IntrinsicSize.Max)
-                        .width(IntrinsicSize.Max)
+                    modifier = if (intrinsicContent) {
+                        Modifier
+                            .height(IntrinsicSize.Max)
+                            .width(IntrinsicSize.Max)
+                    }else Modifier
                 ) {
                     if(message != null) {
                         Text(

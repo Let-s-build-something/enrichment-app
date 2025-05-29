@@ -15,3 +15,5 @@ value class RootPath(val path: Path) {
 }
 
 expect fun platformPathsModule(): Module
+
+expect fun getDownloadsPath(): String

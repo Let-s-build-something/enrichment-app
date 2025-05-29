@@ -8,6 +8,7 @@ import android.hardware.SensorManager.SENSOR_DELAY_GAME
 import android.hardware.SensorManager.SENSOR_DELAY_NORMAL
 import android.hardware.SensorManager.SENSOR_DELAY_UI
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
 import org.koin.mp.KoinPlatform.getKoin
 
@@ -29,18 +30,13 @@ private fun Sensor.toSensorEventListener(): SensorEventListener {
             }
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
-
-        override var listener: ((data.sensor.SensorEvent?) -> Unit)? = null
-
-        override fun onSensorChanged(event: data.sensor.SensorEvent?) {
-            listener?.invoke(event)
-        }
+        override var data: MutableStateFlow<List<data.sensor.SensorEvent>> = MutableStateFlow(emptyList())
 
         override val id: Int = this@toSensorEventListener.id
         override val name: String = this@toSensorEventListener.name
         override val maximumRange: Float? = this@toSensorEventListener.maximumRange
         override val resolution: Float? = this@toSensorEventListener.resolution
-        override var delay: SensorDelay = SensorDelay.Normal
+        override var delay: SensorDelay = SensorDelay.Slow
 
         override fun register(sensorDelay: SensorDelay) {
             delay = sensorDelay

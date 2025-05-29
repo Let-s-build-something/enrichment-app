@@ -157,8 +157,12 @@ fun ErrorHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     isLoading: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    endIconVector: ImageVector? = null,
+    endImageVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
 ) {
@@ -168,10 +172,11 @@ fun ErrorHeaderButton(
         shape = shape,
         isLoading = isLoading,
         onClick = onClick,
+        contentPadding = contentPadding,
         isEnabled = !isLoading,
         showBorder = false,
         additionalContent = extraContent,
-        endImageVector = endIconVector,
+        endImageVector = endImageVector,
         contentColor = Color.White,
         containerColor = SharedColors.RED_ERROR
     )
@@ -271,6 +276,10 @@ fun ContrastHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     isEnabled: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     endImageVector: ImageVector? = null,
     contentColor: Color = LocalTheme.current.colors.brandMainDark,
     containerColor: Color = LocalTheme.current.colors.tetrial,
@@ -281,6 +290,7 @@ fun ContrastHeaderButton(
         text = text,
         isEnabled = isEnabled,
         showBorder = isEnabled,
+        contentPadding = contentPadding,
         endImageVector = endImageVector,
         onClick = onClick,
         contentColor = contentColor,

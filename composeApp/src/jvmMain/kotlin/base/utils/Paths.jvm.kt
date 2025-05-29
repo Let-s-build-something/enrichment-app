@@ -14,6 +14,22 @@ actual fun platformPathsModule(): Module = module {
     }
 }
 
+actual fun getDownloadsPath(): String {
+    return when (getOs()) {
+        OS.MAC_OS, OS.LINUX -> {
+            val home = System.getenv("HOME")?.toPath()
+                ?: throw IllegalStateException("HOME environment variable is not set.")
+            home.resolve("Downloads")
+        }
+
+        OS.WINDOWS -> {
+            val userProfile = System.getenv("USERPROFILE")?.toPath()
+                ?: throw IllegalStateException("USERPROFILE environment variable is not set.")
+            userProfile.resolve("Downloads")
+        }
+    }.toString()
+}
+
 enum class OS(val value: String) {
     WINDOWS("Windows"), MAC_OS("macOS"), LINUX("Linux")
 }

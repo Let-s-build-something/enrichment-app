@@ -82,7 +82,7 @@ fun GravityIndicationContainer(
                 }
                 index?.value = gravityData.values.size
             }
-            listener?.register(sensorDelay = SensorDelay.Normal)
+            listener?.register(sensorDelay = SensorDelay.Slow)
 
             onPauseOrDispose {
                 listener?.unregister()

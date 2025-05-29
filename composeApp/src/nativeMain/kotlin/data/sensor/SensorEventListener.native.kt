@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.augmy.macos.getBatteryLevel
@@ -48,12 +49,12 @@ private fun createListener(
     type: SensorType
 ): SensorEventListener {
     return object: SensorEventListener {
-        override var listener: ((SensorEvent?) -> Unit)? = null
+        override var data: MutableStateFlow<List<SensorEvent>> = MutableStateFlow(emptyList())
         override val id: Int = type.ordinal
         override val name: String = type.name
         override val maximumRange: Float? = null
         override val resolution: Float? = null
-        override var delay: SensorDelay = SensorDelay.Normal
+        override var delay: SensorDelay = SensorDelay.Slow
 
         private val motionManager = CMMotionManager()
         private val altimeter = CMAltimeter()
@@ -246,10 +247,6 @@ private fun createListener(
 
             timerScope?.coroutineContext?.cancelChildren()
             timerScope = null
-        }
-
-        override fun onSensorChanged(event: SensorEvent?) {
-            listener?.invoke(event)
         }
 
         private fun registerManualCollector(

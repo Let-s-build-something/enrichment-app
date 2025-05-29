@@ -21,3 +21,15 @@ actual fun platformPathsModule(): Module = module {
         )
     }
 }
+
+actual fun getDownloadsPath(): String {
+    val paths = NSSearchPathForDirectoriesInDomains(
+        directory = NSDocumentDirectory,
+        domainMask = NSUserDomainMask,
+        expandTilde = true
+    )
+    val documentsDir = paths.firstOrNull() as? String
+        ?: error("Unable to locate Documents directory")
+
+    return "$documentsDir/Downloads"
+}

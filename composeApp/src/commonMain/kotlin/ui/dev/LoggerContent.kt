@@ -185,7 +185,7 @@ internal fun ColumnScope.LoggerContent(
                             .padding(top = 32.dp)
                             .fillMaxWidth(),
                         text = "Delete local data and sign out",
-                        endIconVector = Icons.Outlined.Remove,
+                        endImageVector = Icons.Outlined.Remove,
                         onClick = {
                             model.deleteLocalData()
                         }
