@@ -2,7 +2,12 @@ package data.sensor
 
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import platform.CoreMotion.CMAltimeter
 import platform.CoreMotion.CMMotionManager
@@ -10,9 +15,9 @@ import platform.CoreMotion.CMPedometer
 import platform.Foundation.NSDate
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
-import platform.Foundation.timeIntervalSince1970
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
+import platform.UIKit.UIScreen
 
 actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener? {
     return null
@@ -27,7 +32,9 @@ enum class SensorType {
     RotationVector,
     Pressure,
     StepCounter,
-    Proximity
+    Proximity,
+    BatteryLevel,
+    ScreenBrightness
 }
 
 
@@ -36,25 +43,22 @@ private fun createListener(
     type: SensorType
 ): SensorEventListener {
     return object: SensorEventListener {
-        override var instance: Any = ""
-        override var isInitialized: Boolean = false
         override var listener: ((SensorEvent?) -> Unit)? = null
         override val id: Int = type.ordinal
         override val name: String = type.name
+        override val maximumRange: Float? = null
+        override val resolution: Float? = null
         override var delay: SensorDelay = SensorDelay.Normal
 
         private val motionManager = CMMotionManager()
         private val altimeter = CMAltimeter()
         private val pedometer = CMPedometer()
         private val queue = NSOperationQueue.mainQueue
+        private val device = UIDevice.currentDevice
+        private var timerScope: CoroutineScope? = null
 
         override fun register(sensorDelay: SensorDelay) {
-            isInitialized = true
-            val interval = when (sensorDelay) {
-                SensorDelay.Slow -> 1.0
-                SensorDelay.Normal -> 0.5
-                SensorDelay.Fast -> 0.1
-            }
+            val interval = sensorDelay.milliseconds / 1000.0
 
             when (type) {
                 SensorType.Accelerometer -> {
@@ -64,8 +68,8 @@ private fun createListener(
                             it.acceleration.useContents {
                                 onSensorChanged(
                                     SensorEvent(
-                                        it.timestamp.toLong(),
-                                        listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
+                                        timestamp = it.timestamp.toLong(),
+                                        values = listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
                                     )
                                 )
                             }
@@ -80,8 +84,8 @@ private fun createListener(
                             it.rotationRate.useContents {
                                 onSensorChanged(
                                     SensorEvent(
-                                        it.timestamp.toLong(),
-                                        listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
+                                        timestamp = it.timestamp.toLong(),
+                                        values = listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
                                     )
                                 )
                             }
@@ -96,8 +100,8 @@ private fun createListener(
                             it.magneticField.useContents {
                                 onSensorChanged(
                                     SensorEvent(
-                                        it.timestamp.toLong(),
-                                        listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
+                                        timestamp = it.timestamp.toLong(),
+                                        values = listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
                                     )
                                 )
                             }
@@ -131,7 +135,7 @@ private fun createListener(
                             }.map { it.toFloat() }.toFloatArray()
 
                             onSensorChanged(
-                                SensorEvent(data.timestamp.toLong(), values)
+                                SensorEvent(timestamp = data.timestamp.toLong(), values = values)
                             )
                         }
                     }
@@ -143,10 +147,7 @@ private fun createListener(
                             data?.let {
                                 val pressure = it.pressure.doubleValue.toFloat()
                                 onSensorChanged(
-                                    SensorEvent(
-                                        NSDate().timeIntervalSince1970().toLong(),
-                                        listOf(pressure).toFloatArray()
-                                    )
+                                    SensorEvent(listOf(pressure).toFloatArray())
                                 )
                             }
                         }
@@ -158,18 +159,41 @@ private fun createListener(
                         pedometer.startPedometerUpdatesFromDate(NSDate()) { data, _ ->
                             data?.let {
                                 onSensorChanged(
-                                    SensorEvent(
-                                        NSDate().timeIntervalSince1970().toLong(),
-                                        listOf(it.numberOfSteps.intValue.toFloat()).toFloatArray()
-                                    )
+                                    SensorEvent(listOf(it.numberOfSteps.intValue.toFloat()).toFloatArray())
                                 )
                             }
                         }
                     }
                 }
+                SensorType.ScreenBrightness -> {
+                    if (timerScope == null) {
+                        timerScope = CoroutineScope(Job())
+                    }else timerScope?.coroutineContext?.cancelChildren()
 
+                    timerScope?.launch {
+                        while (true) {
+                            val brightness = UIScreen.mainScreen.brightness.toFloat()
+                            onSensorChanged(
+                                SensorEvent(listOf(brightness).toFloatArray())
+                            )
+                            delay(delay.milliseconds)
+                        }
+                    }
+                }
+                SensorType.BatteryLevel -> {
+                    device.setBatteryMonitoringEnabled(true)
+                    NSNotificationCenter.defaultCenter.addObserverForName(
+                        name = "UIDeviceBatteryLevelDidChangeNotification",
+                        `object` = null,
+                        queue = queue
+                    ) { _ ->
+                        onSensorChanged(
+                            SensorEvent(listOf(UIDevice.currentDevice.batteryLevel).toFloatArray())
+                        )
+                    }
+                }
                 SensorType.Proximity -> {
-                    UIDevice.currentDevice.proximityMonitoringEnabled = true
+                    device.setProximityMonitoringEnabled(true)
                     NSNotificationCenter.defaultCenter.addObserverForName(
                         name = UIDeviceProximityStateDidChangeNotification,
                         `object` = null,
@@ -177,10 +201,7 @@ private fun createListener(
                     ) { _ ->
                         val near = if (UIDevice.currentDevice.proximityState) 1f else 0f
                         onSensorChanged(
-                            SensorEvent(
-                                NSDate().timeIntervalSince1970().toLong(),
-                                listOf(near).toFloatArray()
-                            )
+                            SensorEvent(listOf(near).toFloatArray())
                         )
                     }
                 }
@@ -188,7 +209,6 @@ private fun createListener(
         }
 
         override fun unregister() {
-            isInitialized = false
             when (type) {
                 SensorType.Accelerometer -> motionManager.stopAccelerometerUpdates()
                 SensorType.Gyroscope -> motionManager.stopGyroUpdates()
@@ -198,7 +218,12 @@ private fun createListener(
                 SensorType.RotationVector -> motionManager.stopDeviceMotionUpdates()
                 SensorType.Pressure -> altimeter.stopRelativeAltitudeUpdates()
                 SensorType.StepCounter -> pedometer.stopPedometerUpdates()
-                SensorType.Proximity -> UIDevice.currentDevice.proximityMonitoringEnabled = false
+                SensorType.BatteryLevel -> device.setBatteryMonitoringEnabled(false)
+                SensorType.ScreenBrightness -> {
+                    timerScope?.coroutineContext?.cancelChildren()
+                    timerScope = null
+                }
+                SensorType.Proximity -> device.setProximityMonitoringEnabled(false)
             }
         }
 
@@ -215,6 +240,8 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? = withContext(Dis
     val stepAvailable = CMPedometer.isStepCountingAvailable()
     val device = UIDevice.currentDevice
 
+    available += createListener(SensorType.ScreenBrightness)
+    available += createListener(SensorType.BatteryLevel)
     if (motionManager.isAccelerometerAvailable()) {
         available += createListener(SensorType.Accelerometer)
     }

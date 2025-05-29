@@ -1,12 +1,14 @@
 package data.sensor
 
+import augmy.interactive.shared.utils.DateUtils
+
 data class SensorEvent(
     //val sensor: Sensor,
-    val timestamp: Long?,
     val values: FloatArray?,
-    val accuracy: Int? = null
+    val timestamp: Long? = DateUtils.now.toEpochMilliseconds(),
+    val accuracy: Int? = null,
+    val visibleWindowValues: List<VisibleWindowValue>? = null
 ) {
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -30,3 +32,8 @@ data class SensorEvent(
         return result
     }
 }
+
+data class VisibleWindowValue(
+    val name: String?,
+    val command: String?
+)

@@ -205,16 +205,20 @@ private fun SensorSelectionLauncher(
                             )
                         }
 
-                        Text(
-                            modifier = Modifier.padding(start = 6.dp),
-                            text = "Maximum range: ${sensor.maximumRange}",
-                            style = LocalTheme.current.styles.regular
-                        )
-                        Text(
-                            modifier = Modifier.padding(start = 6.dp),
-                            text = "Resolution: ${sensor.resolution}",
-                            style = LocalTheme.current.styles.regular
-                        )
+                        sensor.maximumRange?.let {
+                            Text(
+                                modifier = Modifier.padding(start = 6.dp),
+                                text = "Maximum range: $it",
+                                style = LocalTheme.current.styles.regular
+                            )
+                        }
+                        sensor.resolution?.let {
+                            Text(
+                                modifier = Modifier.padding(start = 6.dp),
+                                text = "Resolution: $it",
+                                style = LocalTheme.current.styles.regular
+                            )
+                        }
                         Row(
                             modifier = Modifier
                                 .padding(bottom = 6.dp, start = 6.dp)
@@ -238,7 +242,9 @@ private fun SensorSelectionLauncher(
                                 },
                                 onItemCreation = { _, index, _ ->
                                     Text(
-                                        modifier = Modifier.padding(horizontal = 6.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(horizontal = 6.dp),
                                         text = SensorDelay.entries[index].name,
                                         style = LocalTheme.current.styles.subheading.copy(
                                             textAlign = TextAlign.Center

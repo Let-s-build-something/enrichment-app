@@ -133,6 +133,7 @@ kotlin {
             implementation(libs.java.cloud.storage)
             implementation(libs.credential.store)
             implementation(libs.logback.classic)
+            implementation(libs.oshi.core)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
