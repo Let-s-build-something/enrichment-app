@@ -2,13 +2,12 @@ package ui.dev
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
-import augmy.interactive.shared.utils.DateUtils
-import augmy.interactive.shared.utils.DateUtils.formatAs
 import base.utils.getDownloadsPath
 import data.io.app.SettingsKeys.KEY_STREAMING_DIRECTORY
 import data.io.app.SettingsKeys.KEY_STREAMING_URL
 import data.io.base.BaseResponse
 import data.sensor.SensorDelay
+import data.sensor.SensorEvent
 import data.sensor.SensorEventListener
 import data.sensor.getAllSensors
 import data.shared.SharedModel
@@ -19,21 +18,28 @@ import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.dao.matrix.MatrixPagingMetaDao
 import database.dao.matrix.PresenceEventDao
-import io.github.vinceglb.filekit.core.PlatformDirectory
+import io.github.vinceglb.filekit.core.PlatformFile
 import koin.DeveloperUtils
 import koin.secureSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.put
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
+import okio.buffer
+import okio.use
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import kotlin.uuid.ExperimentalUuidApi
@@ -80,6 +86,12 @@ class DeveloperConsoleModel(
     private val _streamingUrlResponse = MutableStateFlow<BaseResponse<*>>(BaseResponse.Idle)
     private val _availableSensors = MutableStateFlow(listOf<SensorEventListener>())
     private val _activeSensors = MutableStateFlow(listOf<String>())
+    private val json by lazy {
+        Json {
+            prettyPrint = false
+            explicitNulls = false
+        }
+    }
 
     /** developer console size */
     val developerConsoleSize = dataManager.developerConsoleSize.asStateFlow()
@@ -128,17 +140,6 @@ class DeveloperConsoleModel(
         }
     }
 
-    fun selectStreamingDirectory(directory: PlatformDirectory?) {
-        viewModelScope.launch {
-            FileSystem.SYSTEM.write(
-                file = (directory?.path?.toPath() ?: getDownloadsPath().toPath())
-                    .div("${DateUtils.localNow.formatAs("dd-MM-yyyy_HH-mm-ss")}.txt"),
-            ) {
-
-            }
-        }
-    }
-
     fun registerAllSensors() {
         viewModelScope.launch {
             _activeSensors.value = _availableSensors.value.mapNotNull {
@@ -180,43 +181,99 @@ class DeveloperConsoleModel(
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
-    fun exportData(directory: PlatformDirectory?) {
+    private var streamWriterJob: Job? = null
+    private val streamChannel = Channel<String>(capacity = Channel.UNLIMITED)
+    private val eventStreamListener: (sensor: SensorEventListener, event: SensorEvent) -> Unit = { sensor, event ->
+        val sensorName = sensor.name
+
+        val values = event.values?.toList()?.let {
+            json.encodeToJsonElement(it)
+        } ?: event.uiValues?.let {
+            json.encodeToJsonElement(it)
+        }
+
+        if (values != null) {
+            val jsonLine = buildJsonObject {
+                put("sensor", sensorName)
+                put("timestamp", event.timestamp)
+                put("values", values)
+            }
+            val newLine = json.encodeToString(jsonLine)
+            streamChannel.trySend(newLine)
+            streamLines.update {
+                it.toMutableList().apply {
+                    add(0, newLine)
+                }
+            }
+        }
+    }
+
+    val streamLines = MutableStateFlow(listOf<String>())
+
+    fun stopStream() {
+        _availableSensors.value.filter { it.uid in _activeSensors.value }.forEach {
+            it.listener = null
+        }
+        streamWriterJob?.cancel()
+        streamLines.value = listOf()
+    }
+
+    fun setUpStream(file: PlatformFile?) {
+        if (file?.path == null) return
+        streamWriterJob = CoroutineScope(Dispatchers.IO).launch {
+            streamingDirectory = file.path?.toPath().toString()
+            settings.putString(KEY_STREAMING_DIRECTORY, "")
+
+            streamWriterJob = CoroutineScope(Dispatchers.IO).launch {
+                FileSystem.SYSTEM.appendingSink(streamingDirectory.toPath()).buffer().use { sink ->
+                    for (line in streamChannel) {
+                        sink.writeUtf8(line)
+                        sink.writeUtf8("\n")
+                        sink.flush()
+                    }
+                }
+            }
+
+            _availableSensors.value.filter { it.uid in _activeSensors.value }.forEach { sensor ->
+                sensor.listener = { event ->
+                    eventStreamListener.invoke(sensor, event)
+                }
+            }
+        }
+    }
+
+    fun exportData(file: PlatformFile?) {
+        if (file?.path == null) return
+
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val json = Json { prettyPrint = false }
-
                 val sensorList = _availableSensors.value.filter { it.uid in _activeSensors.value }
+                val outputFile = file.path?.toPath() ?: getDownloadsPath().toPath().div(file.name)
 
-                FileSystem.SYSTEM.write(
-                    file = (directory?.path?.toPath() ?: getDownloadsPath().toPath())
-                        .div("${DateUtils.localNow.formatAs("dd-MM-yyyy_HH-mm-ss")}.txt"),
-                ) {
-                    writeUtf8("{\n")
-
-                    sensorList.forEachIndexed { sensorIndex, sensor ->
-                        writeUtf8("\t\"${sensor.name}\": [\n")
-
+                FileSystem.SYSTEM.write(outputFile) {
+                    sensorList.forEach { sensor ->
+                        val sensorName = sensor.name
                         val dataList = sensor.data.value
-                        sensor.data.value.forEachIndexed { dataIndex, data ->
-                            val values = data.values?.let { json.encodeToString(it) }
 
-                            (values ?: data.visibleWindowValues?.mapNotNull {
-                                it.command
-                            }?.let { json.encodeToString(it) })?.let { values ->
-                                val timestamp = json.encodeToString(data.timestamp)
+                        dataList.forEach { data ->
+                            val values = data.values?.toList()?.let {
+                                json.encodeToJsonElement(it)
+                            } ?: data.uiValues?.let {
+                                json.encodeToJsonElement(it)
+                            }
 
-                                writeUtf8("\t\t{ \"values\": $values, \"timestamp\": $timestamp }")
-                                if (dataIndex != dataList.lastIndex) writeUtf8(",")
+                            if (values != null) {
+                                val jsonLine = buildJsonObject {
+                                    put("sensor", sensorName)
+                                    put("timestamp", data.timestamp)
+                                    put("values", values)
+                                }
+
+                                writeUtf8(json.encodeToString(jsonLine))
                                 writeUtf8("\n")
                             }
                         }
-                        writeUtf8("\t]")
-                        if (sensorIndex != sensorList.lastIndex) writeUtf8(",")
-                        writeUtf8("\n")
                     }
-
-                    writeUtf8("}")
                 }
 
                 sensorList.forEach {
@@ -237,6 +294,11 @@ class DeveloperConsoleModel(
                 }.toList()
             }
             sensor.register(sensorDelay = delay)
+            if (streamWriterJob?.isActive == true) {
+                sensor.listener = { event ->
+                    eventStreamListener.invoke(sensor, event)
+                }
+            }
         }
     }
 
@@ -257,6 +319,7 @@ class DeveloperConsoleModel(
                 }
             }
             sensor.unregister()
+            sensor.listener = null
         }
     }
 

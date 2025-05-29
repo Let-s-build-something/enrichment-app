@@ -50,6 +50,7 @@ private fun createListener(
 ): SensorEventListener {
     return object: SensorEventListener {
         override var data: MutableStateFlow<List<SensorEvent>> = MutableStateFlow(emptyList())
+        override var listener: ((event: SensorEvent) -> Unit)? = null
         override val id: Int = type.ordinal
         override val name: String = type.name
         override val maximumRange: Float? = null
@@ -153,7 +154,7 @@ private fun createListener(
                             data?.let {
                                 val pressure = it.pressure.doubleValue.toFloat()
                                 onSensorChanged(
-                                    SensorEvent(listOf(pressure).toFloatArray())
+                                    SensorEvent(values = listOf(pressure).toFloatArray())
                                 )
                             }
                         }
@@ -165,7 +166,7 @@ private fun createListener(
                         pedometer.startPedometerUpdatesFromDate(NSDate()) { data, _ ->
                             data?.let {
                                 onSensorChanged(
-                                    SensorEvent(listOf(it.numberOfSteps.intValue.toFloat()).toFloatArray())
+                                    SensorEvent(values = listOf(it.numberOfSteps.intValue.toFloat()).toFloatArray())
                                 )
                             }
                         }
@@ -175,7 +176,7 @@ private fun createListener(
                     registerManualCollector {
                         val brightness = getMainDisplayBrightness() ?: UIScreen.mainScreen.brightness.toFloat()
                         onSensorChanged(
-                            SensorEvent(listOf(brightness).toFloatArray())
+                            SensorEvent(values = listOf(brightness).toFloatArray())
                         )
                     }
                 }
@@ -184,10 +185,9 @@ private fun createListener(
                         getForegroundApp()?.let { appInfo ->
                             onSensorChanged(
                                 SensorEvent(
-                                    visibleWindowValues = listOf(
-                                        VisibleWindowValue(name = appInfo.localizedName, command = appInfo.bundleIdentifier)
-                                    ),
-                                    values = null
+                                    uiValues = mapOf(
+                                        appInfo.localizedName to appInfo.bundleIdentifier
+                                    )
                                 )
                             )
                         }
@@ -197,7 +197,7 @@ private fun createListener(
                     getBatteryLevel()?.let { brightness ->
                         registerManualCollector {
                             onSensorChanged(
-                                SensorEvent(listOf(brightness.toFloat()).toFloatArray())
+                                SensorEvent(values = listOf(brightness.toFloat()).toFloatArray())
                             )
                         }
                         brightness
@@ -209,7 +209,7 @@ private fun createListener(
                             queue = queue
                         ) { _ ->
                             onSensorChanged(
-                                SensorEvent(listOf(UIDevice.currentDevice.batteryLevel).toFloatArray())
+                                SensorEvent(values = listOf(UIDevice.currentDevice.batteryLevel).toFloatArray())
                             )
                         }
                     }
@@ -223,7 +223,7 @@ private fun createListener(
                     ) { _ ->
                         val near = if (UIDevice.currentDevice.proximityState) 1f else 0f
                         onSensorChanged(
-                            SensorEvent(listOf(near).toFloatArray())
+                            SensorEvent(values = listOf(near).toFloatArray())
                         )
                     }
                 }

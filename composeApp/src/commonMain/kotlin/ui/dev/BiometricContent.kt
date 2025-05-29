@@ -1,18 +1,20 @@
 package ui.dev
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,17 +33,20 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,17 +71,15 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.utils.DateUtils.formatAs
-import base.utils.getDownloadsPath
 import components.ScrollBarProgressIndicator
 import data.io.base.BaseResponse
 import data.sensor.SensorDelay
 import data.sensor.SensorEventListener
-import io.github.vinceglb.filekit.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.compose.rememberFileSaverLauncher
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-internal fun ColumnScope.BiometricContent(model: DeveloperConsoleModel) {
+internal fun BiometricContent(model: DeveloperConsoleModel) {
     StreamingSection(model)
 
     DashboardSection(model)
@@ -121,13 +124,13 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                                     )
                                 }
                             }
-                            record.visibleWindowValues?.let {
+                            record.uiValues?.let {
                                 val text = buildAnnotatedString {
                                     it.forEach { window ->
                                         withStyle(LocalTheme.current.styles.category.toSpanStyle()) {
-                                            append("\n${window.command}")
+                                            append("\n${window.key}")
                                         }
-                                        append(": ${window.name}")
+                                        append(": ${window.value}")
                                     }
                                 }
 
@@ -201,11 +204,9 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                 )
             }
 
-            val directoryPicker = rememberDirectoryPickerLauncher(
-                title = "Export the TXT file to...",
-                initialDirectory = getDownloadsPath(),
-                onResult = { directory ->
-                    model.exportData(directory)
+            val filePicker = rememberFileSaverLauncher(
+                onResult = { file ->
+                    model.exportData(file)
                 }
             )
             Row(
@@ -243,7 +244,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                     text = "Export",
                     endImageVector = Icons.Outlined.Download,
                     onClick = {
-                        directoryPicker.launch()
+                        filePicker.launch(extension = "txt", baseName = "log-sensory-augmy")
                     }
                 )
             }
@@ -315,10 +316,8 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                         )
                         Text(
                             modifier = Modifier.padding(start = 12.dp),
-                            text = "Last record: ${data.value.lastOrNull()?.let {
-                                it.values?.toList() ?: it.visibleWindowValues?.joinToString(separator = ", ") {
-                                    it.command ?: ""
-                                }
+                            text = "Last record: ${data.value.lastOrNull()?.let { value ->
+                                value.values?.toList() ?: value.uiValues
                             }}",
                             style = LocalTheme.current.styles.regular
                         )
@@ -367,7 +366,10 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                         onCheckedChange = {
                             if (activeSensors.value.contains(sensor.uid)) {
                                 model.unRegisterSensor(sensor)
-                            }else model.registerSensor(sensor = sensor)
+                            }else model.registerSensor(
+                                sensor = sensor,
+                                delay = SensorDelay.entries[selectedDelayIndex.value]
+                            )
                         },
                         checked = activeSensors.value.contains(sensor.uid)
                     )
@@ -393,9 +395,9 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
         TextFieldState(initialText = model.streamingUrl)
     }
 
-    val directoryPicker = rememberFileSaverLauncher(
-        onResult = { directory ->
-            // TODO model.exportData(directory)
+    val filePicker = rememberFileSaverLauncher(
+        onResult = { filePicker ->
+            model.setUpStream(filePicker)
         }
     )
 
@@ -440,20 +442,68 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
         )
     }
 
-
+    val streamLines = model.streamLines.collectAsState()
     Row(
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .animateContentSize(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Streaming to file: ${model.streamingDirectory}"
-        )
-        BrandHeaderButton(
-            text = "Selected directory",
-            endImageVector = Icons.Outlined.Folder,
-            onClick = {
-                directoryPicker.launch(extension = ".txt", baseName = "augmySensoryStream")
+        Crossfade(streamLines.value.isEmpty()) {
+            if (it) {
+                ContrastHeaderButton(
+                    text = "Stream locally",
+                    endImageVector = Icons.Outlined.Folder,
+                    contentColor = LocalTheme.current.colors.tetrial,
+                    containerColor = LocalTheme.current.colors.brandMainDark,
+                    onClick = {
+                        filePicker.launch(extension = "txt", baseName = "stream-sensory-augmy")
+                    }
+                )
+            }else {
+                ContrastHeaderButton(
+                    text = "Stop local stream",
+                    endImageVector = Icons.Outlined.Stop,
+                    contentColor = Color.White,
+                    containerColor = SharedColors.RED_ERROR,
+                    onClick = {
+                        model.stopStream()
+                    }
+                )
             }
-        )
+        }
+
+        AnimatedVisibility(
+            modifier = Modifier.weight(1f),
+            visible = streamLines.value.isNotEmpty()
+        ) {
+            val state = rememberLazyListState()
+
+            LaunchedEffect(streamLines.value.size) {
+                state.animateScrollToItem(0)
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .requiredHeight(50.dp)
+                    .padding(horizontal = 6.dp),
+                state = state,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                reverseLayout = true
+            ) {
+                items(
+                    items = streamLines.value,
+                    key = { it }
+                ) { line ->
+                    Text(
+                        modifier = Modifier.animateItem(),
+                        text = line,
+                        style = LocalTheme.current.styles.regular.copy(
+                            color = LocalTheme.current.colors.disabled
+                        )
+                    )
+                }
+            }
+        }
     }
 }

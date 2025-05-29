@@ -22,11 +22,15 @@ expect suspend fun getAllSensors(): List<SensorEventListener>?
 
 interface SensorEventListener {
     var data: MutableStateFlow<List<SensorEvent>>
+    var listener: ((event: SensorEvent) -> Unit)?
 
     fun onSensorChanged(event: SensorEvent?) {
-        if (event != null) data.update {
-            it.toMutableList().apply {
-                add(0, event)
+        if (event != null) {
+            listener?.invoke(event)
+            data.update {
+                it.toMutableList().apply {
+                    add(0, event)
+                }
             }
         }
     }

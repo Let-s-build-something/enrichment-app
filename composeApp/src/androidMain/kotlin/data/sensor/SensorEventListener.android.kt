@@ -31,11 +31,12 @@ private fun Sensor.toSensorEventListener(): SensorEventListener {
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
         override var data: MutableStateFlow<List<data.sensor.SensorEvent>> = MutableStateFlow(emptyList())
+        override var listener: ((event: data.sensor.SensorEvent) -> Unit)? = null
 
         override val id: Int = this@toSensorEventListener.id
         override val name: String = this@toSensorEventListener.name
-        override val maximumRange: Float? = this@toSensorEventListener.maximumRange
-        override val resolution: Float? = this@toSensorEventListener.resolution
+        override val maximumRange: Float = this@toSensorEventListener.maximumRange
+        override val resolution: Float = this@toSensorEventListener.resolution
         override var delay: SensorDelay = SensorDelay.Slow
 
         override fun register(sensorDelay: SensorDelay) {
@@ -66,7 +67,6 @@ private fun getSensorManager() = getKoin()
     .getSystemService(Context.SENSOR_SERVICE) as? SensorManager
 
 private fun SensorEvent.toSensorEvent() = SensorEvent(
-    accuracy = accuracy,
     timestamp = timestamp,
     values = values
 )

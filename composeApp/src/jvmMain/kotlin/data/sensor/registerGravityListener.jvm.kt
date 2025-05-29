@@ -37,11 +37,8 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? {
                 SensorEvent(
                     timestamp = DateUtils.now.toEpochMilliseconds(),
                     values = null,
-                    visibleWindowValues = operatingSystem.getDesktopWindows(true).map {
-                        VisibleWindowValue(
-                            name = it.title,
-                            command = it.command
-                        )
+                    uiValues = operatingSystem.getDesktopWindows(true).associate {
+                        it.title to it.command
                     }
                 )
             }
@@ -55,6 +52,7 @@ private fun createRepeatedEventListener(
 ): SensorEventListener {
     return object : SensorEventListener {
         override var data: MutableStateFlow<List<SensorEvent>> = MutableStateFlow(emptyList())
+        override var listener: ((event: SensorEvent) -> Unit)? = null
         override val id: Int = this.hashCode()
         override val name: String = name
         override val maximumRange: Float? = null
