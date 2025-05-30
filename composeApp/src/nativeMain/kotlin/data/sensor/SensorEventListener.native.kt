@@ -151,13 +151,17 @@ private fun createListener(
 
                 SensorType.Pressure -> {
                     if (CMAltimeter.isRelativeAltitudeAvailable()) {
-                        altimeter.startRelativeAltitudeUpdatesToQueue(queue) { data, _ ->
-                            data?.let {
-                                val pressure = it.pressure.doubleValue.toFloat()
-                                onSensorChanged(
-                                    SensorEvent(values = listOf(pressure).toFloatArray())
-                                )
+                        try {
+                            altimeter.startRelativeAltitudeUpdatesToQueue(queue) { data, _ ->
+                                data?.let {
+                                    val pressure = it.pressure.doubleValue.toFloat()
+                                    onSensorChanged(
+                                        SensorEvent(values = listOf(pressure).toFloatArray())
+                                    )
+                                }
                             }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
                     }
                 }

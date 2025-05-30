@@ -317,7 +317,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                         )
                         Text(
                             modifier = Modifier.padding(start = 12.dp),
-                            text = "Last record: ${data.value.lastOrNull()?.let { value ->
+                            text = "Last record: ${data.value.firstOrNull()?.let { value ->
                                 value.values?.toList() ?: value.uiValues
                             }}",
                             style = LocalTheme.current.styles.regular
@@ -325,7 +325,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
 
                         Row(
                             modifier = Modifier
-                                .padding(bottom = 6.dp, start = 6.dp)
+                                .padding(bottom = 6.dp)
                                 .fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -335,7 +335,6 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                                 style = LocalTheme.current.styles.regular
                             )
                             MultiChoiceSwitchMinimalistic(
-                                modifier = Modifier.padding(start = 6.dp),
                                 state = rememberMultiChoiceState(
                                     selectedTabIndex = selectedDelayIndex,
                                     items = SensorDelay.entries.map { it.name }.toMutableList()
@@ -346,9 +345,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                                 },
                                 onItemCreation = { _, index, _ ->
                                     Text(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 6.dp),
+                                        modifier = Modifier.fillMaxWidth(),
                                         text = SensorDelay.entries[index].name,
                                         style = LocalTheme.current.styles.category.copy(
                                             textAlign = TextAlign.Center
