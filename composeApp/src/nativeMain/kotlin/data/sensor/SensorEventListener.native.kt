@@ -66,6 +66,7 @@ private fun createListener(
 
         override fun register(sensorDelay: SensorDelay) {
             val interval = sensorDelay.milliseconds / 1000.0
+            delay = sensorDelay
 
             when (type) {
                 SensorType.Accelerometer -> {
@@ -194,6 +195,7 @@ private fun createListener(
                     }
                 }
                 SensorType.BatteryLevel -> {
+                    device.setBatteryMonitoringEnabled(true)
                     getBatteryLevel()?.let { brightness ->
                         registerManualCollector {
                             onSensorChanged(
@@ -202,7 +204,6 @@ private fun createListener(
                         }
                         brightness
                     }.ifNull {
-                        device.setBatteryMonitoringEnabled(true)
                         NSNotificationCenter.defaultCenter.addObserverForName(
                             name = "UIDeviceBatteryLevelDidChangeNotification",
                             `object` = null,

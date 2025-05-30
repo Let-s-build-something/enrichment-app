@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.Download
@@ -60,7 +61,7 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.ContrastHeaderButton
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
-import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
+import augmy.interactive.shared.ui.components.LoadingHeaderButton
 import augmy.interactive.shared.ui.components.MultiChoiceSwitchMinimalistic
 import augmy.interactive.shared.ui.components.ProgressPressableContainer
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
@@ -217,7 +218,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                 ErrorHeaderButton(
                     text = "Reset all",
                     contentPadding = PaddingValues(vertical = 6.dp, horizontal = 10.dp),
-                    endImageVector = Icons.Outlined.Deselect,
+                    endImageVector = Icons.Outlined.CleaningServices,
                     onClick = {
                         showDialog.value = true
                     }
@@ -397,7 +398,7 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
 
     val filePicker = rememberFileSaverLauncher(
         onResult = { filePicker ->
-            model.setUpStream(filePicker)
+            model.setUpLocalStream(filePicker)
         }
     )
 
@@ -409,100 +410,162 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
         text = "Data streaming",
         style = LocalTheme.current.styles.subheading
     )
+
     Row(
         modifier = Modifier.padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CustomTextField(
-            modifier = Modifier
-                .weight(1f)
-                .padding(
+        AnimatedVisibility(
+            modifier = Modifier.weight(1f),
+            visible = streamingUrlResponse.value !is BaseResponse.Success
+        ) {
+            CustomTextField(
+                modifier = Modifier.padding(
                     horizontal = 8.dp,
                     vertical = 6.dp
                 ),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Uri,
-                imeAction = ImeAction.Done
-            ),
-            lineLimits = TextFieldLineLimits.SingleLine,
-            onKeyboardAction = {
-                model.selectStreamingUrl(streamingUrlState.text)
-            },
-            hint = "Server url",
-            state = streamingUrlState,
-            shape = LocalTheme.current.shapes.componentShape,
-            errorText = (streamingUrlResponse.value as? BaseResponse.Error)?.message
-        )
-        MinimalisticComponentIcon(
-            imageVector = Icons.Outlined.Check,
-            tint = LocalTheme.current.colors.secondary,
-            onTap = {
-                model.selectStreamingUrl(streamingUrlState.text)
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Done
+                ),
+                lineLimits = TextFieldLineLimits.SingleLine,
+                onKeyboardAction = {
+                    model.setupRemoteStream(streamingUrlState.text)
+                },
+                hint = "Server url",
+                state = streamingUrlState,
+                shape = LocalTheme.current.shapes.componentShape,
+                errorText = (streamingUrlResponse.value as? BaseResponse.Error)?.message
+            )
+        }
+        Crossfade(targetState = streamingUrlResponse.value) { response ->
+            when(response) {
+                is BaseResponse.Success -> {
+                    ContrastHeaderButton(
+                        text = "Stop remote stream",
+                        endImageVector = Icons.Outlined.Stop,
+                        contentColor = Color.White,
+                        containerColor = SharedColors.RED_ERROR,
+                        onClick = {
+                            model.stopRemoteStream()
+                        }
+                    )
+                }
+                else -> {
+                    LoadingHeaderButton(
+                        text = "Stream",
+                        isLoading = streamingUrlResponse.value is BaseResponse.Loading,
+                        isEnabled = streamingUrlResponse.value !is BaseResponse.Loading,
+                        endImageVector = Icons.Outlined.Check,
+                        onClick = {
+                            model.setupRemoteStream(streamingUrlState.text)
+                        }
+                    )
+                }
             }
-        )
-    }
+        }
+        AnimatedVisibility(streamingUrlResponse.value is BaseResponse.Success) {
+            val selectedDelayIndex = rememberSaveable {
+                mutableStateOf(model.remoteStreamDelay.ordinal)
+            }
 
-    val streamLines = model.streamLines.collectAsState()
-    Row(
-        modifier = Modifier
-            .padding(top = 8.dp)
-            .animateContentSize(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Crossfade(streamLines.value.isEmpty()) {
-            if (it) {
-                ContrastHeaderButton(
-                    text = "Stream locally",
-                    endImageVector = Icons.Outlined.Folder,
-                    contentColor = LocalTheme.current.colors.tetrial,
-                    containerColor = LocalTheme.current.colors.brandMainDark,
-                    onClick = {
-                        filePicker.launch(extension = "txt", baseName = "stream-sensory-augmy")
-                    }
+            Row(
+                modifier = Modifier.padding(start = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Upload by: ",
+                    style = LocalTheme.current.styles.regular
                 )
-            }else {
-                ContrastHeaderButton(
-                    text = "Stop local stream",
-                    endImageVector = Icons.Outlined.Stop,
-                    contentColor = Color.White,
-                    containerColor = SharedColors.RED_ERROR,
-                    onClick = {
-                        model.stopStream()
+                MultiChoiceSwitchMinimalistic(
+                    modifier = Modifier.padding(start = 6.dp),
+                    state = rememberMultiChoiceState(
+                        selectedTabIndex = selectedDelayIndex,
+                        items = SensorDelay.entries.map { it.name }.toMutableList()
+                    ),
+                    onClick = { index ->
+                        selectedDelayIndex.value = index
+                        model.remoteStreamDelay =  SensorDelay.entries[index]
+                    },
+                    onItemCreation = { _, index, _ ->
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 6.dp),
+                            text = when(SensorDelay.entries[index]) {
+                                SensorDelay.Slow -> 50
+                                SensorDelay.Normal -> 20
+                                SensorDelay.Fast -> 1
+                            }.toString(),
+                            style = LocalTheme.current.styles.category.copy(
+                                textAlign = TextAlign.Center
+                            )
+                        )
                     }
                 )
             }
         }
+    }
 
-        AnimatedVisibility(
-            modifier = Modifier.weight(1f),
-            visible = streamLines.value.isNotEmpty()
-        ) {
-            val state = rememberLazyListState()
-
-            LaunchedEffect(streamLines.value.size) {
-                state.animateScrollToItem(0)
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .requiredHeight(50.dp)
-                    .padding(horizontal = 6.dp),
-                state = state,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                reverseLayout = true
-            ) {
-                items(
-                    items = streamLines.value,
-                    key = { it }
-                ) { line ->
-                    Text(
-                        modifier = Modifier.animateItem(),
-                        text = line,
-                        style = LocalTheme.current.styles.regular.copy(
-                            color = LocalTheme.current.colors.disabled
-                        )
-                    )
+    val localRunning = model.isLocalStreamRunning.collectAsState()
+    Crossfade(
+        modifier = Modifier.padding(top = 8.dp),
+        targetState = localRunning.value
+    ) {
+        if (it) {
+            ContrastHeaderButton(
+                text = "Stop local stream",
+                endImageVector = Icons.Outlined.Stop,
+                contentColor = Color.White,
+                containerColor = SharedColors.RED_ERROR,
+                onClick = {
+                    model.stopLocalStream()
                 }
+            )
+        }else {
+            ContrastHeaderButton(
+                text = "Stream locally",
+                endImageVector = Icons.Outlined.Folder,
+                contentColor = LocalTheme.current.colors.tetrial,
+                containerColor = LocalTheme.current.colors.brandMainDark,
+                onClick = {
+                    filePicker.launch(extension = "txt", baseName = "stream-sensory-augmy")
+                }
+            )
+        }
+    }
+
+    val streamLines = model.streamLines.collectAsState()
+    AnimatedVisibility(
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth(),
+        visible = streamLines.value.isNotEmpty()
+    ) {
+        val state = rememberLazyListState()
+
+        LaunchedEffect(streamLines.value.size) {
+            state.animateScrollToItem(0)
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .requiredHeight(50.dp)
+                .padding(horizontal = 8.dp),
+            state = state,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            reverseLayout = true
+        ) {
+            items(items = streamLines.value) { line ->
+                Text(
+                    modifier = Modifier.animateItem(),
+                    text = line,
+                    style = LocalTheme.current.styles.regular.copy(
+                        color = LocalTheme.current.colors.disabled
+                    )
+                )
             }
         }
     }

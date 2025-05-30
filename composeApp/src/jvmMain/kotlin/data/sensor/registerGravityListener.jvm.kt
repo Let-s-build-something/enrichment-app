@@ -61,6 +61,7 @@ private fun createRepeatedEventListener(
         private var runningScope = CoroutineScope(Job())
 
         override fun register(sensorDelay: SensorDelay) {
+            delay = sensorDelay
             unregister()
             runningScope.launch {
                 while (true) {

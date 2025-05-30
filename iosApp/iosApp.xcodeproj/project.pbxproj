@@ -450,7 +450,7 @@
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = augmy.interactive.com;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "GitHub pipeline";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "GitHub pipeline";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Development 2";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = 14.0;
@@ -489,7 +489,7 @@
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = augmy.interactive.com;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "GitHub pipeline";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "GitHub pipeline";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Development 2";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = 14.0;

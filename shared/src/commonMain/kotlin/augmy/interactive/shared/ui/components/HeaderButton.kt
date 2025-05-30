@@ -217,11 +217,11 @@ fun BrandHeaderButton(
 }
 
 @Composable
-private fun LoadingHeaderButton(
+fun LoadingHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
-    contentColor: Color,
-    containerColor: Color,
+    contentColor: Color = LocalTheme.current.colors.secondary,
+    containerColor: Color = LocalTheme.current.colors.backgroundLight,
     contentPadding: PaddingValues = PaddingValues(
         vertical = 10.dp,
         horizontal = 16.dp

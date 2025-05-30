@@ -11,16 +11,8 @@ import data.sensor.SensorEvent
 import data.sensor.SensorEventListener
 import data.sensor.getAllSensors
 import data.shared.SharedModel
-import database.dao.ConversationMessageDao
-import database.dao.ConversationRoomDao
-import database.dao.EmojiSelectionDao
-import database.dao.NetworkItemDao
-import database.dao.PagingMetaDao
-import database.dao.matrix.MatrixPagingMetaDao
-import database.dao.matrix.PresenceEventDao
 import io.github.vinceglb.filekit.core.PlatformFile
 import koin.DeveloperUtils
-import koin.secureSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -28,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,16 +40,24 @@ import kotlin.uuid.Uuid
 
 internal val developerConsoleModule = module {
     single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
-    factory { DeveloperConsoleModel(
-        get(),
-        get(),
-        get(),
-        get(),
-        get(),
-        get(),
-        get(),
-        get()
-    ) }
+    factory {
+        DeveloperRepository(
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get(),
+            get()
+        )
+    }
+    factory {
+        DeveloperConsoleModel(
+            get(),
+            get()
+        )
+    }
     viewModelOf(::DeveloperConsoleModel)
 }
 
@@ -75,17 +76,14 @@ class DeveloperConsoleDataManager {
 /** Shared viewmodel for developer console */
 class DeveloperConsoleModel(
     private val dataManager: DeveloperConsoleDataManager,
-    private val networkItemDao: NetworkItemDao,
-    private val conversationMessageDao: ConversationMessageDao,
-    private val emojiSelectionDao: EmojiSelectionDao,
-    private val pagingMetaDao: PagingMetaDao,
-    private val conversationRoomDao: ConversationRoomDao,
-    private val presenceEventDao: PresenceEventDao,
-    private val matrixPagingMetaDao: MatrixPagingMetaDao
+    private val repository: DeveloperRepository
 ): SharedModel() {
     private val _streamingUrlResponse = MutableStateFlow<BaseResponse<*>>(BaseResponse.Idle)
     private val _availableSensors = MutableStateFlow(listOf<SensorEventListener>())
     private val _activeSensors = MutableStateFlow(listOf<String>())
+    private var localStreamJob: Job? = null
+    private var remoteStreamJob: Job? = null
+    private val streamChannel = Channel<String>(capacity = Channel.UNLIMITED)
     private val json by lazy {
         Json {
             prettyPrint = false
@@ -108,6 +106,8 @@ class DeveloperConsoleModel(
     val streamingUrlResponse = _streamingUrlResponse.asStateFlow()
     val availableSensors = _availableSensors.asStateFlow()
     val activeSensors = _activeSensors.asStateFlow()
+    val streamLines = MutableStateFlow(listOf<String>())
+    val isLocalStreamRunning = MutableStateFlow(false)
 
 
     //======================================== functions ==========================================
@@ -119,6 +119,16 @@ class DeveloperConsoleModel(
 
             getAllSensors()?.also {
                 _availableSensors.value = it
+            }
+
+            activeSensors.collectLatest { sensors ->
+                _availableSensors.value.forEach { sensor ->
+                    sensor.listener = if (sensor.uid in sensors) {
+                        { event ->
+                            eventStreamListener.invoke(sensor, event)
+                        }
+                    }else null
+                }
             }
         }
     }
@@ -133,21 +143,60 @@ class DeveloperConsoleModel(
         dataManager.hostOverride.value = host.toString().takeIf { it.isNotBlank() }
     }
 
-    fun selectStreamingUrl(uri: CharSequence) {
+    fun stopRemoteStream() {
+        remoteStreamJob?.cancel()
+        _streamingUrlResponse.value = BaseResponse.Idle
+    }
+
+    var remoteStreamDelay = SensorDelay.Normal
+    fun setupRemoteStream(uri: CharSequence) {
+        _streamingUrlResponse.value = BaseResponse.Loading
         viewModelScope.launch {
-            streamingUrl = uri.toString()
-            settings.getString(uri.toString(), "")
+            _streamingUrlResponse.value = repository.postStreamData(
+                url = uri.toString(),
+                body = ""
+            ).also {
+                if(it is BaseResponse.Success) {
+                    streamingUrl = uri.toString()
+                    settings.putString(KEY_STREAMING_URL, uri.toString())
+
+                    remoteStreamJob = CoroutineScope(Dispatchers.IO).launch {
+                        val buffer = mutableListOf<String>()
+
+                        for (line in streamChannel) {
+                            val step = when(remoteStreamDelay) {
+                                SensorDelay.Slow -> 50
+                                SensorDelay.Normal -> 20
+                                SensorDelay.Fast -> 1
+                            }
+
+                            buffer.add(line)
+
+                            if (buffer.size >= step) {
+                                repository.postStreamData(
+                                    url = streamingUrl,
+                                    body = buffer.joinToString("\n")
+                                ).let {
+                                    if(it is BaseResponse.Success) {
+                                        buffer.clear()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     fun registerAllSensors() {
         viewModelScope.launch {
-            _activeSensors.value = _availableSensors.value.mapNotNull {
-                if(_activeSensors.value.contains(it.uid)) {
+            _activeSensors.value = _availableSensors.value.mapNotNull { sensor ->
+                if(_activeSensors.value.contains(sensor.uid)) {
                     null
                 }else {
-                    it.register()
-                    it.uid
+                    sensor.register()
+                    sensor.uid
                 }
             }
         }
@@ -181,8 +230,6 @@ class DeveloperConsoleModel(
         }
     }
 
-    private var streamWriterJob: Job? = null
-    private val streamChannel = Channel<String>(capacity = Channel.UNLIMITED)
     private val eventStreamListener: (sensor: SensorEventListener, event: SensorEvent) -> Unit = { sensor, event ->
         val sensorName = sensor.name
 
@@ -199,44 +246,39 @@ class DeveloperConsoleModel(
                 put("values", values)
             }
             val newLine = json.encodeToString(jsonLine)
-            streamChannel.trySend(newLine)
-            streamLines.update {
-                it.toMutableList().apply {
-                    add(0, newLine)
+
+            if(isLocalStreamRunning.value || _streamingUrlResponse.value is BaseResponse.Success) {
+                streamChannel.trySend(newLine)
+                streamLines.update {
+                    it.toMutableList().apply {
+                        add(0, newLine)
+                    }
                 }
             }
         }
     }
 
-    val streamLines = MutableStateFlow(listOf<String>())
-
-    fun stopStream() {
-        _availableSensors.value.filter { it.uid in _activeSensors.value }.forEach {
-            it.listener = null
-        }
-        streamWriterJob?.cancel()
-        streamLines.value = listOf()
+    fun stopLocalStream() {
+        isLocalStreamRunning.value = false
+        localStreamJob?.cancel()
     }
 
-    fun setUpStream(file: PlatformFile?) {
-        if (file?.path == null) return
-        streamWriterJob = CoroutineScope(Dispatchers.IO).launch {
-            streamingDirectory = file.path?.toPath().toString()
-            settings.putString(KEY_STREAMING_DIRECTORY, "")
+    fun setUpLocalStream(file: PlatformFile?) {
+        // macOS contains file: prefix
+        val path = file?.path?.removePrefix("file:")?.toPath()?.toString() ?: return
 
-            streamWriterJob = CoroutineScope(Dispatchers.IO).launch {
+        localStreamJob = CoroutineScope(Dispatchers.IO).launch {
+            streamingDirectory = path
+            settings.putString(KEY_STREAMING_DIRECTORY, path)
+            isLocalStreamRunning.value = true
+
+            localStreamJob = CoroutineScope(Dispatchers.IO).launch {
                 FileSystem.SYSTEM.appendingSink(streamingDirectory.toPath()).buffer().use { sink ->
                     for (line in streamChannel) {
                         sink.writeUtf8(line)
                         sink.writeUtf8("\n")
                         sink.flush()
                     }
-                }
-            }
-
-            _availableSensors.value.filter { it.uid in _activeSensors.value }.forEach { sensor ->
-                sensor.listener = { event ->
-                    eventStreamListener.invoke(sensor, event)
                 }
             }
         }
@@ -294,11 +336,6 @@ class DeveloperConsoleModel(
                 }.toList()
             }
             sensor.register(sensorDelay = delay)
-            if (streamWriterJob?.isActive == true) {
-                sensor.listener = { event ->
-                    eventStreamListener.invoke(sensor, event)
-                }
-            }
         }
     }
 
@@ -319,20 +356,12 @@ class DeveloperConsoleModel(
                 }
             }
             sensor.unregister()
-            sensor.listener = null
         }
     }
 
     fun deleteLocalData() {
         viewModelScope.launch {
-            networkItemDao.removeAll()
-            conversationMessageDao.removeAll()
-            emojiSelectionDao.removeAll()
-            conversationRoomDao.removeAll()
-            presenceEventDao.removeAll()
-            pagingMetaDao.removeAll()
-            matrixPagingMetaDao.removeAll()
-            secureSettings.clear(force = true)
+            repository.clearAllDao()
             sharedDataManager.matrixClient.value?.clearCache()
             sharedDataManager.matrixClient.value?.clearMediaCache()
             super.logoutCurrentUser()
