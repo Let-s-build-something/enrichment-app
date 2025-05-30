@@ -76,6 +76,10 @@ private fun createRepeatedEventListener(
     }
 }
 
+actual fun withSecurityScopedAccess(url: String, block: () -> Unit) {
+    block()
+}
+
 actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener? {
     return null
 }

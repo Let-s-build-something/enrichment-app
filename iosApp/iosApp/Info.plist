@@ -68,6 +68,8 @@
 	<true/>
 	<key>UIStatusBarStyle</key>
 	<string></string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

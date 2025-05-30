@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 
 /** Interface for communicating with platform specific back press dispatcher */
@@ -24,7 +25,7 @@ interface BackPressDispatcher {
 @Composable
 fun OnBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
     val dispatcher = LocalBackPressDispatcher.current
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     if (lifecycleOwner.lifecycle.currentState === Lifecycle.State.DESTROYED) {
         return

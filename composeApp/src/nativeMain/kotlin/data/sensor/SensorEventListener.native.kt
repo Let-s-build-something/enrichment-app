@@ -20,6 +20,7 @@ import platform.CoreMotion.CMPedometer
 import platform.Foundation.NSDate
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
+import platform.Foundation.NSURL
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
 import platform.UIKit.UIScreen
@@ -43,6 +44,19 @@ enum class SensorType {
     ScreenBrightness
 }
 
+actual fun withSecurityScopedAccess(url: String, block: () -> Unit) {
+    val nsUrl = NSURL.fileURLWithPath(url)
+    val accessed = nsUrl.startAccessingSecurityScopedResource()
+    if (accessed) {
+        try {
+            block()
+        } finally {
+            nsUrl.stopAccessingSecurityScopedResource()
+        }
+    } else {
+        println("Failed to get security-scoped access")
+    }
+}
 
 @OptIn(ExperimentalForeignApi::class)
 private fun createListener(

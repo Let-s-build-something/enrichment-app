@@ -18,6 +18,10 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? {
     }
 }
 
+actual fun withSecurityScopedAccess(url: String, block: () -> Unit) {
+    block()
+}
+
 actual fun getGravityListener(onSensorChanged: (event: data.sensor.SensorEvent?) -> Unit): SensorEventListener? {
     return getSensorManager()?.getDefaultSensor(Sensor.TYPE_GRAVITY)?.toSensorEventListener()
 }

@@ -45,7 +45,7 @@ import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getMediaType
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

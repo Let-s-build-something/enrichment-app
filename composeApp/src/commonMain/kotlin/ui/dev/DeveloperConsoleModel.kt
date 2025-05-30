@@ -2,7 +2,6 @@ package ui.dev
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
-import base.utils.getDownloadsPath
 import data.io.app.SettingsKeys.KEY_STREAMING_DIRECTORY
 import data.io.app.SettingsKeys.KEY_STREAMING_URL
 import data.io.base.BaseResponse
@@ -10,8 +9,10 @@ import data.sensor.SensorDelay
 import data.sensor.SensorEvent
 import data.sensor.SensorEventListener
 import data.sensor.getAllSensors
+import data.sensor.withSecurityScopedAccess
 import data.shared.SharedModel
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.path
 import koin.DeveloperUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -150,6 +151,7 @@ class DeveloperConsoleModel(
 
     var remoteStreamDelay = SensorDelay.Normal
     fun setupRemoteStream(uri: CharSequence) {
+        if(uri.isBlank()) return
         _streamingUrlResponse.value = BaseResponse.Loading
         viewModelScope.launch {
             _streamingUrlResponse.value = repository.postStreamData(
@@ -172,7 +174,7 @@ class DeveloperConsoleModel(
 
                             buffer.add(line)
 
-                            if (buffer.size >= step) {
+                            if (buffer.size >= step && streamingUrl.isNotBlank()) {
                                 repository.postStreamData(
                                     url = streamingUrl,
                                     body = buffer.joinToString("\n")
@@ -213,9 +215,7 @@ class DeveloperConsoleModel(
 
     fun unregisterAllSensors() {
         viewModelScope.launch {
-            _availableSensors.value.filter {
-                it.uid in _activeSensors.value
-            }.forEach {
+            _availableSensors.value.forEach {
                 it.unregister()
             }
             _activeSensors.value = listOf()
@@ -265,19 +265,27 @@ class DeveloperConsoleModel(
 
     fun setUpLocalStream(file: PlatformFile?) {
         // macOS contains file: prefix
-        val path = file?.path?.removePrefix("file:")?.toPath()?.toString() ?: return
+        val path = file?.path
+            ?.removePrefix("file:")
+            ?.replace("%20", " ")
+            ?.toPath(normalize = true)?.toString() ?: return
 
-        localStreamJob = CoroutineScope(Dispatchers.IO).launch {
+        viewModelScope.launch {
             streamingDirectory = path
             settings.putString(KEY_STREAMING_DIRECTORY, path)
             isLocalStreamRunning.value = true
 
-            localStreamJob = CoroutineScope(Dispatchers.IO).launch {
-                FileSystem.SYSTEM.appendingSink(streamingDirectory.toPath()).buffer().use { sink ->
-                    for (line in streamChannel) {
-                        sink.writeUtf8(line)
-                        sink.writeUtf8("\n")
-                        sink.flush()
+            val filePath = path.toPath()
+            println("kostka_test, exists: ${FileSystem.SYSTEM.exists(filePath)} - $streamingDirectory")
+
+            withSecurityScopedAccess(url = streamingDirectory) {
+                localStreamJob = CoroutineScope(Dispatchers.IO).launch {
+                    FileSystem.SYSTEM.appendingSink(streamingDirectory.toPath()).buffer().use { sink ->
+                        for (line in streamChannel) {
+                            sink.writeUtf8(line)
+                            sink.writeUtf8("\n")
+                            sink.flush()
+                        }
                     }
                 }
             }
@@ -290,7 +298,7 @@ class DeveloperConsoleModel(
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val sensorList = _availableSensors.value.filter { it.uid in _activeSensors.value }
-                val outputFile = file.path?.toPath() ?: getDownloadsPath().toPath().div(file.name)
+                val outputFile = file.path.toPath()
 
                 FileSystem.SYSTEM.write(outputFile) {
                     sensorList.forEach { sensor ->

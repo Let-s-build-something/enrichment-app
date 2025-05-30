@@ -76,7 +76,7 @@ import components.ScrollBarProgressIndicator
 import data.io.base.BaseResponse
 import data.sensor.SensorDelay
 import data.sensor.SensorEventListener
-import io.github.vinceglb.filekit.compose.rememberFileSaverLauncher
+import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -245,7 +245,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                     text = "Export",
                     endImageVector = Icons.Outlined.Download,
                     onClick = {
-                        filePicker.launch(extension = "txt", baseName = "log-sensory-augmy")
+                        filePicker.launch(extension = "txt", suggestedName = "log-sensory-augmy")
                     }
                 )
             }
@@ -254,7 +254,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
             items = availableSensors.value,
             key = { it.uid }
         ) { sensor ->
-            val selectedDelayIndex = rememberSaveable(sensor) {
+            val selectedDelayIndex = rememberSaveable(sensor.uid) {
                 mutableStateOf(sensor.delay.ordinal)
             }
 
@@ -527,7 +527,7 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
                 contentColor = LocalTheme.current.colors.tetrial,
                 containerColor = LocalTheme.current.colors.brandMainDark,
                 onClick = {
-                    filePicker.launch(extension = "txt", baseName = "stream-sensory-augmy")
+                    filePicker.launch(extension = "txt", suggestedName = "stream-sensory-augmy")
                 }
             )
         }

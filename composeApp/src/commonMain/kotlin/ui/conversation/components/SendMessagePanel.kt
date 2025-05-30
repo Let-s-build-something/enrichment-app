@@ -118,10 +118,12 @@ import base.utils.maxMultiLineHeight
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PickerType
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.size
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
@@ -214,8 +216,8 @@ internal fun BoxScope.SendMessagePanel(
         animationSpec = tween(durationMillis = DEFAULT_ANIMATION_LENGTH_LONG)
     )
     val launcherImageVideo = rememberFilePickerLauncher(
-        type = PickerType.ImageAndVideo,
-        mode = PickerMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
+        type = FileKitType.ImageAndVideo,
+        mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
         title = stringResource(Res.string.account_picture_pick_title)
     ) { files ->
         if(!files.isNullOrEmpty()) {
@@ -224,10 +226,10 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
-                                && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
+                                && newFile.size() < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
-                if(files.any { (it.getSize() ?: 0) > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                if(files.any { it.size() > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
                     snackbarHost?.showSnackbar(
                         CustomSnackbarVisuals(
                             message = getString(
@@ -242,8 +244,8 @@ internal fun BoxScope.SendMessagePanel(
         }
     }
     val launcherFile = rememberFilePickerLauncher(
-        type = PickerType.File(),
-        mode = PickerMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
+        type = FileKitType.File(),
+        mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
         title = stringResource(Res.string.account_picture_pick_title)
     ) { files ->
         if(!files.isNullOrEmpty()) {
@@ -252,10 +254,10 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
-                                && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
+                                && newFile.size() < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
-                if(files.any { (it.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                if(files.any { it.size() < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
                     snackbarHost?.showSnackbar(
                         getString(
                             Res.string.file_too_large,
