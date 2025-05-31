@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_detail_you
 import augmy.interactive.shared.ext.detectMessageInteraction
-import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -45,7 +45,7 @@ import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getMediaType
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -95,7 +95,7 @@ fun MediaRow(
             modifier = modifier
                 .wrapContentWidth()
                 .horizontalScroll(state = scrollState)
-                .horizontallyDraggable(state = scrollState)
+                .draggable(state = scrollState)
                 .hoverable(
                     enabled = isMouseUser,
                     interactionSource = hoverInteractionSource

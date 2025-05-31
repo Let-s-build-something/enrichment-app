@@ -10,8 +10,10 @@ import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import data.shared.SharedModel
-import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.extension
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.flow.Flow

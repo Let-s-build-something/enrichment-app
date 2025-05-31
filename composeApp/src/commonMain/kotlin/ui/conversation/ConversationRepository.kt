@@ -25,7 +25,7 @@ import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header

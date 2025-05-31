@@ -177,7 +177,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
                     .fillMaxWidth(),
                 text = stringResource(Res.string.account_dashboard_sign_out),
                 isLoading = isLoading.value,
-                endIconVector = Icons.AutoMirrored.Outlined.Logout,
+                endImageVector = Icons.AutoMirrored.Outlined.Logout,
                 onClick = {
                     showSignOutDialog.value = true
                 }
@@ -319,7 +319,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
                         mimetype = MimeType.getByExtension(getUrlExtension(it)).mime
                     )
                 }
-            }catch (e: NotImplementedError) { null },
+            }catch (_: NotImplementedError) { null },
             tag = currentUser.value?.tag,
             name = currentUser.value?.displayName
         )

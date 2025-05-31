@@ -22,7 +22,8 @@ import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalOrientation
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import data.shared.AppServiceModel
-import io.github.vinceglb.filekit.core.FileKit
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.init
 import koin.commonModule
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext

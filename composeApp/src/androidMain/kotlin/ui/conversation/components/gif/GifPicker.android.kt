@@ -11,7 +11,8 @@ import coil3.gif.GifDecoder
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import components.platformContext
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.readBytes
 
 /** Image displaying a GIF from data */
 @Composable

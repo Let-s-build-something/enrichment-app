@@ -8,7 +8,7 @@ import app.cash.paging.compose.LazyPagingItems
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import coil3.toUri
 import dev.gitlive.firebase.storage.Data
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 
 /** Returns item at a specific index and handles indexOutOfBounds exception */
 fun <T: Any> LazyPagingItems<T>.getOrNull(index: Int): T? {

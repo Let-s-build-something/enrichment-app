@@ -1,10 +1,6 @@
 package ui.conversation.components.experimental.gravity
 
-import data.sensor.SensorDelay
-import data.sensor.SensorEvent
-import data.sensor.SensorEventListener
-import data.sensor.registerGravityListener
-import data.sensor.unregisterGravityListener
+import data.sensor.getGravityListener
 import database.dao.GravityDao
 import korlibs.math.roundDecimalPlaces
 import kotlinx.coroutines.CoroutineScope
@@ -39,28 +35,21 @@ class GravityUseCase {
     private val sensorScope = CoroutineScope(Job())
     val gravityValues = MutableStateFlow(listOf<GravityValue>())
 
-    private var listener = object: SensorEventListener {
-        override lateinit var instance: Any
-        override var isInitialized: Boolean = false
-
-        override fun onSensorChanged(event: SensorEvent?) {
-            sensorScope.launch {
-                sensorMutex.withLock {
-                    event?.values?.let { values ->
-                        gravityValuesCache.add(
-                            calculateIndicationStops(
-                                gx = values[0].roundDecimalPlaces(3),
-                                gy = values[1].roundDecimalPlaces(3),
-                                //gz = values[2].roundDecimalPlaces(3)
-                            )
+    private var listener = getGravityListener { event ->
+        sensorScope.launch {
+            sensorMutex.withLock {
+                event?.values?.let { values ->
+                    gravityValuesCache.add(
+                        calculateIndicationStops(
+                            gx = values[0].roundDecimalPlaces(3),
+                            gy = values[1].roundDecimalPlaces(3),
+                            //gz = values[2].roundDecimalPlaces(3)
                         )
-                    }
+                    )
                 }
             }
         }
-        override fun onAccuracyChanged(accuracy: Int) {}
     }
-
 
     // =============== public functions ===============
 
@@ -70,11 +59,11 @@ class GravityUseCase {
     }
 
     fun start() {
-        registerGravityListener(listener, sensorDelay = SensorDelay.Normal)
+        listener?.register()
     }
 
     fun kill() {
-        unregisterGravityListener(listener)
+        listener?.unregister()
     }
 
     suspend fun onTick() {

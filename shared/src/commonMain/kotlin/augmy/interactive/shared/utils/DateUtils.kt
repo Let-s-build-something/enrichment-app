@@ -6,6 +6,7 @@ import augmy.shared.generated.resources.date_minutes_ago
 import augmy.shared.generated.resources.date_seconds_ago
 import augmy.shared.generated.resources.date_yesterday
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format.FormatStringsInDatetimeFormats
@@ -24,6 +25,10 @@ object DateUtils {
     /** Current localized system time */
     val localNow
         get() = now.toLocalDateTime(TimeZone.currentSystemDefault())
+
+    fun fromMillis(millis: Long): LocalDateTime {
+        return Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+    }
 
     /** Formats milliseconds as minutes and seconds */
     fun formatMillis(millis: Long): String {

@@ -141,7 +141,7 @@
 				7555FF79242A565900829871 /* Resources */,
 				6E7233272C92F7EA00433271 /* Embed Foundation Extensions */,
 				50E2619908CB00A8777D2222 /* [CP] Embed Pods Frameworks */,
-				9139112E48F6CA52C924A6A8 /* [CP] Copy Pods Resources */,
+				CE8F077ABC0689075EE402CF /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -240,7 +240,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-iosApp/Pods-iosApp-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9139112E48F6CA52C924A6A8 /* [CP] Copy Pods Resources */ = {
+		CE8F077ABC0689075EE402CF /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -450,7 +450,7 @@
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = augmy.interactive.com;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "GitHub pipeline";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "GitHub pipeline";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Development 2";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = 14.0;
@@ -489,7 +489,7 @@
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = augmy.interactive.com;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "GitHub pipeline";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "GitHub pipeline";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Development 2";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TVOS_DEPLOYMENT_TARGET = 14.0;

@@ -2,6 +2,8 @@ package base.utils
 
 import okio.FileSystem
 import okio.Path.Companion.toPath
+import okio.Sink
+import okio.buffer
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.util.Locale
@@ -12,6 +14,24 @@ actual fun platformPathsModule(): Module = module {
         FileSystem.SYSTEM.createDirectories(path)
         RootPath(path)
     }
+}
+
+actual fun openSinkFromUri(uri: String): Sink = FileSystem.SYSTEM.appendingSink(uri.toPath()).buffer()
+
+actual fun getDownloadsPath(): String {
+    return when (getOs()) {
+        OS.MAC_OS, OS.LINUX -> {
+            val home = System.getenv("HOME")?.toPath()
+                ?: throw IllegalStateException("HOME environment variable is not set.")
+            home.resolve("Downloads")
+        }
+
+        OS.WINDOWS -> {
+            val userProfile = System.getenv("USERPROFILE")?.toPath()
+                ?: throw IllegalStateException("USERPROFILE environment variable is not set.")
+            userProfile.resolve("Downloads")
+        }
+    }.toString()
 }
 
 enum class OS(val value: String) {

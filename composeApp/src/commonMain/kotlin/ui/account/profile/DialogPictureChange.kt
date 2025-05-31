@@ -71,9 +71,11 @@ import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import components.AsyncSvgImage
 import data.Asset
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PickerType
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
 import io.ktor.http.headers
 import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
@@ -100,7 +102,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
     val selectedImageUrl = rememberSaveable {
         mutableStateOf(
             urlState.text.ifEmpty {
-                try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null } ?: ""
+                try { firebaseUser.value?.photoURL }catch (_: NotImplementedError) { null } ?: ""
             }
         )
     }
@@ -114,8 +116,8 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
     }
 
     val launcher = rememberFilePickerLauncher(
-        type = PickerType.Image,
-        mode = PickerMode.Single,
+        type = FileKitType.Image,
+        mode = FileKitMode.Single,
         title = stringResource(Res.string.account_picture_pick_title)
     ) { file ->
         if(file != null) {
@@ -198,7 +200,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                         isLoading = isLoading.value,
                         text = stringResource(Res.string.username_change_launcher_confirm),
                         isEnabled = (urlState.text.ifEmpty { selectedImageUrl.value })
-                                != try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
+                                != try { firebaseUser.value?.photoURL }catch (_: NotImplementedError) { null },
                         onClick = {
                             if(currentPlatform != PlatformType.Jvm) {
                                 viewModel.requestPictureChange(selectedImageUrl.value.toString())

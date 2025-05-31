@@ -3,7 +3,8 @@ package base.utils
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import dev.gitlive.firebase.storage.Data
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.readBytes
 import org.jetbrains.skia.Image
 import java.security.MessageDigest
 

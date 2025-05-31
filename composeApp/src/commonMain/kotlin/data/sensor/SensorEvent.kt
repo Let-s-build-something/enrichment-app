@@ -1,11 +1,16 @@
 package data.sensor
 
+import augmy.interactive.shared.utils.DateUtils
+
 data class SensorEvent(
-    //val sensor: Sensor,
-    val accuracy: Int?,
-    val timestamp: Long?,
-    val values: FloatArray?
+    val timestamp: Long = DateUtils.now.toEpochMilliseconds(),
+    val values: FloatArray? = null,
+    val uiValues: Map<String?, String?>? = null
 ) {
+
+    override fun hashCode(): Int {
+        return this::class.hashCode()
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -13,20 +18,13 @@ data class SensorEvent(
 
         other as SensorEvent
 
-        if (accuracy != other.accuracy) return false
         if (timestamp != other.timestamp) return false
         if (values != null) {
             if (other.values == null) return false
             if (!values.contentEquals(other.values)) return false
         } else if (other.values != null) return false
+        if (uiValues != other.uiValues) return false
 
         return true
-    }
-
-    override fun hashCode(): Int {
-        var result = accuracy
-        result = 31 * (result ?: 0) + timestamp.hashCode()
-        result = 31 * result + (values?.contentHashCode() ?: 0)
-        return result
     }
 }

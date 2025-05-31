@@ -33,8 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.core.uri.Uri
 import androidx.core.uri.UriUtils
-import androidx.navigation.NavOptions
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_confirm
@@ -184,7 +184,7 @@ private fun AppContent(
                 NavigationNode.allNodes.find { node ->
                     node.deepLink?.let { link ->
                         deeplink.contains(link)
-                    } ?: false
+                    } == true
                 }?.let { node ->
                     val link = UriUtils.parse(deeplink)
                     when(node) {
@@ -193,12 +193,13 @@ private fun AppContent(
                                 NavigationNode.Login(
                                     nonce = link.getQueryParameters("nonce").firstOrNull(),
                                     loginToken = link.getQueryParameters("loginToken").firstOrNull()
-                                ),
-                                navOptions = NavOptions.Builder()
-                                    .setPopUpTo(NavigationNode.Home, inclusive = false)
-                                    .setLaunchSingleTop(true)
-                                    .build()
-                            )
+                                )
+                            ) {
+                                launchSingleTop = true
+                                popUpTo(NavigationNode.Home) {
+                                    inclusive = false
+                                }
+                            }
                         }
                         else -> navController.navigate(link)
                     }

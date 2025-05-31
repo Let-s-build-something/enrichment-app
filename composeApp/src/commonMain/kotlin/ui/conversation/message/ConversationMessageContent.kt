@@ -37,7 +37,7 @@ import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.delay
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageBubble

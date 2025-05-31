@@ -53,10 +53,11 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.global.verification.ClickableTile
 import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PickerType
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -93,8 +94,8 @@ fun DialogChangeRoomAvatar(
     }
 
     val launcher = rememberFilePickerLauncher(
-        type = PickerType.Image,
-        mode = PickerMode.Single,
+        type = FileKitType.Image,
+        mode = FileKitMode.Single,
         title = stringResource(Res.string.account_picture_pick_title)
     ) { file ->
         if(file != null) {
