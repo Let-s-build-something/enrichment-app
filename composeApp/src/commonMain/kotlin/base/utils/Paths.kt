@@ -3,6 +3,7 @@ package base.utils
 import net.folivo.trixnity.core.model.UserId
 import okio.ByteString.Companion.toByteString
 import okio.Path
+import okio.Sink
 import org.koin.core.module.Module
 import kotlin.jvm.JvmInline
 
@@ -17,3 +18,5 @@ value class RootPath(val path: Path) {
 expect fun platformPathsModule(): Module
 
 expect fun getDownloadsPath(): String
+
+expect fun openSinkFromUri(uri: String): Sink

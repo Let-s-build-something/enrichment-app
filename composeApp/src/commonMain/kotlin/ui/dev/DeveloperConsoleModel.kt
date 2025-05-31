@@ -2,6 +2,7 @@ package ui.dev
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import base.utils.openSinkFromUri
 import data.io.app.SettingsKeys.KEY_STREAMING_DIRECTORY
 import data.io.app.SettingsKeys.KEY_STREAMING_URL
 import data.io.base.BaseResponse
@@ -9,7 +10,6 @@ import data.sensor.SensorDelay
 import data.sensor.SensorEvent
 import data.sensor.SensorEventListener
 import data.sensor.getAllSensors
-import data.sensor.withSecurityScopedAccess
 import data.shared.SharedModel
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
@@ -23,17 +23,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
+import okio.BufferedSink
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.SYSTEM
 import okio.buffer
-import okio.use
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import kotlin.uuid.ExperimentalUuidApi
@@ -261,30 +262,41 @@ class DeveloperConsoleModel(
     fun stopLocalStream() {
         isLocalStreamRunning.value = false
         localStreamJob?.cancel()
+        sink.close()
     }
 
+    lateinit var sink: BufferedSink
     fun setUpLocalStream(file: PlatformFile?) {
-        // macOS contains file: prefix
         val path = file?.path
-            ?.removePrefix("file:")
-            ?.replace("%20", " ")
-            ?.toPath(normalize = true)?.toString() ?: return
+            //?.removePrefix("file:")
+            //?.removePrefix("content:")
+            //?.replace("%20", " ")
+            ?: return
 
         viewModelScope.launch {
             streamingDirectory = path
             settings.putString(KEY_STREAMING_DIRECTORY, path)
             isLocalStreamRunning.value = true
 
-            val filePath = path.toPath()
-            println("kostka_test, exists: ${FileSystem.SYSTEM.exists(filePath)} - $streamingDirectory")
+            localStreamJob = CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    sink = openSinkFromUri(streamingDirectory).buffer()
 
-            withSecurityScopedAccess(url = streamingDirectory) {
-                localStreamJob = CoroutineScope(Dispatchers.IO).launch {
-                    FileSystem.SYSTEM.appendingSink(streamingDirectory.toPath()).buffer().use { sink ->
-                        for (line in streamChannel) {
-                            sink.writeUtf8(line)
-                            sink.writeUtf8("\n")
-                            sink.flush()
+                    for (line in streamChannel) {
+                        sink.writeUtf8(line)
+                        sink.writeUtf8("\n")
+                        sink.flush()
+                    }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    if (isLocalStreamRunning.value && this.isActive) setUpLocalStream(file)
+                } finally {
+                    if (::sink.isInitialized) {
+                        try {
+                            sink.close()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
                     }
                 }

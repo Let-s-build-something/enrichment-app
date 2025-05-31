@@ -2,6 +2,8 @@ package base.utils
 
 import okio.FileSystem
 import okio.Path.Companion.toPath
+import okio.Sink
+import okio.buffer
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.util.Locale
@@ -13,6 +15,8 @@ actual fun platformPathsModule(): Module = module {
         RootPath(path)
     }
 }
+
+actual fun openSinkFromUri(uri: String): Sink = FileSystem.SYSTEM.appendingSink(uri.toPath()).buffer()
 
 actual fun getDownloadsPath(): String {
     return when (getOs()) {
