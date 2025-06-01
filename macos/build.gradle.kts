@@ -22,6 +22,12 @@ kotlin {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
     val xcfName = "macosKit"
 
     iosX64 {

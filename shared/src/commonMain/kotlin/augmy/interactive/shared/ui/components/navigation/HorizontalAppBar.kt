@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.components.input.AutoResizeText
 import augmy.interactive.shared.ui.components.input.FontSizeRange
 import augmy.interactive.shared.ui.theme.LocalTheme
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /** Default, and minimum height of appbar */
 const val AppBarHeightDp = 48
@@ -122,7 +121,6 @@ fun HorizontalAppBar(
     }
 }
 
-@Preview
 @Composable
 private fun Preview() {
     HorizontalAppBar(

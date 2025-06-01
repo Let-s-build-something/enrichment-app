@@ -47,13 +47,13 @@ fun GravityIndicationContainer(
         }
     }else null
 
-    if(enabled && !gravityData?.values.isNullOrEmpty() && index?.value != gravityData.values.size) {
+    if(enabled && !gravityData?.values.isNullOrEmpty() && index?.value != gravityData?.values?.size) {
         val scope = rememberCoroutineScope()
         val offset = remember(gravityData) {
-            Animatable(gravityData.values.firstOrNull()?.offset ?: 0f)
+            Animatable(gravityData?.values?.firstOrNull()?.offset ?: 0f)
         }
         val fraction = remember(gravityData) {
-            Animatable(gravityData.values.firstOrNull()?.fraction ?: 0f)
+            Animatable(gravityData?.values?.firstOrNull()?.fraction ?: 0f)
         }
         val gravityValues = remember {
             mutableStateOf<Triple<Float, Float, Float>?>(null)
@@ -72,9 +72,9 @@ fun GravityIndicationContainer(
         LifecycleResumeEffect(gravityData) {
             scope.coroutineContext.cancelChildren()
             scope.launch {
-                while(index?.value != null && index.value < gravityData.values.size) {
-                    delay(gravityData.tickMs)
-                    gravityData.values.getOrNull(index.value)?.let {
+                while(index?.value != null && index.value < (gravityData?.values?.size ?: 0)) {
+                    gravityData?.tickMs?.let { delay(it) }
+                    gravityData?.values?.getOrNull(index.value)?.let {
                         fraction.animateTo(it.fraction)
                         offset.animateTo(it.offset)
                     }

@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.core.uri.Uri
 import androidx.core.uri.UriUtils
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
@@ -74,13 +73,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ui.dev.DeveloperContent
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-@Preview
 fun App(model: AppServiceModel = koinViewModel()) {
     val localSettings = model.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()

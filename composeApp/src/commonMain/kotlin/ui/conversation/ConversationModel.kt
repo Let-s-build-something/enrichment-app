@@ -450,9 +450,9 @@ open class ConversationModel(
                     // GIPHY asset
                     if(!gifAsset?.original.isNullOrBlank()) {
                         MediaIO(
-                            url = gifAsset.original,
+                            url = gifAsset?.original,
                             mimetype = MimeType.IMAGE_GIF.mime,
-                            name = gifAsset.description
+                            name = gifAsset?.description
                         )
                     }
                 }

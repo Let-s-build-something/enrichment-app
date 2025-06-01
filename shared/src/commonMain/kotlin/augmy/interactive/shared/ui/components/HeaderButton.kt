@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Item displaying collection and shortened information about it
@@ -125,7 +124,6 @@ private fun HeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ComponentHeaderButton(
     modifier: Modifier = Modifier,
@@ -151,7 +149,6 @@ fun ComponentHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ErrorHeaderButton(
     modifier: Modifier = Modifier,
@@ -186,7 +183,6 @@ fun ErrorHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun BrandHeaderButton(
     modifier: Modifier = Modifier,
@@ -270,7 +266,6 @@ fun LoadingHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ContrastHeaderButton(
     modifier: Modifier = Modifier,

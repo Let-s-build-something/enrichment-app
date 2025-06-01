@@ -116,8 +116,8 @@ class DataSyncHandler: MessageProcessor() {
                         avatar = avatar?.url?.let {
                             MediaIO(
                                 url = it,
-                                mimetype = avatar.info?.mimeType,
-                                size = avatar.info?.size
+                                mimetype = avatar?.info?.mimeType,
+                                size = avatar?.info?.size
                             )
                         },
                         canonicalAlias = alias ?: name
