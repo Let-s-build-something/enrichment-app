@@ -8,7 +8,7 @@ import androidx.paging.map
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.getUrlExtension
-import base.utils.sha256
+import base.utils.toSha256
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
 import data.io.matrix.room.event.ConversationTypingIndicator
@@ -430,7 +430,7 @@ open class ConversationModel(
                             if(!audioUrl.isNullOrBlank()) {
                                 fileAccess.saveFileToCache(
                                     data = audioByteArray,
-                                    fileName = sha256(audioUrl)
+                                    fileName = audioUrl.toSha256()
                                 )?.let {
                                     remove(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
                                     add(
@@ -450,9 +450,9 @@ open class ConversationModel(
                     // GIPHY asset
                     if(!gifAsset?.original.isNullOrBlank()) {
                         MediaIO(
-                            url = gifAsset?.original,
+                            url = gifAsset.original,
                             mimetype = MimeType.IMAGE_GIF.mime,
-                            name = gifAsset?.description
+                            name = gifAsset.description
                         )
                     }
                 }

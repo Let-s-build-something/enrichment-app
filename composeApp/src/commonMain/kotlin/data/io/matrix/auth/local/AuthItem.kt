@@ -32,7 +32,6 @@ data class AuthItem(
 
     // init-app info
     val displayName: String? = null,
-    val tag: String? = null,
     val publicId: String? = null,
     val idToken: String?,
     val configuration: UserConfiguration? = null

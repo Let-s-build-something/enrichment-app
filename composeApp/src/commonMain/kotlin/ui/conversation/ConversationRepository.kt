@@ -5,7 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import base.utils.MediaType
 import base.utils.getMediaType
-import base.utils.sha256
+import base.utils.toSha256
 import data.io.base.BaseResponse
 import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
@@ -401,7 +401,7 @@ open class MediaRepository(
                     it.success?.success?.data?.contentUri?.let { uri ->
                         fileAccess.saveFileToCache(
                             data = mediaByteArray,
-                            fileName = sha256(uri)
+                            fileName = uri.toSha256()
                         )?.let { path ->
                             mediaDataManager.cachedFiles.value = mediaDataManager.cachedFiles.value.toMutableMap().apply {
                                 put(

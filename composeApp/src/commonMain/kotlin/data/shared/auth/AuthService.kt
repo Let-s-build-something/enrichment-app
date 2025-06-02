@@ -5,7 +5,7 @@ import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.UNKNOWN_TOKEN
 import base.utils.deviceName
-import base.utils.sha256
+import base.utils.toSha256
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
 import data.io.base.AppPing
@@ -232,7 +232,6 @@ class AuthService {
             matrixUserId = credentials.userId ?: dataManager.currentUser.value?.matrixUserId,
             publicId = credentials.publicId ?: dataManager.currentUser.value?.publicId,
             configuration = credentials.configuration ?: dataManager.currentUser.value?.configuration,
-            tag = credentials.tag ?: dataManager.currentUser.value?.tag,
             displayName = credentials.displayName ?: dataManager.currentUser.value?.displayName,
             idToken = credentials.idToken ?: dataManager.currentUser.value?.idToken
         )
@@ -278,7 +277,6 @@ class AuthService {
                 address = identifier?.address ?: previous?.address,
                 pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString(),
                 displayName = user?.displayName ?: previous?.displayName,
-                tag = user?.tag ?: previous?.tag,
                 publicId = user?.publicId ?: previous?.publicId,
                 configuration = user?.configuration ?: previous?.configuration,
                 idToken = user?.idToken ?: previous?.idToken,
@@ -469,7 +467,7 @@ class AuthService {
                             address = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
                         ),
                         homeserver = homeserver,
-                        password = password ?: sha256(it.success?.data?.userId),
+                        password = password ?: it.success?.data?.userId?.toSha256(),
                         token = token
                     )
                     initializeMatrixClient()

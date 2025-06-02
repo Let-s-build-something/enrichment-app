@@ -16,18 +16,14 @@ import koin.secureSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
 
-class DeveloperRepository(
-    private val networkItemDao: NetworkItemDao,
-    private val conversationMessageDao: ConversationMessageDao,
-    private val emojiSelectionDao: EmojiSelectionDao,
-    private val pagingMetaDao: PagingMetaDao,
-    private val conversationRoomDao: ConversationRoomDao,
-    private val presenceEventDao: PresenceEventDao,
-    private val matrixPagingMetaDao: MatrixPagingMetaDao,
-    private val httpClient: HttpClient
-) {
+class DeveloperRepository {
+
+    private val httpClient by lazy {
+        KoinPlatform.getKoin().get<HttpClient>()
+    }
 
     suspend fun postStreamData(
         url: String,
@@ -41,13 +37,15 @@ class DeveloperRepository(
     }
 
     suspend fun clearAllDao() {
-        networkItemDao.removeAll()
-        conversationMessageDao.removeAll()
-        emojiSelectionDao.removeAll()
-        conversationRoomDao.removeAll()
-        presenceEventDao.removeAll()
-        pagingMetaDao.removeAll()
-        matrixPagingMetaDao.removeAll()
+        with(KoinPlatform.getKoin()) {
+            get<NetworkItemDao>().removeAll()
+            get<ConversationMessageDao>().removeAll()
+            get<EmojiSelectionDao>().removeAll()
+            get<PagingMetaDao>().removeAll()
+            get<ConversationRoomDao>().removeAll()
+            get<PresenceEventDao>().removeAll()
+            get<MatrixPagingMetaDao>().removeAll()
+        }
         secureSettings.clear(force = true)
     }
 }

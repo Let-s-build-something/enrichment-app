@@ -2,11 +2,14 @@ package data.io.user
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -19,9 +22,6 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("display_name")
     @SerialName("display_name")
     val displayName: String? = null,
-
-    /** tag of the current user, unique in combination with [displayName]  */
-    val tag: String? = null,
 
     /** Public identification of this entity */
     @ColumnInfo("public_id")
@@ -72,4 +72,9 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     @PrimaryKey
     @ColumnInfo("primary_key")
     val primaryKey: String = "${publicId}_$ownerUserId"
-)
+) {
+
+    val tag: String?
+        @Ignore
+        get() = UserId(userId ?: displayName ?: publicId).generateUserTag()
+}

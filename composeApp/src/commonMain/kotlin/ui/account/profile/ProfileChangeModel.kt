@@ -59,8 +59,7 @@ class ProfileChangeModel (
                     success?.data?.let { data ->
                         sharedDataManager.currentUser.update { old ->
                             old?.copy(
-                                displayName = data.displayName ?: old.displayName,
-                                tag = data.tag ?: old.tag
+                                displayName = data.displayName ?: old.displayName
                             )
                         }
                     }
@@ -87,7 +86,7 @@ class ProfileChangeModel (
                     photoUrl = pictureUrl
                 )
                 if(firebaseUser.firstOrNull()?.photoURL == pictureUrl) _isPictureChangeSuccess.emit(true)
-            }catch(e: Exception) {
+            }catch(_: Exception) {
                 _isPictureChangeSuccess.emit(false)
             }
         }
@@ -104,7 +103,7 @@ class ProfileChangeModel (
         viewModelScope.launch {
             _isLoading.value = true
             withContext(Dispatchers.Default) {
-                val previousUrl = "${try { firebaseUser.firstOrNull()?.photoURL }catch (e: NotImplementedError) { null }}"
+                val previousUrl = "${try { firebaseUser.firstOrNull()?.photoURL }catch (_: NotImplementedError) { null }}"
 
                 val previousFileSuffix = """.+profile-picture(\.\w*).+""".toRegex()
                     .matchEntire(previousUrl)

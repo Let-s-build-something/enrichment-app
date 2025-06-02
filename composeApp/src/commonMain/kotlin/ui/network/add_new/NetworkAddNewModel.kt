@@ -67,7 +67,6 @@ class NetworkAddNewModel(
     /** Makes a request for user's inclusion to one's social network */
     fun includeNewUser(
         displayName: CharSequence,
-        tag: CharSequence,
         proximity: NetworkProximityCategory
     ) {
         viewModelScope.launch {
@@ -76,7 +75,6 @@ class NetworkAddNewModel(
                 repository.includeNewUser(
                     CirclingRequest(
                         displayName = displayName.toString(),
-                        tag = tag.toString(),
                         proximity = proximity.range.start
                     )
                 )

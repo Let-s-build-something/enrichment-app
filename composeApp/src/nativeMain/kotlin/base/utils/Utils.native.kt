@@ -36,9 +36,9 @@ actual suspend fun Clipboard.withPlainText(content: String) {
  * @return the generated SHA-256 hash
  */
 @OptIn(ExperimentalForeignApi::class)
-actual fun sha256(value: Any?): String {
+actual fun Any.toSha256(): String {
     memScoped {
-        val data = value.toString().encodeToByteArray()
+        val data = toString().encodeToByteArray()
         val digest = UByteArray(CC_SHA256_DIGEST_LENGTH)
 
         data.usePinned { pinnedData ->

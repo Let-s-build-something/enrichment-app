@@ -45,13 +45,13 @@ class UserProfileModel(
     }
 
     /** Makes a request for user's inclusion to one's social network */
-    fun includeNewUser(displayName: String, tag: String) {
+    fun includeNewUser(displayName: String) {
         _responseInclusion.value = BaseResponse.Loading
         viewModelScope.launch {
             delay(200)
             _responseInclusion.emit(
                 repository.includeNewUser(
-                    CirclingRequest(displayName = displayName, tag = tag)
+                    CirclingRequest(displayName = displayName)
                 )
             )
         }

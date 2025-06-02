@@ -1,21 +1,16 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 61,
-    "identityHash": "468f6397d537ba8750ef02ac6ad6a120",
+    "version": 62,
+    "identityHash": "ff8d37a27ec3f6b2850710c87b07a28e",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`display_name` TEXT, `tag` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `photo_media` TEXT, `avatar_url` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`display_name` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `photo_media` TEXT, `avatar_url` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
           {
             "fieldPath": "displayName",
             "columnName": "display_name",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "tag",
-            "columnName": "tag",
             "affinity": "TEXT"
           },
           {
@@ -511,7 +506,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '468f6397d537ba8750ef02ac6ad6a120')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ff8d37a27ec3f6b2850710c87b07a28e')"
     ]
   }
 }
