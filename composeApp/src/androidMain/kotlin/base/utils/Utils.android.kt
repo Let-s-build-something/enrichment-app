@@ -1,10 +1,13 @@
 package base.utils
 
+import android.content.ClipData
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.readBytes
@@ -19,6 +22,10 @@ actual suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap? {
         0,
         file.size().toInt()
     )?.asImageBitmap()
+}
+
+actual suspend fun Clipboard.withPlainText(content: String) {
+    this.setClipEntry(ClipEntry(ClipData.newPlainText("", content)))
 }
 
 /**

@@ -19,7 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
@@ -66,7 +66,7 @@ fun NetworkReceivedContent(
 
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHost.current
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val isLoadingInitialPage = requests.loadState.refresh is LoadState.Loading
 
     val showProximityPicker = remember {
@@ -131,7 +131,7 @@ fun NetworkReceivedContent(
                             shareProfile(
                                 publicId = viewModel.currentUser.value?.publicId,
                                 snackbarHostState = snackbarHostState,
-                                clipboardManager = clipboardManager,
+                                clipboard = clipboard,
                                 coroutineScope = coroutineScope
                             )
                         }

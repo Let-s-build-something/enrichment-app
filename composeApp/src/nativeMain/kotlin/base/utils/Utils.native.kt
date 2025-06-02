@@ -1,7 +1,10 @@
 package base.utils
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.cinterop.BetaInteropApi
@@ -21,6 +24,11 @@ import platform.UIKit.UIDevice
 /** Returns a bitmap from a given file */
 actual suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap? {
     return Image.makeFromEncoded(file.readBytes()).toComposeImageBitmap()
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+actual suspend fun Clipboard.withPlainText(content: String) {
+    setClipEntry(ClipEntry.withPlainText(content))
 }
 
 /**

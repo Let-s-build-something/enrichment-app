@@ -140,7 +140,12 @@ open class SharedModel: ViewModel() {
     suspend fun updateClientSettings() {
         val fcmToken = settings.getStringOrNull(SettingsKeys.KEY_FCM) ?: try {
             Firebase.messaging.getToken()
-        }catch (_: NotImplementedError) { null }?.apply {
+        } catch (_: NotImplementedError) {
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }?.apply {
             settings.putString(SettingsKeys.KEY_FCM, this)
         }
         val theme = ThemeChoice.entries.find {

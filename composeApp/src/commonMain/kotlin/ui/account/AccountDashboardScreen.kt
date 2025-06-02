@@ -28,13 +28,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -84,6 +82,7 @@ import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import base.utils.getUrlExtension
 import base.utils.shareLink
+import base.utils.withPlainText
 import components.RowSetting
 import components.UserProfileImage
 import data.io.app.ThemeChoice
@@ -290,7 +289,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
         mutableStateOf(false)
     }
 
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -345,10 +344,10 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
                 .scalingClickable(
                     enabled = currentUser.value?.displayName != null && currentUser.value?.tag != null
                 ) {
-                    clipboardManager.setText(buildAnnotatedString {
-                        append(currentUser.value?.displayName?.plus("#${currentUser.value?.tag}"))
-                    })
                     coroutineScope.launch {
+                        clipboard.withPlainText(
+                            currentUser.value?.displayName?.plus("#${currentUser.value?.tag}") ?: ""
+                        )
                         snackbarHostState?.showSnackbar(
                             message = getString(Res.string.action_general_copied)
                         )
@@ -379,7 +378,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
                 shareProfile(
                     coroutineScope = coroutineScope,
                     publicId = currentUser.value?.publicId,
-                    clipboardManager = clipboardManager,
+                    clipboard = clipboard,
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -391,7 +390,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
 fun shareProfile(
     coroutineScope: CoroutineScope,
     publicId: String?,
-    clipboardManager: ClipboardManager,
+    clipboard: Clipboard,
     snackbarHostState: SnackbarHostState?
 ) {
     val url = "$HttpDomain/users/$publicId"
@@ -401,11 +400,7 @@ fun shareProfile(
                 link = url
             )
         ) {
-            clipboardManager.setText(buildAnnotatedString {
-                withLink(LinkAnnotation.Url(url)) {
-                    append(url)
-                }
-            })
+            clipboard.withPlainText(url)
             snackbarHostState?.showSnackbar(
                 message = getString(Res.string.action_link_copied)
             )

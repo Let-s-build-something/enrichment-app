@@ -165,7 +165,9 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
             .background(color = LocalTheme.current.colors.appbarBackground)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         text = "Dashboard",
-        style = LocalTheme.current.styles.subheading
+        style = LocalTheme.current.styles.subheading.copy(
+            color = LocalTheme.current.colors.appbarContent
+        )
     )
 
     Text(
@@ -403,7 +405,9 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
             .background(color = LocalTheme.current.colors.appbarBackground)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         text = "Data streaming",
-        style = LocalTheme.current.styles.subheading
+        style = LocalTheme.current.styles.subheading.copy(
+            color = LocalTheme.current.colors.appbarContent
+        )
     )
 
     Row(
