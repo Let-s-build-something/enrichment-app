@@ -48,7 +48,6 @@ import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
-import augmy.interactive.shared.ui.base.LocalHeyIamScreen
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
@@ -166,13 +165,13 @@ private fun AppContent(
     }
 
     OnBackHandler {
-        if(currentPlatform == PlatformType.Jvm || !navController.popBackStack()) {
+        if(currentPlatform == PlatformType.Jvm || navController.previousBackStackEntry == null) {
             if(model.showLeaveDialog) {
                 showDialogLeave.value = !showDialogLeave.value
             }else {
                 backPressDispatcher?.executeSystemBackPress()
             }
-        }
+        }else navController.popBackStack()
     }
 
     LaunchedEffect(Unit) {
@@ -204,6 +203,7 @@ private fun AppContent(
                     modalDeepLink.value = deeplink
                 }
             }catch (e: IllegalArgumentException) {
+                e.printStackTrace()
                 modalDeepLink.value = deeplink
             }
         }
@@ -286,27 +286,23 @@ private fun AppContent(
         }
     )
 
-    CompositionLocalProvider(
-        LocalHeyIamScreen provides (BuildKonfig.isDevelopment && isPhone),
-    ) {
-        Column {
-            if(isPhone) {
-                if(BuildKonfig.isDevelopment) DeveloperContent(
-                    modifier = Modifier.statusBarsPadding(),
-                )
-                InformationPopUps()
-                InformationLines(sharedModel = model)
+    Column {
+        if(isPhone) {
+            if(BuildKonfig.isDevelopment) DeveloperContent(
+                modifier = Modifier.statusBarsPadding(),
+            )
+            InformationPopUps()
+            InformationLines(sharedModel = model)
+            Box {
+                NavigationHost(navController = navController)
+            }
+        }else {
+            InformationPopUps()
+            InformationLines(sharedModel = model)
+            Row {
+                if(BuildKonfig.isDevelopment) DeveloperContent()
                 Box {
                     NavigationHost(navController = navController)
-                }
-            }else {
-                InformationPopUps()
-                InformationLines(sharedModel = model)
-                Row {
-                    if(BuildKonfig.isDevelopment) DeveloperContent()
-                    Box {
-                        NavigationHost(navController = navController)
-                    }
                 }
             }
         }

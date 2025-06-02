@@ -73,14 +73,31 @@ fun BrandBaseScreen(
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
             || (navIconType == NavIconType.HAMBURGER && currentPlatform == PlatformType.Jvm)
 
-    val navIconClick: (() -> Unit)? = when {
+    val navIconClick: () -> Unit = when {
+        onNavigationIconClick != null -> onNavigationIconClick
         navIconType == NavIconType.HOME || isPreviousHome -> {
             {
                 navController?.popBackStack(NavigationNode.Home, inclusive = false)
             }
         }
-        onNavigationIconClick != null -> onNavigationIconClick
-        else -> null
+        navController?.currentDestination?.route != NavigationNode.Home.route
+                && navController?.previousBackStackEntry == null -> {
+            {
+                if(onBackPressed()) {
+                    navController?.navigate(NavigationNode.Home) {
+                        popUpTo(NavigationNode.Home) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            }
+        }
+        else -> {
+            {
+                dispatcher?.executeBackPress()
+            }
+        }
     }
 
     BackHandlerOverride {
@@ -93,7 +110,7 @@ fun BrandBaseScreen(
         if(showDefaultActions) {
             DefaultAppBarActions(
                 isUserSignedIn = firebaseUser.value != null || currentUser.value != null,
-                userPhotoUrl = try { firebaseUser.value?.photoURL } catch (e: NotImplementedError) { null },
+                userPhotoUrl = try { firebaseUser.value?.photoURL } catch (_: NotImplementedError) { null },
                 expanded = expanded,
                 userTag = currentUser.value?.tag
             )
@@ -112,9 +129,7 @@ fun BrandBaseScreen(
         contentColor = contentColor,
         clearFocus = clearFocus,
         onNavigationIconClick = {
-            navIconClick?.invoke() ?: if(onBackPressed()) {
-                navController?.popBackStack()
-            } else { }
+            navIconClick.invoke()
         },
         floatingActionButtonPosition = floatingActionButtonPosition,
         floatingActionButton = floatingActionButton,

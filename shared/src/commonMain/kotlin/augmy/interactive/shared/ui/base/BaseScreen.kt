@@ -125,9 +125,7 @@ fun BaseScreen(
         contentColor = contentColor,
         floatingActionButton = floatingActionButton,
         floatingActionButtonPosition = floatingActionButtonPosition,
-        contentWindowInsets = if(LocalHeyIamScreen.current) {
-            WindowInsets(0, 0, 0, 0)
-        }else WindowInsets.statusBars,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         content = { paddingValues ->
             ShelledContent(
                 modifier = Modifier.padding(paddingValues),
