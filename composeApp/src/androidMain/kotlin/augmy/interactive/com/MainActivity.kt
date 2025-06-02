@@ -7,11 +7,17 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.window.BackEvent
+import android.window.OnBackAnimationCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -32,6 +38,7 @@ import org.koin.compose.KoinContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
+import kotlin.system.exitProcess
 
 class MainActivity: ComponentActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
@@ -72,7 +79,28 @@ class MainActivity: ComponentActivity() {
         askForPermissions()
 
         val backPressDispatcher = object: BackPressDispatcher {
+            private lateinit var progressListener: OnBackAnimationCallback
+
+            init {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    progressListener = object : OnBackAnimationCallback {
+                        override fun onBackProgressed(backEvent: BackEvent) {
+                            progress.floatValue = backEvent.progress
+                            super.onBackProgressed(backEvent)
+                        }
+                        override fun onBackInvoked() {
+                            executeBackPress()
+                        }
+                    }.also {
+                        onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                            OnBackInvokedDispatcher.PRIORITY_DEFAULT, it
+                        )
+                    }
+                }
+            }
+
             val listeners = mutableListOf<() -> Unit>()
+            override val progress = mutableFloatStateOf(0f)
 
             override fun addOnBackPressedListener(listener: () -> Unit) {
                 this.listeners.add(0, listener)
@@ -84,20 +112,26 @@ class MainActivity: ComponentActivity() {
                 listeners.firstOrNull()?.invoke()
             }
             override fun executeSystemBackPress() {
-                this@MainActivity.finish()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    onBackInvokedDispatcher.unregisterOnBackInvokedCallback(progressListener)
+                }
+                finishAndRemoveTask()
+                exitProcess(0)
             }
         }
 
         setContent {
             val configuration = LocalConfiguration.current
+            val containerSize = LocalWindowInfo.current.containerSize
+            val density = LocalDensity.current
 
             CompositionLocalProvider(
                 LocalBackPressDispatcher provides backPressDispatcher,
                 LocalScreenSize provides IntSize(
-                    height = configuration.screenHeightDp,
-                    width = configuration.screenWidthDp
+                    height = with(density) { containerSize.height.toDp().value }.toInt(),
+                    width = with(density) { containerSize.width.toDp().value }.toInt()
                 ),
-                LocalOrientation provides if(LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                LocalOrientation provides if(configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
                     DeviceOrientation.Vertical
                 }else DeviceOrientation.Horizontal
             ) {

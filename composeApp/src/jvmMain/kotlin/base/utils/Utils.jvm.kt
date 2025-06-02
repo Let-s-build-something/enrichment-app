@@ -2,15 +2,32 @@ package base.utils
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.readBytes
 import org.jetbrains.skia.Image
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.DataFlavor.stringFlavor
+import java.awt.datatransfer.Transferable
 import java.security.MessageDigest
 
 /** Returns a bitmap from a given file */
 actual suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap? {
     return Image.makeFromEncoded(file.readBytes()).toComposeImageBitmap()
+}
+
+actual suspend fun Clipboard.withPlainText(content: String) {
+    setClipEntry(
+        ClipEntry(
+            object: Transferable {
+                override fun getTransferDataFlavors(): Array<DataFlavor> = arrayOf(stringFlavor)
+                override fun isDataFlavorSupported(flavor: DataFlavor?): Boolean = true
+                override fun getTransferData(flavor: DataFlavor?) = content
+            }
+        )
+    )
 }
 
 /**

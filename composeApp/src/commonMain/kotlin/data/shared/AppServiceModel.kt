@@ -100,7 +100,7 @@ class AppServiceModel(
     /** Initializes the application */
     fun initApp() {
         CoroutineScope(Dispatchers.IO).launch {
-            showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) ?: true
+            showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) != false
 
             // add missing mimetypes
             MimeType.register(

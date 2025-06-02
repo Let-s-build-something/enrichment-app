@@ -4,6 +4,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.Clipboard
 import app.cash.paging.compose.LazyPagingItems
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import coil3.toUri
@@ -62,6 +63,8 @@ val maxMultiLineHeight: Int
         WindowWidthSizeClass.Medium -> 8
         else -> 15
     }
+
+expect suspend fun Clipboard.withPlainText(content: String)
 
 /** Returns a bitmap from a given file */
 expect suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap?

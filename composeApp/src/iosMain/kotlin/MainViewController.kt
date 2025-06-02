@@ -1,4 +1,5 @@
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
@@ -28,6 +29,7 @@ fun MainViewController() = ComposeUIViewController {
 
     val backPressDispatcher = object: BackPressDispatcher {
         val listeners = mutableListOf<() -> Unit>()
+        override val progress = mutableFloatStateOf(0f)
 
         override fun addOnBackPressedListener(listener: () -> Unit) {
             this.listeners.add(0, listener)

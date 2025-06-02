@@ -47,8 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import augmy.interactive.com.BuildKonfig
@@ -60,6 +59,7 @@ import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.theme.Colors
+import base.utils.withPlainText
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
 import koin.DeveloperUtils
@@ -462,7 +462,8 @@ private fun HttpDetail(
 
 @Composable
 private fun RowInformation(title: String, info: Any?) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
 
     Row {
         Text(
@@ -471,9 +472,9 @@ private fun RowInformation(title: String, info: Any?) {
         )
         Text(
             modifier = Modifier.weight(1f).scalingClickable(scaleInto = .92f) {
-                clipboardManager.setText(
-                    AnnotatedString(info.toString())
-                )
+                scope.launch {
+                    clipboard.withPlainText(info.toString())
+                }
             },
             text = info.toString(),
             style = LocalTheme.current.styles.title,

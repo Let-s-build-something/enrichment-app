@@ -3,6 +3,7 @@ import android.app.Application
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -144,6 +145,7 @@ fun main(args: Array<String>) = application {
     val backPressDispatcher = remember {
         object: BackPressDispatcher {
             val listeners = mutableListOf<() -> Unit>()
+            override val progress = mutableFloatStateOf(0f)
 
             override fun addOnBackPressedListener(listener: () -> Unit) {
                 this.listeners.add(0, listener)
