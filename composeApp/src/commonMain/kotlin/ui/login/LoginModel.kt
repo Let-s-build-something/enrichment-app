@@ -7,7 +7,7 @@ import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
 import base.utils.deeplinkHost
 import base.utils.openLink
-import base.utils.sha256
+import base.utils.toSha256
 import coil3.toUri
 import data.io.app.ClientStatus
 import data.io.app.SecureSettingsKeys
@@ -340,9 +340,9 @@ class LoginModel(
                         }
                     } ?: try {
                         Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                    } catch(e: FirebaseAuthUserCollisionException) {
+                    } catch(_: FirebaseAuthUserCollisionException) {
                         _loginResult.emit(LoginResultType.EMAIL_EXISTS)
-                    } catch(e: Exception) {
+                    } catch(_: Exception) {
                         _loginResult.emit(LoginResultType.FAILURE)
                     }
                 }else _loginResult.emit(LoginResultType.FAILURE)
@@ -358,7 +358,7 @@ class LoginModel(
         return if(email == null) false
         else withContext(Dispatchers.IO) {
             try {
-                serviceProvider.signUpWithPassword(email, password, deleteRightAfter = true)?.let {
+                (serviceProvider.signUpWithPassword(email, password, deleteRightAfter = true)?.let {
                     it.idToken != null
                 } ?: Firebase.auth.createUserWithEmailAndPassword(
                     email = email,
@@ -366,8 +366,8 @@ class LoginModel(
                 ).user?.let {
                     it.delete()
                     true
-                } ?: false
-            }catch (e: FirebaseAuthUserCollisionException) {
+                }) == true
+            }catch (_: FirebaseAuthUserCollisionException) {
                 false
             }
         }
@@ -410,11 +410,11 @@ class LoginModel(
             try {
                 Firebase.auth.signInWithEmailAndPassword(email, password).user
                     ?.authenticateUser(email)
-            }catch (e: FirebaseAuthInvalidCredentialsException) {
+            }catch (_: FirebaseAuthInvalidCredentialsException) {
                 _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-            }catch (e: FirebaseAuthEmailException) {
+            }catch (_: FirebaseAuthEmailException) {
                 _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-            }catch (e: Exception) {
+            }catch (_: Exception) {
                 _loginResult.emit(LoginResultType.FAILURE)
             }
         }else _loginResult.emit(LoginResultType.FAILURE)
@@ -460,15 +460,15 @@ class LoginModel(
                 ).let {
                     // Firebase should go out the window
                     val email = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
-                    val password = sha256(it.success?.data?.userId)
+                    val password = it.success?.data?.userId?.toSha256() ?: ""
 
                     when {
                         it.success != null -> {
                             try {
                                 Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                            } catch(e: Exception) {
+                            } catch(_: Exception) {
                                 Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                            } catch(e: FirebaseAuthUserCollisionException) {
+                            } catch(_: FirebaseAuthUserCollisionException) {
                                 Firebase.auth.signInAnonymously().user?.authenticateUser(email)
                             }
                         }
@@ -520,7 +520,7 @@ class LoginModel(
                         RequestCreateUser(
                             email = email ?: try {
                                 Firebase.auth.currentUser?.email
-                            } catch (e: NotImplementedError) { null },
+                            } catch (_: NotImplementedError) { null },
                             clientId = clientId,
                             fcmToken = localSettings.value?.fcmToken,
                             matrixUserId = _matrixAuthResponse.value?.userId,

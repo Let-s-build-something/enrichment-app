@@ -23,8 +23,6 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -45,7 +43,6 @@ import augmy.interactive.shared.ui.components.ContrastHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
-import components.OptionsLayoutAction
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
@@ -87,10 +84,12 @@ fun UserProfileLauncher(
     val responseProfile = viewModel.responseProfile.collectAsState()
     val responseInclusion = viewModel.responseInclusion.collectAsState()
 
+
+    /*
     val showActionDialog = rememberSaveable {
         mutableStateOf<OptionsLayoutAction?>(null)
     }
-    /*showActionDialog.value?.let { action ->
+    showActionDialog.value?.let { action ->
         AlertDialog(
             title = stringResource(
                 if(action == OptionsLayoutAction.Mute) {
@@ -300,10 +299,7 @@ private fun DataContent(
                     isLoading = responseInclusion.value is BaseResponse.Loading,
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
-                        viewModel.includeNewUser(
-                            displayName = userProfile.displayName ?: "",
-                            tag = userProfile.tag ?: ""
-                        )
+                        viewModel.includeNewUser(displayName = userProfile.displayName ?: "")
                     }
                 )
             }

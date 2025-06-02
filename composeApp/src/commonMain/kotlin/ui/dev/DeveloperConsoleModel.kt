@@ -42,18 +42,7 @@ import kotlin.uuid.Uuid
 
 internal val developerConsoleModule = module {
     single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
-    factory {
-        DeveloperRepository(
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get(),
-            get()
-        )
-    }
+    factory { DeveloperRepository() }
     factory {
         DeveloperConsoleModel(
             get(),

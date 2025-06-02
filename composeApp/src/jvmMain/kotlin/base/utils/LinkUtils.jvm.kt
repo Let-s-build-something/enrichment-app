@@ -43,7 +43,7 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
 
     data.forEach { (media, data) ->
         // Determine file path based on mimeType
-        val fileName = "${sha256(media.url)}.${getExtensionFromMimeType(media.mimetype)}"
+        val fileName = "${media.url?.toSha256()}.${getExtensionFromMimeType(media.mimetype)}"
         val filePath = Paths.get(System.getProperty("user.home"), "Downloads", fileName)
 
         try {

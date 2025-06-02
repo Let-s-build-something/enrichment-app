@@ -50,6 +50,7 @@ import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getExtensionFromMimeType
 import base.utils.getMediaType
+import base.utils.getUrlExtension
 import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.model.VideoPlayerConfig
 import chaintech.videoplayer.ui.preview.VideoPreviewComposable
@@ -92,12 +93,17 @@ fun MediaElement(
     onLongPress: () -> Unit = {},
     onState: (BaseResponse<Any>) -> Unit = {}
 ) {
+    println("kostka_test, MediaElement, media: $media, localMedia: $localMedia")
     val newMedia = media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true }
     var finalMedia by remember(newMedia?.url) {
         mutableStateOf(newMedia)
     }
     val mediaType = getMediaType(
-        finalMedia?.mimetype ?: MimeType.getByExtension(localMedia?.extension ?: "").mime
+        finalMedia?.mimetype
+            ?: localMedia?.extension?.let { MimeType.getByExtension(it).mime }
+            ?: finalMedia?.url?.let { MimeType.getByExtension(getUrlExtension(it)).mime }
+            ?: finalMedia?.path?.let { MimeType.getByExtension(getUrlExtension(it)).mime }
+            ?: "image"
     )
     val itemModifier = (if(visualHeight != null && mediaType.isVisual) {
         modifier.height(visualHeight)

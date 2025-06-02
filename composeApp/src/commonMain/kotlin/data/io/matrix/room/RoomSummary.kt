@@ -4,6 +4,8 @@ import androidx.room.Ignore
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO
+import data.io.user.UserIO.Companion.generateUserTag
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -22,9 +24,6 @@ data class RoomSummary(
 
     /** Name of the room. */
     val canonicalAlias: String? = null,
-
-    /** Tag - non-unique identification of the room. */
-    val tag: String? = null,
 
     /** Avatar photo url. */
     val avatar: MediaIO? = null,
@@ -52,7 +51,6 @@ data class RoomSummary(
         else this.copy(
             heroes = other.heroes ?: heroes,
             canonicalAlias = other.canonicalAlias ?: canonicalAlias,
-            tag = other.tag ?: tag,
             avatar = other.avatar ?: avatar,
             lastMessage = other.lastMessage ?: lastMessage,
             isDirect = other.isDirect ?: isDirect,
@@ -70,7 +68,23 @@ data class RoomSummary(
 
     /** Either [canonicalAlias] or a default based on [heroes] */
     val roomName: String
-        get() = canonicalAlias ?: heroes?.joinToString(", ") ?: "Room ${tag ?: ""}"
+        get() = canonicalAlias ?: heroes?.joinToString(", ") ?: when {
+            !heroes.isNullOrEmpty() -> {
+                heroes.joinToString(", ") {
+                    UserIO.initialsOf(it.localpart)
+                }
+            }
+            !members.isNullOrEmpty() -> {
+                members?.joinToString(", ") {
+                    UserIO.initialsOf(UserId(it.userId).localpart)
+                } ?: ""
+            }
+            else -> "Room"
+        }
+
+    val tag: String?
+        @Ignore
+        get() = roomName.takeIf { it != "Room" }?.let { UserId(it).generateUserTag() }
 
     override fun toString(): String {
         return "{" +

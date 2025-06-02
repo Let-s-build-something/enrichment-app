@@ -30,10 +30,9 @@ actual suspend fun Clipboard.withPlainText(content: String) {
 
 /**
  * Converts any value to SHA-256 hash
- * @return the generated SHA-256 hash
  */
-actual fun sha256(value: Any?): String {
-    val bytes = MessageDigest.getInstance("SHA-256").digest(value.toString().toByteArray())
+actual fun Any.toSha256(): String {
+    val bytes = MessageDigest.getInstance("SHA-256").digest(toString().toByteArray())
     return bytes.joinToString("") { "%02x".format(it) }
 }
 

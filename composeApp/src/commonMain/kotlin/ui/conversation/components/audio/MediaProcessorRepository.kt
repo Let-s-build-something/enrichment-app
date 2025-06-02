@@ -3,7 +3,7 @@ package ui.conversation.components.audio
 import base.utils.LinkUtils.urlRegex
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getExtensionFromMimeType
-import base.utils.sha256
+import base.utils.toSha256
 import data.shared.SharedDataManager
 import database.file.FileAccess
 import database.file.FileAccess.Companion.EXPIRATION_MILLIS
@@ -41,7 +41,7 @@ class MediaProcessorRepository(
     ): FileResult? {
         return withContext(Dispatchers.IO) {
             val fileName = if(url.startsWith(MATRIX_REPOSITORY_PREFIX) || urlRegex.matches(url)) {
-                sha256(url).plus(if(extension != null) ".$extension" else "")
+                url.toSha256().plus(if(extension != null) ".$extension" else "")
             }else url.substringAfterLast("/")
 
             if(url.isBlank()) return@withContext null
@@ -74,7 +74,7 @@ class MediaProcessorRepository(
                         mimetype = mimetype
                     )
                 }
-            }catch (e: Exception) { null }
+            }catch (_: Exception) { null }
         }
     }
 
@@ -85,7 +85,7 @@ class MediaProcessorRepository(
                 HttpClient().config {
                     install(ContentNegotiation)
                 }.get(urlString = url).bodyAsText()
-            }catch (e: Exception) {
+            }catch (_: Exception) {
                 null
             }
         }

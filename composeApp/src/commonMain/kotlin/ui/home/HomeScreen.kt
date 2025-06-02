@@ -417,8 +417,8 @@ private fun ConversationRoomItem(
                 if(!it?.conversationId.isNullOrBlank()) {
                     navController?.navigate(
                         NavigationNode.Conversation(
-                            conversationId = it?.conversationId,
-                            name = it?.alias
+                            conversationId = it.conversationId,
+                            name = it.alias
                         )
                     )
                 }
@@ -549,7 +549,6 @@ private fun ConversationRoomItem(
                                 },
                                 newItem = NetworkItemIO(
                                     displayName = room?.summary?.roomName,
-                                    tag = room?.summary?.tag,
                                     avatar = room?.summary?.avatar,
                                     publicId = room?.id ?: "-",
                                     proximity = room?.proximity

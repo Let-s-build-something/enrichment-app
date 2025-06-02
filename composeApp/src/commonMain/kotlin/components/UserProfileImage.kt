@@ -38,6 +38,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
 import base.utils.tagToColor
 import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO
 import ui.conversation.components.MediaElement
 
 @Composable
@@ -205,11 +206,7 @@ private fun ContentElement(
             ) {
                 AutoResizeText(
                     modifier = Modifier.padding(vertical = 6.dp),
-                    text = name.split("""\s""".toRegex()).let {
-                        if(it.size > 1) {
-                            it[0].take(1) + it[1].take(1)
-                        }else it.firstOrNull()?.take(1) ?: ""
-                    },
+                    text = UserIO.initialsOf(name),
                     style = LocalTheme.current.styles.subheading.copy(color = textColor),
                     fontSizeRange = FontSizeRange(
                         min = 6.sp,

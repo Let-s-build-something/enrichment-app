@@ -223,7 +223,6 @@ fun NetworkAddNewLauncher(
                     if(isDisplayNameValid && isTagValid) {
                         viewModel.includeNewUser(
                             displayName = displayNameState.text,
-                            tag = tagState.text,
                             proximity = selectedCategory.value
                         )
                     }
@@ -244,7 +243,6 @@ fun NetworkAddNewLauncher(
                 },
                 newItem = NetworkItemIO(
                     displayName = displayNameState.text.toString(),
-                    tag = tagState.text.toString(),
                     avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
                 )
             )
@@ -258,7 +256,6 @@ fun NetworkAddNewLauncher(
             onClick = {
                 viewModel.includeNewUser(
                     displayName = displayNameState.text,
-                    tag = tagState.text,
                     proximity = selectedCategory.value
                 )
             }

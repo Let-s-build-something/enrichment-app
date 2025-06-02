@@ -1,6 +1,7 @@
 package data.io.user
 
 import androidx.room.Ignore
+import base.utils.toSha256
 import data.io.social.UserConfiguration
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -10,9 +11,6 @@ import net.folivo.trixnity.core.model.UserId
 data class UserIO(
     /** username of the current user */
     val displayName: String? = null,
-
-    /** tag of the current user, unique in combination with [displayName]  */
-    val tag: String? = null,
 
     /** current idToken which should be active and can be associated with data in Cloud Identity */
     val idToken: String? = null,
@@ -32,6 +30,9 @@ data class UserIO(
     /** current configuration specific to this user */
     val configuration: UserConfiguration? = null
 ) {
+    val tag: String?
+        @Ignore
+        get() = matrixUserId?.let { UserId(it).generateUserTag() }
 
     val matrixDisplayName: String?
         @Ignore
@@ -49,7 +50,6 @@ data class UserIO(
     fun update(other: UserIO?): UserIO {
         return this.copy(
             displayName = other?.displayName ?: this.displayName,
-            tag = other?.tag ?: this.tag,
             idToken = other?.idToken ?: this.idToken,
             accessToken = other?.accessToken ?: this.accessToken,
             matrixUserId = other?.matrixUserId ?: this.matrixUserId,
@@ -62,7 +62,6 @@ data class UserIO(
     override fun toString(): String {
         return "{" +
                 "displayName: $displayName, " +
-                "tag: $tag, " +
                 "idToken: $idToken, " +
                 "accessToken: $accessToken, " +
                 "matrixHomeserver: $matrixHomeserver, " +
@@ -71,5 +70,21 @@ data class UserIO(
                 "configuration: $configuration" +
                 "isFullyValid: $isFullyValid" +
                 "}"
+    }
+
+    companion object {
+        fun UserId.generateUserTag() = localpart.toSha256().take(6)
+
+        fun initialsOf(displayName: String?): String {
+            return displayName?.trim()
+                ?.split("""[\s_\-.]+""".toRegex()) // split on space, underscore, hyphen, or dot
+                ?.let {
+                    when {
+                        it.size >= 2 -> it[0].take(1) + it[1].take(1)
+                        it.isNotEmpty() -> it[0].take(1)
+                        else -> ""
+                    }
+                } ?: ""
+        }
     }
 }
