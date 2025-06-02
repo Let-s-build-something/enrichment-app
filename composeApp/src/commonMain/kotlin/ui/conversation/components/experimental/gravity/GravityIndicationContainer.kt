@@ -23,10 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.sensor.SensorDelay
-import data.sensor.SensorEvent
-import data.sensor.SensorEventListener
-import data.sensor.registerGravityListener
-import data.sensor.unregisterGravityListener
+import data.sensor.getGravityListener
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -63,17 +60,13 @@ fun GravityIndicationContainer(
         }
 
         val listener = remember {
-            object: SensorEventListener {
-                override lateinit var instance: Any
-                override var isInitialized: Boolean = false
-
-                override fun onSensorChanged(event: SensorEvent?) {
+            getGravityListener(
+                onSensorChanged = { event ->
                     event?.values?.let {
                         gravityValues.value = Triple(it[0], it[1], it[2])
                     }
                 }
-                override fun onAccuracyChanged(accuracy: Int) {}
-            }
+            )
         }
 
         LifecycleResumeEffect(gravityData) {
@@ -87,15 +80,12 @@ fun GravityIndicationContainer(
                     }
                     index.value += 1
                 }
-                index?.value = gravityData?.values?.size ?: 0
+                index?.value = gravityData.values.size
             }
-            registerGravityListener(
-                listener = listener,
-                sensorDelay = SensorDelay.Normal
-            )
+            listener?.register(sensorDelay = SensorDelay.Slow)
 
             onPauseOrDispose {
-                unregisterGravityListener(listener)
+                listener?.unregister()
             }
         }
 

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,7 +92,7 @@ import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
 import augmy.composeapp.generated.resources.file_too_large
 import augmy.interactive.shared.ext.contentReceiver
-import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -117,10 +118,12 @@ import base.utils.maxMultiLineHeight
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PickerType
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.size
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
@@ -213,8 +216,8 @@ internal fun BoxScope.SendMessagePanel(
         animationSpec = tween(durationMillis = DEFAULT_ANIMATION_LENGTH_LONG)
     )
     val launcherImageVideo = rememberFilePickerLauncher(
-        type = PickerType.ImageAndVideo,
-        mode = PickerMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
+        type = FileKitType.ImageAndVideo,
+        mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
         title = stringResource(Res.string.account_picture_pick_title)
     ) { files ->
         if(!files.isNullOrEmpty()) {
@@ -223,10 +226,10 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
-                                && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
+                                && newFile.size() < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
-                if(files.any { (it.getSize() ?: 0) > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                if(files.any { it.size() > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
                     snackbarHost?.showSnackbar(
                         CustomSnackbarVisuals(
                             message = getString(
@@ -241,8 +244,8 @@ internal fun BoxScope.SendMessagePanel(
         }
     }
     val launcherFile = rememberFilePickerLauncher(
-        type = PickerType.File(),
-        mode = PickerMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
+        type = FileKitType.File(),
+        mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
         title = stringResource(Res.string.account_picture_pick_title)
     ) { files ->
         if(!files.isNullOrEmpty()) {
@@ -251,10 +254,10 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
-                                && (newFile.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0)
+                                && newFile.size() < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
-                if(files.any { (it.getSize() ?: 0) < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                if(files.any { it.size() < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
                     snackbarHost?.showSnackbar(
                         getString(
                             Res.string.file_too_large,
@@ -453,7 +456,7 @@ internal fun BoxScope.SendMessagePanel(
                         .fillMaxWidth()
                         .heightIn(max = MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
-                        .horizontallyDraggable(state = mediaListState),
+                        .draggable(state = mediaListState, orientation = Orientation.Horizontal),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
                     Spacer(Modifier)

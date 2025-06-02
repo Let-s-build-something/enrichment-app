@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Item displaying collection and shortened information about it
@@ -125,7 +124,6 @@ private fun HeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ComponentHeaderButton(
     modifier: Modifier = Modifier,
@@ -151,14 +149,17 @@ fun ComponentHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ErrorHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     isLoading: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    endIconVector: ImageVector? = null,
+    endImageVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
 ) {
@@ -168,10 +169,11 @@ fun ErrorHeaderButton(
         shape = shape,
         isLoading = isLoading,
         onClick = onClick,
+        contentPadding = contentPadding,
         isEnabled = !isLoading,
         showBorder = false,
         additionalContent = extraContent,
-        endImageVector = endIconVector,
+        endImageVector = endImageVector,
         contentColor = Color.White,
         containerColor = SharedColors.RED_ERROR
     )
@@ -181,7 +183,6 @@ fun ErrorHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun BrandHeaderButton(
     modifier: Modifier = Modifier,
@@ -212,11 +213,11 @@ fun BrandHeaderButton(
 }
 
 @Composable
-private fun LoadingHeaderButton(
+fun LoadingHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
-    contentColor: Color,
-    containerColor: Color,
+    contentColor: Color = LocalTheme.current.colors.secondary,
+    containerColor: Color = LocalTheme.current.colors.backgroundLight,
     contentPadding: PaddingValues = PaddingValues(
         vertical = 10.dp,
         horizontal = 16.dp
@@ -265,12 +266,15 @@ private fun LoadingHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ContrastHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     isEnabled: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     endImageVector: ImageVector? = null,
     contentColor: Color = LocalTheme.current.colors.brandMainDark,
     containerColor: Color = LocalTheme.current.colors.tetrial,
@@ -281,6 +285,7 @@ fun ContrastHeaderButton(
         text = text,
         isEnabled = isEnabled,
         showBorder = isEnabled,
+        contentPadding = contentPadding,
         endImageVector = endImageVector,
         onClick = onClick,
         contentColor = contentColor,

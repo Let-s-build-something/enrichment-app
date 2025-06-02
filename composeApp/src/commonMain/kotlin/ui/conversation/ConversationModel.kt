@@ -18,8 +18,10 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
 import database.file.FileAccess
-import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.extension
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -448,9 +450,9 @@ open class ConversationModel(
                     // GIPHY asset
                     if(!gifAsset?.original.isNullOrBlank()) {
                         MediaIO(
-                            url = gifAsset.original,
+                            url = gifAsset?.original,
                             mimetype = MimeType.IMAGE_GIF.mime,
-                            name = gifAsset.description
+                            name = gifAsset?.description
                         )
                     }
                 }

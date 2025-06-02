@@ -1,5 +1,5 @@
 [versions]
-agp = "8.6.1"
+agp = "8.10.1"
 android-compileSdk = "35"
 android-minSdk = "24"
 android-targetSdk = "35"
@@ -8,43 +8,43 @@ version-code = "52"
 
 androidx-activityCompose = "1.10.1"
 composeWebviewMultiplatform = "1.9.40"
-kotlin = "2.1.20"
-kotlinTest = "2.1.20"
-ksp = "2.1.20-2.0.0"
-ktor = "3.1.1"
-ksoup = "0.2.2"
-navigationCompose = "2.8.0-alpha12"
-compose-plugin = "1.7.3"
+kotlin = "2.2.0-RC"
+kotlinTest = "2.2.0-RC"
+ksp = "2.2.0-RC-2.0.1"
+ktor = "3.1.3"
+ksoup = "0.2.4"
+navigationCompose = "2.8.0-alpha12"     # has lifecycle inside - 2.9.0. crashes
+lifecycle = "2.8.4"                     # 2.9.0. crashes
+compose-plugin = "1.8.1"
 compottie = "2.0.0-rc04"
 mediaPlayerChaintech = "1.0.31"
 kotlinCrypto = "0.5.3"
-koin = "4.0.2"
+koin = "4.0.4"
 pagingCompose = "3.3.0-alpha02-0.5.1"
 room = "2.7.1"
 sqlite-bundled = "2.5.1"
-lifecycle = "2.8.4"
 googleId = "1.1.1"
 firebaseJavaSdk = "0.4.6"
 firebaseGitlive = "2.1.0"
 windowSizeClass = "0.5.0"
-coilCompose = "3.0.4"
-coilGif = "3.0.4"
+coilCompose = "3.2.0-rc02"
+coilGif = "3.2.0-rc02"
 kamel = "1.0.3"
-coroutines = "1.10.1"
-kotlinxSerialization = "1.8.0"
+coroutines = "1.10.2"
+kotlinxSerialization = "1.8.1"
 kotlinx-datetime = "0.6.2"
-fileKit = "0.8.8"
+fileKit = "0.10.0-beta04"
 multiplatformSettings = "1.3.0"
-datastore = "1.1.6"
+datastore = "1.1.7"
 workRuntimeKtx = "2.10.1"
 trixnity = "4.13.3"
 oshaiKotlinLogging = "7.0.5" # https://github.com/oshai/kotlin-logging/releases
 
 # Android
-accompanistPermissions = "0.37.0"
+accompanistPermissions = "0.37.3"
 credentials = "1.5.0"
 androidxSplashscreen = "1.2.0-beta02"
-androidFirebaseAuth = "23.2.0"
+androidFirebaseAuth = "23.2.1"
 androidFirebaseCommon = "21.0.0"
 androidFirebaseMessaging = "24.1.1"
 
@@ -52,7 +52,11 @@ androidFirebaseMessaging = "24.1.1"
 jvmGoogleCloudStorage = "2.46.0"
 jvmCredentialStore = "243.23654.166"
 jvmLogback = "1.5.17"
+oshiCore = "6.8.1"
 securityCryptoKtx = "1.1.0-alpha07"
+runner = "1.6.2"
+core = "1.6.1"
+junit = "1.2.1"
 
 
 [libraries]
@@ -70,7 +74,8 @@ lifecycle-runtime = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runti
 lifecycle-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
-compose-file-kit = { module = "io.github.vinceglb:filekit-compose", version.ref = "fileKit" }
+compose-file-kit-core = { module = "io.github.vinceglb:filekit-core", version.ref = "fileKit" }
+compose-file-kit-dialogs = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "fileKit" }
 
 trixnity-client = { module = "net.folivo:trixnity-client", version.ref = "trixnity" }
 trixnity-repository-room = { module = "net.folivo:trixnity-client-repository-room", version.ref = "trixnity" }# TODO replace with own implementation
@@ -126,11 +131,11 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 
 #------------------- ANDROID -------------------
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidx-activityCompose" }
 androidx-credentials-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 google-identity = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleId" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
-androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidx-activityCompose" }
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxSplashscreen" }
 android-firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "androidFirebaseMessaging" }
 android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }
@@ -143,6 +148,12 @@ androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx
 java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
 credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "jvmLogback" }
+oshi-core = { module = "com.github.oshi:oshi-core", version.ref = "oshiCore" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
+androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
+androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junit" }
 
 
 [bundles]
@@ -178,3 +189,4 @@ devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

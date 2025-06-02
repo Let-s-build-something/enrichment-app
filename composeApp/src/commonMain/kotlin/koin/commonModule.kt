@@ -7,7 +7,6 @@ import coil3.network.NetworkFetcher
 import coil3.network.ktor3.asNetworkClient
 import data.io.matrix.room.event.serialization.DefaultLocalSerializerMappings
 import data.io.matrix.room.event.serialization.createEventSerializersModule
-import data.shared.DeveloperConsoleModel
 import data.shared.SharedDataManager
 import data.shared.SharedModel
 import data.shared.SharedRepository
@@ -15,7 +14,6 @@ import data.shared.appServiceModule
 import data.shared.auth.AuthService
 import data.shared.auth.authModule
 import data.shared.auth.matrixRepositoryModule
-import data.shared.developerConsoleModule
 import data.shared.sync.dataSyncModule
 import database.databaseModule
 import database.file.FileAccess
@@ -32,6 +30,8 @@ import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappi
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.audio.mediaProcessorModule
+import ui.dev.DeveloperConsoleModel
+import ui.dev.developerConsoleModule
 import ui.home.homeModule
 import ui.login.LoginDataManager
 
@@ -78,7 +78,7 @@ internal val commonModule = module {
 
     val isDev = try {
         Firebase.auth.currentUser?.email?.endsWith("@augmy.org") == true
-    }catch (e: NotImplementedError) {
+    }catch (_: NotImplementedError) {
         true // enabled on all JVM devices for now as there is no email getter
     }.also {
         if(it) this@module.includes(developerConsoleModule)

@@ -34,7 +34,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.core.uri.UriUtils
-import androidx.navigation.NavOptions
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_confirm
@@ -74,13 +73,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ui.dev.DeveloperContent
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-@Preview
 fun App(model: AppServiceModel = koinViewModel()) {
     val localSettings = model.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()
@@ -184,7 +181,7 @@ private fun AppContent(
                 NavigationNode.allNodes.find { node ->
                     node.deepLink?.let { link ->
                         deeplink.contains(link)
-                    } ?: false
+                    } == true
                 }?.let { node ->
                     val link = UriUtils.parse(deeplink)
                     when(node) {
@@ -193,12 +190,13 @@ private fun AppContent(
                                 NavigationNode.Login(
                                     nonce = link.getQueryParameters("nonce").firstOrNull(),
                                     loginToken = link.getQueryParameters("loginToken").firstOrNull()
-                                ),
-                                navOptions = NavOptions.Builder()
-                                    .setPopUpTo(NavigationNode.Home, inclusive = false)
-                                    .setLaunchSingleTop(true)
-                                    .build()
-                            )
+                                )
+                            ) {
+                                launchSingleTop = true
+                                popUpTo(NavigationNode.Home) {
+                                    inclusive = false
+                                }
+                            }
                         }
                         else -> navController.navigate(link)
                     }

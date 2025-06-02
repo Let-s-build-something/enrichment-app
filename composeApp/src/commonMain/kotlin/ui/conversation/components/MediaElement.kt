@@ -58,8 +58,10 @@ import components.AsyncSvgImage
 import components.PlatformFileImage
 import data.io.base.BaseResponse
 import data.io.social.network.conversation.message.MediaIO
-import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.extension
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.extension
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.path
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.painterResource

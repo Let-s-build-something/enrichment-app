@@ -133,12 +133,14 @@ kotlin {
             implementation(libs.java.cloud.storage)
             implementation(libs.credential.store)
             implementation(libs.logback.classic)
+            implementation(libs.oshi.core)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
         }
         commonMain.dependencies {
             implementation(project(":shared"))
+            implementation(project(":macos"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
@@ -152,7 +154,8 @@ kotlin {
             implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
-            implementation(libs.compose.file.kit)
+            implementation(libs.compose.file.kit.core)
+            implementation(libs.compose.file.kit.dialogs)
             implementation(libs.trixnity.client)
             implementation(libs.trixnity.repository.room)
 

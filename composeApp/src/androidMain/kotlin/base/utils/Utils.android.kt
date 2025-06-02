@@ -6,7 +6,9 @@ import android.provider.Settings
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import dev.gitlive.firebase.storage.Data
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.size
 import org.koin.mp.KoinPlatform.getKoin
 import java.security.MessageDigest
 
@@ -15,7 +17,7 @@ actual suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap? {
     return BitmapFactory.decodeByteArray(
         file.readBytes(),
         0,
-        file.getSize()?.toInt() ?: 0
+        file.size().toInt()
     )?.asImageBitmap()
 }
 
