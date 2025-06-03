@@ -19,7 +19,6 @@ enum class SensorDelay {
 
 expect fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener?
 expect suspend fun getAllSensors(): List<SensorEventListener>?
-expect fun withSecurityScopedAccess(url: String, block: () -> Unit)
 
 interface SensorEventListener {
     var data: MutableStateFlow<List<SensorEvent>>

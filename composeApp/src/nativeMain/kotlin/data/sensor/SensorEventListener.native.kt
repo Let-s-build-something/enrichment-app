@@ -20,7 +20,6 @@ import platform.CoreMotion.CMPedometer
 import platform.Foundation.NSDate
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
-import platform.Foundation.NSURL
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
 import platform.UIKit.UIScreen
@@ -29,7 +28,7 @@ actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): S
     return null
 }
 
-enum class SensorType {
+enum class SensorType(val description: String? = null) {
     Accelerometer,
     Gyroscope,
     Magnetometer,
@@ -37,25 +36,11 @@ enum class SensorType {
     LinearAcceleration,
     RotationVector,
     Pressure,
-    StepCounter,
+    StepCounter("start date, steps, pace, cadence"),
     Proximity,
     BatteryLevel,
     ForegroundApp,
     ScreenBrightness
-}
-
-actual fun withSecurityScopedAccess(url: String, block: () -> Unit) {
-    val nsUrl = NSURL.fileURLWithPath(url)
-    val accessed = nsUrl.startAccessingSecurityScopedResource()
-    if (accessed) {
-        try {
-            block()
-        } finally {
-            nsUrl.stopAccessingSecurityScopedResource()
-        }
-    } else {
-        println("Failed to get security-scoped access")
-    }
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -66,7 +51,7 @@ private fun createListener(
         override var data: MutableStateFlow<List<SensorEvent>> = MutableStateFlow(emptyList())
         override var listener: ((event: SensorEvent) -> Unit)? = null
         override val id: Int = type.ordinal
-        override val name: String = type.name
+        override val name: String = type.name + type.description?.let { " ($it)" }
         override val maximumRange: Float? = null
         override val resolution: Float? = null
         override var delay: SensorDelay = SensorDelay.Slow
@@ -185,7 +170,14 @@ private fun createListener(
                         pedometer.startPedometerUpdatesFromDate(NSDate()) { data, _ ->
                             data?.let {
                                 onSensorChanged(
-                                    SensorEvent(values = listOf(it.numberOfSteps.intValue.toFloat()).toFloatArray())
+                                    SensorEvent(
+                                        values = listOf(
+                                            it.startDate().timeIntervalSinceReferenceDate.toFloat(),
+                                            it.numberOfSteps.floatValue,
+                                            it.currentPace?.floatValue ?: 0f,
+                                            it.currentCadence?.floatValue ?: 0f,
+                                        ).toFloatArray()
+                                    )
                                 )
                             }
                         }
