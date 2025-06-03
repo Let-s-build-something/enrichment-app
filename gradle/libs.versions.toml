@@ -47,7 +47,6 @@ androidxSplashscreen = "1.2.0-beta02"
 androidFirebaseMessaging = "24.1.1"
 
 # Java
-jvmGoogleCloudStorage = "2.46.0"
 jvmCredentialStore = "243.23654.166"
 jvmLogback = "1.5.17"
 oshiCore = "6.8.1"
@@ -138,7 +137,6 @@ coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
 androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
 
 #------------------- JVM -------------------
-java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
 credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "jvmLogback" }
 oshi-core = { module = "com.github.oshi:oshi-core", version.ref = "oshiCore" }

@@ -129,7 +129,6 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
-            implementation(libs.java.cloud.storage)
             implementation(libs.credential.store)
             implementation(libs.logback.classic)
             implementation(libs.oshi.core)
