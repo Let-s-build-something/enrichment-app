@@ -55,6 +55,7 @@ import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.model.VideoPlayerConfig
 import chaintech.videoplayer.ui.preview.VideoPreviewComposable
 import chaintech.videoplayer.ui.video.VideoPlayerComposable
+import coil3.compose.AsyncImagePainter
 import components.AsyncSvgImage
 import components.PlatformFileImage
 import data.io.base.BaseResponse
@@ -93,7 +94,6 @@ fun MediaElement(
     onLongPress: () -> Unit = {},
     onState: (BaseResponse<Any>) -> Unit = {}
 ) {
-    println("kostka_test, MediaElement, media: $media, localMedia: $localMedia")
     val newMedia = media.takeIf { it?.url?.startsWith(MATRIX_REPOSITORY_PREFIX) != true }
     var finalMedia by remember(newMedia?.url) {
         mutableStateOf(newMedia)
@@ -146,14 +146,27 @@ fun MediaElement(
                     PlatformFileImage(
                         modifier = itemModifier.wrapContentWidth(),
                         contentScale = contentScale,
-                        media = localMedia
+                        media = localMedia,
+                        onState = {
+                            onState(it)
+                        }
                     )
                 } else if(finalMedia?.url != null) {
                     AsyncSvgImage(
                         modifier = itemModifier.wrapContentWidth(),
                         model = finalMedia?.path ?: finalMedia?.url,
                         contentScale = contentScale,
-                        contentDescription = contentDescription
+                        contentDescription = contentDescription,
+                        onState = { asyncState ->
+                            onState(
+                                when (asyncState) {
+                                    is AsyncImagePainter.State.Empty -> BaseResponse.Idle
+                                    is AsyncImagePainter.State.Error -> BaseResponse.Error()
+                                    is AsyncImagePainter.State.Loading -> BaseResponse.Loading
+                                    is AsyncImagePainter.State.Success -> BaseResponse.Success("")
+                                }
+                            )
+                        }
                     )
                 }
             }
@@ -166,7 +179,10 @@ fun MediaElement(
                         modifier = itemModifier,
                         data = data,
                         contentDescription = contentDescription,
-                        contentScale = contentScale
+                        contentScale = contentScale,
+                        onState = {
+                            onState(it)
+                        }
                     )
                 }
             }

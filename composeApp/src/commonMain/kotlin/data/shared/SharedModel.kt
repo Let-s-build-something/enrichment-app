@@ -13,17 +13,12 @@ import data.io.app.ThemeChoice
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.messaging.messaging
 import koin.AppSettings
 import koin.commonModule
 import koin.secureSettings
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,7 +42,7 @@ open class SharedModel: ViewModel() {
     //======================================== public variables ==========================================
 
     val matrixUserId: String?
-        get() = currentUser.value?.matrixUserId ?: authService.storedUserId()
+        get() = currentUser.value?.matrixUserId ?: authService.userId
 
     val matrixClient: MatrixClient?
         get() = sharedDataManager.matrixClient.value
@@ -68,18 +63,6 @@ open class SharedModel: ViewModel() {
     /** Acts as a sort of a in-app push notification, notifying of changes */
     val pingStream = sharedDataManager.pingStream.asStateFlow()
 
-    /** currently signed in firebase user */
-    val firebaseUser = Firebase.auth.authStateChanged.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        Firebase.auth.currentUser
-    ).onEach { firebaseUser ->
-        if(firebaseUser != null) {
-            delay(500) // we have to delay the check to give time login flow to catch up
-            initUser()
-        }
-    }
-
     /** whether toolbar is currently expanded */
     val isToolbarExpanded = sharedDataManager.isToolbarExpanded.asStateFlow()
 
@@ -90,22 +73,11 @@ open class SharedModel: ViewModel() {
     //======================================== functions ==========================================
 
     /** Initializes the user and returns whether successful */
-    private suspend fun initUser(): Boolean {
-        return Firebase.auth.currentUser?.let {
-            if(sharedDataManager.currentUser.value?.idToken == null) {
-                try {
-                    authService.setupAutoLogin(forceRefresh = false)
-                    updateClientSettings()
+    suspend fun initUser(): Boolean {
+        authService.setupAutoLogin(forceRefresh = false)
+        updateClientSettings()
 
-                    currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
-                }catch (e: Exception) {
-                    authService.stop()
-                    authService.setupAutoLogin()
-                    e.printStackTrace()
-                    currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
-                }
-            }else false
-        } ?: false
+        return currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
     }
 
     fun updateNetworkConnectivity(
@@ -175,7 +147,6 @@ open class SharedModel: ViewModel() {
         dataSyncService.stop()
         authService.clear()
         secureSettings.clear()
-        Firebase.auth.signOut()
         sharedDataManager.matrixClient.value?.logout()
         sharedDataManager.currentUser.value = null
         sharedDataManager.localSettings.value = null

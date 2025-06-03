@@ -60,6 +60,7 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.getOrNull
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.giphy.GifAsset
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -267,5 +268,6 @@ expect fun GifImage(
     modifier: Modifier = Modifier,
     data: Any,
     contentDescription: String?,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    onState: (BaseResponse<Any>) -> Unit = {}
 )

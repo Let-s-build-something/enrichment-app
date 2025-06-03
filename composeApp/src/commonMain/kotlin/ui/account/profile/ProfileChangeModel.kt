@@ -1,22 +1,20 @@
 package ui.account.profile
 
 import androidx.lifecycle.viewModelScope
-import base.utils.fromByteArrayToData
 import data.io.base.BaseResponse
 import data.io.social.username.ResponseDisplayNameChange
 import data.shared.SharedModel
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.storage.storage
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.extension
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class ProfileChangeModel (
     private val repository: DisplayNameChangeRepository
@@ -70,86 +68,36 @@ class ProfileChangeModel (
     }
 
     /** Makes a request to change user's profile picture */
-    fun requestPictureChange(pictureUrl: String) {
-        viewModelScope.launch {
-            suspendRequestPictureChange(pictureUrl)
-        }
-    }
-
-    private suspend fun suspendRequestPictureChange(pictureUrl: String) {
-        if(firebaseUser.firstOrNull()?.photoURL == pictureUrl) return
-
-        _isLoading.value = true
-        withContext(Dispatchers.IO) {
-            try {
-                firebaseUser.firstOrNull()?.updateProfile(
-                    photoUrl = pictureUrl
-                )
-                if(firebaseUser.firstOrNull()?.photoURL == pictureUrl) _isPictureChangeSuccess.emit(true)
-            }catch(_: Exception) {
-                _isPictureChangeSuccess.emit(false)
-            }
-        }
-        _isLoading.value = false
-    }
-
-    /** Makes a request to change user's profile picture */
-    fun requestPictureUpload(
-        mediaByteArray: ByteArray?,
-        fileName: String
+    fun requestPictureChange(
+        fileUrl: String,
+        localFile: PlatformFile?
     ) {
-        if(mediaByteArray == null) return
-
+        _isLoading.value = true
         viewModelScope.launch {
-            _isLoading.value = true
-            withContext(Dispatchers.Default) {
-                val previousUrl = "${try { firebaseUser.firstOrNull()?.photoURL }catch (_: NotImplementedError) { null }}"
-
-                val previousFileSuffix = """.+profile-picture(\.\w*).+""".toRegex()
-                    .matchEntire(previousUrl)
-                    ?.groupValues
-                    ?.getOrNull(1)
-
-                _isPictureChangeSuccess.emit(
-                    uploadPictureStorage(
-                        byteArray = mediaByteArray,
-                        fileName = fileName,
-                        previousFileSuffix = previousFileSuffix
-                    )
-                )
-            }
-            _isLoading.value = false
-        }
-    }
-
-    /** @return if true, it was successful, if false, it failed */
-    private suspend fun uploadPictureStorage(
-        byteArray: ByteArray,
-        fileName: String,
-        previousFileSuffix: String?
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            val fileSuffix = ".${fileName.split(".").lastOrNull()}"
-
-            val reference = Firebase.storage.reference.child(
-                "user/${firebaseUser.firstOrNull()?.uid}/profile-picture$fileSuffix"
-            )
-            val previousReference = Firebase.storage.reference.child(
-                "user/${firebaseUser.firstOrNull()?.uid}/profile-picture$previousFileSuffix"
-            )
-
-            reference.putData(fromByteArrayToData(byteArray))
-            val newUrl = reference.getDownloadUrl()
-
-            if(newUrl.isNotBlank()) {
-                if(fileSuffix != previousFileSuffix) {
-                    try {
-                        previousReference.delete()
-                    }catch (_: Exception) { }
+            if (localFile != null) {
+                repository.uploadMedia(
+                    mediaByteArray = localFile.readBytes(),
+                    mimetype = MimeType.getByExtension(localFile.extension).mime,
+                    homeserver = homeserver,
+                    fileName = localFile.name
+                ).also { response ->
+                    val url = response.success?.data?.contentUri
+                    if(url == null) {
+                        _isPictureChangeSuccess.emit(false)
+                        _isLoading.value = false
+                    }else requestPictureChange(fileUrl = url, localFile = null)
                 }
-                requestPictureChange(newUrl)
-                true
-            }else false
+            } else {
+                _isPictureChangeSuccess.emit(
+                    if (matrixClient?.setAvatarUrl(fileUrl)?.isSuccess == true) {
+                        sharedDataManager.currentUser.update {
+                            it?.copy(avatarUrl = fileUrl)
+                        }
+                        true
+                    }else false
+                )
+                _isLoading.value = false
+            }
         }
     }
 }

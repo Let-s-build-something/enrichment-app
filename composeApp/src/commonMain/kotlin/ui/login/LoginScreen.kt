@@ -80,7 +80,6 @@ import augmy.composeapp.generated.resources.dialog_recaptcha_title
 import augmy.composeapp.generated.resources.dialog_terms_message
 import augmy.composeapp.generated.resources.dialog_terms_title
 import augmy.composeapp.generated.resources.error_general
-import augmy.composeapp.generated.resources.error_google_sign_in_unavailable
 import augmy.composeapp.generated.resources.ic_robot
 import augmy.composeapp.generated.resources.login_agreement
 import augmy.composeapp.generated.resources.login_email_error
@@ -88,11 +87,9 @@ import augmy.composeapp.generated.resources.login_email_verification_action
 import augmy.composeapp.generated.resources.login_email_verification_heading
 import augmy.composeapp.generated.resources.login_email_verification_message
 import augmy.composeapp.generated.resources.login_email_verification_repeat
-import augmy.composeapp.generated.resources.login_error_canceled
 import augmy.composeapp.generated.resources.login_error_duplicate_email
 import augmy.composeapp.generated.resources.login_error_duplicate_username
 import augmy.composeapp.generated.resources.login_error_invalid_credential
-import augmy.composeapp.generated.resources.login_error_no_windows
 import augmy.composeapp.generated.resources.login_error_security
 import augmy.composeapp.generated.resources.login_matrix_homeserver
 import augmy.composeapp.generated.resources.login_oidc_disable
@@ -117,7 +114,6 @@ import augmy.composeapp.generated.resources.screen_login
 import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
-import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
@@ -282,20 +278,7 @@ fun LoginScreen(
                     navController?.popBackStack(NavigationNode.Home, inclusive = false)
                     null
                 }
-                LoginResultType.NO_GOOGLE_CREDENTIALS -> {
-                    coroutineScope.launch {
-                        snackbarHostState?.showSnackbar(
-                            visuals = CustomSnackbarVisuals(
-                                message = getString(Res.string.error_google_sign_in_unavailable),
-                                isError = true
-                            )
-                        )
-                    }
-                    null
-                }
-                LoginResultType.CANCELLED -> getString(Res.string.login_error_canceled)
                 LoginResultType.INVALID_CREDENTIAL -> getString(Res.string.login_error_invalid_credential)
-                LoginResultType.NO_WINDOW -> getString(Res.string.login_error_no_windows)
                 LoginResultType.AUTH_SECURITY -> getString(Res.string.login_error_security)
                 LoginResultType.EMAIL_EXISTS -> getString(Res.string.login_error_duplicate_email)
                 LoginResultType.USERNAME_EXISTS -> {
@@ -661,7 +644,7 @@ private fun ColumnScope.LoginScreenContent(
                                 .scalingClickable {
                                     model.requestSsoRedirect(identityProvider.id)
                                 },
-                            painter = painterResource(LocalTheme.current.icons.googleSignUp ),
+                            painter = painterResource(LocalTheme.current.icons.googleSignUp),
                             contentDescription = null
                         )
                     }

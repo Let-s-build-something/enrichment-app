@@ -11,8 +11,6 @@ import data.io.matrix.auth.MatrixRegistrationRequest
 import data.io.matrix.auth.MatrixTokenRequest
 import data.io.matrix.auth.MatrixTokenResponse
 import data.io.matrix.auth.UsernameValidationResponse
-import data.io.user.RequestCreateUser
-import data.io.user.ResponseCreateUser
 import data.shared.SharedRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -27,10 +25,10 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /** Class for calling APIs and remote work in general */
-class LoginRepository(private val httpClient: HttpClient): SharedRepository(httpClient) {
+class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
 
     /** Makes a request to create a user */
-    suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
+    /*suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<ResponseCreateUser> {
                 post(
@@ -41,7 +39,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
                 )
             }.success?.data
         }
-    }
+    }*/
 
     /** Retrieves the request token for further registration */
     suspend fun requestRegistrationToken(

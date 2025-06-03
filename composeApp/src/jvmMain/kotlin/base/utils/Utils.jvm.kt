@@ -4,7 +4,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
-import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.readBytes
 import org.jetbrains.skia.Image
@@ -45,8 +44,4 @@ actual fun deviceName(): String? {
     return if (env.containsKey("COMPUTERNAME")) env["COMPUTERNAME"]
     else if (env.containsKey("HOSTNAME")) env["HOSTNAME"]
     else "Unknown Computer"
-}
-
-actual fun fromByteArrayToData(byteArray: ByteArray): Data {
-    TODO("Not yet implemented")
 }
