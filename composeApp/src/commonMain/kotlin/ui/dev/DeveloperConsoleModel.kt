@@ -262,34 +262,38 @@ class DeveloperConsoleModel(
             //?.replace("%20", " ")
             ?: return
 
-        viewModelScope.launch {
-            streamingDirectory = path
-            settings.putString(KEY_STREAMING_DIRECTORY, path)
-            isLocalStreamRunning.value = true
+        try {
+            viewModelScope.launch {
+                streamingDirectory = path
+                settings.putString(KEY_STREAMING_DIRECTORY, path)
+                isLocalStreamRunning.value = true
 
-            localStreamJob = CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    sink = openSinkFromUri(streamingDirectory).buffer()
+                localStreamJob = CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        sink = openSinkFromUri(streamingDirectory).buffer()
 
-                    for (line in streamChannel) {
-                        sink.writeUtf8(line)
-                        sink.writeUtf8("\n")
-                        sink.flush()
-                    }
+                        for (line in streamChannel) {
+                            sink.writeUtf8(line)
+                            sink.writeUtf8("\n")
+                            sink.flush()
+                        }
 
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    if (isLocalStreamRunning.value && this.isActive) setUpLocalStream(file)
-                } finally {
-                    if (::sink.isInitialized) {
-                        try {
-                            sink.close()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        if (isLocalStreamRunning.value && this.isActive) setUpLocalStream(file)
+                    } finally {
+                        if (::sink.isInitialized) {
+                            try {
+                                sink.close()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

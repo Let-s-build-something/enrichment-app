@@ -1,7 +1,9 @@
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
 
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
@@ -68,11 +70,16 @@ kotlin {
         //pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
         //pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
         //pod("FirebaseStorage") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseMessaging") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+            linkOnly = true
+        }
 
         framework {
             baseName = "ComposeApp"
+            transitiveExport = true
             isStatic = true
+            linkerOpts("-ObjC")
 
             binaryOption("bundleId", "augmy.interactive.com")
             binaryOption("bundleVersion", "$vCode")
