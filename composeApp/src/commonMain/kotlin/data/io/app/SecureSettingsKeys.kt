@@ -10,6 +10,7 @@ object SecureSettingsKeys {
     const val KEY_DB_KEY = "key_db_key"
     const val KEY_CREDENTIALS = "key_matrix_credentials"
     const val KEY_USER_ID = "key_user_id"
+    const val KEY_AVATAR_URL = "key_avatar_url"
     const val KEY_LOGIN_NONCE = "key_login_nonce"
 
     val persistentKeys = listOf(

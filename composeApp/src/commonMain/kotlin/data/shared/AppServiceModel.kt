@@ -4,9 +4,6 @@ import androidx.lifecycle.viewModelScope
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
-import data.io.user.UserIO
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,11 +11,8 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -83,18 +77,6 @@ class AppServiceModel(
                 }
             }
         }
-
-        // update idToken whenever it changes
-        Firebase.auth.idTokenChanged.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            Firebase.auth.currentUser
-        ).onEach { firebaseUser ->
-            if(firebaseUser != null) {
-                val update = UserIO(idToken = firebaseUser.getIdToken(false))
-                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(update) ?: update
-            }
-        }
     }
 
     /** Initializes the application */
@@ -124,7 +106,7 @@ class AppServiceModel(
                 MimeType("image/svg+xml", listOf("svg")),
                 MimeType("image/webp", listOf("webp"))
             )
-            updateClientSettings()
+            initUser()
         }
     }
 

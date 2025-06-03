@@ -155,7 +155,6 @@ internal fun ColumnScope.LoggerContent(
                         text = "Firebase",
                         style = LocalTheme.current.styles.subheading
                     )
-                    RowInformation(title = "Id token: ", currentUser.value?.idToken)
                     RowInformation(title = "FCM token: ", localSettings.value?.fcmToken)
 
                     Spacer(Modifier.height(8.dp))

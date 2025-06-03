@@ -30,10 +30,11 @@ data class AuthItem(
     @Transient
     val pickleKey: String? = null,
 
+    val avatarUrl: String? = null,
+
     // init-app info
     val displayName: String? = null,
     val publicId: String? = null,
-    val idToken: String?,
     val configuration: UserConfiguration? = null
 ) {
 
@@ -42,7 +43,6 @@ data class AuthItem(
 
     val isFullyValid: Boolean
         get() = accessToken != null
-                && idToken != null
                 && homeserver != null
                 && userId != null
 

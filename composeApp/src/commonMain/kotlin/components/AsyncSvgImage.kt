@@ -24,7 +24,8 @@ fun AsyncSvgImage(
     modifier: Modifier = Modifier,
     model: Any?,
     contentScale: ContentScale = ContentScale.Crop,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    onState: (State) -> Unit = {}
 ) {
     val state = remember(model) {
         mutableStateOf<State?>(null)
@@ -40,6 +41,7 @@ fun AsyncSvgImage(
                 .build(),
             onState = {
                 state.value = it
+                onState(it)
             },
             contentDescription = contentDescription,
             contentScale = contentScale,

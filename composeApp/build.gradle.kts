@@ -64,10 +64,10 @@ kotlin {
         ios.deploymentTarget = "15.3"
         osx.deploymentTarget = "14.4"
 
-        pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseStorage") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("FirebaseStorage") { extraOpts += listOf("-compiler-option", "-fmodules") }
         pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
 
         framework {
@@ -118,8 +118,7 @@ kotlin {
             implementation(libs.google.identity)
 
             //Firebase
-            implementation(libs.android.firebase.common)
-            implementation(libs.android.firebase.auth)
+            //implementation(libs.android.firebase.common)
             implementation(libs.android.firebase.messaging)
         }
         nativeMain.dependencies {
@@ -130,7 +129,6 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
-            implementation(libs.java.cloud.storage)
             implementation(libs.credential.store)
             implementation(libs.logback.classic)
             implementation(libs.oshi.core)
@@ -178,10 +176,7 @@ kotlin {
             implementation(libs.bundles.ktor.common)
             implementation(libs.ksoup.korlibs)
 
-            implementation(libs.firebase.gitlive.common)
-            implementation(libs.firebase.gitlive.auth)
             implementation(libs.firebase.gitlive.messaging)
-            implementation(libs.firebase.gitlive.storage)
 
             implementation(libs.coil)
             implementation(libs.coil.svg)

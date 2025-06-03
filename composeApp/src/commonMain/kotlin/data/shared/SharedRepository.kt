@@ -1,25 +1,13 @@
 package data.shared
 
-import data.io.app.LocalSettings
-import data.io.user.RequestInitApp
-import data.io.user.UserIO
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
-import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import io.ktor.http.ParametersBuilder
 import io.ktor.http.parameters
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.withContext
-import ui.login.safeRequest
 
-open class SharedRepository(private val httpClient: HttpClient) {
+open class SharedRepository() {
 
     /** Makes a request to create a user */
-    suspend fun authenticateUser(
+    /*suspend fun authenticateUser(
         localSettings: LocalSettings?,
         refreshToken: String? = null,
         expiresInMs: Long? = null
@@ -45,7 +33,7 @@ open class SharedRepository(private val httpClient: HttpClient) {
                 )
             }else null
         }
-    }
+    }*/
 }
 
 object ApiConstants {

@@ -1,5 +1,6 @@
 package koin
 
+import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import coil3.annotation.ExperimentalCoilApi
@@ -17,8 +18,6 @@ import data.shared.auth.matrixRepositoryModule
 import data.shared.sync.dataSyncModule
 import database.databaseModule
 import database.file.FileAccess
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -76,25 +75,19 @@ internal val commonModule = module {
         )
     }
 
-    val isDev = try {
-        Firebase.auth.currentUser?.email?.endsWith("@augmy.org") == true
-    }catch (_: NotImplementedError) {
-        true // enabled on all JVM devices for now as there is no email getter
-    }.also {
-        if(it) this@module.includes(developerConsoleModule)
-    }
+    if(BuildKonfig.isDevelopment) this@module.includes(developerConsoleModule)
 
     single<HttpClient> {
         httpClientFactory(
             sharedModel = get<SharedModel>(),
-            developerViewModel = if(isDev) get<DeveloperConsoleModel>() else null,
+            developerViewModel = if(BuildKonfig.isDevelopment) get<DeveloperConsoleModel>() else null,
             json = get<Json>(),
             authService = get<AuthService>()
         )
     }
     single<HttpClientEngine> { get<HttpClient>().engine }
 
-    factory { SharedRepository(get<HttpClient>()) }
+    factory { SharedRepository() }
 }
 
 expect val settings: AppSettings

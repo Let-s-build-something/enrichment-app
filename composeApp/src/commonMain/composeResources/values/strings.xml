@@ -27,10 +27,7 @@
   <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
   <string name="username_change_launcher_confirm">Save</string>
-  <string name="error_google_sign_in_unavailable">There are no accounts on your device, use other methods, please.</string>
-  <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
   <string name="login_error_invalid_credential">Some of the info is incorrect 😵. Double check your information and try again 🤞</string>
-  <string name="login_error_no_windows">Something has gone wrong 😵‍💫, try yeeting the app away and opening again.</string>
   <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>

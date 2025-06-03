@@ -51,6 +51,7 @@ fun ActionBarIcon(
     painter: Painter? = null,
     imageUrl: String? = null,
     onClick: () -> Unit = {},
+    icon: (@Composable (Modifier) -> Unit)? = null,
     content: @Composable () -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -71,14 +72,19 @@ fun ActionBarIcon(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        val itemModifier = Modifier
+            .clip(CircleShape)
+            .then(if(text == null) {
+                Modifier.size(22.dp + with(density) { 12.sp.toDp() })
+            }else Modifier.size(24.dp))
+
         when {
+            icon != null -> {
+                icon(itemModifier)
+            }
             imageUrl.isNullOrBlank().not() -> {
                 AsyncImage(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .then(if(text == null) {
-                            Modifier.size(22.dp + with(density) { 12.sp.toDp() })
-                        }else Modifier.size(24.dp)),
+                    modifier = itemModifier,
                     model = imageUrl,
                     contentDescription = text,
                     contentScale = ContentScale.Crop

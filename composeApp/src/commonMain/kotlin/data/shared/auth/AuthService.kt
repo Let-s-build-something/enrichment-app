@@ -18,12 +18,9 @@ import data.io.matrix.auth.RefreshTokenRequest
 import data.io.matrix.auth.local.AuthItem
 import data.io.user.UserIO
 import data.shared.SharedDataManager
-import data.shared.SharedRepository
 import data.shared.sync.DataService
 import data.shared.sync.DataSyncService
 import database.factory.SecretByteArray
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
@@ -38,6 +35,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -69,7 +67,6 @@ class AuthService {
     private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
     private val _dataService by lazy { KoinPlatform.getKoin().inject<DataService>() }
     private val _secureSettings by lazy { KoinPlatform.getKoin().inject<SecureAppSettings>() }
-    private val _repository by lazy { KoinPlatform.getKoin().inject<SharedRepository>() }
     private val _json by lazy { KoinPlatform.getKoin().inject<Json>() }
     private val _syncService by lazy { KoinPlatform.getKoin().inject<DataSyncService>() }
 
@@ -81,13 +78,12 @@ class AuthService {
         get() = _dataService.value
     private val secureSettings
         get() = _secureSettings.value
-    private val repository
-        get() = _repository.value
     private val json
         get() = _json.value
     private val syncService
         get() = _syncService.value
 
+    private val avatarScope = CoroutineScope(Job())
     private val enqueueScope = CoroutineScope(Job())
     private val mutex = Mutex()
     private var isRunning = false
@@ -188,9 +184,8 @@ class AuthService {
                     }
                     // something's missing, we gotta get all the info first
                     else -> {
-                        println("setupAutoLogin -> login. AccessToken: ${credentials.accessToken}," +
-                                " idToken: ${credentials.idToken}")
-                        if(loginWithCredentials(forceRefresh = false)) setupAutoLogin(forceRefresh = false)
+                        println("setupAutoLogin -> login. AccessToken: ${credentials.accessToken}")
+                        if(loginWithCredentials()) setupAutoLogin(forceRefresh = false)
                     }
                 }
             }
@@ -204,8 +199,12 @@ class AuthService {
         ).takeIf { it.isNotBlank() }
     }
 
-    fun storedUserId(): String? = secureSettings.getStringOrNull(
+    val userId: String? = secureSettings.getStringOrNull(
         key = SecureSettingsKeys.KEY_USER_ID
+    )
+
+    val avatarUrl: String? = secureSettings.getStringOrNull(
+        key = SecureSettingsKeys.KEY_AVATAR_URL
     )
 
     private suspend fun retrieveCredentials(): AuthItem? {
@@ -215,8 +214,9 @@ class AuthService {
                 ""
             ).takeIf { it.isNotBlank() }?.let { res ->
                 val decoded = json.decodeFromString<AuthItem>(res)
-                val userId = storedUserId()
+                val userId = userId
                 decoded.copy(
+                    avatarUrl = avatarUrl,
                     pickleKey = getPickleKey(userId),
                     databasePassword = getDatabasePassword(userId),
                     userId = userId
@@ -233,7 +233,7 @@ class AuthService {
             publicId = credentials.publicId ?: dataManager.currentUser.value?.publicId,
             configuration = credentials.configuration ?: dataManager.currentUser.value?.configuration,
             displayName = credentials.displayName ?: dataManager.currentUser.value?.displayName,
-            idToken = credentials.idToken ?: dataManager.currentUser.value?.idToken
+            avatarUrl = credentials.avatarUrl
         )
 
         dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
@@ -279,7 +279,6 @@ class AuthService {
                 displayName = user?.displayName ?: previous?.displayName,
                 publicId = user?.publicId ?: previous?.publicId,
                 configuration = user?.configuration ?: previous?.configuration,
-                idToken = user?.idToken ?: previous?.idToken,
                 databasePassword = previous?.databasePassword,
                 token = token ?: previous?.token
             )
@@ -370,7 +369,7 @@ class AuthService {
                             if(response.code == UNKNOWN_TOKEN) {
                                 logger.debug { "Attempt to hard logout" }
                                 dataService.appendPing(AppPing(AppPingType.HardLogout))
-                            }else loginWithCredentials(false)
+                            }else loginWithCredentials()
                         }
                         else -> {
                             delay(TOKEN_REFRESH_THRESHOLD_MS)
@@ -379,27 +378,12 @@ class AuthService {
                     }
                 }
             }
-        }else loginWithCredentials(forceRefresh = false)
+        }else loginWithCredentials()
     }
 
-    private suspend fun loginWithCredentials(forceRefresh: Boolean): Boolean {
+    private suspend fun loginWithCredentials(): Boolean {
         retrieveCredentials()?.let { credentials ->
             return when {
-                !forceRefresh && !credentials.isExpired && credentials.accessToken != null && credentials.idToken == null -> {
-                    authFirebase(
-                        accessToken = credentials.accessToken,
-                        refreshToken = credentials.refreshToken,
-                        expiresInMs = null
-                    )
-                    val isValid = dataManager.currentUser.value?.idToken != null
-                    if(isValid) {
-                        cacheCredentials(
-                            response = if(isValid) null else MatrixAuthenticationResponse(expiresInMs = 0),
-                            token = null
-                        )
-                        true
-                    }else false
-                }
                 // only refresh
                 credentials.isExpired && credentials.refreshToken != null -> {
                     refreshToken(
@@ -455,12 +439,6 @@ class AuthService {
                 }
             }.also {
                 it.success?.data?.let { response ->
-                    authFirebase(
-                        accessToken = response.accessToken,
-                        refreshToken = response.refreshToken,
-                        expiresInMs = response.expiresInMs
-                    )
-
                     cacheCredentials(
                         response = response,
                         identifier = identifier ?: MatrixIdentifierData(
@@ -511,31 +489,6 @@ class AuthService {
         }
     }
 
-    private suspend fun authFirebase(
-        accessToken: String?,
-        refreshToken: String?,
-        expiresInMs: Long?,
-    ) = withContext(Dispatchers.IO) {
-        with(dataManager.currentUser) {
-            // the init-app would fail due to missing idToken and accessToken
-            if(value?.idToken == null || value?.accessToken == null) {
-                val update = UserIO(
-                    idToken = Firebase.auth.currentUser?.getIdToken(false),
-                    accessToken = accessToken
-                )
-                value = value?.update(update) ?: update
-            }
-            if(value?.tag == null) {
-                val update = repository.authenticateUser(
-                    refreshToken = refreshToken,
-                    expiresInMs = expiresInMs,
-                    localSettings = dataManager.localSettings.value
-                )
-                value = value?.update(update) ?: update
-            }
-        }
-    }
-
     private suspend fun initializeMatrixClient(auth: AuthItem? = null) {
         val credentials = auth ?: retrieveCredentials() ?: return
 
@@ -549,6 +502,24 @@ class AuthService {
                 syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
             }
         }else syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
+
+        observeAvatarChanges()
+    }
+
+    private fun observeAvatarChanges() {
+        avatarScope.coroutineContext.cancelChildren()
+        avatarScope.launch {
+            dataManager.matrixClient.value?.avatarUrl?.collectLatest { newUrl ->
+                val userUpdate = UserIO(avatarUrl = newUrl)
+                dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
+                if (newUrl != null) {
+                    secureSettings.putString(
+                        key = SecureSettingsKeys.KEY_AVATAR_URL,
+                        value = newUrl
+                    )
+                }
+            }
+        }
     }
 
     private fun saveDatabasePassword(

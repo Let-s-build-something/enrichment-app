@@ -80,7 +80,6 @@ import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
-import base.utils.getUrlExtension
 import base.utils.shareLink
 import base.utils.withPlainText
 import components.RowSetting
@@ -90,7 +89,6 @@ import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
 import data.io.social.network.conversation.message.MediaIO
 import koin.HttpDomain
-import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -279,7 +277,6 @@ private fun SettingsSection(viewModel: AccountDashboardModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
-    val firebaseUser = viewModel.firebaseUser.collectAsState(null)
     val currentUser = viewModel.currentUser.collectAsState(null)
 
     val showNameChangeLauncher = rememberSaveable {
@@ -311,14 +308,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
             modifier = Modifier
                 .zIndex(5f)
                 .fillMaxWidth(.4f),
-            media = try {
-                firebaseUser.value?.photoURL?.let {
-                    MediaIO(
-                        url = it,
-                        mimetype = MimeType.getByExtension(getUrlExtension(it)).mime
-                    )
-                }
-            }catch (_: NotImplementedError) { null },
+            media = MediaIO(url = currentUser.value?.avatarUrl),
             tag = currentUser.value?.tag,
             name = currentUser.value?.displayName
         )

@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.DefaultAlpha
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import data.io.base.BaseResponse
 import io.kamel.core.Resource
 import io.kamel.core.utils.File
 import io.kamel.core.utils.cacheControl
@@ -28,7 +29,8 @@ actual fun GifImage(
     modifier: Modifier,
     data: Any,
     contentDescription: String?,
-    contentScale: ContentScale
+    contentScale: ContentScale,
+    onState: (BaseResponse<Any>) -> Unit
 ) {
     val resource = asyncPainterResource(
         key = data,
@@ -45,7 +47,16 @@ actual fun GifImage(
     WrapContentKamelImage(
         modifier = modifier,
         resource = { resource },
-        onFailure = { it.printStackTrace() },
+        onFailure = {
+            onState(BaseResponse.Error())
+            it.printStackTrace()
+        },
+        onLoading = {
+            onState(BaseResponse.Loading)
+        },
+        onSuccess = {
+            onState(BaseResponse.Success(""))
+        },
         contentDescription = contentDescription,
         contentScale = contentScale
     )
@@ -93,6 +104,7 @@ private fun WrapContentKamelImage(
     colorFilter: ColorFilter? = null,
     onLoading: (@Composable BoxScope.(Float) -> Unit)? = null,
     onFailure: (@Composable BoxScope.(Throwable) -> Unit)? = null,
+    onSuccess: @Composable BoxScope.(Painter) -> Unit,
     contentAlignment: Alignment = Alignment.Center,
     animationSpec: FiniteAnimationSpec<Float>? = null,
 ) {
@@ -106,6 +118,7 @@ private fun WrapContentKamelImage(
             alpha,
             colorFilter
         )
+        onSuccess(painter)
     }
     SimpleKamelImageBox(
         resource,

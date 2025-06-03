@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
-import dev.gitlive.firebase.storage.Data
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.size
@@ -41,5 +40,3 @@ actual fun deviceName(): String? {
     val context = getKoin().get<Context>()
     return Settings.Global.getString(context.contentResolver, "device_name")
 }
-
-actual fun fromByteArrayToData(byteArray: ByteArray): Data = Data(byteArray)

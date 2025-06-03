@@ -65,9 +65,9 @@ internal val conversationModule = module {
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
             get<GifUseCase>(),
+            get<FileAccess>(),
             get<PacingUseCase>(),
             get<GravityUseCase>(),
-            get<FileAccess>(),
         )
     }
     viewModelOf(::ConversationModel)
@@ -81,11 +81,11 @@ open class ConversationModel(
     private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,
     gifUseCase: GifUseCase,
+    private val fileAccess: FileAccess,
 
     // experimental
     private val pacingUseCase: PacingUseCase,
-    private val gravityUseCase: GravityUseCase,
-    private val fileAccess: FileAccess
+    private val gravityUseCase: GravityUseCase
 ): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,

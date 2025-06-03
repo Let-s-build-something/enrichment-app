@@ -18,7 +18,6 @@ import androidx.navigation.compose.composable
 import augmy.interactive.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
 import data.io.social.network.conversation.message.MediaIO
-import koin.loginModule
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.core.context.loadKoinModules
 import ui.account.AccountDashboardScreen
@@ -31,6 +30,7 @@ import ui.conversation.message.messageDetailModule
 import ui.conversation.settings.ConversationSettingsScreen
 import ui.home.HomeScreen
 import ui.login.LoginScreen
+import ui.login.loginModule
 import ui.network.NetworkManagementScreen
 import ui.network.received.networkManagementModule
 import ui.search.user.SearchUserScreen
@@ -53,8 +53,7 @@ fun NavigationHost(
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         {
             fadeOut(animationSpec = tween(700))
-        },
-    additionalContent: (@Composable () -> Unit)? = null
+        }
 ) {
     CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(

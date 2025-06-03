@@ -1,53 +1,45 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ext.ifNull
 import base.navigation.NavigationNode
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
 import base.utils.deeplinkHost
 import base.utils.openLink
-import base.utils.toSha256
 import coil3.toUri
 import data.io.app.ClientStatus
 import data.io.app.SecureSettingsKeys
 import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
-import data.io.identity_platform.IdentityMessageType
-import data.io.identity_platform.IdentityUserResponse
 import data.io.matrix.auth.AuthenticationCredentials
 import data.io.matrix.auth.AuthenticationData
 import data.io.matrix.auth.MatrixAuthenticationPlan
 import data.io.matrix.auth.MatrixAuthenticationResponse
 import data.io.matrix.auth.MatrixIdentifierData
-import data.io.user.RequestCreateUser
 import data.io.user.UserIO
 import data.shared.SharedModel
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.FirebaseAuthEmailException
-import dev.gitlive.firebase.auth.FirebaseAuthInvalidCredentialsException
-import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
-import dev.gitlive.firebase.auth.FirebaseUser
-import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import org.koin.core.module.Module
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+internal fun loginModule() = module {
+    factory { LoginRepository(get()) }
+    viewModelOf(::LoginModel)
+}
+
 /** Communication between the UI, the control layers, and control and data layers */
 class LoginModel(
-    private val serviceProvider: UserOperationService,
     private val dataManager: LoginDataManager,
     private val repository: LoginRepository
 ): SharedModel() {
@@ -291,26 +283,24 @@ class LoginModel(
                             _loginResult.emit(LoginResultType.FAILURE)
                         }
                         else -> {
-                            if(isEmailFreeFirebase(email = email, password = password)) {
-                                (repository.registerWithUsername(
-                                    address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
-                                    username = null,
-                                    password = null,
-                                    authenticationData = AuthenticationData(
-                                        session = null,
-                                        type = null
-                                    )
-                                ) ?: dataManager.homeServerResponse.value?.plan)?.also { response ->
-                                    session = response.session
-                                    _matrixProgress.value = MatrixProgress(
-                                        username = username,
-                                        email = email,
-                                        password = password,
-                                        response = response,
-                                        secret = secret
-                                    )
-                                }
-                            }else _loginResult.emit(LoginResultType.EMAIL_EXISTS)
+                            (repository.registerWithUsername(
+                                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                                username = null,
+                                password = null,
+                                authenticationData = AuthenticationData(
+                                    session = null,
+                                    type = null
+                                )
+                            ) ?: dataManager.homeServerResponse.value?.plan)?.also { response ->
+                                session = response.session
+                                _matrixProgress.value = MatrixProgress(
+                                    username = username,
+                                    email = email,
+                                    password = password,
+                                    response = response,
+                                    secret = secret
+                                )
+                            }
                         }
                     }
                     return@launch
@@ -323,53 +313,13 @@ class LoginModel(
                     _matrixAuthResponse.value = res
                     clearMatrixProgress()
 
-                    serviceProvider.signUpWithPassword(email, password)?.let { userResponse ->
-                        when {
-                            userResponse.idToken != null -> {
-                                sharedDataManager.currentUser.update {
-                                    it?.copy(idToken = userResponse.idToken) ?: UserIO(idToken = userResponse.idToken)
-                                }
-                                loginWithCredentials(
-                                    username = username,
-                                    email = email,
-                                    password = password
-                                )
-                            }
-                            userResponse.error?.type == IdentityMessageType.EMAIL_EXISTS -> _loginResult.emit(LoginResultType.EMAIL_EXISTS)
-                            else -> _loginResult.emit(LoginResultType.FAILURE)
-                        }
-                    } ?: try {
-                        Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                    } catch(_: FirebaseAuthUserCollisionException) {
-                        _loginResult.emit(LoginResultType.EMAIL_EXISTS)
-                    } catch(_: Exception) {
-                        _loginResult.emit(LoginResultType.FAILURE)
-                    }
+                    loginWithCredentials(
+                        username = username,
+                        email = email,
+                        password = password
+                    )
                 }else _loginResult.emit(LoginResultType.FAILURE)
             }else loginWithCredentials(username, email, password)
-        }
-    }
-
-    /** Hack method to find out whether email is available in Firebase */
-    private suspend fun isEmailFreeFirebase(
-        email: String?,
-        password: String
-    ): Boolean {
-        return if(email == null) false
-        else withContext(Dispatchers.IO) {
-            try {
-                (serviceProvider.signUpWithPassword(email, password, deleteRightAfter = true)?.let {
-                    it.idToken != null
-                } ?: Firebase.auth.createUserWithEmailAndPassword(
-                    email = email,
-                    password = password
-                ).user?.let {
-                    it.delete()
-                    true
-                }) == true
-            }catch (_: FirebaseAuthUserCollisionException) {
-                false
-            }
         }
     }
 
@@ -407,16 +357,7 @@ class LoginModel(
         if(res?.userId != null || username == null) {
             _matrixAuthResponse.value = res
             clearMatrixProgress()
-            try {
-                Firebase.auth.signInWithEmailAndPassword(email, password).user
-                    ?.authenticateUser(email)
-            }catch (_: FirebaseAuthInvalidCredentialsException) {
-                _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-            }catch (_: FirebaseAuthEmailException) {
-                _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
-            }catch (_: Exception) {
-                _loginResult.emit(LoginResultType.FAILURE)
-            }
+            initUserObject()
         }else _loginResult.emit(LoginResultType.FAILURE)
     }
 
@@ -458,19 +399,9 @@ class LoginModel(
                     password = null,
                     token = token
                 ).let {
-                    // Firebase should go out the window
-                    val email = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
-                    val password = it.success?.data?.userId?.toSha256() ?: ""
-
                     when {
-                        it.success != null -> {
-                            try {
-                                Firebase.auth.signInWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                            } catch(_: Exception) {
-                                Firebase.auth.createUserWithEmailAndPassword(email, password).user?.authenticateUser(email)
-                            } catch(_: FirebaseAuthUserCollisionException) {
-                                Firebase.auth.signInAnonymously().user?.authenticateUser(email)
-                            }
+                        it.success == null -> {
+                            initUserObject()
                         }
                         it.error?.code == Matrix.ErrorCode.FORBIDDEN -> _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
                         else -> _loginResult.emit(LoginResultType.FAILURE)
@@ -482,91 +413,18 @@ class LoginModel(
     }
 
     /** Authenticates user with a token */
-    private suspend fun FirebaseUser.authenticateUser(email: String?, attempt: Int = 1) {
-        withContext(Dispatchers.IO) {
-            (if(currentUser.value?.idToken == null) {
-                this@authenticateUser.getIdToken(false)
-            }else currentUser.value?.idToken)?.let { idToken ->
-                if(sharedDataManager.currentUser.value?.idToken == null) {
-                    val initialUser = UserIO(
-                        idToken = idToken,
-                        accessToken = _matrixAuthResponse.value?.accessToken,
-                        matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
-                    )
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
-                }
-                if(sharedDataManager.currentUser.value?.tag == null) {
-                    sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(
-                        repository.authenticateUser(
-                            localSettings = sharedDataManager.localSettings.value,
-                            refreshToken = _matrixAuthResponse.value?.refreshToken,
-                            expiresInMs = _matrixAuthResponse.value?.expiresInMs
-                        )
-                    )
-                }
-                if(attempt < 3) {
-                    this@authenticateUser.finalizeSignIn(email, attempt = attempt)
-                }else _loginResult.emit(LoginResultType.FAILURE)
-            }.ifNull { _loginResult.emit(LoginResultType.FAILURE) }
-        }
-    }
-
-    /** finalizes full flow with a result */
-    private suspend fun FirebaseUser?.finalizeSignIn(email: String?, attempt: Int = 1) {
-        if(sharedDataManager.currentUser.value?.publicId == null) {
-            Firebase.auth.currentUser?.uid?.let { clientId ->
-                sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.copy(
-                    publicId = repository.createUser(
-                        RequestCreateUser(
-                            email = email ?: try {
-                                Firebase.auth.currentUser?.email
-                            } catch (_: NotImplementedError) { null },
-                            clientId = clientId,
-                            fcmToken = localSettings.value?.fcmToken,
-                            matrixUserId = _matrixAuthResponse.value?.userId,
-                            matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
-                        )
-                    )?.publicId
-                )
-                this?.authenticateUser(email, attempt + 1)
-                clientId
-            }.ifNull {
-                _loginResult.emit(LoginResultType.FAILURE)
-            }
-        }else {
-            (if(sharedDataManager.currentUser.value != null) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
-                }
-                LoginResultType.SUCCESS
-            } else LoginResultType.FAILURE).also {
-                _loginResult.emit(it)
+    private fun initUserObject() {
+        _matrixAuthResponse.value?.accessToken?.let { accessToken ->
+            val initialUser = UserIO(
+                accessToken = accessToken,
+                matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+            )
+            sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
+            viewModelScope.launch(Dispatchers.IO) {
+                settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
             }
         }
     }
-}
-
-/** module providing platform-specific sign in options */
-expect fun signInServiceModule(): Module
-
-/** base URL for google cloud identity tool */
-const val identityToolUrl = "https://identitytoolkit.googleapis.com/v1/accounts"
-
-/** interface for communicating with all of the platforms creating sign in/up requests */
-expect class UserOperationService {
-
-    /** Requests signup or sign in via Google account */
-    suspend fun requestGoogleSignIn(filterAuthorizedAccounts: Boolean): LoginResultType
-
-    /** Requests signup or sign in via Apple id */
-    suspend fun requestAppleSignIn(): LoginResultType
-
-    /** Requests a signup with email and password */
-    suspend fun signUpWithPassword(
-        email: String,
-        password: String,
-        deleteRightAfter: Boolean = false
-    ): IdentityUserResponse?
 }
 
 data class MatrixProgress(

@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 import ui.login.safeRequest
 
 /** Class for calling APIs and remote work in general */
-class AccountDashboardRepository(private val httpClient: HttpClient): SharedRepository(httpClient) {
+class AccountDashboardRepository(private val httpClient: HttpClient): SharedRepository() {
 
     /** Makes a request to change user's privacy setting */
     suspend fun changeUserConfiguration(configuration: UserConfiguration): BaseResponse<Any> {

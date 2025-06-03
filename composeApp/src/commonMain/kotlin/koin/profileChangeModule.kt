@@ -8,7 +8,7 @@ import ui.account.profile.ProfileChangeModel
 
 internal val profileChangeModule = module {
     factory {
-        DisplayNameChangeRepository(get<HttpClient>())
+        DisplayNameChangeRepository(get<HttpClient>(), get())
     }
     viewModelOf(::ProfileChangeModel)
 }

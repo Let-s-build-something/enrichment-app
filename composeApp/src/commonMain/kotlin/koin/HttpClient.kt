@@ -3,7 +3,6 @@ package koin
 import augmy.interactive.com.BuildKonfig
 import base.utils.NetworkSpeed
 import base.utils.speedInMbps
-import ui.dev.DeveloperConsoleModel
 import data.shared.SharedModel
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
@@ -35,6 +34,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.MatrixServerException
 import org.koin.mp.KoinPlatform
+import ui.dev.DeveloperConsoleModel
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -97,9 +97,6 @@ internal fun httpClientFactory(
                 }
             }else if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
                 request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
-                sharedModel.currentUser.value?.idToken?.let { idToken ->
-                    request.headers[IdToken] = idToken
-                }
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[AccessToken] = accessToken
                 }

@@ -44,12 +44,9 @@ oshaiKotlinLogging = "7.0.5" # https://github.com/oshai/kotlin-logging/releases
 accompanistPermissions = "0.37.3"
 credentials = "1.5.0"
 androidxSplashscreen = "1.2.0-beta02"
-androidFirebaseAuth = "23.2.1"
-androidFirebaseCommon = "21.0.0"
 androidFirebaseMessaging = "24.1.1"
 
 # Java
-jvmGoogleCloudStorage = "2.46.0"
 jvmCredentialStore = "243.23654.166"
 jvmLogback = "1.5.17"
 oshiCore = "6.8.1"
@@ -114,10 +111,7 @@ ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref =
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 
-firebase-gitlive-common = { group = "dev.gitlive", name = "firebase-common", version.ref = "firebaseGitlive" }
-firebase-gitlive-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "firebaseGitlive" }
 firebase-gitlive-messaging = { group = "dev.gitlive", name = "firebase-messaging", version.ref = "firebaseGitlive" }
-firebase-gitlive-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebaseGitlive" }
 
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ksoup-korlibs = { module = "com.fleeksoft.ksoup:ksoup-korlibs", version.ref = "ksoup" }
@@ -138,14 +132,11 @@ google-identity = { group = "com.google.android.libraries.identity.googleid", na
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "androidxSplashscreen" }
 android-firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "androidFirebaseMessaging" }
-android-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "androidFirebaseCommon" }
-android-firebase-auth = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "androidFirebaseAuth" }
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
 androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
 
 #------------------- JVM -------------------
-java-cloud-storage = { module = "com.google.cloud:google-cloud-storage", version.ref = "jvmGoogleCloudStorage" }
 credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "jvmLogback" }
 oshi-core = { module = "com.github.oshi:oshi-core", version.ref = "oshiCore" }

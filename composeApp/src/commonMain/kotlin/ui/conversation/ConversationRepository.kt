@@ -428,10 +428,3 @@ open class MediaRepository(
 }
 
 const val MESSAGE_AUDIO_URL_PLACEHOLDER = "audio_placeholder"
-
-/** Attempts to upload a file to Firebase storage, and returns the download URL of the uploaded file. */
-expect suspend fun uploadMediaToStorage(
-    conversationId: String,
-    byteArray: ByteArray,
-    fileName: String
-): String

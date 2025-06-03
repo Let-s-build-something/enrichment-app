@@ -67,7 +67,6 @@ fun BrandBaseScreen(
     val navController = LocalNavController.current
     val dispatcher = LocalBackPressDispatcher.current
 
-    val firebaseUser = sharedModel.firebaseUser.collectAsState(null)
     val currentUser = sharedModel.currentUser.collectAsState()
 
     val isPreviousHome = navController?.previousBackStackEntry?.destination?.route == NavigationNode.Home.route
@@ -95,7 +94,7 @@ fun BrandBaseScreen(
         }
         else -> {
             {
-                dispatcher?.executeBackPress()
+                if (navController?.previousBackStackEntry != null) navController.popBackStack()
             }
         }
     }
@@ -109,8 +108,8 @@ fun BrandBaseScreen(
 
         if(showDefaultActions) {
             DefaultAppBarActions(
-                isUserSignedIn = firebaseUser.value != null || currentUser.value != null,
-                userPhotoUrl = try { firebaseUser.value?.photoURL } catch (_: NotImplementedError) { null },
+                isUserSignedIn = currentUser.value != null,
+                avatarUrl = currentUser.value?.avatarUrl,
                 expanded = expanded,
                 userTag = currentUser.value?.tag
             )
