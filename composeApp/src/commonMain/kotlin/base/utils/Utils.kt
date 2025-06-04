@@ -1,10 +1,14 @@
 package base.utils
 
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.Clipboard
 import app.cash.paging.compose.LazyPagingItems
+import augmy.interactive.shared.ui.base.LocalDeviceType
 import coil3.toUri
-import io.github.vinceglb.filekit.core.PlatformFile
+import io.github.vinceglb.filekit.PlatformFile
 
 /** Returns item at a specific index and handles indexOutOfBounds exception */
 fun <T: Any> LazyPagingItems<T>.getOrNull(index: Int): T? {
@@ -46,13 +50,28 @@ enum class MediaType {
     PDF,
     PRESENTATION,
     UNKNOWN;
+
+    val isVisual: Boolean
+        get() = this == IMAGE || this == VIDEO || this == GIF
 }
+
+val maxMultiLineHeight: Int
+    @Composable
+    get() = when(LocalDeviceType.current) {
+        WindowWidthSizeClass.Compact -> 5
+        WindowWidthSizeClass.Medium -> 8
+        else -> 15
+    }
+
+expect suspend fun Clipboard.withPlainText(content: String)
 
 /** Returns a bitmap from a given file */
 expect suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap?
 
 /**
  * Converts any value to SHA-256 hash
- * @return the generated SHA-256 hash
  */
-expect fun sha256(value: Any?): String
+expect fun Any.toSha256(): String
+
+/** Retrieves the current device name */
+expect fun deviceName(): String?

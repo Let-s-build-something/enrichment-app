@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -46,10 +45,10 @@ actual fun openLink(link: String): Boolean {
     val context = getKoin().get<Context>()
 
     return try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+        val intent = Intent(Intent.ACTION_VIEW, link.toUri())
         context.startActivity(intent)
         true
-    }catch (e: ActivityNotFoundException) {
+    }catch (_: ActivityNotFoundException) {
         false
     }
 }
@@ -64,7 +63,7 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
         val mimeType = media.mimetype ?: MimeType.getByExtension(getUrlExtension(media.url ?: "")).mime
 
         val contentValues = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, "augmy_${sha256(media.url)}.${getExtensionFromMimeType(mimeType) ?: ""}")
+            put(MediaStore.Downloads.DISPLAY_NAME, "augmy_${media.url?.toSha256()}.${getExtensionFromMimeType(mimeType) ?: ""}")
             put(MediaStore.Downloads.MIME_TYPE, mimeType)
             put(
                 MediaStore.Downloads.RELATIVE_PATH,
@@ -117,7 +116,9 @@ actual fun openEmail(address: String?): Boolean {
             }
         )
         true
-    }catch (e: Exception) {
+    }catch (_: Exception) {
         false
     }
 }
+
+actual val deeplinkHost: String = "https://augmy.org/"

@@ -28,15 +28,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
@@ -82,10 +81,13 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import base.utils.shareLink
+import base.utils.withPlainText
 import components.RowSetting
 import components.UserProfileImage
+import data.io.app.ThemeChoice
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
+import data.io.social.network.conversation.message.MediaIO
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -99,11 +101,11 @@ import ui.account.profile.DisplayNameChangeLauncher
  * Screen for the home page
  */
 @Composable
-fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel()) {
+fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
     val navController = LocalNavController.current
 
-    val currentUser = viewModel.currentUser.collectAsState(null)
-    val signOutResponse = viewModel.signOutResponse.collectAsState()
+    val currentUser = model.currentUser.collectAsState(null)
+    val signOutResponse = model.signOutResponse.collectAsState()
 
     val showSignOutDialog = remember {
         mutableStateOf(false)
@@ -117,11 +119,12 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 
     if(showSignOutDialog.value) {
         AlertDialog(
+            title = stringResource(Res.string.account_dashboard_sign_out),
             message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_yes),
                 onClick = {
-                    viewModel.logoutCurrentUser()
+                    model.logout()
                 }
             ),
             dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
@@ -160,16 +163,18 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
                 LocalTheme.current.shapes.betweenItemsSpace * 2
             )
         ) {
-            ProfileSection(viewModel)
+            ProfileSection(model)
 
-            SettingsSection(viewModel)
+            SettingsSection(model)
 
+            val isLoading = model.isLoading.collectAsState()
             ErrorHeaderButton(
                 modifier = Modifier
                     .padding(top = 32.dp)
                     .fillMaxWidth(),
                 text = stringResource(Res.string.account_dashboard_sign_out),
-                endIconVector = Icons.AutoMirrored.Outlined.Logout,
+                isLoading = isLoading.value,
+                endImageVector = Icons.AutoMirrored.Outlined.Logout,
                 onClick = {
                     showSignOutDialog.value = true
                 }
@@ -179,7 +184,7 @@ fun AccountDashboardScreen(viewModel: AccountDashboardViewModel = koinViewModel(
 }
 
 @Composable
-private fun SettingsSection(viewModel: AccountDashboardViewModel) {
+private fun SettingsSection(viewModel: AccountDashboardModel) {
     val localSettings = viewModel.localSettings.collectAsState()
     val currentUser = viewModel.currentUser.collectAsState()
     val privacyResponse = viewModel.privacyResponse.collectAsState()
@@ -189,19 +194,21 @@ private fun SettingsSection(viewModel: AccountDashboardViewModel) {
     val visibility = currentUser.value?.configuration?.visibility ?: UserVisibility.Online
 
     val switchThemeState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             stringResource(Res.string.account_dashboard_theme_light),
             stringResource(Res.string.account_dashboard_theme_dark),
             stringResource(Res.string.account_dashboard_theme_device)
         ),
-        selectedTabIndex = mutableStateOf(localSettings.value?.theme?.ordinal ?: 0),
+        selectedTabIndex = mutableStateOf(
+            localSettings.value?.theme?.ordinal ?: ThemeChoice.SYSTEM.ordinal
+        ),
         onSelectionChange = {
             viewModel.updateTheme(it)
         }
     )
 
     LaunchedEffect(localSettings.value?.theme) {
-        switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: 0
+        switchThemeState.selectedTabIndex.value = localSettings.value?.theme?.ordinal ?: ThemeChoice.SYSTEM.ordinal
     }
 
     RowSetting(
@@ -269,8 +276,7 @@ private fun SettingsSection(viewModel: AccountDashboardViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
-    val firebaseUser = viewModel.firebaseUser.collectAsState(null)
+private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
     val currentUser = viewModel.currentUser.collectAsState(null)
 
     val showNameChangeLauncher = rememberSaveable {
@@ -280,7 +286,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
         mutableStateOf(false)
     }
 
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -299,10 +305,12 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
 
     Box {
         UserProfileImage(
-            modifier = Modifier.fillMaxWidth(.4f),
-            animate = true,
-            model = try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
-            tag = currentUser.value?.tag
+            modifier = Modifier
+                .zIndex(5f)
+                .fillMaxWidth(.4f),
+            media = MediaIO(url = currentUser.value?.avatarUrl),
+            tag = currentUser.value?.tag,
+            name = currentUser.value?.displayName
         )
         MinimalisticFilledIcon(
             modifier = Modifier
@@ -326,10 +334,10 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                 .scalingClickable(
                     enabled = currentUser.value?.displayName != null && currentUser.value?.tag != null
                 ) {
-                    clipboardManager.setText(buildAnnotatedString {
-                        append(currentUser.value?.displayName?.plus("#${currentUser.value?.tag}"))
-                    })
                     coroutineScope.launch {
+                        clipboard.withPlainText(
+                            currentUser.value?.displayName?.plus("#${currentUser.value?.tag}") ?: ""
+                        )
                         snackbarHostState?.showSnackbar(
                             message = getString(Res.string.action_general_copied)
                         )
@@ -360,7 +368,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
                 shareProfile(
                     coroutineScope = coroutineScope,
                     publicId = currentUser.value?.publicId,
-                    clipboardManager = clipboardManager,
+                    clipboard = clipboard,
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -372,7 +380,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardViewModel) {
 fun shareProfile(
     coroutineScope: CoroutineScope,
     publicId: String?,
-    clipboardManager: ClipboardManager,
+    clipboard: Clipboard,
     snackbarHostState: SnackbarHostState?
 ) {
     val url = "$HttpDomain/users/$publicId"
@@ -382,11 +390,7 @@ fun shareProfile(
                 link = url
             )
         ) {
-            clipboardManager.setText(buildAnnotatedString {
-                withLink(LinkAnnotation.Url(url)) {
-                    append(url)
-                }
-            })
+            clipboard.withPlainText(url)
             snackbarHostState?.showSnackbar(
                 message = getString(Res.string.action_link_copied)
             )

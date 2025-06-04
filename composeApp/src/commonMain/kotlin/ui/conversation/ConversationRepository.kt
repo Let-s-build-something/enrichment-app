@@ -1,239 +1,332 @@
 package ui.conversation
 
-import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import augmy.interactive.shared.DateUtils.localNow
-import base.utils.sha256
+import androidx.paging.PagingSource
+import base.utils.MediaType
+import base.utils.getMediaType
+import base.utils.toSha256
 import data.io.base.BaseResponse
-import data.io.base.PaginationInfo
+import data.io.matrix.media.FileList
+import data.io.matrix.media.MediaRepositoryConfig
+import data.io.matrix.media.MediaUploadResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
-import data.io.social.network.conversation.NetworkConversationIO
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
-import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
-import data.shared.setPaging
+import data.shared.sync.DataSyncHandler
+import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
-import database.dao.PagingMetaDao
+import database.dao.ConversationRoomDao
+import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
-import io.github.vinceglb.filekit.core.PlatformFile
-import io.github.vinceglb.filekit.core.baseName
-import io.github.vinceglb.filekit.core.extension
+import io.github.vinceglb.filekit.PlatformFile
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
-import korlibs.io.net.MimeType
-import kotlinx.coroutines.CoroutineScope
+import io.ktor.http.HttpHeaders
+import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.client.room.encrypt
+import net.folivo.trixnity.client.roomEventEncryptionServices
+import net.folivo.trixnity.core.model.EventId
+import net.folivo.trixnity.core.model.RoomId
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.ClientEvent
+import net.folivo.trixnity.core.model.events.m.room.AudioInfo
+import net.folivo.trixnity.core.model.events.m.room.FileInfo
+import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
-import ui.conversation.components.audio.MediaHttpProgress
+import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /** Class for calling APIs and remote work in general */
-class ConversationRepository(
+open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
-    private val pagingMetaDao: PagingMetaDao,
-    private val fileAccess: FileAccess
-) {
-    private var currentPagingSource: ConversationRoomSource? = null
-    val cachedFiles = hashMapOf<String, PlatformFile?>()
+    internal val conversationRoomDao: ConversationRoomDao,
+    private val roomMemberDao: RoomMemberDao,
+    mediaDataManager: MediaProcessorDataManager,
+    fileAccess: FileAccess
+): MediaRepository(httpClient, mediaDataManager, fileAccess) {
+    private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
+    private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
+
+    protected var currentPagingSource: PagingSource<*, *>? = null
+    val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
+    protected var certainMessageCount: Int? = null
 
     /** Attempts to invalidate local PagingSource with conversation messages */
-    private fun invalidateLocalSource() {
+    fun invalidateLocalSource() {
+        certainMessageCount = null
         currentPagingSource?.invalidate()
     }
 
-    /** returns a list of network list */
+    /**
+     * returns a list of network list
+     * @param dir - direction of the list
+     * @param fromBatch - The token to start returning events from, usually the "prev_batch" of the timeline.
+     */
     private suspend fun getMessages(
-        page: Int,
-        size: Int,
+        dir: String = "b",
+        homeserver: String,
+        fromBatch: String? = null,
+        limit: Int,
         conversationId: String?
     ): BaseResponse<ConversationMessagesResponse> {
         return withContext(Dispatchers.IO) {
+            if(conversationId == null) {
+                return@withContext BaseResponse.Error()
+            }
+
             httpClient.safeRequest<ConversationMessagesResponse> {
                 get(
-                    urlString = "/api/v1/social/conversation",
+                    urlString = "https://${homeserver}/_matrix/client/v3/rooms/$conversationId/messages",
                     block =  {
-                        setPaging(
-                            size = size,
-                            page = page
-                        ) {
-                            append("conversationId", conversationId.orEmpty())
-                        }
+                        parameter("limit", limit)
+                        parameter("dir", dir)
+                        parameter("from", fromBatch)
                     }
                 )
             }
         }
     }
 
+    private suspend fun getAndStoreNewMessages(
+        homeserver: String,
+        fromBatch: String?,
+        limit: Int,
+        conversationId: String?
+    ): MessageProcessor.SaveEventsResult? {
+        return if(conversationId != null) {
+            getMessages(
+                limit = limit,
+                conversationId = conversationId,
+                fromBatch = fromBatch,
+                homeserver = homeserver
+            ).success?.data?.let { data ->
+                dataSyncHandler.saveEvents(
+                    events = data.chunk.orEmpty() + data.state.orEmpty(),
+                    roomId = conversationId,
+                    prevBatch = data.end
+                )
+            }
+        }else null
+    }
+
     /** Returns a flow of conversation messages */
-    @OptIn(ExperimentalPagingApi::class)
     fun getMessagesListFlow(
+        homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
     ): Pager<Int, ConversationMessageIO> {
-        val scope = CoroutineScope(Dispatchers.Default)
-
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
                     getMessages = { page ->
-                        val res = conversationMessageDao.getPaginated(
-                            conversationId = conversationId,
-                            limit = config.pageSize,
-                            offset = page * config.pageSize
+                        if(conversationId == null) return@ConversationRoomSource GetMessagesResponse(
+                            data = listOf(), hasNext = false
                         )
 
-                        BaseResponse.Success(
-                            ConversationMessagesResponse(
-                                content = res,
-                                pagination = PaginationInfo(
-                                    page = page,
-                                    size = res.size,
-                                    totalItems = conversationMessageDao.getCount(conversationId)
-                                )
-                            )
-                        )
+                        withContext(Dispatchers.IO) {
+                            val prevBatch = conversationRoomDao.get(conversationId)?.prevBatch
+
+                            conversationMessageDao.getPaginated(
+                                conversationId = conversationId,
+                                limit = config.pageSize,
+                                offset = page * config.pageSize
+                            ).let { res ->
+                                if(res.isNotEmpty()) {
+                                    GetMessagesResponse(
+                                        data = res,
+                                        hasNext = res.size == config.pageSize || prevBatch != null
+                                    )
+                                }else null
+                            } ?: if(prevBatch != null) {
+                                getAndStoreNewMessages(
+                                    limit = config.pageSize,
+                                    conversationId = conversationId,
+                                    fromBatch = prevBatch,
+                                    homeserver = homeserver()
+                                )?.let { res ->
+                                    certainMessageCount = certainMessageCount?.plus(res.messages.size)
+                                    GetMessagesResponse(
+                                        data = res.messages,
+                                        hasNext = res.prevBatch != null && res.messages.isNotEmpty()
+                                    ).also {
+                                        val newPrevBatch = if(res.messages.isEmpty()
+                                            && res.events == 0
+                                            && res.members.isEmpty()
+                                        )null else res.prevBatch
+
+                                        conversationRoomDao.setPrevBatch(
+                                            id = conversationId,
+                                            prevBatch = newPrevBatch
+                                        )
+                                        if(newPrevBatch == null) {
+                                            // we just downloaded empty page, let's refresh UI to end paging
+                                            invalidateLocalSource()
+                                        }
+                                    }
+                                }
+                            }else GetMessagesResponse(data = emptyList(), hasNext = false)
+                        }
+                    },
+                    getCount = {
+                        certainMessageCount ?: conversationMessageDao.getCount(conversationId = conversationId).also {
+                            certainMessageCount = it
+                        }
                     },
                     size = config.pageSize
                 ).also { pagingSource ->
                     currentPagingSource = pagingSource
                 }
-            },
-            remoteMediator = MessagesRemoteMediator(
-                pagingMetaDao = pagingMetaDao,
-                conversationMessageDao = conversationMessageDao,
-                size = config.pageSize,
-                conversationId = conversationId ?: "",
-                getItems = { page ->
-                    getMessages(page = page, size = config.pageSize, conversationId = conversationId)
-                },
-                invalidatePagingSource = {
-                    scope.coroutineContext.cancelChildren()
-                    scope.launch {
-                        delay(200)
-                        currentPagingSource?.invalidate()
-                    }
-                }
-            )
+            }
         )
     }
 
     /** Returns a detailed information about a conversation */
-    suspend fun getConversationDetail(conversationId: String): BaseResponse<NetworkConversationIO?> {
-        return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<NetworkConversationIO> {
-                get(
-                    urlString = "/api/v1/social/conversation/detail",
-                    block = {
-                        parameter("conversationId", conversationId)
-                    }
-                )
+    suspend fun getConversationDetail(
+        conversationId: String,
+        owner: String?
+    ): ConversationRoomIO? = withContext(Dispatchers.IO) {
+        conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.let { room ->
+            val members = roomMemberDao.get(
+                userIds = room.summary?.heroes?.map { it.full }.orEmpty()
+            ).let { local ->
+                // if there are missing members, let's use API
+                if (local.size < (room.summary?.heroes?.size?.plus(1) ?: 1) || local.isEmpty()) {
+                    (sharedDataManager.matrixClient.value?.api?.room?.getMembers(
+                        roomId = RoomId(conversationId)
+                    )?.getOrNull()?.toList() as? List<ClientEvent<*>>)?.let { memberEvents ->
+                        dataSyncHandler.saveEvents(
+                            roomId = conversationId,
+                            prevBatch = null,
+                            events = memberEvents
+                        ).members
+                    }?.plus(local)?.distinctBy { it.userId } ?: local
+                } else local
+            }
+
+            room.copy(
+                summary = (room.summary ?: RoomSummary(heroes = members.map { UserId(it.userId) })).apply {
+                    this.members = members
+                }
+            )
+        }
+    }
+
+    /** Informs Matrix about typing progress */
+    suspend fun updateTypingIndicator(
+        conversationId: String,
+        indicator: ConversationTypingIndicator
+    ): BaseResponse<Any> = withContext(Dispatchers.IO) {
+        val userId = sharedDataManager.currentUser.value?.matrixUserId
+        val homeserver = sharedDataManager.currentUser.value?.matrixHomeserver
+
+        httpClient.safeRequest<Any> {
+            put("https://${homeserver}/_matrix/client/v3/rooms/${conversationId}/typing/${userId}") {
+                setBody(indicator)
             }
         }
     }
 
-    /** Sends a message to a conversation */
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun sendMessage(
+        client: MatrixClient?,
         conversationId: String,
-        message: ConversationMessageIO,
-        audioByteArray: ByteArray? = null,
-        // TODO upload progress
-        onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
-        mediaFiles: List<PlatformFile> = listOf(),
-    ): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
-            val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
-            val uuids = mutableListOf<String>()
-
-            // placeholder/loading message preview
-            var msg = message.copy(
-                conversationId = conversationId,
-                sentAt = localNow,
-                authorPublicId = dataManager.currentUser.value?.publicId,
-                media = mediaFiles.map { media ->
-                    MediaIO(
-                        url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                            cachedFiles[uuid] = media
-                            uuids.add(uuid)
-                        }
+        message: ConversationMessageIO
+    ): Result<EventId>? = withContext(Dispatchers.IO) {
+        val roomId = RoomId(conversationId)
+        val eventContent = when {
+            message.media?.size == 1 -> {
+                val media = message.media.firstOrNull()
+                when(getMediaType(media?.mimetype ?: "")) {
+                    MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
+                        body = message.content ?: "",
+                        url = media?.url,
+                        fileName = media?.name,
+                        info = AudioInfo(
+                            mimeType = media?.mimetype,
+                            size = media?.size
+                        ),
+                        relatesTo = message.relatesTo()
                     )
-                } + message.media.orEmpty(),
-                audioUrl = if(audioByteArray?.isNotEmpty() == true) {
-                    MESSAGE_AUDIO_URL_PLACEHOLDER
-                }else null,
-                state = MessageState.Pending
-            )
-            conversationMessageDao.insert(msg)
-            invalidateLocalSource()
-
-            // upload the real message
-            val response = httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/conversation/send",
-                    block = {
-                        parameter("conversationId", conversationId)
-                        setBody(msg)
-                    }
-                )
-            }
-
-            // real message
-            msg = msg.copy(
-                media = mediaFiles.mapNotNull { media ->
-                    val bytes = media.readBytes()
-                    uploadMedia(
-                        mediaByteArray = bytes,
-                        fileName = "${Uuid.random()}.${media.extension.lowercase()}",
-                        conversationId = conversationId
-                    ).takeIf { !it.isNullOrBlank() }?.let { url ->
-                        MediaIO(
-                            url = url,
-                            size = bytes.size,
-                            name = media.baseName,
-                            mimetype = MimeType.getByExtension(media.extension).mime
-                        )
-                    }
-                } + message.media.orEmpty(),
-                audioUrl = uploadMedia(
-                    mediaByteArray = audioByteArray,
-                    fileName = "${Uuid.random()}.wav",
-                    conversationId = conversationId
-                ).also { audioUrl ->
-                    if(!audioUrl.isNullOrBlank()) {
-                        msg = msg.copy(audioUrl = audioUrl)
-                        audioByteArray?.let { data ->
-                            fileAccess.saveFileToCache(data = data, fileName = sha256(audioUrl))
-                        }
-                    }
-                },
-                state = if(response is BaseResponse.Success) MessageState.Sent else MessageState.Failed
-            )
-            uuids.forEachIndexed { index, s ->
-                msg.media?.getOrNull(index)?.url?.let {
-                    cachedFiles[it] = cachedFiles[s]
+                    MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
+                        body = message.content ?: "",
+                        url = media?.url,
+                        fileName = media?.name,
+                        info = ImageInfo(
+                            mimeType = media?.mimetype,
+                            size = media?.size
+                        ),
+                        relatesTo = message.relatesTo()
+                    )
+                    else -> RoomMessageEventContent.FileBased.File(
+                        body = message.content ?: "",
+                        url = media?.url,
+                        fileName = media?.name,
+                        info = FileInfo(
+                            mimeType = media?.mimetype,
+                            size = media?.size
+                        ),
+                        relatesTo = message.relatesTo()
+                    )
                 }
-                cachedFiles.remove(s)
             }
-            conversationMessageDao.insert(msg)
-            invalidateLocalSource()
+            (message.media?.size ?: 0) > 1 -> FileList(
+                body = message.content ?: "",
+                urls = message.media?.mapNotNull { it.url },
+                fileName = message.media?.firstOrNull()?.name,
+                infos = message.media?.map { media ->
+                    FileInfo(
+                        mimeType = media.mimetype,
+                        size = media.size
+                    )
+                },
+                relatesTo = message.relatesTo()
+            )
+            else -> RoomMessageEventContent.TextBased.Text(
+                body = message.content ?: "",
+                relatesTo = message.relatesTo()
+            )
+        }
 
-            response
+        client?.api?.room?.sendMessageEvent(
+            roomId = roomId,
+            eventContent = client.roomEventEncryptionServices.encrypt(
+                content = eventContent,
+                roomId = roomId
+            )?.getOrNull() ?: eventContent
+        )
+    }
+
+    suspend fun cacheMessage(message: ConversationMessageIO) = withContext(Dispatchers.IO) {
+        conversationMessageDao.insertReplace(message)
+    }
+
+    suspend fun removeMessage(id: String) = withContext(Dispatchers.IO) {
+        conversationMessageDao.remove(id)
+    }
+
+    /** Marks a message as transcribed */
+    suspend fun markMessageAsTranscribed(id: String) {
+        withContext(Dispatchers.IO) {
+            conversationMessageDao.transcribe(messageId = id, transcribed = true)
         }
     }
 
@@ -246,13 +339,13 @@ class ConversationRepository(
             conversationMessageDao.get(reaction.messageId)?.let { message ->
                 val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
 
-                conversationMessageDao.insert(message.copy(
+                conversationMessageDao.insertReplace(message.copy(
                     reactions = message.reactions.orEmpty().toMutableList().apply {
                         add(
                             MessageReactionIO(
-                            content = reaction.content,
-                            authorPublicId = dataManager.currentUser.value?.publicId
-                        )
+                                content = reaction.content,
+                                authorPublicId = dataManager.currentUser.value?.matrixUserId
+                            )
                         )
                     }
                 ))
@@ -271,22 +364,62 @@ class ConversationRepository(
         }
     }
 
+    /** Returns configuration of the homeserver */
+    suspend fun getMediaConfig(homeserver: String): BaseResponse<MediaRepositoryConfig> {
+        return httpClient.safeRequest<MediaRepositoryConfig> {
+            get(url = Url("https://$homeserver/_matrix/client/v1/media/config"))
+        }
+    }
+}
+
+open class MediaRepository(
+    private val httpClient: HttpClient,
+    private val mediaDataManager: MediaProcessorDataManager,
+    private val fileAccess: FileAccess
+) {
+
     /**
      * Uploads media to the server
      * @return the server location URL
      */
-    private suspend fun uploadMedia(
-        conversationId: String,
+    suspend fun uploadMedia(
         mediaByteArray: ByteArray?,
+        mimetype: String,
+        homeserver: String,
         fileName: String
-    ): String? {
-        return try {
+    ): BaseResponse<MediaUploadResponse>? = withContext(Dispatchers.IO) {
+        try {
             if(mediaByteArray == null) null
-            else uploadMediaToStorage(
-                conversationId = conversationId,
-                byteArray = mediaByteArray,
-                fileName = fileName
-            )
+            else {
+                httpClient.safeRequest<MediaUploadResponse> {
+                    post(url = Url("https://$homeserver/_matrix/media/v3/upload")) {
+                        header(HttpHeaders.ContentType, mimetype)
+                        parameter("filename", fileName)
+                        setBody(mediaByteArray)
+                    }
+                }.also {
+                    it.success?.success?.data?.contentUri?.let { uri ->
+                        fileAccess.saveFileToCache(
+                            data = mediaByteArray,
+                            fileName = uri.toSha256()
+                        )?.let { path ->
+                            mediaDataManager.cachedFiles.value = mediaDataManager.cachedFiles.value.toMutableMap().apply {
+                                put(
+                                    path.toString(),
+                                    BaseResponse.Success(
+                                        MediaIO(
+                                            url = uri,
+                                            mimetype = mimetype,
+                                            size = mediaByteArray.size.toLong(),
+                                            name = fileName
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }catch (e: Exception) {
             e.printStackTrace()
             null
@@ -295,10 +428,3 @@ class ConversationRepository(
 }
 
 const val MESSAGE_AUDIO_URL_PLACEHOLDER = "audio_placeholder"
-
-/** Attempts to upload a file to Firebase storage, and returns the download URL of the uploaded file. */
-expect suspend fun uploadMediaToStorage(
-    conversationId: String,
-    byteArray: ByteArray,
-    fileName: String
-): String

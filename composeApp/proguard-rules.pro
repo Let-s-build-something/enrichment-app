@@ -71,6 +71,10 @@
 -keep class org.jetbrains.skia.** { *; }
 -keep class org.jetbrains.skiko.** { *; }
 -keep class android.view.** { *; }
+-keep class io.github.alexzhirkevich.compottie.CompottieInitializer.*
+
+# JVM
+-keep class java.awt.*
 
 -keepattributes SourceFile,LineNumberTable,Signature,*Annotation*
 

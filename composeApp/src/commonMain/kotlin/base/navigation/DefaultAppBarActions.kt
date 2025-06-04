@@ -26,18 +26,20 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.tagToColor
+import data.io.social.network.conversation.message.MediaIO
 import org.jetbrains.compose.resources.stringResource
+import ui.conversation.components.MediaElement
 
 /**
  * The default layout of action in top action bar
  * @param isUserSignedIn whether user is currently signed in or not
- * @param userPhotoUrl url of user photo which should be displayed instead of the vector image
+ * @param avatarUrl url of user photo which should be displayed instead of the vector image
  * @param expanded whether the menu is expanded or not
  */
 @Composable
 fun DefaultAppBarActions(
     isUserSignedIn: Boolean = false,
-    userPhotoUrl: String? = null,
+    avatarUrl: String? = null,
     userTag: String? = null,
     expanded: Boolean = true
 ) {
@@ -59,13 +61,20 @@ fun DefaultAppBarActions(
             NavigationNode.Home.route -> {
                 Crossfade(targetState = isUserSignedIn) { showAccount ->
                     if(showAccount) {
-                        val showText = expanded && (userPhotoUrl == null || !isPhone)
+                        val showText = expanded && (avatarUrl == null || !isPhone)
 
                         ActionBarIcon(
                             text = if(showText) {
                                 stringResource(Res.string.screen_account_title)
                             } else null,
-                            imageUrl = userPhotoUrl,
+                            icon = if (avatarUrl != null) {
+                                { modifier ->
+                                    MediaElement(
+                                        modifier = modifier,
+                                        media = MediaIO(url = avatarUrl)
+                                    )
+                                }
+                            }else null,
                             imageVector = Icons.Outlined.PersonOutline,
                             onClick = {
                                 navController?.navigate(NavigationNode.AccountDashboard)
@@ -89,7 +98,7 @@ fun DefaultAppBarActions(
                             text = if(expanded) stringResource(Res.string.screen_login) else null,
                             imageVector = Icons.Outlined.PersonAddAlt,
                             onClick = {
-                                navController?.navigate(NavigationNode.Login)
+                                navController?.navigate(NavigationNode.Login())
                             }
                         )
                     }

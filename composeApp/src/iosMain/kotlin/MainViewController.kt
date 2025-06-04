@@ -1,5 +1,5 @@
-
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalDensity
@@ -7,7 +7,9 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.ComposeUIViewController
 import augmy.interactive.shared.ui.base.BackPressDispatcher
+import augmy.interactive.shared.ui.base.DeviceOrientation
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
+import augmy.interactive.shared.ui.base.LocalOrientation
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
@@ -27,6 +29,7 @@ fun MainViewController() = ComposeUIViewController {
 
     val backPressDispatcher = object: BackPressDispatcher {
         val listeners = mutableListOf<() -> Unit>()
+        override val progress = mutableFloatStateOf(0f)
 
         override fun addOnBackPressedListener(listener: () -> Unit) {
             this.listeners.add(0, listener)
@@ -49,6 +52,7 @@ fun MainViewController() = ComposeUIViewController {
         ?.rootViewController
         ?.navigationController
         ?.delegate = object : NSObject(), UINavigationControllerDelegateProtocol {
+        @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
         override fun navigationController(
             navigationController: platform.UIKit.UINavigationController,
             willShowViewController: UIViewController,
@@ -71,7 +75,12 @@ fun MainViewController() = ComposeUIViewController {
         LocalScreenSize provides IntSize(
             height = with(density) { containerSize.height.toDp() }.value.toInt(),
             width = with(density) { containerSize.width.toDp() }.value.toInt()
-        )
+        ),
+        LocalOrientation provides if (containerSize.height > containerSize.width) {
+            DeviceOrientation.Vertical
+        } else {
+            DeviceOrientation.Horizontal
+        }
     ) {
         App()
     }

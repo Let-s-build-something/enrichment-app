@@ -43,7 +43,7 @@ open class DefaultThemeStyles: ThemeStyle {
             @Composable get() = Font(Res.font.quicksand_regular)
 
         @JvmStatic
-        protected val fontQuicksandMedium
+        val fontQuicksandMedium
             @Composable get() = Font(Res.font.quicksand_medium)
 
         @JvmStatic

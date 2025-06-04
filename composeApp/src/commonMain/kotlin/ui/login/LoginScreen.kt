@@ -5,6 +5,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -29,7 +29,9 @@ import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.Key
@@ -38,7 +40,6 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -66,17 +68,18 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.accessibility_sign_in_illustration
 import augmy.composeapp.generated.resources.accessibility_sign_up_illustration
 import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.dialog_recaptcha_title
 import augmy.composeapp.generated.resources.dialog_terms_message
 import augmy.composeapp.generated.resources.dialog_terms_title
 import augmy.composeapp.generated.resources.error_general
-import augmy.composeapp.generated.resources.error_google_sign_in_unavailable
 import augmy.composeapp.generated.resources.ic_robot
 import augmy.composeapp.generated.resources.login_agreement
 import augmy.composeapp.generated.resources.login_email_error
@@ -84,13 +87,13 @@ import augmy.composeapp.generated.resources.login_email_verification_action
 import augmy.composeapp.generated.resources.login_email_verification_heading
 import augmy.composeapp.generated.resources.login_email_verification_message
 import augmy.composeapp.generated.resources.login_email_verification_repeat
-import augmy.composeapp.generated.resources.login_error_canceled
 import augmy.composeapp.generated.resources.login_error_duplicate_email
 import augmy.composeapp.generated.resources.login_error_duplicate_username
 import augmy.composeapp.generated.resources.login_error_invalid_credential
-import augmy.composeapp.generated.resources.login_error_no_windows
 import augmy.composeapp.generated.resources.login_error_security
 import augmy.composeapp.generated.resources.login_matrix_homeserver
+import augmy.composeapp.generated.resources.login_oidc_disable
+import augmy.composeapp.generated.resources.login_oidc_enable
 import augmy.composeapp.generated.resources.login_password_action_go
 import augmy.composeapp.generated.resources.login_password_condition_0
 import augmy.composeapp.generated.resources.login_password_condition_1
@@ -102,15 +105,15 @@ import augmy.composeapp.generated.resources.login_privacy_policy
 import augmy.composeapp.generated.resources.login_screen_type_sign_in
 import augmy.composeapp.generated.resources.login_screen_type_sign_up
 import augmy.composeapp.generated.resources.login_success_snackbar
-import augmy.composeapp.generated.resources.login_success_snackbar_action
 import augmy.composeapp.generated.resources.login_terms_of_use
 import augmy.composeapp.generated.resources.login_username_condition_0
 import augmy.composeapp.generated.resources.login_username_condition_1
 import augmy.composeapp.generated.resources.login_username_hint
 import augmy.composeapp.generated.resources.no_email_client_error
 import augmy.composeapp.generated.resources.screen_login
+import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
-import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
@@ -121,6 +124,7 @@ import augmy.interactive.shared.ui.components.CorrectionText
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
@@ -128,7 +132,6 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
-import augmy.interactive.shared.ui.utils.LifecycleListener
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
@@ -164,18 +167,21 @@ import ui.conversation.components.gif.GifImage
  * email + password, Google, and Apple ID
  */
 @Composable
-fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
+fun LoginScreen(
+    model: LoginModel = koinViewModel(),
+    nonce: String?,
+    loginToken: String?
+) {
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
-    val clientStatus = viewModel.clientStatus.collectAsState()
-    val matrixProgress = viewModel.matrixProgress.collectAsState()
+    val clientStatus = model.clientStatus.collectAsState()
+    val matrixProgress = model.matrixProgress.collectAsState()
     val errorMessage = remember {
         mutableStateOf<String?>(null)
     }
     val passwordState = remember { TextFieldState() }
     val usernameState = remember { TextFieldState() }
-    val isMatrixMode = rememberSaveable { mutableStateOf(false) }
     val screenStateIndex = rememberSaveable {
         mutableStateOf(clientStatus.value.ordinal)
     }
@@ -188,7 +194,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
 
     val coroutineScope = rememberCoroutineScope()
     val switchScreenState = rememberMultiChoiceState(
-        tabs = mutableListOf(
+        items = mutableListOf(
             stringResource(Res.string.login_screen_type_sign_up),
             stringResource(Res.string.login_screen_type_sign_in)
         ),
@@ -203,7 +209,16 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        if(viewModel.currentUser.value != null) navController?.popBackStack()
+        if(model.currentUser.value != null) navController?.popBackStack()
+    }
+
+    LaunchedEffect(nonce, loginToken) {
+        if(nonce != null && loginToken != null) {
+            model.loginWithToken(
+                nonce = nonce,
+                token = loginToken
+            )
+        }
     }
 
     LaunchedEffect(passwordState.text) {
@@ -251,35 +266,19 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        viewModel.loginResult.collectLatest { res ->
+        model.loginResult.collectLatest { res ->
             errorMessage.value = when(res) {
                 LoginResultType.SUCCESS -> {
                     CoroutineScope(Dispatchers.Main).launch {
-                        if(snackbarHostState?.showSnackbar(
-                                message = getString(Res.string.login_success_snackbar),
-                                actionLabel = getString(Res.string.login_success_snackbar_action),
-                                duration = SnackbarDuration.Short
-                            ) == SnackbarResult.ActionPerformed) {
-                            navController?.navigate(NavigationNode.Water)
-                        }
-                    }
-                    navController?.popBackStack(NavigationNode.Login, inclusive = true)
-                    null
-                }
-                LoginResultType.NO_GOOGLE_CREDENTIALS -> {
-                    coroutineScope.launch {
                         snackbarHostState?.showSnackbar(
-                            visuals = CustomSnackbarVisuals(
-                                message = getString(Res.string.error_google_sign_in_unavailable),
-                                isError = true
-                            )
+                            message = getString(Res.string.login_success_snackbar),
+                            duration = SnackbarDuration.Short
                         )
                     }
+                    navController?.popBackStack(NavigationNode.Home, inclusive = false)
                     null
                 }
-                LoginResultType.CANCELLED -> getString(Res.string.login_error_canceled)
                 LoginResultType.INVALID_CREDENTIAL -> getString(Res.string.login_error_invalid_credential)
-                LoginResultType.NO_WINDOW -> getString(Res.string.login_error_no_windows)
                 LoginResultType.AUTH_SECURITY -> getString(Res.string.login_error_security)
                 LoginResultType.EMAIL_EXISTS -> getString(Res.string.login_error_duplicate_email)
                 LoginResultType.USERNAME_EXISTS -> {
@@ -296,7 +295,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 }
                 else -> getString(Res.string.error_general)
             }
-            viewModel.setLoading(false)
+            model.setLoading(false)
         }
     }
 
@@ -305,18 +304,25 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
         flow?.stages?.getOrNull(progress.index)?.let { stage ->
             MatrixProgressStage(
                 stage = stage,
-                viewModel = viewModel
+                model = model
             )
         }
     }
 
     BrandBaseScreen(
-        modifier = Modifier.imePadding(),
         title = stringResource(Res.string.screen_login),
         navIconType = NavIconType.BACK
     ) {
+        val listState = rememberScrollState()
+
         ModalScreenContent(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .onMouseScroll { direction, amount ->
+                    coroutineScope.launch {
+                        listState.scrollBy(amount.toFloat() * direction)
+                    }
+                }
+                .verticalScroll(listState),
             verticalArrangement = Arrangement.Center
         ) {
             MultiChoiceSwitch(
@@ -345,6 +351,7 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                         image = if(type == LoginScreenType.SIGN_UP) {
                             Asset.Image.SignUp
                         }else Asset.Image.SignIn,
+                        contentScale = ContentScale.Fit,
                         contentDescription = stringResource(
                             if(type == LoginScreenType.SIGN_UP) {
                                 Res.string.accessibility_sign_up_illustration
@@ -354,33 +361,31 @@ fun LoginScreen(viewModel: LoginViewModel = koinViewModel()) {
                 }
             }
             LoginScreenContent(
-                viewModel = viewModel,
+                model = model,
                 screenStateIndex = screenStateIndex,
                 passwordValidations = passwordValidations.value,
                 usernameValidations = usernameValidations,
                 errorMessage = errorMessage,
                 passwordState = passwordState,
-                usernameState = usernameState,
-                isMatrixMode = isMatrixMode
+                usernameState = usernameState
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(120.dp))
         }
     }
 }
 
 @Composable
 private fun ColumnScope.LoginScreenContent(
-    viewModel: LoginViewModel,
+    model: LoginModel,
     screenStateIndex: MutableState<Int>,
     passwordValidations: List<FieldValidation>,
     usernameValidations: List<FieldValidation>,
     errorMessage: MutableState<String?>,
     passwordState: TextFieldState,
-    usernameState: TextFieldState,
-    isMatrixMode: MutableState<Boolean>
+    usernameState: TextFieldState
 ) {
-    val isLoading = viewModel.isLoading.collectAsState()
-    val homeServerResponse = viewModel.homeServerResponse.collectAsState()
+    val isLoading = model.isLoading.collectAsState()
+    val homeServerResponse = model.homeServerResponse.collectAsState()
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
     val emailState = remember { TextFieldState() }
@@ -395,26 +400,35 @@ private fun ColumnScope.LoginScreenContent(
         it.stages?.contains(LoginEmail) == true
     } != false*/
 
+    val disableSsoFlow = remember { mutableStateOf(false) }
+    val ssoFlow = remember(homeServerResponse.value) {
+        derivedStateOf {
+            homeServerResponse.value?.plan?.flows?.find {
+                it.type == Matrix.LOGIN_SSO
+            }.takeIf { !disableSsoFlow.value }
+        }
+    }
+
     val sendRequest = {
-        viewModel.setLoading(true)
-        viewModel.signUpWithPassword(
+        if(ssoFlow.value?.delegatedOidcCompatibility == true) {
+            model.requestSsoRedirect(null)
+        }else model.signUpWithPassword(
             email = emailState.text.toString(),
             password = passwordState.text.toString(),
             screenType = screenType,
-            username = if(isMatrixMode.value) usernameState.text.toString() else null,
-            isMatrix = isMatrixMode.value
+            username = usernameState.text.toString()
         )
     }
 
     if(showHomeServerPicker.value) {
         MatrixHomeserverPicker(
-            viewModel = viewModel,
+            viewModel = model,
             screenType = screenType,
             homeserver = homeServer.value,
             onDismissRequest = { showHomeServerPicker.value = false },
             onSelect = {
                 homeServer.value = it
-                viewModel.selectHomeServer(
+                model.selectHomeServer(
                     screenType = screenType,
                     address = it
                 )
@@ -427,114 +441,116 @@ private fun ColumnScope.LoginScreenContent(
     }
 
     LaunchedEffect(screenType) {
-        viewModel.selectHomeServer(
+        model.selectHomeServer(
             screenType = screenType,
             address = homeServer.value
         )
     }
 
-    AnimatedVisibility(isMatrixMode.value && homeServerResponse.value?.supportsEmail != true) {
-        val cancellableScope = rememberCoroutineScope()
-        val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
+    AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility != true) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val cancellableScope = rememberCoroutineScope()
+            val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
 
-        if(screenType == LoginScreenType.SIGN_UP) {
             LaunchedEffect(usernameState.text) {
                 cancellableScope.coroutineContext.cancelChildren()
                 cancellableScope.launch {
                     delay(DELAY_BETWEEN_TYPING_SHORT)
-                    viewModel.validateUsername(
+                    model.validateUsername(
                         address = homeServer.value,
                         username = usernameState.text.toString()
                     )
                 }
             }
-        }
 
-        CustomTextField(
-            modifier = Modifier
-                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                .fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            prefixIcon = Icons.Outlined.Face,
-            hint = stringResource(Res.string.login_username_hint),
-            errorText = if(usernameState.text.isEmpty()) {
-                null
-            } else error,
-            state = usernameState,
-            lineLimits = TextFieldLineLimits.SingleLine,
-            shape = LocalTheme.current.shapes.rectangularActionShape
-        )
-    }
-    AnimatedVisibility(visible = supportsEmail) {
-        CustomTextField(
-            modifier = Modifier
-                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                .fillMaxWidth()
-                .onFocusChanged { state ->
-                    isEmailFocused.value = state.isFocused
-                },
-            hint = stringResource(Res.string.login_password_email_hint),
-            prefixIcon = Icons.Outlined.AlternateEmail,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            state = emailState,
-            errorText = if(isEmailValid || emailState.text.isEmpty() || isEmailFocused.value) {
-                null
-            } else errorMessage.value ?: stringResource(Res.string.login_email_error),
-            paddingValues = PaddingValues(start = 16.dp)
-        )
-    }
-
-    CustomTextField(
-        modifier = Modifier
-            .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-            .fillMaxWidth(),
-        hint = stringResource(Res.string.login_password_password_hint),
-        prefixIcon = Icons.Outlined.Key,
-        state = passwordState,
-        isCorrect = isPasswordValid,
-        errorText = if(isPasswordValid.not() && passwordState.text.isNotEmpty()) " " else null,
-        textObfuscationMode = if(passwordVisible.value) {
-            TextObfuscationMode.Visible
-        }else TextObfuscationMode.RevealLastTyped,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Done
-        ),
-        onKeyboardAction = {
-            if(isPasswordValid && isEmailValid) {
-                sendRequest()
-            }
-        },
-        trailingIcon = {
-            Crossfade(
-                targetState = passwordVisible.value, label = "",
-            ) { isPasswordVisible ->
-                MinimalisticIcon(
-                    contentDescription = stringResource(
-                        if(isPasswordVisible) {
-                            Res.string.accessibility_hide_password
-                        }else Res.string.accessibility_show_password
+            CustomTextField(
+                modifier = Modifier
+                    .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                    .fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                prefixIcon = Icons.Outlined.Face,
+                hint = stringResource(Res.string.login_username_hint),
+                errorText = if(usernameState.text.isEmpty()) {
+                    null
+                } else error,
+                state = usernameState,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = LocalTheme.current.shapes.rectangularActionShape
+            )
+            AnimatedVisibility(visible = supportsEmail) {
+                CustomTextField(
+                    modifier = Modifier
+                        .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                        .fillMaxWidth()
+                        .onFocusChanged { state ->
+                            isEmailFocused.value = state.isFocused
+                        },
+                    hint = stringResource(Res.string.login_password_email_hint),
+                    prefixIcon = Icons.Outlined.AlternateEmail,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
                     ),
-                    imageVector = if(isPasswordVisible) {
-                        Icons.Outlined.Visibility
-                    }else Icons.Outlined.VisibilityOff,
-                    tint = LocalTheme.current.colors.secondary
-                ) {
-                    passwordVisible.value = !passwordVisible.value
-                }
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    state = emailState,
+                    errorText = if(isEmailValid || emailState.text.isEmpty() || isEmailFocused.value) {
+                        null
+                    } else errorMessage.value ?: stringResource(Res.string.login_email_error),
+                    paddingValues = PaddingValues(start = 16.dp)
+                )
             }
-        },
-        inputTransformation = {
-            this.delete(PASSWORD_MAX_LENGTH, this.length)
-        },
-        paddingValues = PaddingValues(start = 16.dp)
-    )
+
+            CustomTextField(
+                modifier = Modifier
+                    .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                    .fillMaxWidth(),
+                hint = stringResource(Res.string.login_password_password_hint),
+                prefixIcon = Icons.Outlined.Key,
+                state = passwordState,
+                isCorrect = isPasswordValid,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                errorText = if(isPasswordValid.not() && passwordState.text.isNotEmpty()) " " else null,
+                textObfuscationMode = if(passwordVisible.value) {
+                    TextObfuscationMode.Visible
+                }else TextObfuscationMode.RevealLastTyped,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                onKeyboardAction = {
+                    if(isPasswordValid && isEmailValid) {
+                        sendRequest()
+                    }
+                },
+                trailingIcon = {
+                    Crossfade(
+                        targetState = passwordVisible.value, label = "",
+                    ) { isPasswordVisible ->
+                        MinimalisticIcon(
+                            contentDescription = stringResource(
+                                if(isPasswordVisible) {
+                                    Res.string.accessibility_hide_password
+                                }else Res.string.accessibility_show_password
+                            ),
+                            imageVector = if(isPasswordVisible) {
+                                Icons.Outlined.Visibility
+                            }else Icons.Outlined.VisibilityOff,
+                            tint = LocalTheme.current.colors.secondary
+                        ) {
+                            passwordVisible.value = !passwordVisible.value
+                        }
+                    }
+                },
+                inputTransformation = {
+                    this.delete(PASSWORD_MAX_LENGTH, this.length)
+                },
+                paddingValues = PaddingValues(start = 16.dp)
+            )
+        }
+    }
 
     AnimatedVisibility(screenType == LoginScreenType.SIGN_UP) {
         Column(
@@ -553,16 +569,34 @@ private fun ColumnScope.LoginScreenContent(
         }
     }
 
-    BrandHeaderButton(
+    Row(
         modifier = Modifier
             .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-            .fillMaxWidth()
-            .padding(top = 16.dp, start = 16.dp, end = 16.dp),
-        text = stringResource(Res.string.login_password_action_go),
-        isEnabled = isPasswordValid && isEmailValid && isLoading.value.not(),
-        isLoading = isLoading.value,
-        onClick = sendRequest
-    )
+            .padding(vertical = 16.dp, horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BrandHeaderButton(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.login_password_action_go),
+            isEnabled = ssoFlow.value?.delegatedOidcCompatibility == true
+                    || isPasswordValid && isEmailValid && isLoading.value.not(),
+            isLoading = isLoading.value,
+            onClick = sendRequest,
+            endImageVector = Icons.AutoMirrored.Outlined.ArrowForward
+        )
+        AnimatedVisibility(
+            ssoFlow.value?.delegatedOidcCompatibility == true && BuildKonfig.isDevelopment
+        ) {
+            OutlinedButton(
+                text = stringResource(
+                    if(disableSsoFlow.value) Res.string.login_oidc_enable else Res.string.login_oidc_disable
+                )
+            ) {
+                disableSsoFlow.value = !disableSsoFlow.value
+            }
+        }
+    }
 
     AnimatedVisibility(
         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -591,92 +625,67 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    AnimatedVisibility(isLoading.value.not()) {
+    AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
                 .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
                 .fillMaxWidth()
-                .align(alignment = Alignment.CenterHorizontally),
-            horizontalArrangement = Arrangement.Center,
+                .wrapContentHeight()
+                .animateContentSize(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .wrapContentHeight()
-                    .animateContentSize(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                viewModel.availableOptions.forEach { option ->
-                    if(!isMatrixMode.value || option == SingInServiceOption.MATRIX) {
+            ssoFlow.value?.identityProviders?.forEach { identityProvider ->
+                when(identityProvider.brand) {
+                    Matrix.Brand.GOOGLE -> {
                         Image(
                             modifier = Modifier
-                                .height(34.dp)
-                                .scalingClickable(
-                                    onTap = {
-                                        when(option) {
-                                            SingInServiceOption.GOOGLE -> {
-                                                isMatrixMode.value = false
-                                                viewModel.requestGoogleSignIn()
-                                            }
-                                            SingInServiceOption.APPLE -> {
-                                                isMatrixMode.value = false
-                                                viewModel.requestAppleSignIn()
-                                            }
-                                            SingInServiceOption.MATRIX -> {
-                                                if(homeServer.value.isBlank()) {
-                                                    showHomeServerPicker.value = true
-                                                }else isMatrixMode.value = !isMatrixMode.value
-                                            }
-                                        }
-                                    }
-                                ),
-                            painter = painterResource(
-                                when(option) {
-                                    SingInServiceOption.GOOGLE -> LocalTheme.current.icons.googleSignUp
-                                    SingInServiceOption.APPLE -> LocalTheme.current.icons.appleSignUp
-                                    SingInServiceOption.MATRIX -> LocalTheme.current.icons.matrixSignUp
-                                }
-                            ),
-                            contentDescription = null,
-                            colorFilter = if(option == SingInServiceOption.MATRIX) {
-                                ColorFilter.tint(
-                                    if(isMatrixMode.value) LocalTheme.current.colors.primary
-                                    else LocalTheme.current.colors.secondary
-                                )
-                            }else null
+                                .height(42.dp)
+                                .scalingClickable {
+                                    model.requestSsoRedirect(identityProvider.id)
+                                },
+                            painter = painterResource(LocalTheme.current.icons.googleSignUp),
+                            contentDescription = null
+                        )
+                    }
+                    Matrix.Brand.APPLE -> {
+                        Image(
+                            modifier = Modifier
+                                .height(42.dp)
+                                .scalingClickable {
+                                    model.requestSsoRedirect(identityProvider.id)
+                                },
+                            painter = painterResource(LocalTheme.current.icons.appleSignUp ),
+                            contentDescription = null
                         )
                     }
                 }
             }
-            AnimatedVisibility(isMatrixMode.value) {
-                Text(
-                    modifier = Modifier
-                        .padding(start = 16.dp)
-                        .scalingClickable(enabled = !isLoading.value) {
-                            showHomeServerPicker.value = true
-                        }
-                        .padding(4.dp)
-                        .animateContentSize(),
-                    text = stringResource(
-                        Res.string.login_matrix_homeserver,
-                        homeServer.value
-                    ),
-                    style = LocalTheme.current.styles.regular
-                )
-            }
         }
     }
+
+    Text(
+        modifier = Modifier
+            .align(Alignment.CenterHorizontally)
+            .scalingClickable(enabled = !isLoading.value) {
+                showHomeServerPicker.value = true
+            }
+            .padding(top = 2.dp)
+            .animateContentSize(),
+        text = stringResource(
+            Res.string.login_matrix_homeserver,
+            homeServer.value
+        ),
+        style = LocalTheme.current.styles.regular
+    )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MatrixProgressStage(
     stage: String,
-    viewModel: LoginViewModel
+    model: LoginModel
 ) {
-    val progress = viewModel.matrixProgress.collectAsState()
+    val progress = model.matrixProgress.collectAsState()
 
     Crossfade(targetState = stage) { currentStage ->
         when(currentStage) {
@@ -699,7 +708,7 @@ private fun MatrixProgressStage(
                             callback: (String) -> Unit
                         ) {
                             isSuccess.value = true
-                            viewModel.matrixStepOver(
+                            model.matrixStepOver(
                                 type = currentStage,
                                 recaptchaJson = message.params
                             )
@@ -737,7 +746,10 @@ private fun MatrixProgressStage(
                         )
                     },
                     onDismissRequest = {
-                        if(!isSuccess.value) viewModel.clearMatrixProgress()
+                        if(!isSuccess.value) {
+                            model.clearMatrixProgress()
+                            model.setLoading(false)
+                        }
                     }
                 )
             }
@@ -764,134 +776,158 @@ private fun MatrixProgressStage(
                         text = stringResource(Res.string.button_confirm),
                         onClick = {
                             isSuccess.value = true
-                            viewModel.matrixStepOver(
+                            model.matrixStepOver(
                                 type = currentStage,
                                 agreements = policies.orEmpty().mapNotNull { it.en?.url }
                             )
                         }
                     ),
                     onDismissRequest = {
-                        if(!isSuccess.value) viewModel.clearMatrixProgress()
+                        if(!isSuccess.value) model.clearMatrixProgress()
                     }
                 )
             }
             Matrix.LOGIN_EMAIL_IDENTITY -> {
-                val counter = remember { mutableStateOf(STOPWATCH_MAX) }
-                val snackbarHostState = LocalSnackbarHost.current
-                val coroutineScope = rememberCoroutineScope()
+                EmailConfirmationSheet(
+                    model = model,
+                    currentStage = currentStage,
+                    progress = progress.value
+                )
+            }
+            else -> {}
+        }
+    }
+}
 
-                LaunchedEffect(Unit, counter.value) {
-                    if(counter.value >= STOPWATCH_MAX) {
-                        coroutineScope.coroutineContext.cancelChildren()
-                        coroutineScope.launch {
-                            while(counter.value > 0) {
-                                delay(100)
-                                counter.value -= 100
-                            }
-                        }
-                    }
-                }
-                LaunchedEffect(Unit) {
-                    viewModel.matrixProgress.collectLatest {
-                        if(it?.retryAfter != null) {
-                            counter.value = it.retryAfter
-                        }
-                    }
-                }
-                LifecycleListener { event ->
-                    if(event == Lifecycle.Event.ON_RESUME && progress.value?.sid != null) {
-                        viewModel.matrixStepOver(type = currentStage)
-                    }
-                }
-                LaunchedEffect(Unit) {
-                    if(progress.value?.sid == null) {
-                        viewModel.matrixRequestToken()
-                    }
-                }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EmailConfirmationSheet(
+    model: LoginModel,
+    currentStage: String,
+    progress: MatrixProgress?
+) {
+    val counter = remember { mutableStateOf(STOPWATCH_MAX) }
+    val snackbarHostState = LocalSnackbarHost.current
+    val coroutineScope = rememberCoroutineScope()
 
-                SimpleModalBottomSheet(
-                    sheetState = rememberModalBottomSheetState(
-                        skipPartiallyExpanded = true,
-                        confirmValueChange = { false }
-                    ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    onDismissRequest = {}
-                ) {
-                    Text(
-                        text = stringResource(Res.string.login_email_verification_heading),
-                        style = LocalTheme.current.styles.subheading
-                    )
-                    Text(
-                        text = buildAnnotatedString {
-                            append(stringResource(Res.string.login_email_verification_message))
-                            withStyle(
-                                SpanStyle(
-                                    fontWeight = FontWeight.Bold,
-                                    fontStyle = LocalTheme.current.styles.title.fontStyle
-                                )
-                            ) { append(progress.value?.email) }
-                            append(".")
+    LaunchedEffect(Unit, counter.value) {
+        if(counter.value >= STOPWATCH_MAX) {
+            coroutineScope.coroutineContext.cancelChildren()
+            coroutineScope.launch {
+                while(counter.value > 0) {
+                    delay(100)
+                    counter.value -= 100
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        model.matrixProgress.collectLatest {
+            if(it?.retryAfter != null) {
+                counter.value = it.retryAfter
+            }
+        }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if(progress?.sid != null) {
+            model.matrixStepOver(type = currentStage)
+        }
+    }
+    LaunchedEffect(Unit) {
+        if(progress?.sid == null) {
+            model.matrixRequestToken()
+        }
+    }
 
-                        },
-                        style = LocalTheme.current.styles.regular
+    SimpleModalBottomSheet(
+        sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { false }
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        onDismissRequest = {}
+    ) {
+        MinimalisticIcon(
+            modifier = Modifier.align(Alignment.End),
+            imageVector = Icons.Outlined.Close,
+            contentDescription = stringResource(Res.string.button_dismiss),
+            tint = LocalTheme.current.colors.secondary,
+            onTap = {
+                model.clearMatrixProgress()
+                model.setLoading(false)
+            }
+        )
+        Text(
+            text = stringResource(Res.string.login_email_verification_heading),
+            style = LocalTheme.current.styles.subheading
+        )
+        Text(
+            text = buildAnnotatedString {
+                append(stringResource(Res.string.login_email_verification_message))
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = LocalTheme.current.styles.title.fontStyle
                     )
-                    GifImage(
-                        modifier = Modifier
-                            .padding(top = 6.dp)
-                            .zIndex(1f)
-                            .clip(RoundedCornerShape(6.dp))
-                            .wrapContentWidth()
-                            .animateContentSize(alignment = Alignment.BottomCenter),
-                        data = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzVrZTdmbHhybnZ4MTJ5eXNkNTBza3RreWxoeTBtaDB6Yjl2Y2JzMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gjxYeOTM4Zq1ODtTv3/giphy.gif",
-                        contentDescription = null
-                    )
-                    ComponentHeaderButton(
-                        modifier = Modifier
-                            .padding(top = 32.dp)
-                            .fillMaxWidth(.7f),
-                        text = stringResource(Res.string.login_email_verification_action),
-                        extraContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.AlternateEmail,
-                                contentDescription = null,
-                                tint = LocalTheme.current.colors.secondary
-                            )
-                        },
-                        onClick = {
-                            if(!openEmail(address = progress.value?.email)) {
-                                coroutineScope.launch {
-                                    snackbarHostState?.showSnackbar(
-                                        message = getString(Res.string.no_email_client_error)
-                                    )
-                                }
-                            }
-                        }
-                    )
-                    Row(
-                        modifier = Modifier.animateContentSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .scalingClickable(enabled = counter.value <= 0) {
-                                    counter.value = STOPWATCH_MAX
-                                    viewModel.matrixRequestToken()
-                                }
-                                .padding(top = 2.dp),
-                            text = stringResource(Res.string.login_email_verification_repeat),
-                            style = LocalTheme.current.styles.regular
+                ) { append(progress?.email) }
+                append(".")
+
+            },
+            style = LocalTheme.current.styles.regular
+        )
+        GifImage(
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .zIndex(1f)
+                .clip(RoundedCornerShape(6.dp))
+                .wrapContentWidth()
+                .animateContentSize(alignment = Alignment.BottomCenter),
+            data = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzVrZTdmbHhybnZ4MTJ5eXNkNTBza3RreWxoeTBtaDB6Yjl2Y2JzMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gjxYeOTM4Zq1ODtTv3/giphy.gif",
+            contentDescription = null
+        )
+        ComponentHeaderButton(
+            modifier = Modifier
+                .padding(top = 32.dp)
+                .fillMaxWidth(.7f),
+            text = stringResource(Res.string.login_email_verification_action),
+            extraContent = {
+                Icon(
+                    imageVector = Icons.Outlined.AlternateEmail,
+                    contentDescription = null,
+                    tint = LocalTheme.current.colors.secondary
+                )
+            },
+            onClick = {
+                if(!openEmail(address = progress?.email)) {
+                    coroutineScope.launch {
+                        snackbarHostState?.showSnackbar(
+                            message = getString(Res.string.no_email_client_error)
                         )
-                        if(counter.value > 0) {
-                            Text(
-                                text = "${counter.value.div(1000)}s",
-                                style = LocalTheme.current.styles.title
-                            )
-                        }
                     }
                 }
             }
-            else -> {}
+        )
+        Row(
+            modifier = Modifier.animateContentSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .scalingClickable(enabled = counter.value <= 0) {
+                        counter.value = STOPWATCH_MAX
+                        model.matrixRequestToken()
+                    }
+                    .padding(top = 2.dp),
+                text = stringResource(Res.string.login_email_verification_repeat),
+                style = LocalTheme.current.styles.regular
+            )
+            if(counter.value > 0) {
+                Text(
+                    text = "${counter.value.div(1000)}s",
+                    style = LocalTheme.current.styles.title
+                )
+            }
         }
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Search
@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -68,8 +67,8 @@ import augmy.composeapp.generated.resources.emojis_symbols
 import augmy.composeapp.generated.resources.emojis_travel_and_places
 import augmy.composeapp.generated.resources.error_general
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
-import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.social.network.conversation.EmojiData
 import kotlinx.coroutines.CancellableContinuation
@@ -79,7 +78,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 import ui.conversation.components.emoji.EmojiUseCase.Companion.EMOJIS_HISTORY_GROUP
 
 /** Component displaying emojis with the ability to select one and filter them */
@@ -87,7 +86,7 @@ import ui.conversation.components.emoji.EmojiUseCase.Companion.EMOJIS_HISTORY_GR
 @Composable
 fun EmojiPicker(
     modifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     onEmojiSelected: (String) -> Unit,
     isFilterFocused: MutableState<Boolean> = remember { mutableStateOf(false) },
     gridState: LazyGridState = rememberLazyGridState()
@@ -96,6 +95,7 @@ fun EmojiPicker(
     val coroutineScope = rememberCoroutineScope()
     val searchCoroutineScope = rememberCoroutineScope()
 
+    val searchState = remember { TextFieldState() }
     val areEmojisFiltered = viewModel.areEmojisFiltered.collectAsState()
     val emojis = viewModel.emojis.collectAsState(initial = null)
 
@@ -105,6 +105,15 @@ fun EmojiPicker(
         }
     }
 
+    LaunchedEffect(searchState.text) {
+        searchCoroutineScope.launch {
+            searchCoroutineScope.coroutineContext.cancelChildren()
+            searchCoroutineScope.launch {
+                delay(DELAY_BETWEEN_TYPING_SHORT)
+                viewModel.filterEmojis(searchState.text)
+            }
+        }
+    }
 
     if(emojis.value != null) {
         LazyVerticalGrid(
@@ -120,14 +129,11 @@ fun EmojiPicker(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    EditFieldInput(
+                    CustomTextField(
                         modifier = Modifier
-                            .requiredHeight(44.dp)
-                            .fillMaxWidth(.65f)
-                            .onFocusChanged {
-                                isFilterFocused.value = it.isFocused
-                            },
-                        value = "",
+                            .height(44.dp)
+                            .fillMaxWidth(.65f),
+                        isFocused = isFilterFocused,
                         shape = LocalTheme.current.shapes.circularActionShape,
                         hint = stringResource(Res.string.action_filter_emojis),
                         keyboardOptions = KeyboardOptions(
@@ -135,15 +141,8 @@ fun EmojiPicker(
                             imeAction = ImeAction.Search
                         ),
                         paddingValues = PaddingValues(start = 16.dp),
-                        minHeight = 38.dp,
-                        leadingIcon = Icons.Outlined.Search,
-                        onValueChange = {
-                            searchCoroutineScope.coroutineContext.cancelChildren()
-                            searchCoroutineScope.launch {
-                                delay(DELAY_BETWEEN_TYPING_SHORT)
-                                viewModel.filterEmojis(it.text)
-                            }
-                        },
+                        prefixIcon = Icons.Outlined.Search,
+                        state = searchState,
                         isClearable = true,
                         colors = LocalTheme.current.styles.textFieldColors.copy(
                             focusedTextColor = LocalTheme.current.colors.disabled,
@@ -263,10 +262,10 @@ private fun LazyGridItemScope.EmojiImpl(
                     Text(
                         modifier = Modifier
                             .scalingClickable {
+                                onEmojiSelected(emoji, "${emojiData.name}_$index")
                                 coroutineScope.launch {
                                     state.onDispose()
                                 }
-                                onEmojiSelected(emoji, "${emojiData.name}_$index")
                             }
                             .size(46.dp)
                             .padding(4.dp)

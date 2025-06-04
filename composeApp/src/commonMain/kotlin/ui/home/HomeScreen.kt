@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -46,6 +45,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -63,6 +64,8 @@ import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
+import augmy.interactive.shared.utils.PersistentListData
+import augmy.interactive.shared.utils.persistedLazyGridState
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
 import base.utils.getOrNull
@@ -70,9 +73,13 @@ import components.EmptyLayout
 import components.HorizontalScrollChoice
 import components.ScrollChoice
 import components.network.NetworkItemRow
+import components.network.NetworkRequestActions
 import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
-import data.io.social.network.conversation.matrix.ConversationRoomIO
+import data.io.base.AppPingType
+import data.io.base.BaseResponse
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -92,19 +99,24 @@ import kotlin.uuid.Uuid
  */
 @OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
+fun HomeScreen(model: HomeModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
 
-    val conversationRooms = viewModel.conversationRooms.collectAsLazyPagingItems()
-    val categories = viewModel.categories.collectAsState(initial = listOf())
-    val customColors = viewModel.customColors.collectAsState(initial = mapOf())
+    val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
+    val categories = model.categories.collectAsState(initial = listOf())
+    val customColors = model.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
             || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
     val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
-    val listState = rememberLazyGridState()
+    val gridState = persistedLazyGridState(
+        persistentData = model.persistentPositionData ?: PersistentListData(),
+        onDispose = { lastInfo ->
+            model.persistentPositionData = lastInfo
+        }
+    )
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val isCompactView = rememberSaveable { mutableStateOf(true) }
     val selectedItem = rememberSaveable {
@@ -117,9 +129,25 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         mutableStateOf<NetworkItemIO?>(null)
     }
 
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if(model.persistentPositionData != null) {
+            conversationRooms.refresh()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        model.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.ConversationDashboard) {
+                    conversationRooms.refresh()
+                }
+            }
+        }
+    }
+
     if(selectedUser.value != null) {
         UserProfileLauncher(
-            userProfile = selectedUser.value,
+            user = selectedUser.value,
             onDismissRequest = {
                 selectedUser.value = null
             }
@@ -128,7 +156,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 
     if(showTuner.value) {
         NetworkPreferencesLauncher(
-            viewModel = viewModel,
+            viewModel = model,
             onDismissRequest = {
                 showTuner.value = false
             }
@@ -152,11 +180,11 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
         onRefresh = {
             conversationRooms.refresh()
             coroutineScope.launch {
-                listState.animateScrollToItem(0)
+                gridState.animateScrollToItem(0)
             }
         },
         showDefaultActions = true,
-        viewModel = viewModel,
+        viewModel = model,
         actionIcons = { isExpanded ->
             ActionBarIcon(
                 text = if(isExpanded) stringResource(Res.string.screen_search_network) else null,
@@ -190,10 +218,11 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             NetworkProximityCategory.Peers
                         }else NetworkProximityCategory.Family)
                     }
-                    viewModel.filterNetworkItems(filter = newList)
+                    model.filterNetworkItems(filter = newList)
                 },
                 selectedItems = categories.value
             )
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,7 +246,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                 }
                 Crossfade(isCompactView.value) { isList ->
                     if(isList) {
-                        val networkItems = viewModel.networkItems.collectAsState(null)
+                        val networkItems = model.networkItems.collectAsState(null)
 
                         LazyVerticalGrid(
                             modifier = Modifier
@@ -230,7 +259,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                     orientation = Orientation.Vertical,
                                     state = rememberDraggableState { delta ->
                                         coroutineScope.launch {
-                                            listState.scrollBy(-delta)
+                                            gridState.scrollBy(-delta)
                                         }
                                     }
                                 )
@@ -238,7 +267,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                             columns = GridCells.Fixed(
                                 if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
                             ),
-                            state = listState,
+                            state = gridState,
                             verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
                         ) {
                             item(span = { GridItemSpan(maxLineSpan) }) {}
@@ -262,65 +291,67 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                                 }else conversationRooms.itemCount,
                                 key = { index -> conversationRooms.getOrNull(index)?.id ?: Uuid.random().toString() }
                             ) { index ->
-                                conversationRooms.getOrNull(index).let { room ->
-                                    ConversationRoomItem(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        viewModel = viewModel,
-                                        room = room,
-                                        selectedItem = selectedItem.value,
-                                        requestProximityChange = { proximity ->
-                                            val singleUser = if(room?.summary?.isDirect == true) {
-                                                room.summary.members?.firstOrNull()
-                                            }else null
+                                val room = conversationRooms.getOrNull(index)
 
-                                            viewModel.requestProximityChange(
-                                                conversationId = room?.id,
-                                                publicId = singleUser?.publicId,
-                                                proximity = proximity,
-                                                onOperationDone = {
-                                                    if(selectedItem.value == room?.id) {
-                                                        selectedItem.value = null
-                                                    }
-                                                    conversationRooms.refresh()
+                                ConversationRoomItem(
+                                    modifier = Modifier
+                                        .animateItem()
+                                        .fillMaxWidth(),
+                                    model = model,
+                                    room = room,
+                                    selectedItem = selectedItem.value,
+                                    requestProximityChange = { proximity ->
+                                        val singleUser = if(room?.summary?.isDirect == true) {
+                                            room.summary.members?.firstOrNull()
+                                        }else null
+
+                                        model.requestProximityChange(
+                                            conversationId = room?.id,
+                                            publicId = singleUser?.userId,
+                                            proximity = proximity,
+                                            onOperationDone = {
+                                                if(selectedItem.value == room?.id) {
+                                                    selectedItem.value = null
                                                 }
-                                            )
-                                        },
-                                        customColors = customColors.value,
-                                        onTap = {
-                                            if(selectedItem.value == room?.id) {
-                                                selectedItem.value = null
-                                            }else navController?.navigate(
-                                                NavigationNode.Conversation(
-                                                    conversationId = room?.id,
-                                                    name = room?.summary?.alias
-                                                )
-                                            )
-                                        },
-                                        onLongPress = {
-                                            selectedItem.value = room?.id
-                                        },
-                                        onAvatarClick = {
-                                            if(room?.summary?.isDirect == true) {
-                                                coroutineScope.launch(Dispatchers.Default) {
-                                                    selectedUser.value = networkItems.value?.find {
-                                                        it.userMatrixId == room.summary.heroes?.firstOrNull()
-                                                    }
-                                                }
-                                            }else {
-                                                NavigationNode.ConversationInformation(
-                                                    conversationId = room?.id,
-                                                    name = room?.summary?.alias
-                                                )
+                                                conversationRooms.refresh()
                                             }
-                                        }
-                                    ) {
-                                        if(index != conversationRooms.itemCount - 1) {
-                                            Divider(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                color = LocalTheme.current.colors.disabledComponent,
-                                                thickness = .3.dp
+                                        )
+                                    },
+                                    customColors = customColors.value,
+                                    onTap = {
+                                        if(selectedItem.value == room?.id) {
+                                            selectedItem.value = null
+                                        }else navController?.navigate(
+                                            NavigationNode.Conversation(
+                                                conversationId = room?.id,
+                                                name = room?.summary?.roomName
+                                            )
+                                        )
+                                    },
+                                    onLongPress = {
+                                        selectedItem.value = room?.id
+                                    },
+                                    onAvatarClick = {
+                                        if(room?.summary?.isDirect == true) {
+                                            coroutineScope.launch(Dispatchers.Default) {
+                                                selectedUser.value = networkItems.value?.find {
+                                                    it.userId == room.summary.heroes?.firstOrNull()?.full
+                                                }
+                                            }
+                                        }else {
+                                            NavigationNode.ConversationInformation(
+                                                conversationId = room?.id,
+                                                name = room?.summary?.roomName
                                             )
                                         }
+                                    }
+                                ) {
+                                    if(index != conversationRooms.itemCount - 1) {
+                                        Divider(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            color = LocalTheme.current.colors.disabledComponent,
+                                            thickness = .3.dp
+                                        )
                                     }
                                 }
                             }
@@ -335,7 +366,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
                     }else {
                         SocialCircleContent(
                             modifier = Modifier.fillMaxSize(),
-                            viewModel = viewModel
+                            viewModel = model
                         )
                     }
                 }
@@ -347,7 +378,7 @@ fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
 @Composable
 private fun ConversationRoomItem(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel,
+    model: HomeModel,
     selectedItem: String?,
     room: ConversationRoomIO?,
     customColors: Map<NetworkProximityCategory, Color>,
@@ -357,27 +388,37 @@ private fun ConversationRoomItem(
     onLongPress: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val response = remember {
+        mutableStateOf<BaseResponse<Any>?>(null)
+    }
+
     val navController = LocalNavController.current
     val showAddMembers = remember(room?.id) {
         mutableStateOf(false)
     }
 
     LaunchedEffect(Unit) {
+        model.requestResponse.collectLatest { responses ->
+            response.value = responses[room?.id]
+        }
+    }
+
+    LaunchedEffect(Unit) {
         if(room?.summary?.isDirect == true) {
-            viewModel.requestOpenRooms()
+            model.requestOpenRooms()
         }
     }
 
     if(showAddMembers.value) {
-        val isLoading = viewModel.isLoading.collectAsState()
+        val isLoading = model.isLoading.collectAsState()
 
         LaunchedEffect(Unit) {
-            viewModel.response.collectLatest {
+            model.invitationResponse.collectLatest {
                 if(!it?.conversationId.isNullOrBlank()) {
                     navController?.navigate(
                         NavigationNode.Conversation(
-                            conversationId = it?.conversationId,
-                            name = it?.alias
+                            conversationId = it.conversationId,
+                            name = it.alias
                         )
                     )
                 }
@@ -385,7 +426,7 @@ private fun ConversationRoomItem(
         }
 
         if(room?.summary?.isDirect == true) {
-            val conversations = viewModel.openConversations.collectAsState()
+            val conversations = model.openConversations.collectAsState()
 
             AddToLauncher(
                 key = room.id,
@@ -393,15 +434,15 @@ private fun ConversationRoomItem(
                 isLoading = isLoading.value,
                 heading = stringResource(
                     Res.string.invite_conversation_heading,
-                    room.summary.members?.firstOrNull()?.name ?: "?"
+                    room.summary.members?.firstOrNull()?.content?.displayName ?: "?"
                 ),
                 newItemHint = stringResource(Res.string.invite_new_item_conversation),
                 items = conversations.value,
                 mapToNetworkItem = { it.toNetworkItem() },
                 onInvite = { checkedItems, message, newName ->
-                    viewModel.inviteToConversation(
+                    model.inviteToConversation(
                         conversationId = if(newName != null) null else checkedItems.firstOrNull()?.id,
-                        userPublicIds = room.summary.members?.firstOrNull()?.userPublicId?.let { listOf(it) },
+                        userPublicIds = room.summary.members?.firstOrNull()?.userId?.let { listOf(it) },
                         message = message,
                         newName = newName
                     )
@@ -411,7 +452,7 @@ private fun ConversationRoomItem(
                 }
             )
         }else {
-            val networkItems = viewModel.networkItems.collectAsState(null)
+            val networkItems = model.networkItems.collectAsState(null)
 
             AddToLauncher(
                 key = room?.id,
@@ -422,7 +463,7 @@ private fun ConversationRoomItem(
                 items = networkItems.value,
                 mapToNetworkItem = { it },
                 onInvite = { checkedItems, message, _ ->
-                    viewModel.inviteToConversation(
+                    model.inviteToConversation(
                         conversationId = room?.id,
                         userPublicIds = checkedItems.mapNotNull { it.userPublicId },
                         message = message
@@ -435,59 +476,89 @@ private fun ConversationRoomItem(
         }
     }
 
-    Column(modifier = modifier) {
-        NetworkItemRow(
-            modifier = Modifier
-                .scalingClickable(
-                    hoverEnabled = selectedItem != room?.id,
-                    scaleInto = .9f,
-                    onTap = {
-                        onTap()
-                    },
-                    onLongPress = {
-                        onLongPress()
-                    }
-                )
-                .fillMaxWidth()
-                .then(
-                    (if(selectedItem != null && selectedItem == room?.id) {
-                        Modifier
-                            .background(
-                                color = LocalTheme.current.colors.backgroundLight,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                            .border(
-                                width = 2.dp,
-                                color = LocalTheme.current.colors.backgroundDark,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                    }else Modifier)
-                ),
-            data = room?.toNetworkItem(),
-            isSelected = selectedItem == room?.id,
-            indicatorColor = NetworkProximityCategory.entries.firstOrNull {
-                it.range.contains(room?.proximity ?: 1f)
-            }.let {
-                customColors[it] ?: it?.color
+    val indicatorColor = NetworkProximityCategory.entries.firstOrNull {
+        it.range.contains(room?.proximity ?: 1f)
+    }.let {
+        customColors[it] ?: it?.color
+    }
+    val itemModifier = Modifier
+        .scalingClickable(
+            enabled = room?.type != RoomType.Invited,
+            hoverEnabled = selectedItem != room?.id,
+            scaleInto = .9f,
+            onTap = {
+                onTap()
             },
-            onAvatarClick = onAvatarClick,
-            actions = {
-                SocialItemActions(
-                    key = room?.id,
-                    requestProximityChange = requestProximityChange,
-                    onInvite = {
-                        showAddMembers.value = true
-                    },
-                    newItem = NetworkItemIO(
-                        name = room?.summary?.alias,
-                        tag = room?.summary?.tag,
-                        photoUrl = room?.summary?.avatarUrl,
-                        publicId = room?.id ?: "-",
-                        proximity = room?.proximity
-                    )
-                )
+            onLongPress = {
+                onLongPress()
             }
         )
+        .fillMaxWidth()
+        .then(
+            (if(selectedItem != null && selectedItem == room?.id) {
+                Modifier
+                    .background(
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
+            }else Modifier)
+        )
+
+    Column(modifier = modifier) {
+        Crossfade(room?.type) { roomType ->
+            when(roomType) {
+                RoomType.Invited -> {
+                    NetworkItemRow(
+                        modifier = itemModifier,
+                        data = room?.toNetworkItem(),
+                        indicatorColor = indicatorColor,
+                        onAvatarClick = onAvatarClick,
+                        content = {
+                            NetworkRequestActions(
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                                key = room?.id,
+                                response = response.value,
+                                onResponse = { accept ->
+                                    model.respondToInvitation(
+                                        roomId = room?.id,
+                                        accept = accept
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+                else -> {
+                    NetworkItemRow(
+                        modifier = itemModifier,
+                        data = room?.toNetworkItem(),
+                        isSelected = selectedItem == room?.id,
+                        indicatorColor = indicatorColor,
+                        onAvatarClick = onAvatarClick,
+                        actions = {
+                            SocialItemActions(
+                                key = room?.id,
+                                requestProximityChange = requestProximityChange,
+                                onInvite = {
+                                    showAddMembers.value = true
+                                },
+                                newItem = NetworkItemIO(
+                                    displayName = room?.summary?.roomName,
+                                    avatar = room?.summary?.avatar,
+                                    publicId = room?.id ?: "-",
+                                    proximity = room?.proximity
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+        }
         content()
     }
 }

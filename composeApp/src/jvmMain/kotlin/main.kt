@@ -3,6 +3,7 @@ import android.app.Application
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,16 +30,16 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
 import com.google.firebase.initialize
 import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.coroutines.SuspendSettings
 import com.russhwolf.settings.coroutines.toBlockingSettings
 import data.io.app.ThemeChoice
-import data.shared.AppServiceViewModel
+import data.shared.AppServiceModel
 import dev.datlag.kcef.KCEF
 import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
 import io.kamel.image.config.Default
 import io.kamel.image.config.LocalKamelConfig
+import koin.AppSettings
 import koin.commonModule
 import koin.settingsModule
 import kotlinx.coroutines.CoroutineScope
@@ -83,16 +84,17 @@ fun main(args: Array<String>) = application {
         startKoin {
             modules(settingsModule)
             initializeFirebase(
-                settings = KoinPlatform.getKoin().get<FlowSettings>(),
+                settings = KoinPlatform.getKoin().get<AppSettings>(),
                 scope = coroutineScope
             )
             modules(commonModule)
             coroutineScope.launch {
-                KoinPlatform.getKoin().get<AppServiceViewModel>().localSettings.collectLatest {
+                KoinPlatform.getKoin().get<AppServiceModel>().localSettings.collectLatest {
                     isDarkTheme.value = when(it?.theme) {
                         ThemeChoice.DARK -> true
                         ThemeChoice.LIGHT -> false
-                        else -> isDarkTheme.value
+                        ThemeChoice.SYSTEM -> systemDarkTheme
+                        null -> true
                     }
                 }
             }
@@ -126,7 +128,10 @@ fun main(args: Array<String>) = application {
             add(scrollPane)
             add(
                 Button("I'll report this to info@augmy.org").apply {
-                    addActionListener { dispose() }
+                    addActionListener {
+                        KCEF.disposeBlocking()
+                        dispose()
+                    }
                 }
             )
             setSize(1000, 500)
@@ -140,6 +145,7 @@ fun main(args: Array<String>) = application {
     val backPressDispatcher = remember {
         object: BackPressDispatcher {
             val listeners = mutableListOf<() -> Unit>()
+            override val progress = mutableFloatStateOf(0f)
 
             override fun addOnBackPressedListener(listener: () -> Unit) {
                 this.listeners.add(0, listener)
@@ -161,20 +167,23 @@ fun main(args: Array<String>) = application {
 
     LaunchedEffect(isDarkTheme.value) {
         withContext(Dispatchers.IO) {
-            KCEF.disposeBlocking()
-            KCEF.init(builder = {
-                settings {
-                    backgroundColor = if(isDarkTheme.value) {
-                        CefSettings().ColorType(255, 34, 31, 28)
-                    }else CefSettings().ColorType(255, 236, 241, 231)
-                    cachePath = File("cache").absolutePath
-                }
-                installDir(File("kcef-bundle"))
-            }, onError = {
-                it?.printStackTrace()
-            }, onRestartRequired = {
-                // should we restart the app?
-            })
+            try {
+                KCEF.init(builder = {
+                    settings {
+                        backgroundColor = if(isDarkTheme.value) {
+                            CefSettings().ColorType(255, 34, 31, 28)
+                        }else CefSettings().ColorType(255, 236, 241, 231)
+                        cachePath = File("cache").absolutePath
+                    }
+                    installDir(File("kcef-bundle"))
+                }, onError = {
+                    it?.printStackTrace()
+                }, onRestartRequired = {
+                    // should we restart the app?
+                })
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -225,7 +234,7 @@ fun main(args: Array<String>) = application {
                 width = with(density) { containerSize.width.toDp() }.value.toInt()
             )
         ) {
-            val viewModel: AppServiceViewModel = koinViewModel()
+            val viewModel: AppServiceModel = koinViewModel()
 
             App(viewModel)
 
@@ -283,40 +292,58 @@ private fun initWindowsRegistry() {
 }
 
 private fun registerUriSchemeLinux() {
-    val appPath = System.getProperty("user.dir") + File.separator + "Augmy"
-    val desktopFilePath = System.getProperty("user.home") + "/.local/share/applications/augmy.desktop"
+    val home = System.getProperty("user.home")
+    val desktopFilePath = "$home/.local/share/applications/augmy.desktop"
+
+    // Determine the executable path based on build type
+    val execPath = if (BuildKonfig.isDevelopment) {
+        // Debug: Use the launcher script
+        "/home/jacob/StudioProjects/enrichment-app/composeApp/augmy-launcher.sh"
+    } else System.getProperty("user.dir") + File.separator + "Augmy"
+    println("execPath: $execPath")
+
     val desktopFileContent = """
         [Desktop Entry]
         Name=Augmy
-        Exec=$appPath %u
+        Exec=gnome-terminal -- $execPath %u
         Type=Application
-        MimeType=x-scheme-handler/augmy
+        MimeType=x-scheme-handler/augmy;
         Terminal=false
+        Categories=Utility;
     """.trimIndent()
 
     try {
-        // Create and write to the .desktop file
         val desktopFile = File(desktopFilePath)
-        desktopFile.parentFile.mkdirs() // Ensure directory exists
+        desktopFile.parentFile.mkdirs()
         desktopFile.writeText(desktopFileContent)
+        desktopFile.setExecutable(true)
 
-        // Register with xdg-mime and xdg-settings
         val commands = listOf(
             "xdg-mime default augmy.desktop x-scheme-handler/augmy",
-            "xdg-settings set default-url-scheme-handler augmy augmy.desktop"
+            "update-desktop-database ~/.local/share/applications"
         )
 
         for (cmd in commands) {
-            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
-            process.waitFor()
-            if (process.exitValue() == 0) {
-                println("Command succeeded: $cmd")
-            } else {
-                println("Command failed: $cmd")
-                process.errorStream.bufferedReader().use { it.lines().forEach { line -> println(line) } }
-            }
+            val process = ProcessBuilder("sh", "-c", cmd)
+                .redirectErrorStream(true)
+                .start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            println("Command: $cmd")
+            println("Exit Code: $exitCode")
+            println("Output:\n$output")
         }
+
+        // Optional: Confirm it's registered
+        val verify = ProcessBuilder("sh", "-c", "xdg-mime query default x-scheme-handler/augmy")
+            .redirectErrorStream(true)
+            .start()
+
+        val result = verify.inputStream.bufferedReader().readText().trim()
+        println("Verified x-scheme-handler/augmy: $result")
+
     } catch (e: Exception) {
+        println("Failed to register URI scheme:")
         e.printStackTrace()
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,6 +95,7 @@ fun Modifier.scalingClickable(
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
     onPress: ((Offset, isPressed: Boolean) -> Unit)? = null,
+    onHover: ((isHovered: Boolean) -> Unit)? = null,
     scaleInto: Float = 0.85f,
     onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
@@ -105,6 +107,7 @@ fun Modifier.scalingClickable(
             if ((isPressed.value || isHovered.value) && enabled) scaleInto else 1f,
             label = "scalingClickableAnimation"
         )
+        onHover?.invoke(isHovered.value)
 
         scale(scale.value)
             .hoverable(
@@ -204,17 +207,39 @@ fun Modifier.onMouseScroll(
 }
 
 /** Makes a horizontally scrollable layout draggable for desktop */
-fun Modifier.horizontallyDraggable(state: ScrollState) = composed {
+fun Modifier.draggable(
+    orientation: Orientation = Orientation.Vertical,
+    state: ScrollState
+) = composed {
     if(LocalIsMouseUser.current) {
         val coroutineScope = rememberCoroutineScope()
 
         draggable(
-            orientation = Orientation.Horizontal,
+            orientation = orientation,
             state = rememberDraggableState { delta ->
                 coroutineScope.launch {
-                    state.scrollBy(-delta)
+                    state.scrollBy(delta.times(if(orientation == Orientation.Horizontal) -1 else 1))
                 }
             }
+        )
+    }else Modifier
+}
+
+/** Makes a vertically scrollable layout draggable for desktop */
+fun Modifier.draggable(
+    listState: LazyListState,
+    orientation: Orientation = Orientation.Vertical
+) = composed {
+    if(LocalIsMouseUser.current) {
+        val coroutineScope = rememberCoroutineScope()
+
+        draggable(
+            orientation = orientation,
+            state = rememberDraggableState { delta ->
+                coroutineScope.launch {
+                    listState.scrollBy(delta.times(if(orientation == Orientation.Horizontal) -1 else 1))
+                }
+            },
         )
     }else Modifier
 }

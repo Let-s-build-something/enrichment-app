@@ -3,6 +3,7 @@ package ui.conversation.components.gif
 import base.utils.PlatformFileShell
 import io.kamel.core.DataSource
 import io.kamel.core.Resource
+import io.github.vinceglb.filekit.readBytes
 import io.kamel.core.config.ResourceConfig
 import io.kamel.core.fetcher.Fetcher
 import io.ktor.utils.io.ByteReadChannel

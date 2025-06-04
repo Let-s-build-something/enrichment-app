@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -24,17 +23,12 @@ import coil3.svg.SvgDecoder
 fun AsyncSvgImage(
     modifier: Modifier = Modifier,
     model: Any?,
-    onFinish: (() -> Unit)? = null,
     contentScale: ContentScale = ContentScale.Crop,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    onState: (State) -> Unit = {}
 ) {
     val state = remember(model) {
         mutableStateOf<State?>(null)
-    }
-    onFinish?.let {
-        LaunchedEffect(state.value) {
-            if(state.value is State.Success) it()
-        }
     }
 
     Box(contentAlignment = Alignment.Center) {
@@ -47,6 +41,7 @@ fun AsyncSvgImage(
                 .build(),
             onState = {
                 state.value = it
+                onState(it)
             },
             contentDescription = contentDescription,
             contentScale = contentScale,

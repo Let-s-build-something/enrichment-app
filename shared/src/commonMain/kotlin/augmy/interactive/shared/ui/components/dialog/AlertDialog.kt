@@ -14,10 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -34,6 +31,7 @@ fun AlertDialog(
     message: AnnotatedString? = null,
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
+    intrinsicContent: Boolean = true,
     additionalContent: @Composable (() -> Unit)? = null,
     properties: DialogProperties = dismissibleDialogProperties,
     onDismissRequest: () -> Unit,
@@ -57,11 +55,7 @@ fun AlertDialog(
                     if(title != null) {
                         Text(
                             text = title,
-                            style = TextStyle(
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = LocalTheme.current.colors.primary
-                            )
+                            style = LocalTheme.current.styles.title
                         )
                     }
                 }
@@ -70,17 +64,16 @@ fun AlertDialog(
         text = if(message != null || additionalContent != null) {
             {
                 Column(
-                    modifier = Modifier
-                        .height(IntrinsicSize.Max)
-                        .width(IntrinsicSize.Max)
+                    modifier = if (intrinsicContent) {
+                        Modifier
+                            .height(IntrinsicSize.Max)
+                            .width(IntrinsicSize.Max)
+                    }else Modifier
                 ) {
                     if(message != null) {
                         Text(
                             text = message,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = LocalTheme.current.colors.primary
-                            )
+                            style = LocalTheme.current.styles.regular
                         )
                     }
                     additionalContent?.invoke()

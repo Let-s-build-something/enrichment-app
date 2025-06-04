@@ -19,8 +19,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.theme.LocalTheme
 
 /**
  * Outlined text with transparent background
@@ -62,7 +62,6 @@ fun OutlinedButton(
             color = color,
             fontSize = 14.sp
         )
-        content(textStyle)
         if(text != null) {
             Text(
                 modifier = Modifier.weight(1f, fill = false),
@@ -89,5 +88,6 @@ fun OutlinedButton(
                 tint = color
             )
         }
+        content(textStyle)
     }
 }

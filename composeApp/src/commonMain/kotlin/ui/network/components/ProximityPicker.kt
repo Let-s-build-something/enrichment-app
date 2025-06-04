@@ -32,13 +32,13 @@ import components.AsyncSvgImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
 import org.jetbrains.compose.resources.stringResource
-import ui.network.add_new.NetworkAddNewViewModel
+import ui.network.add_new.NetworkAddNewModel
 
 @Composable
 fun ProximityPicker(
     modifier: Modifier = Modifier,
     newItem: NetworkItemIO,
-    viewModel: NetworkAddNewViewModel,
+    viewModel: NetworkAddNewModel,
     selectedCategory: NetworkProximityCategory?,
     onSelectionChange: (NetworkProximityCategory) -> Unit
 ) {
@@ -131,13 +131,13 @@ fun ProximityPicker(
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .size(42.dp),
-                                    model = user.photoUrl,
+                                    model = user.avatar,
                                     contentDescription = null
                                 )
                                 if(selectedCategory == category) {
                                     Text(
                                         modifier = Modifier.weight(1f),
-                                        text = user.name ?: "",
+                                        text = user.displayName ?: "",
                                         style = LocalTheme.current.styles.category,
                                         maxLines = 1
                                     )

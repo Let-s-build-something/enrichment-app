@@ -70,7 +70,7 @@ import kotlin.math.sin
 @Composable
 fun SocialCircleContent(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel
+    viewModel: HomeModel
 ) {
     val density = LocalDensity.current
     val navController = LocalNavController.current
@@ -109,8 +109,8 @@ fun SocialCircleContent(
     }
 
     LaunchedEffect(scale.value) {
-        val maxOffsetX = (largerDimension * (scale.value - 1)) / 2
-        val maxOffsetY = (largerDimension * (scale.value - 1)) / 2
+        val maxOffsetX = (largerDimension * (scale.value.coerceAtLeast(1f) - 1)) / 2
+        val maxOffsetY = (largerDimension * (scale.value.coerceAtLeast(1f) - 1)) / 2
 
         offset.value = Offset(
             x = offset.value.x.coerceIn(
@@ -274,7 +274,7 @@ fun SocialCircleContent(
                                             navController?.navigate(
                                                 NavigationNode.Conversation(
                                                     conversationId = userPublicId,
-                                                    name = data.name
+                                                    name = data.displayName
                                                 )
                                             )
                                         }
@@ -363,14 +363,15 @@ private fun NetworkItemCompact(
                         .scalingClickable {
                             onClick()
                         },
-                    model = data.photoUrl,
-                    tag = data.tag
+                    media = data.avatar,
+                    tag = data.tag,
+                    name = data.displayName
                 )
                 Text(
                     modifier = Modifier
                         .fillMaxWidth(.8f)
                         .align(Alignment.CenterHorizontally),
-                    text = data.name ?: "",
+                    text = data.displayName ?: "",
                     style = TextStyle(
                         fontFamily = FontFamily(fontQuicksandSemiBold),
                         fontSize = with(density) { (size / 6).toSp() },

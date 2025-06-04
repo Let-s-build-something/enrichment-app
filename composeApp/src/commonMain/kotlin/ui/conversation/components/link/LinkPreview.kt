@@ -1,34 +1,36 @@
 package ui.conversation.components.link
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.link_preview_error
-import augmy.interactive.shared.ui.base.LocalContentSize
+import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.AsyncSvgImage
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
 
@@ -37,12 +39,13 @@ import ui.conversation.components.audio.MediaProcessorModel
 fun LinkPreview(
     modifier: Modifier = Modifier,
     url: String,
+    shape: Shape = RectangleShape,
     alignment: Alignment.Horizontal,
-    imageHeight: Dp = 200.dp,
+    imageSize: IntSize = IntSize(height = 160, width = 0),
     textBackground: Color = LocalTheme.current.colors.backgroundDark
 ) {
     val density = LocalDensity.current
-    val contentSize = LocalContentSize.current
+    val screenSize = LocalScreenSize.current
     val processorModel: MediaProcessorModel = koinViewModel(key = url)
     val graphProtocol = processorModel.graphProtocol.collectAsState()
 
@@ -54,17 +57,22 @@ fun LinkPreview(
 
     if(graphProtocol.value != null) {
         Column(
-            modifier = modifier.background(color = textBackground),
+            modifier = modifier
+                .width(IntrinsicSize.Min)
+                .background(color = textBackground, shape = shape)
+                .heightIn(max = screenSize.height.times(.3f).dp),
             horizontalAlignment = alignment
         ) {
             graphProtocol.value?.imageUrl?.let { image ->
                 AsyncSvgImage(
                     modifier = modifier
+                        .align(Alignment.CenterHorizontally)
                         .sizeIn(
-                            maxHeight = imageHeight,
-                            minWidth = 250.dp
+                            minHeight = imageSize.height.dp,
+                            minWidth = 200.dp
                         )
-                        .height((contentSize.height * .3f).dp),
+                        .wrapContentWidth()
+                        .clip(shape),
                     model = image,
                     contentScale = ContentScale.Fit
                 )
@@ -91,26 +99,28 @@ fun LinkPreview(
                     }
                 }
 
-                Column(
-                    modifier = Modifier.padding(end = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    if(graphProtocol.value?.title != null || graphProtocol.value?.isEmpty == true) {
-                        Text(
-                            text = graphProtocol.value?.title ?: stringResource(Res.string.link_preview_error),
-                            style = LocalTheme.current.styles.title,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    graphProtocol.value?.description?.let { description ->
-                        Text(
-                            text = description,
-                            style = LocalTheme.current.styles.regular,
-                            maxLines = 5,
-                            minLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                if(graphProtocol.value?.isEmpty != true) {
+                    Column(
+                        modifier = Modifier.padding(end = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        AnimatedVisibility(graphProtocol.value?.title != null) {
+                            Text(
+                                text = graphProtocol.value?.title ?: "",
+                                style = LocalTheme.current.styles.title,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        AnimatedVisibility(graphProtocol.value?.description != null) {
+                            Text(
+                                text = graphProtocol.value?.description ?: "",
+                                style = LocalTheme.current.styles.regular,
+                                maxLines = 5,
+                                minLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }

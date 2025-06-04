@@ -2,26 +2,28 @@ package data.io.user
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** user object of another use specific to our database */
 @Serializable
-@Entity(tableName = AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE)
+@Entity(tableName = AppRoomDatabase.TABLE_NETWORK_ITEM)
 data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** username of the current user */
-    val name: String? = null,
-
-    /** tag of the current user, unique in combination with [name]  */
-    val tag: String? = null,
+    @ColumnInfo("display_name")
+    @SerialName("display_name")
+    val displayName: String? = null,
 
     /** Public identification of this entity */
-    @PrimaryKey
     @ColumnInfo("public_id")
     val publicId: String = Uuid.random().toString(),
 
@@ -29,19 +31,27 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("user_public_id")
     val userPublicId: String? = null,
 
-    /** Matrix public user identifier */
-    val userMatrixId: String? = null,
+    @SerialName("user_id")
+    @ColumnInfo("user_id")
+    val userId: String? = null,
 
-    /** url of a photo of this object */
-    val photoUrl: String? = null,
+    @ColumnInfo("photo_media")
+    val avatar: MediaIO? = null,
+
+    @SerialName("avatar_url")
+    @ColumnInfo("avatar_url")
+    val avatarUrl: String? = null,
 
     /** Whether the user is a mutually included */
+    @ColumnInfo("is_mutual")
     val isMutual: Boolean? = null,
 
     /** Last message sent within this network item */
+    @ColumnInfo("last_message")
     val lastMessage: String? = null,
 
     /** Whether the user's configuration is public */
+    @ColumnInfo("is_public")
     val isPublic: Boolean? = null,
 
     /**
@@ -54,6 +64,17 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     val color: String? = null,
 
     /** Database flag: an identifier of the owner of this item */
-    @ColumnInfo("owner_public_id")
-    var ownerPublicId: String? = Firebase.auth.currentUser?.uid
-)
+    @ColumnInfo("owner_user_id")
+    var ownerUserId: String? = null,
+
+    val presence: PresenceEventContent? = null,
+
+    @PrimaryKey
+    @ColumnInfo("primary_key")
+    val primaryKey: String = "${publicId}_$ownerUserId"
+) {
+
+    val tag: String?
+        @Ignore
+        get() = UserId(userId ?: displayName ?: publicId).generateUserTag()
+}

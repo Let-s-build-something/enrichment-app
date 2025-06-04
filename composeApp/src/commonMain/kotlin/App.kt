@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.DoorBack
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -25,26 +26,29 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.core.uri.UriUtils
 import androidx.navigation.compose.rememberNavController
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.hard_logout_action
+import augmy.composeapp.generated.resources.hard_logout_message
 import augmy.composeapp.generated.resources.leave_app_dialog_message
 import augmy.composeapp.generated.resources.leave_app_dialog_show_again
 import augmy.composeapp.generated.resources.leave_app_dialog_title
+import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
-import augmy.interactive.shared.ui.base.LocalHeyIamScreen
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
-import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -53,27 +57,35 @@ import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.AugmyTheme
+import base.global.InformationLines
+import base.global.InformationPopUps
 import base.navigation.NavigationNode
+import data.io.app.ClientStatus
 import data.io.app.ThemeChoice
-import data.shared.AppServiceViewModel
+import data.io.base.AppPingType
+import data.shared.AppServiceModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ui.dev.DeveloperContent
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-@Preview
-fun App(viewModel: AppServiceViewModel = koinViewModel()) {
-    val localSettings = viewModel.localSettings.collectAsState()
+fun App(model: AppServiceModel = koinViewModel()) {
+    val localSettings = model.localSettings.collectAsState()
     val windowSizeClass = calculateWindowSizeClass()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // iOS awaits the APNS in order to retrieve an FCM token
     if(currentPlatform != PlatformType.Native) {
         LaunchedEffect(Unit) {
-            viewModel.initApp()
+            model.initApp()
         }
     }
 
@@ -120,12 +132,11 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
             val navController = rememberNavController()
 
             CompositionLocalProvider(
-                LocalNavController provides navController,
                 LocalSnackbarHost provides snackbarHostState,
                 LocalDeviceType provides windowSizeClass.widthSizeClass,
                 LocalIsMouseUser provides mouseUser.value
             ) {
-                AppContent(viewModel, navController)
+                AppContent(model, navController)
             }
         }
     }
@@ -133,24 +144,20 @@ fun App(viewModel: AppServiceViewModel = koinViewModel()) {
 
 @Composable
 private fun AppContent(
-    viewModel: AppServiceViewModel,
+    model: AppServiceModel,
     navController: androidx.navigation.NavHostController
 ) {
     val backPressDispatcher = LocalBackPressDispatcher.current
     val deviceType = LocalDeviceType.current
-    val currentUser = viewModel.firebaseUser.collectAsState(null)
+    val snackbarHost = LocalSnackbarHost.current
+    val scope = rememberCoroutineScope()
 
     val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
-    val isInternalUser = try {
-        currentUser.value?.email
-    } catch(e: NotImplementedError) {
-        "@augmy.org" // allow all JVM for now
-    }?.endsWith("@augmy.org") == true
 
-    val modalDeepLink = rememberSaveable(viewModel) {
+    val modalDeepLink = rememberSaveable(model) {
         mutableStateOf<String?>(null)
     }
-    val showDialogLeave = rememberSaveable(viewModel) {
+    val showDialogLeave = rememberSaveable(model) {
         mutableStateOf(false)
     }
     val showDialogAgain = remember {
@@ -158,29 +165,74 @@ private fun AppContent(
     }
 
     OnBackHandler {
-        if(currentPlatform == PlatformType.Jvm || !navController.popBackStack()) {
-            if(viewModel.showLeaveDialog) {
+        if(currentPlatform == PlatformType.Jvm || navController.previousBackStackEntry == null) {
+            if(model.showLeaveDialog) {
                 showDialogLeave.value = !showDialogLeave.value
             }else {
                 backPressDispatcher?.executeSystemBackPress()
+            }
+        }else navController.popBackStack()
+    }
+
+    LaunchedEffect(Unit) {
+        model.newDeeplink.collectLatest { deeplink ->
+            try {
+                NavigationNode.allNodes.find { node ->
+                    node.deepLink?.let { link ->
+                        deeplink.contains(link)
+                    } == true
+                }?.let { node ->
+                    val link = UriUtils.parse(deeplink)
+                    when(node) {
+                        is NavigationNode.Login -> {
+                            navController.navigate(
+                                NavigationNode.Login(
+                                    nonce = link.getQueryParameters("nonce").firstOrNull(),
+                                    loginToken = link.getQueryParameters("loginToken").firstOrNull()
+                                )
+                            ) {
+                                launchSingleTop = true
+                                popUpTo(NavigationNode.Home) {
+                                    inclusive = false
+                                }
+                            }
+                        }
+                        else -> navController.navigate(link)
+                    }
+                }.ifNull {
+                    modalDeepLink.value = deeplink
+                }
+            }catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+                modalDeepLink.value = deeplink
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.newDeeplink.collectLatest {
-            try {
-                NavigationNode.allNodes.find { node ->
-                    node.deepLink?.let { link ->
-                        it.contains(link)
-                    } ?: false
-                }?.let { node ->
-                    navController.navigate(node)
-                }.ifNull {
-                    modalDeepLink.value = it
+        model.pingStream.collectLatest { stream ->
+            withContext(Dispatchers.Default) {
+                if(stream.any { it.type == AppPingType.HardLogout }) {
+                    scope.launch {
+                        if(snackbarHost?.showSnackbar(
+                                message = getString(Res.string.hard_logout_message),
+                                actionLabel = getString(Res.string.hard_logout_action)
+                            ) == SnackbarResult.ActionPerformed) {
+                            navController.navigate(NavigationNode.Login())
+                        }
+                    }
+                    CoroutineScope(Job()).launch {
+                        model.logoutCurrentUser()
+                    }
                 }
-            }catch (e: IllegalArgumentException) {
-                modalDeepLink.value = it
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        model.clientStatus.collectLatest {
+            if(it == ClientStatus.NEW) {
+                navController.navigate(NavigationNode.Login())
             }
         }
     }
@@ -193,7 +245,7 @@ private fun AppContent(
             confirmButtonState = ButtonState(
                 text = stringResource(Res.string.button_confirm),
             ) {
-                viewModel.saveDialogSetting(showDialogAgain.value)
+                model.saveDialogSetting(showDialogAgain.value)
                 backPressDispatcher?.executeSystemBackPress()
             },
             dismissButtonState = ButtonState(
@@ -234,21 +286,21 @@ private fun AppContent(
         }
     )
 
-    CompositionLocalProvider(
-        LocalHeyIamScreen provides (isInternalUser && isPhone),
-    ) {
+    Column {
         if(isPhone) {
-            Column {
-                if(isInternalUser) DeveloperContent(
-                    modifier = Modifier.statusBarsPadding(),
-                )
-                Box {
-                    NavigationHost(navController = navController)
-                }
+            if(BuildKonfig.isDevelopment) DeveloperContent(
+                modifier = Modifier.statusBarsPadding(),
+            )
+            InformationPopUps()
+            InformationLines(sharedModel = model)
+            Box {
+                NavigationHost(navController = navController)
             }
         }else {
+            InformationPopUps()
+            InformationLines(sharedModel = model)
             Row {
-                if(isInternalUser) DeveloperContent()
+                if(BuildKonfig.isDevelopment) DeveloperContent()
                 Box {
                     NavigationHost(navController = navController)
                 }

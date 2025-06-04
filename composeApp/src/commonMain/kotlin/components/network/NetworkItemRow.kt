@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,8 +38,10 @@ import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
+import augmy.interactive.shared.ui.components.highlightedText
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
+import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 
 /**
@@ -51,23 +54,27 @@ fun NetworkItemRow(
     modifier: Modifier = Modifier,
     isChecked: Boolean? = null,
     data: NetworkItemIO?,
+    highlight: String? = null,
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
     onAvatarClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit = {},
     actions: @Composable () -> Unit = {}
 ) {
     Crossfade(
         modifier = modifier,
         targetState = data != null
     ) { isData ->
-        if(isData) {
+        if(isData && data != null) {
             ContentLayout(
                 indicatorColor = indicatorColor,
                 isChecked = isChecked,
                 isSelected = isSelected,
+                highlight = highlight,
                 actions = actions,
                 onAvatarClick = onAvatarClick,
-                data = data
+                data = data,
+                content = content
             )
         }else {
             ShimmerLayout()
@@ -80,8 +87,10 @@ private fun ContentLayout(
     indicatorColor: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
-    data: NetworkItemIO?,
+    highlight: String? = null,
+    data: NetworkItemIO,
     onAvatarClick: (() -> Unit)? = null,
+    content: @Composable RowScope.() -> Unit = {},
     actions: @Composable () -> Unit = {}
 ) {
     Column(Modifier.animateContentSize()) {
@@ -90,7 +99,7 @@ private fun ContentLayout(
                 .animateContentSize()
                 .padding(top = 8.dp, bottom = 8.dp, end = 4.dp)
                 .height(IntrinsicSize.Min),
-            verticalAlignment = if(data?.lastMessage.isNullOrBlank()) {
+            verticalAlignment = if(data.lastMessage.isNullOrBlank()) {
                 Alignment.CenterVertically
             }else Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -118,9 +127,9 @@ private fun ContentLayout(
                     }
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
                     .size(48.dp),
-                model = data?.photoUrl,
-                tag = data?.tag,
-                contentDescription = null
+                media = data.avatar ?: data.avatarUrl?.let { MediaIO(url = it) },
+                tag = data.tag,
+                name = data.displayName
             )
             Column(
                 modifier = Modifier
@@ -130,17 +139,30 @@ private fun ContentLayout(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = data?.name ?: "",
+                    text = highlightedText(
+                        highlight = highlight,
+                        text = data.displayName ?: ""
+                    ),
                     style = LocalTheme.current.styles.category,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if(data?.lastMessage != null) {
+                if(data.lastMessage != null) {
                     Text(
                         text = data.lastMessage,
                         style = LocalTheme.current.styles.regular,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }else if(data.userId != null) {
+                    Text(
+                        text = highlightedText(
+                            highlight = highlight,
+                            text = data.userId
+                        ),
+                        style = LocalTheme.current.styles.regular
+                            .copy(color = LocalTheme.current.colors.disabled),
+                        maxLines = 1
                     )
                 }
             }
@@ -154,6 +176,7 @@ private fun ContentLayout(
                     contentDescription = null
                 )
             }
+            content()
         }
         AnimatedVisibility(
             modifier = Modifier.zIndex(-1f),

@@ -9,7 +9,7 @@ object LinkUtils {
     /** URL pattern, no HTTP or HTTPS needed */
     val urlRegex = """(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})""".toRegex()
 
-    /** URL pattern, no HTTP or HTTPS needed */
+    /** International phone number regex */
     val phoneNumberRegex = """\+?\d{1,4}?[\s-]?\(?(\d{1,4})\)?[\s-]?\d{1,4}[\s-]?\d{1,4}[\s-]?\d{1,9}""".toRegex()
 }
 
@@ -24,6 +24,8 @@ expect fun openLink(link: String): Boolean
 expect fun openFile(path: String?)
 
 expect fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean
+
+expect val deeplinkHost: String
 
 /** Returns an extension for a file by mime type */
 fun getExtensionFromMimeType(mimeType: String?): String? {

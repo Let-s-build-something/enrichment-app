@@ -23,8 +23,6 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -45,7 +43,6 @@ import augmy.interactive.shared.ui.components.ContrastHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
-import components.OptionsLayoutAction
 import components.UserProfileImage
 import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
@@ -71,11 +68,10 @@ fun UserProfileLauncher(
         initialValue = SheetValue.Expanded,
         skipHiddenState = false
     ),
-    publicId: String? = null,
-    userProfile: NetworkItemIO? = null
+    user: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
-    val viewModel: UserProfileViewModel = koinViewModel()
+    val viewModel: UserProfileModel = koinViewModel()
 
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
@@ -88,10 +84,12 @@ fun UserProfileLauncher(
     val responseProfile = viewModel.responseProfile.collectAsState()
     val responseInclusion = viewModel.responseInclusion.collectAsState()
 
+
+    /*
     val showActionDialog = rememberSaveable {
         mutableStateOf<OptionsLayoutAction?>(null)
     }
-    /*showActionDialog.value?.let { action ->
+    showActionDialog.value?.let { action ->
         AlertDialog(
             title = stringResource(
                 if(action == OptionsLayoutAction.Mute) {
@@ -154,7 +152,7 @@ fun UserProfileLauncher(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = it.data.targetPublicId,
-                                name = responseProfile.value.success?.data?.name
+                                name = responseProfile.value.success?.data?.displayName
                             )
                         )
                     }
@@ -181,8 +179,8 @@ fun UserProfileLauncher(
     }
 
     LaunchedEffect(Unit) {
-        publicId?.let {
-            viewModel.getUserProfile(publicId)
+        user?.publicId?.takeIf { it.isNotBlank() }?.let {
+            viewModel.getUserProfile(it)
         }
     }
 
@@ -201,7 +199,7 @@ fun UserProfileLauncher(
                 if(isLoading) {
                     ShimmerContent(pictureSize = pictureSize)
                 }else {
-                    (userProfile ?: responseProfile.value.success?.data)?.let { profile ->
+                    (user ?: responseProfile.value.success?.data)?.let { profile ->
                         DataContent(
                             userProfile = profile,
                             pictureSize = pictureSize,
@@ -242,7 +240,7 @@ private fun ShimmerContent(pictureSize: Dp) {
 private fun DataContent(
     userProfile: NetworkItemIO,
     pictureSize: Dp,
-    viewModel: UserProfileViewModel,
+    viewModel: UserProfileModel,
     onDismissRequest: () -> Unit
 ) {
     val navController = LocalNavController.current
@@ -262,13 +260,14 @@ private fun DataContent(
                     .size(pictureSize)
                     .zIndex(1f),
                 animate = true,
-                model = userProfile.photoUrl,
-                tag = userProfile.tag
+                media = userProfile.avatar,
+                tag = userProfile.tag,
+                name = userProfile.displayName
             )
         }
         Text(
             modifier = Modifier.padding(start = 16.dp),
-            text = userProfile.name ?: "",
+            text = userProfile.displayName ?: "",
             style = LocalTheme.current.styles.subheading
         )
     }
@@ -288,7 +287,7 @@ private fun DataContent(
                         navController?.navigate(
                             NavigationNode.Conversation(
                                 conversationId = userProfile.publicId,
-                                name = userProfile.name
+                                name = userProfile.displayName
                             )
                         )
                     }
@@ -300,10 +299,7 @@ private fun DataContent(
                     isLoading = responseInclusion.value is BaseResponse.Loading,
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
-                        viewModel.includeNewUser(
-                            displayName = userProfile.name ?: "",
-                            tag = userProfile.tag ?: ""
-                        )
+                        viewModel.includeNewUser(displayName = userProfile.displayName ?: "")
                     }
                 )
             }

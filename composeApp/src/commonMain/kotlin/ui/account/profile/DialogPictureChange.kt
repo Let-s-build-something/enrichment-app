@@ -4,9 +4,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,24 +21,25 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -51,26 +52,24 @@ import augmy.composeapp.generated.resources.account_picture_custom
 import augmy.composeapp.generated.resources.account_picture_peeps
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.button_dismiss
-import augmy.composeapp.generated.resources.function_unavailable
 import augmy.composeapp.generated.resources.image_field_url_error_formats
 import augmy.composeapp.generated.resources.image_field_url_hint
 import augmy.composeapp.generated.resources.username_change_launcher_confirm
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.dialog.DialogShell
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
-import coil3.compose.AsyncImage
-import coil3.compose.AsyncImagePainter
 import components.AsyncSvgImage
 import data.Asset
-import augmy.interactive.shared.ext.scalingClickable
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PickerType
+import data.io.base.BaseResponse
+import data.io.social.network.conversation.message.MediaIO
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.ktor.http.headers
 import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
@@ -81,48 +80,49 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
+import ui.conversation.components.MediaElement
 
 @Composable
 fun DialogPictureChange(onDismissRequest: () -> Unit) {
     loadKoinModules(profileChangeModule)
-    val viewModel: ProfileChangeViewModel = koinViewModel()
+    val viewModel: ProfileChangeModel = koinViewModel()
     val snackbarHostState = LocalSnackbarHost.current
-    val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
-    val firebaseUser = viewModel.firebaseUser.collectAsState(initial = null)
+    val currentUser = viewModel.currentUser.collectAsState()
     val isLoading = viewModel.isLoading.collectAsState()
 
-    val customUrl = rememberSaveable { mutableStateOf<String?>(null) }
+    val urlState = remember { TextFieldState() }
     val selectedImageUrl = rememberSaveable {
         mutableStateOf(
-            customUrl.value ?: try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null } ?: ""
+            urlState.text.ifEmpty { currentUser.value?.avatarUrl }
         )
     }
+    val localFile = remember {
+        mutableStateOf<PlatformFile?>(null)
+    }
     val isUrlInEdit = rememberSaveable { mutableStateOf(false) }
-    val urlState = remember {
-        mutableStateOf<AsyncImagePainter.State?>(null)
+    val urlLoadState = remember {
+        mutableStateOf<BaseResponse<Any>?>(null)
     }
 
-    LaunchedEffect(isUrlInEdit.value) {
-        if(!isUrlInEdit.value) {
-            urlState.value = null
-            customUrl.value = null
-        }
+    LaunchedEffect(urlState.text) {
+        if(urlState.text.isEmpty()) urlLoadState.value = null
     }
 
     val launcher = rememberFilePickerLauncher(
-        type = PickerType.Image,
-        mode = PickerMode.Single,
+        type = FileKitType.Image,
+        mode = FileKitMode.Single,
         title = stringResource(Res.string.account_picture_pick_title)
     ) { file ->
-        if(file != null) {
-            coroutineScope.launch {
-                viewModel.requestPictureUpload(
-                    mediaByteArray = file.readBytes(),
-                    fileName = file.name
-                )
-            }
+        if (file != null) {
+            selectedImageUrl.value = null
+            localFile.value = file
         }
+    }
+
+    LaunchedEffect(selectedImageUrl.value) {
+        localFile.value = null
     }
 
     LaunchedEffect(Unit) {
@@ -139,12 +139,18 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
     }
 
     DialogShell(
+        modifier = Modifier.pointerInput(Unit) {
+            detectTapGestures(onTap = {
+                focusManager.clearFocus()
+                if(urlState.text.isBlank()) isUrlInEdit.value = false
+            })
+        },
         content = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AsyncImage(
+                MediaElement(
                     modifier = Modifier
                         .padding(top = 8.dp)
                         .fillMaxWidth(.4f)
@@ -155,15 +161,19 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                             color = LocalTheme.current.colors.brandMain,
                             shape = CircleShape
                         ),
-                    model = customUrl.value ?: selectedImageUrl.value,
+                    media = MediaIO(
+                        url = urlState.text.ifEmpty { selectedImageUrl.value }?.toString()
+                    ),
+                    localMedia = localFile.value,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     onState = { loadState ->
                         if(isUrlInEdit.value) {
-                            if(loadState is AsyncImagePainter.State.Success) {
-                                selectedImageUrl.value = customUrl.value ?: ""
+                            if(loadState is BaseResponse.Success) {
+                                selectedImageUrl.value = urlState.text
                                 isUrlInEdit.value = false
-                            }else urlState.value = loadState
+                            }
+                            urlLoadState.value = loadState
                         }
                     }
                 )
@@ -188,20 +198,13 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                         modifier = Modifier.weight(1f),
                         isLoading = isLoading.value,
                         text = stringResource(Res.string.username_change_launcher_confirm),
-                        isEnabled = (customUrl.value ?: selectedImageUrl.value)
-                                != try { firebaseUser.value?.photoURL }catch (e: NotImplementedError) { null },
+                        isEnabled = localFile.value != null
+                                || (urlState.text.ifEmpty { selectedImageUrl.value }) != currentUser.value?.avatarUrl, // only if the url to avatar is different
                         onClick = {
-                            if(currentPlatform != PlatformType.Jvm) {
-                                viewModel.requestPictureChange(selectedImageUrl.value)
-                            }else {
-                                onDismissRequest()
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    snackbarHostState?.showSnackbar(
-                                        message = getString(Res.string.function_unavailable),
-                                        duration = SnackbarDuration.Long
-                                    )
-                                }
-                            }
+                            viewModel.requestPictureChange(
+                                fileUrl = selectedImageUrl.value.toString(),
+                                localFile = localFile.value
+                            )
                         }
                     )
                 }
@@ -232,20 +235,21 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                 )
                                 Crossfade(targetState = isUrlInEdit.value) { isUrlInput ->
                                     if(isUrlInput) {
-                                        EditFieldInput(
+                                        CustomTextField(
                                             modifier = Modifier
                                                 .padding(horizontal = 8.dp)
                                                 .fillMaxWidth(),
                                             hint = stringResource(Res.string.image_field_url_hint),
-                                            value = "",
+                                            prefixIcon = Icons.Outlined.Link,
+                                            state = urlState,
+                                            errorText = if(urlLoadState.value is BaseResponse.Error) {
+                                                stringResource(Res.string.image_field_url_error_formats)
+                                            }else null,
                                             keyboardOptions = KeyboardOptions(
                                                 keyboardType = KeyboardType.Text,
                                                 imeAction = ImeAction.Done
                                             ),
-                                            onValueChange = { value ->
-                                                customUrl.value = value.text
-                                            },
-                                            trailingIcon = if(urlState.value is AsyncImagePainter.State.Loading) {
+                                            trailingIcon = if(urlLoadState.value is BaseResponse.Loading) {
                                                 {
                                                     CircularProgressIndicator(
                                                         modifier = Modifier.requiredSize(24.dp),
@@ -254,14 +258,7 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                                     )
                                                 }
                                             }else null,
-                                            isClearable = true,
-                                            onClear = {
-                                                isUrlInEdit.value = false
-                                            },
-                                            errorText = if(urlState.value is AsyncImagePainter.State.Error) {
-                                                stringResource(Res.string.image_field_url_error_formats)
-                                            }else null,
-                                            paddingValues = PaddingValues(start = 16.dp)
+                                            isClearable = true
                                         )
                                     }else {
                                         Row(
@@ -279,19 +276,9 @@ fun DialogPictureChange(onDismissRequest: () -> Unit) {
                                             Icon(
                                                 modifier = Modifier
                                                     .size(42.dp)
-                                                    .scalingClickable(
-                                                        onTap = {
-                                                            if(currentPlatform != PlatformType.Jvm) {
-                                                                launcher.launch()
-                                                            }else {
-                                                                coroutineScope.launch {
-                                                                    snackbarHostState?.showSnackbar(
-                                                                        message = getString(Res.string.function_unavailable)
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    ),
+                                                    .scalingClickable {
+                                                        launcher.launch()
+                                                    },
                                                 imageVector = Icons.Outlined.Upload,
                                                 contentDescription = stringResource(Res.string.accessibility_upload_files),
                                                 tint = LocalTheme.current.colors.primary

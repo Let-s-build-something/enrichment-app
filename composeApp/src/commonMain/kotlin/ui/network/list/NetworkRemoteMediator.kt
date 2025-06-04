@@ -6,19 +6,19 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.base.PagingEntityType
-import data.io.base.PagingMetaIO
+import data.io.base.paging.PagingEntityType
+import data.io.base.paging.PagingMetaIO
 import data.io.social.network.request.NetworkListResponse
 import data.io.user.NetworkItemIO
+import data.shared.SharedDataManager
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.io.IOException
+import org.koin.mp.KoinPlatform
 
 /**
  * Mediator for reusing locally loaded data and fetching new data from the network if necessary
@@ -34,8 +34,9 @@ class NetworkRemoteMediator (
     private val cacheTimeoutMillis: Int = 24 * 60 * 60 * 1000
 ): RemoteMediator<Int, NetworkItemIO>() {
 
-    private val currentUserUid: String?
-        get() = Firebase.auth.currentUser?.uid
+    private val dataManager: SharedDataManager by KoinPlatform.getKoin().inject()
+    private val ownerUserPublicId: String?
+        get() = dataManager.currentUser.value?.matrixUserId
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
@@ -87,16 +88,18 @@ class NetworkRemoteMediator (
                 val nextKey = if (endOfPaginationReached) null else page + 1
                 items?.map {
                     PagingMetaIO(
-                        entityId = "${currentUserUid}_${it.userPublicId}",
+                        entityId = "${ownerUserPublicId}_${it.userPublicId}",
                         previousPage = prevKey,
                         currentPage = page,
                         nextPage = nextKey
                     )
                 }?.let {
                     pagingMetaDao.insertAll(it)
-                    networkItemDao.insertAll(items.onEach { item ->
-                        item.ownerPublicId = currentUserUid
-                    })
+                    networkItemDao.insertAll(
+                        items.map { item ->
+                            item.copy(ownerUserId = ownerUserPublicId)
+                        }
+                    )
                     invalidatePagingSource()
                 }
                 MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
@@ -112,7 +115,7 @@ class NetworkRemoteMediator (
     private suspend fun getPagingMetaClosestToCurrentPosition(state: PagingState<Int, NetworkItemIO>): PagingMetaIO? {
         return state.anchorPosition?.let { position ->
             state.closestItemToPosition(position)?.userPublicId?.let { id ->
-                pagingMetaDao.getByEntityId("${currentUserUid}_$id")
+                pagingMetaDao.getByEntityId("${ownerUserPublicId}_$id")
             }
         }
     }
@@ -122,7 +125,7 @@ class NetworkRemoteMediator (
         return state.pages.firstOrNull {
             it.data.isNotEmpty()
         }?.data?.firstOrNull()?.userPublicId?.let { id ->
-            pagingMetaDao.getByEntityId("${currentUserUid}_$id")
+            pagingMetaDao.getByEntityId("${ownerUserPublicId}_$id")
         }
     }
 
@@ -131,7 +134,7 @@ class NetworkRemoteMediator (
         return state.pages.lastOrNull {
             it.data.isNotEmpty()
         }?.data?.lastOrNull()?.userPublicId?.let { id ->
-            pagingMetaDao.getByEntityId("${currentUserUid}_$id")
+            pagingMetaDao.getByEntityId("${ownerUserPublicId}_$id")
         }
     }
 }

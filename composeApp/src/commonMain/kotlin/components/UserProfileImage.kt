@@ -21,33 +21,45 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ext.brandShimmerEffect
+import augmy.interactive.shared.ui.components.input.AutoResizeText
+import augmy.interactive.shared.ui.components.input.FontSizeRange
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.theme.Colors
 import base.utils.tagToColor
+import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO
+import ui.conversation.components.MediaElement
 
 @Composable
 fun UserProfileImage(
     modifier: Modifier = Modifier,
-    model: Any?,
+    media: MediaIO?,
+    name: String?,
     tag: String?,
     animate: Boolean = false,
     contentDescription: String? = null
 ) {
     Crossfade(
         modifier = modifier,
-        targetState = model != null
+        targetState = media != null || name != null
     ) { hasImage ->
         if(hasImage) {
             ContentLayout(
-                model = model,
+                media = media,
                 tag = tag,
-                animate = animate,
+                name = name,
+                animate = animate && tag != null,
                 contentDescription = contentDescription
             )
         }else {
@@ -68,14 +80,15 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
-    model: Any?,
+    media: MediaIO?,
     tag: String?,
+    name: String?,
     animate: Boolean = false,
     contentDescription: String? = null
 ) {
     if(animate) {
         val density = LocalDensity.current
-        val avatarSize = remember(model) {
+        val avatarSize = remember(media) {
             mutableStateOf(0f)
         }
         val infiniteTransition = rememberInfiniteTransition(label = "infiniteScaleBackground")
@@ -112,18 +125,12 @@ private fun ContentLayout(
                         shape = CircleShape
                     )
             )
-            AsyncSvgImage(
-                modifier = Modifier
+            ContentElement(
+                modifier = modifier
                     .padding(
                         avatarSize.value.dp * .15f / 2f
                     )
                     .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(CircleShape)
-                    .background(
-                        color = LocalTheme.current.colors.brandMain,
-                        shape = CircleShape
-                    )
                     .onSizeChanged {
                         if(avatarSize.value == 0f) {
                             avatarSize.value = with(density) {
@@ -131,11 +138,13 @@ private fun ContentLayout(
                             }
                         }
                     },
-                model = model,
-                contentDescription = null
+                contentDescription = contentDescription,
+                media = media,
+                name = name,
+                tag = tag
             )
         }
-    }else {
+    }else if(tag != null) {
         Box(
             modifier = modifier
                 .background(
@@ -145,18 +154,66 @@ private fun ContentLayout(
                 .height(IntrinsicSize.Max)
                 .width(IntrinsicSize.Max)
         ) {
-            AsyncSvgImage(
-                modifier = Modifier
-                    .scale(0.95f)
-                    .background(
-                        color = LocalTheme.current.colors.brandMain,
-                        shape = CircleShape
-                    )
+            ContentElement(
+                modifier = modifier.scale(0.95f),
+                contentDescription = contentDescription,
+                media = media,
+                name = name,
+                tag = tag
+            )
+        }
+    }else {
+        ContentElement(
+            modifier = modifier,
+            contentDescription = contentDescription,
+            media = media,
+            name = name,
+            tag = tag
+        )
+    }
+}
+
+@Composable
+private fun ContentElement(
+    modifier: Modifier = Modifier,
+    contentDescription: String?,
+    media: MediaIO?,
+    tag: String?,
+    name: String?
+) {
+    Crossfade(media?.isEmpty == false) { isValid ->
+        if(isValid) {
+            MediaElement(
+                modifier = modifier
                     .clip(CircleShape)
                     .aspectRatio(1f),
                 contentDescription = contentDescription,
-                model = model
+                media = media,
+                contentScale = ContentScale.Crop
             )
+        }else if(name != null) {
+            val backgroundColor = tagToColor(tag) ?: LocalTheme.current.colors.tetrial
+            val textColor = if(backgroundColor.luminance() > .5f) Colors.Coffee else Colors.GrayLight
+
+            Box(
+                modifier = modifier
+                    .aspectRatio(1f)
+                    .background(
+                        color = backgroundColor,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                AutoResizeText(
+                    modifier = Modifier.padding(vertical = 6.dp),
+                    text = UserIO.initialsOf(name),
+                    style = LocalTheme.current.styles.subheading.copy(color = textColor),
+                    fontSizeRange = FontSizeRange(
+                        min = 6.sp,
+                        max = LocalTheme.current.styles.subheading.fontSize * 1.5f
+                    )
+                )
+            }
         }
     }
 }

@@ -6,44 +6,64 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.user.NetworkItemIO
 import database.AppRoomDatabase
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
 
 /** Interface for communication with local Room database */
 @Dao
 interface NetworkItemDao {
 
     /** Returns all network items */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
-            "WHERE owner_public_id = :ownerPublicId " +
-            "ORDER BY proximity DESC " +
-            "LIMIT :limit " +
-            "OFFSET :offset")
+    @Query("""
+    SELECT ni.*, p.content AS presence
+    FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} AS ni
+    LEFT JOIN ${AppRoomDatabase.TABLE_PRESENCE_EVENT} AS p
+    ON ni.user_id = p.user_id_full
+    WHERE owner_user_id = :ownerPublicId
+    ORDER BY proximity DESC
+    LIMIT :limit
+    OFFSET :offset
+""")
     suspend fun getPaginated(
         ownerPublicId: String?,
         limit: Int,
-        offset: Int
+        offset: Int = 0
     ): List<NetworkItemIO>
 
     /** Returns all network items related to an owner as defined by [ownerPublicId] */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
-            "WHERE owner_public_id = :ownerPublicId ")
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
+            "WHERE owner_user_id = :ownerPublicId ")
     suspend fun getNonFiltered(
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid
-    ): List<NetworkItemIO>?
+        ownerPublicId: String?
+    ): List<NetworkItemIO>
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}
+            WHERE display_name like '%' || :prompt || '%'
+            OR user_id  like '%' || :prompt || '%'
+            """)
+    suspend fun searchByPrompt(prompt: String): List<NetworkItemIO>
 
     /** Returns all network items within the list [userPublicIds] */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
-            "WHERE owner_public_id = :ownerPublicId " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
+            "WHERE owner_user_id = :ownerPublicId " +
             "AND user_public_id IN (:userPublicIds)")
     suspend fun getItems(
         userPublicIds: List<String>?,
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid
-    ): List<NetworkItemIO>?
+        ownerPublicId: String?
+    ): List<NetworkItemIO>
+
+    /** Retrieves a single item */
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
+            "WHERE user_id = :userId " +
+            "AND owner_user_id = :ownerPublicId " +
+            "LIMIT 1")
+    suspend fun get(
+        userId: String?,
+        ownerPublicId: String?
+    ): NetworkItemIO?
 
     /** Returns all network items specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
-    @Query("SELECT * FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
-            "WHERE owner_public_id = :ownerPublicId " +
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
+            "WHERE owner_user_id = :ownerPublicId " +
             "AND user_public_id != :excludeId " +
             "AND proximity BETWEEN :proximityMin AND :proximityMax " +
             "LIMIT :count")
@@ -56,17 +76,17 @@ interface NetworkItemDao {
     ): List<NetworkItemIO>
 
     /** Counts the number of items */
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
-            "WHERE owner_public_id = :ownerPublicId")
+    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
+            "WHERE owner_user_id = :ownerPublicId")
     suspend fun getCount(ownerPublicId: String?): Int
 
     /** Counts the number of items */
-    @Query("UPDATE ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE} " +
+    @Query("UPDATE ${AppRoomDatabase.TABLE_NETWORK_ITEM} " +
             "SET proximity = :proximity " +
-            "WHERE owner_public_id = :ownerPublicId " +
+            "WHERE owner_user_id = :ownerPublicId " +
             "AND public_id = :publicId ")
     suspend fun updateProximity(
-        ownerPublicId: String? = Firebase.auth.currentUser?.uid,
+        ownerPublicId: String?,
         proximity: Float,
         publicId: String?
     )
@@ -75,7 +95,10 @@ interface NetworkItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<NetworkItemIO>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: NetworkItemIO)
+
     /** Removes all items from the database */
-    @Query("DELETE FROM ${AppRoomDatabase.ROOM_NETWORK_ITEM_TABLE}")
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_NETWORK_ITEM}")
     suspend fun removeAll()
 }

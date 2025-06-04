@@ -51,6 +51,7 @@ import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.NetworkProximityCategory
+import data.io.base.AppPingType
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -70,7 +71,7 @@ import kotlin.uuid.Uuid
 fun NetworkListContent(
     openAddNewModal: () -> Unit,
     refreshHandler: RefreshHandler,
-    viewModel: NetworkListViewModel = koinViewModel()
+    viewModel: NetworkListModel = koinViewModel()
 ) {
     val networkItems = viewModel.networkItems.collectAsLazyPagingItems()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
@@ -86,6 +87,16 @@ fun NetworkListContent(
         mutableStateOf<NetworkItemIO?>(null)
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.pingStream.collectLatest { stream ->
+            stream.forEach {
+                if(it.type == AppPingType.NetworkDashboard) {
+                    networkItems.refresh()
+                }
+            }
+        }
+    }
+
     navController?.collectResult(
         key = NavigationArguments.NETWORK_NEW_SUCCESS,
         defaultValue = false,
@@ -96,7 +107,7 @@ fun NetworkListContent(
 
     if(selectedUser.value != null) {
         UserProfileLauncher(
-            userProfile = selectedUser.value,
+            user = selectedUser.value,
             onDismissRequest = {
                 selectedUser.value = null
             }
@@ -207,7 +218,7 @@ fun NetworkListContent(
 @Composable
 private fun NetworkItem(
     modifier: Modifier = Modifier,
-    viewModel: NetworkListViewModel,
+    viewModel: NetworkListModel,
     selectedItem: String?,
     data: NetworkItemIO?,
     customColors: Map<NetworkProximityCategory, Color>,
@@ -249,7 +260,7 @@ private fun NetworkItem(
             items = conversations.value,
             heading = stringResource(
                 Res.string.invite_conversation_heading,
-                data?.name ?: ""
+                data?.displayName ?: ""
             ),
             newItemHint = stringResource(Res.string.invite_new_item_conversation),
             multiSelect = false,
@@ -264,10 +275,10 @@ private fun NetworkItem(
             },
             mapToNetworkItem = {
                 NetworkItemIO(
-                    name = it.summary?.alias,
-                    proximity = it.summary?.proximity,
+                    displayName = it.summary?.roomName,
+                    proximity = it.proximity,
                     publicId = it.id,
-                    photoUrl = it.summary?.avatarUrl
+                    avatar = it.summary?.avatar
                 )
             },
             onDismissRequest = {

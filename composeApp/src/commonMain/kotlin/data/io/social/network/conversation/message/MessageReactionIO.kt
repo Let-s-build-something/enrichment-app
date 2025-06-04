@@ -1,5 +1,6 @@
 package data.io.social.network.conversation.message
 
+import data.io.matrix.room.event.ConversationRoomMember
 import kotlinx.serialization.Serializable
 
 /** A singular reaction to a message */
@@ -9,5 +10,7 @@ data class MessageReactionIO(
     val content: String? = null,
 
     /** Public id of the author of this message */
-    val authorPublicId: String? = null
+    val authorPublicId: String? = null,
+
+    val user: ConversationRoomMember? = null
 )

@@ -10,7 +10,7 @@ import org.koin.dsl.module
 
 internal val networkItemModule = module {
     factory { NetworkItemDataManager() }
-    factory { NetworkItemRepository(get(), get(), get()) }
+    factory { NetworkItemRepository(get(), get(), get(), get()) }
     single { NetworkItemDataManager() }
     factory { NetworkItemUseCase(get(), get()) }
 }
@@ -29,13 +29,13 @@ class NetworkItemUseCase(
     val invitationResponse = _invitationResponse.asStateFlow()
 
     /** Makes a request for all open rooms */
-    suspend fun requestOpenRooms() {
-        dataManager.openConversations.value = repository.getOpenRooms()
+    suspend fun requestOpenRooms(ownerPublicId: String?) {
+        dataManager.openConversations.value = repository.getOpenRooms(ownerPublicId)
     }
 
-    suspend fun getNetworkItems() {
+    suspend fun getNetworkItems(ownerPublicId: String?) {
         if(dataManager.networkItems.value == null) {
-            dataManager.networkItems.value = repository.getNetworkItems()
+            dataManager.networkItems.value = repository.getNetworkItems(ownerPublicId)
         }
     }
 
@@ -43,13 +43,15 @@ class NetworkItemUseCase(
     suspend fun requestProximityChange(
         conversationId: String?,
         publicId: String?,
+        ownerPublicId: String?,
         proximity: Float
     ) {
         withContext(Dispatchers.IO) {
             repository.patchProximity(
                 conversationId = conversationId,
                 publicId = publicId,
-                proximity = proximity
+                proximity = proximity,
+                ownerPublicId = ownerPublicId
             )
         }
     }
@@ -57,6 +59,7 @@ class NetworkItemUseCase(
     /** Creates a new invitation */
     suspend fun inviteToConversation(
         conversationId: String?,
+        ownerPublicId: String?,
         userPublicIds: List<String>?,
         message: String?,
         newName: String? = null
@@ -66,7 +69,8 @@ class NetworkItemUseCase(
             conversationId = conversationId,
             userPublicIds = userPublicIds,
             message = message,
-            newName = newName
+            newName = newName,
+            ownerPublicId = ownerPublicId
         ).also {
             _invitationResponse.value = it.success?.data
         }

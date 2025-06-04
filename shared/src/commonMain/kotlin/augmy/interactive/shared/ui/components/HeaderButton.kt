@@ -2,13 +2,17 @@ package augmy.interactive.shared.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,10 +26,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import augmy.interactive.shared.ext.scalingClickable
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Item displaying collection and shortened information about it
@@ -38,6 +41,10 @@ private fun HeaderButton(
     contentColor: Color,
     containerColor: Color,
     showBorder: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     endImageVector: ImageVector? = null,
     additionalContent: @Composable RowScope.() -> Unit = {},
     isEnabled: Boolean = true,
@@ -84,29 +91,27 @@ private fun HeaderButton(
                     )
                 }else Modifier
             )
-            .padding(
-                vertical = 14.dp,
-                horizontal = 24.dp
-            ),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
         if(text.isNotEmpty()) {
             Text(
                 modifier = Modifier
+                    .animateContentSize()
                     .padding(end = 6.dp),
                 text = text,
                 style = textStyle.copy(color = animContentColor)
             )
         }
-        if(endImageVector != null) {
+        androidx.compose.animation.AnimatedVisibility(endImageVector != null) {
             Icon(
                 modifier = Modifier
                     .padding(start = 4.dp)
                     .requiredSize(
                         with(density) { textStyle.fontSize.toDp() }
                     ),
-                imageVector = endImageVector,
+                imageVector = endImageVector ?: Icons.Outlined.Close,
                 contentDescription = null,
                 tint = animContentColor
             )
@@ -119,7 +124,6 @@ private fun HeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ComponentHeaderButton(
     modifier: Modifier = Modifier,
@@ -145,24 +149,31 @@ fun ComponentHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ErrorHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
+    isLoading: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    endIconVector: ImageVector? = null,
+    endImageVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
 ) {
-    HeaderButton(
+    LoadingHeaderButton(
         modifier = modifier,
         text = text,
         shape = shape,
+        isLoading = isLoading,
         onClick = onClick,
+        contentPadding = contentPadding,
+        isEnabled = !isLoading,
         showBorder = false,
         additionalContent = extraContent,
-        endImageVector = endIconVector,
+        endImageVector = endImageVector,
         contentColor = Color.White,
         containerColor = SharedColors.RED_ERROR
     )
@@ -172,22 +183,66 @@ fun ErrorHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun BrandHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
+    endImageVector: ImageVector? = null,
     onClick: () -> Unit = {}
+) {
+    LoadingHeaderButton(
+        modifier = modifier,
+        text = text,
+        isEnabled = isEnabled,
+        contentPadding = contentPadding,
+        onClick = onClick,
+        isLoading = isLoading,
+        showBorder = isEnabled,
+        contentColor = LocalTheme.current.colors.tetrial,
+        containerColor = if(isLoading) {
+            LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
+        }else LocalTheme.current.colors.brandMainDark,
+        endImageVector = endImageVector
+    )
+}
+
+@Composable
+fun LoadingHeaderButton(
+    modifier: Modifier = Modifier,
+    text: String = "",
+    contentColor: Color = LocalTheme.current.colors.secondary,
+    containerColor: Color = LocalTheme.current.colors.backgroundLight,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
+    showBorder: Boolean = true,
+    isEnabled: Boolean = true,
+    endImageVector: ImageVector? = null,
+    textStyle: TextStyle = LocalTheme.current.styles.category,
+    shape: Shape = LocalTheme.current.shapes.circularActionShape,
+    isLoading: Boolean = false,
+    onClick: () -> Unit = {},
+    additionalContent: @Composable RowScope.() -> Unit = {}
 ) {
     HeaderButton(
         modifier = modifier,
         text = text,
-        isEnabled = isEnabled && isLoading.not(),
+        isEnabled = isEnabled,
         onClick = onClick,
-        showBorder = isEnabled,
+        showBorder = showBorder,
+        contentPadding = contentPadding,
+        shape = shape,
+        endImageVector = if(!isLoading && isEnabled) endImageVector else null,
+        textStyle = textStyle,
         additionalContent = {
+            additionalContent()
             AnimatedVisibility(isLoading) {
                 val density = LocalDensity.current
 
@@ -197,13 +252,13 @@ fun BrandHeaderButton(
                         .requiredSize(
                             with(density) { LocalTheme.current.styles.category.fontSize.toDp() }
                         ),
-                    color = LocalTheme.current.colors.brandMainDark,
-                    trackColor = LocalTheme.current.colors.tetrial
+                    color = containerColor,
+                    trackColor = contentColor
                 )
             }
         },
-        contentColor = LocalTheme.current.colors.tetrial,
-        containerColor = LocalTheme.current.colors.brandMainDark
+        contentColor = contentColor,
+        containerColor = containerColor
     )
 }
 
@@ -211,12 +266,15 @@ fun BrandHeaderButton(
  * Item displaying collection and shortened information about it
  * @param text text content
  */
-@Preview
 @Composable
 fun ContrastHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     isEnabled: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = 10.dp,
+        horizontal = 16.dp
+    ),
     endImageVector: ImageVector? = null,
     contentColor: Color = LocalTheme.current.colors.brandMainDark,
     containerColor: Color = LocalTheme.current.colors.tetrial,
@@ -227,6 +285,7 @@ fun ContrastHeaderButton(
         text = text,
         isEnabled = isEnabled,
         showBorder = isEnabled,
+        contentPadding = contentPadding,
         endImageVector = endImageVector,
         onClick = onClick,
         contentColor = contentColor,

@@ -69,7 +69,7 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
             false,
             null
         )
-        val fileName = "${sha256(media.url)}.${getExtensionFromMimeType(media.mimetype)}"
+        val fileName = "${media.url?.toSha256()}.${getExtensionFromMimeType(media.mimetype)}"
         val fileURL = documentsDirectory?.URLByAppendingPathComponent(fileName)
 
         if (fileURL != null) {
@@ -79,6 +79,7 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
                     fileData.writeToFile(documentsDirectory.path ?: "", atomically = true)
                 }
             } catch (e: Exception) {
+                e.printStackTrace()
                 result = false
             }
         }
@@ -111,3 +112,5 @@ actual fun openEmail(address: String?): Boolean {
         true
     }else false
 }
+
+actual val deeplinkHost: String = "https://augmy.org/"

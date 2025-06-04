@@ -41,6 +41,9 @@ composeApp/google-services.json
 # Android Profiling
 *.hprof
 
+# Data caching databases (preferences)
+composeApp/datastore/*
+
 .xcuserdatad/
 build/wix311/
 shared/build/
@@ -49,12 +52,15 @@ iosApp/iosApp.xcworkspace/xcuserdata
 .DS_Store
 shared/build
 iosApp/Pods
-build/wix311/
 iosApp/build/XCBuildData
 GoogleService-Info.plist
 commonizedNativeDistributionLocation.txt
 composeApp/datastore/app_preferences.preferences_pb
+composeApp/datastore/app_preferences_dev.preferences_pb
+composeApp\datastore\app_preferences.preferences_pb
+composeApp\datastore\app_preferences_dev.preferences_pb
 composeApp/chat-enrichment-fbc09765a643.json
 app_preferences.preferences_pb.tmp
 /composeApp/cache
 /composeApp/kcef-bundle
+/build/reports/problems

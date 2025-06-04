@@ -20,7 +20,6 @@ data class MatrixAuthenticationParams(
 
 @Serializable
 data class MatrixAuthenticationRecaptcha(
-    @SerialName("public_key")
     val publicKey: String? = null
 )
 
@@ -46,6 +45,9 @@ data class MatrixAuthenticationFlow(
     val type: String? = null,
     val stages: List<String>? = null,
     val identityProviders: List<MatrixIdentityProvider>? = null,
+
+    @SerialName("org.matrix.msc3824.delegated_oidc_compatibility")
+    val delegatedOidcCompatibility: Boolean = false
 )
 
 @Serializable

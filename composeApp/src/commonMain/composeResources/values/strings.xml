@@ -8,8 +8,15 @@
   <string name="screen_account_logout">I\'m outta here!</string>
   <string name="screen_network_management">Your social network</string>
   <string name="screen_search_network">Search</string>
+  <string name="screen_conversation">Conversation</string>
+  <string name="screen_conversation_detail">Thread</string>
+  <string name="screen_media_detail">Cheese!</string>
+  <string name="screen_conversation_info">For the curious</string>
+  <string name="screen_conversation_settings">Mr. Sett Ings</string>
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
+  <string name="screen_search_user">Let the manhunt begin</string>
+  <string name="screen_user_default">Newfound pirate</string>
 
   <string name="navigate_home">Back</string>
   <string name="navigate_back">Back</string>
@@ -20,17 +27,21 @@
   <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
   <string name="username_change_launcher_confirm">Save</string>
-  <string name="error_google_sign_in_unavailable">There are no accounts on your device, use other methods, please.</string>
-  <string name="login_error_canceled">Unsure? It's okay, I'll be here when you're ready.</string>
-  <string name="login_error_invalid_credential">Sorry, something's incorrect. Use a password manager.</string>
-  <string name="login_error_no_windows">Something's up with the UI, try yeeting the app away and opening again.</string>
+  <string name="login_error_invalid_credential">Some of the info is incorrect 😵. Double check your information and try again 🤞</string>
   <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>
   <string name="login_password_email_hint">Email</string>
   <string name="login_password_password_hint">Password</string>
   <string name="error_general">Even we can fail communicating (with the server), apologies. Try again later.</string>
+  <string name="hint_unauthorized_matrix_title">We are still unsure of how to call you.</string>
+  <string name="hint_unauthorized_matrix_text">As soon as you're a unique snowflake, you can chat with other people:-).</string>
+  <string name="hint_unauthorized_matrix_action">❄️</string>
+  <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
+  <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
+  <string name="login_oidc_disable">Disable OIDC</string>
+  <string name="login_oidc_enable">Enable OIDC</string>
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
@@ -89,10 +100,23 @@
   <string name="account_settings_title_online">You're online</string>
   <string name="account_settings_content_online">There are no limits, enjoy the ride!</string>
   <string name="account_settings_title_invisible">You're invisible</string>
-  <string name="account_settings_content_invisible">You can't be seen by other users.</string>
-  <string name="account_settings_title_offline">You're offline :-(</string>
-  <string name="account_settings_content_offline">No one will interrupt you now, but you can turn this off at any time.</string>
+  <string name="account_settings_content_invisible">Others see you as offline.</string>
+  <string name="account_settings_title_offline">You're offline</string>
+  <string name="account_settings_content_offline">No interruption and no network is being used.</string>
 
+  <string name="message_decrypting">This message couldn't be decrypted:(</string>
+  <string name="message_alias_change">%1$s changed the room name to %2$s.</string>
+  <string name="message_avatar_change">%1$s changed the room avatar.</string>
+  <string name="message_read_more">Read more</string>
+  <string name="message_user_verification">%1$s asked for a verification.</string>
+  <string name="message_user_verification_self">You sent a user verification request.</string>
+  <string name="message_user_verification_error">This verification request is not valid anymore.</string>
+  <string name="message_user_verification_awaiting">Awaiting response</string>
+  <string name="message_user_verification_ready">User is selecting a verification method</string>
+  <string name="message_user_verification_start">Starting verification...</string>
+  <string name="message_user_verification_emoji">Does the other user have the same emojis as you?</string>
+  <string name="message_user_verification_digit">Does the other user have the same digits as you?</string>
+  <string name="message_user_verification_canceled">Request canceled.</string>
   <string name="invite_new_item_conversation">Name of the conversation</string>
   <string name="invite_new_item_button">Create new</string>
   <string name="invite_network_items_heading">There's only one way to figure out whether they'll fit in. Select people who should be invited.</string>
@@ -146,6 +170,8 @@
   <string name="leave_app_dialog_title">Aboutta outta here</string>
   <string name="leave_app_dialog_message">Are you sure you want to leave this app?</string>
   <string name="leave_app_dialog_show_again">Don't show this message again</string>
+  <string name="hard_logout_message">You have been logged out, sorry about that. Try logging in again.</string>
+  <string name="hard_logout_action">Log-in</string>
 
 
   <string name="conversation_attached">Attached media</string>
@@ -154,6 +180,43 @@
   <string name="conversation_reply_heading">Replying to...</string>
   <string name="conversation_reply_prefix_self">You:</string>
   <string name="conversation_detail_you">You</string>
+  <string name="conversation_kick_title">Yeet</string>
+  <string name="conversation_kick_message">You're about to kick %1$s from the conversation. Are you sure you want to do that? 🤓</string>
+  <string name="conversation_action_leave">Leave conversation</string>
+  <string name="conversation_action_leave_hint">You can say why here</string>
+  <string name="conversation_action_invite_title">Welcome aboard!</string>
+  <string name="conversation_action_invite_message">The following person will be added to this conversation, please confirm.</string>
+  <string name="conversation_left_message">You will no longer see that conversation.</string>
+  <string name="conversation_members">Members</string>
+  <string name="conversation_mode_default">Default</string>
+  <string name="conversation_mode_experimental">Experimental</string>
+  <string name="items_see_more">See %1$s more</string>
+
+  <string name="message_room_invite">got invited.</string>
+  <string name="message_room_join">joined the room.</string>
+  <string name="message_room_knock">knocked on this room.</string>
+  <string name="message_room_leave">left.</string>
+  <string name="message_room_ban">got banned.</string>
+  <string name="message_decryption_failed">Failed to decrypt this message, try again.</string>
+  <string name="error_permission">You don't have permission to do that.</string>
+
+  <string name="device_verification_passphrase_hint">PIN code</string>
+  <string name="device_verification_bootstrap_title">Create a new PIN for your account🗝️</string>
+  <string name="device_verification_title">You need to verify yourself🗝️👀</string>
+  <string name="device_verification_title_passphrase">Create a new PIN</string>
+  <string name="device_verification_title_other_device">Use your PIN</string>
+  <string name="device_verification_title_emojis">Do the emoji match the other device, in the same order?</string>
+  <string name="device_verification_title_decimal">Do the numbers match the other device, in the same order?</string>
+  <string name="device_verification_no_match">They don't match</string>
+  <string name="device_verification_match">They are the same</string>
+  <string name="device_verification_confirm">Verify</string>
+  <string name="device_verification_send_info">Sends a verification request to your (✅ verified) device 📬</string>
+  <string name="device_verification_send_info_2">Please confirm the request on the other device</string>
+  <string name="device_verification_send">Send</string>
+  <string name="device_verification_other_device">Verify with other device</string>
+  <string name="device_verification_passphrase">Enter PIN</string>
+  <string name="device_verification_success">Successfully verified! 🥳</string>
+  <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>
@@ -169,6 +232,7 @@
   <string name="emojis_preference_set_hint">Click on an emoji you want to change and, then, select its replacement.</string>
   <string name="action_filter_emojis">Filter emojis</string>
   <string name="action_search_gifs">Search GIPHY</string>
+  <string name="action_search_users">Search the horizon</string>
 
   <string name="image_field_url_hint">URL of an image.</string>
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
@@ -180,6 +244,8 @@
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
   <string name="button_block">Remove</string>
+  <string name="button_verify">Verify</string>
+  <string name="button_accept">Accept</string>
   <string name="button_mute">Mute</string>
   <string name="button_search">Search</string>
   <string name="button_tune">Tune</string>
@@ -195,6 +261,7 @@
   <string name="download_failure">There was an error, try again later.</string>
   <string name="download_open_file">Open file location</string>
   <string name="link_preview_error">No Preview for the mentioned url:-(.</string>
+  <string name="file_too_large">The file's too large, we are sorry, the maximum is %1$d MB.</string>
 
   <string name="work_in_progress">We are actively working on this, hang on tight!</string>
   <string name="function_unavailable">This functionality is not supported on your device yet. But you can use Android, iOS, or macOS device to complete your action.</string>
@@ -204,6 +271,7 @@
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+  <string name="accessibility_add_new_member">Add new member</string>
   <string name="accessibility_show_password">Show password</string>
   <string name="accessibility_hide_password">Hide password</string>
   <string name="accessibility_change_avatar">Change avatar</string>
@@ -211,8 +279,8 @@
   <string name="accessibility_save">Save</string>
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
-  <string name="accessibility_upload_files">Upload from files</string>
-  <string name="accessibility_upload_url">Upload from URL input</string>
+  <string name="accessibility_upload_files">Upload image</string>
+  <string name="accessibility_upload_url">From link</string>
   <string name="accessibility_more_options">More options</string>
   <string name="accessibility_share">Share</string>
   <string name="accessibility_refresh">Refresh</string>
@@ -229,6 +297,7 @@
   <string name="accessibility_message_action_file">Attach any file to your message</string>
   <string name="accessibility_message_status_loading">Loading</string>
   <string name="accessibility_message_status_sent">Sent</string>
+  <string name="accessibility_message_status_decrypting">Being decrypted</string>
   <string name="accessibility_message_status_failed">Failed</string>
   <string name="accessibility_message_status_received">Received</string>
   <string name="accessibility_message_status_read">Read</string>

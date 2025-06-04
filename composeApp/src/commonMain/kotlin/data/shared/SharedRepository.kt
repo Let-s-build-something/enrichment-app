@@ -1,69 +1,39 @@
 package data.shared
 
-import data.io.app.LocalSettings
-import data.io.user.RequestGetUser
-import data.io.user.UserIO
-import database.dao.ConversationMessageDao
-import database.dao.ConversationRoomDao
-import database.dao.NetworkItemDao
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
-import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import io.ktor.http.ParametersBuilder
 import io.ktor.http.parameters
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.withContext
-import org.koin.mp.KoinPlatform.getKoin
-import ui.home.HomeRepository.Companion.INITIAL_BATCH
-import ui.login.safeRequest
 
-open class SharedRepository(private val httpClient: HttpClient) {
+open class SharedRepository() {
 
     /** Makes a request to create a user */
-    suspend fun authenticateUser(localSettings: LocalSettings?): UserIO? {
+    /*suspend fun authenticateUser(
+        localSettings: LocalSettings?,
+        refreshToken: String? = null,
+        expiresInMs: Long? = null
+    ): UserIO? {
         return withContext(Dispatchers.IO) {
             if(Firebase.auth.currentUser != null) {
-                httpClient.safeRequest<UserIO> {
+                val res = httpClient.safeRequest<UserIO> {
                     post(urlString = "/api/v1/auth/init-app") {
                         setBody(
-                            RequestGetUser(fcmToken = localSettings?.fcmToken)
+                            RequestInitApp(
+                                fcmToken = localSettings?.fcmToken,
+                                deviceName = localSettings?.deviceId,
+                                refreshToken = refreshToken,
+                                expiresInMs = expiresInMs
+                            )
                         )
                     }
-                }.success?.data?.also {
-                    injectDemoData(Firebase.auth.currentUser?.uid)
-                } ?: UserIO()
+                }.success?.data
+                // BE can send empty strings
+                res?.copy(
+                    matrixUserId = res.matrixUserId.takeIf { !it.isNullOrBlank() },
+                    accessToken = res.accessToken.takeIf { !it.isNullOrBlank() },
+                )
             }else null
         }
-    }
-
-    //TODO remove DEMO data once not needed
-    private suspend fun injectDemoData(publicId: String?) {
-        withContext(Dispatchers.IO) {
-            val conversationRoomDao: ConversationRoomDao = getKoin().get()
-            val conversationMessageDao: ConversationMessageDao = getKoin().get()
-            val networkItemDao: NetworkItemDao = getKoin().get()
-
-            if(conversationRoomDao.getCount(publicId) == 0) {
-                conversationRoomDao.insertAll(DemoData.demoRooms.onEach { room ->
-                    room.batch = INITIAL_BATCH
-                    room.ownerPublicId = publicId
-                })
-                conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
-                    it.conversationId = DemoData.demoRooms.getOrNull(0)?.id
-                })
-                conversationMessageDao.insertAll(DemoData.demoMessages.onEach {
-                    it.conversationId = DemoData.demoRooms.getOrNull(1)?.id
-                })
-                networkItemDao.insertAll(DemoData.proximityDemoData.onEach {
-                    it.ownerPublicId = publicId
-                })
-            }
-        }
-    }
+    }*/
 }
 
 object ApiConstants {

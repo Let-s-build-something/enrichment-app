@@ -1,21 +1,16 @@
 package ui.login
 
 import augmy.interactive.shared.ui.base.currentPlatform
-import base.utils.Matrix
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.getResponse
 import data.io.matrix.auth.AuthenticationData
-import data.io.matrix.auth.EmailLoginRequest
 import data.io.matrix.auth.EmailRegistrationRequest
 import data.io.matrix.auth.MatrixAuthenticationPlan
 import data.io.matrix.auth.MatrixAuthenticationResponse
-import data.io.matrix.auth.MatrixIdentifierData
 import data.io.matrix.auth.MatrixRegistrationRequest
 import data.io.matrix.auth.MatrixTokenRequest
 import data.io.matrix.auth.MatrixTokenResponse
 import data.io.matrix.auth.UsernameValidationResponse
-import data.io.user.RequestCreateUser
-import data.io.user.ResponseCreateUser
 import data.shared.SharedRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -30,10 +25,10 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /** Class for calling APIs and remote work in general */
-class LoginRepository(private val httpClient: HttpClient): SharedRepository(httpClient) {
+class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
 
     /** Makes a request to create a user */
-    suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
+    /*suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequest<ResponseCreateUser> {
                 post(
@@ -44,7 +39,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
                 )
             }.success?.data
         }
-    }
+    }*/
 
     /** Retrieves the request token for further registration */
     suspend fun requestRegistrationToken(
@@ -60,7 +55,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
                         MatrixTokenRequest(
                             email = email,
                             clientSecret = secret,
-                            sendAttempts = attempt
+                            sendAttempt = attempt
                         )
                     )
                 }
@@ -77,7 +72,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     ): MatrixAuthenticationResponse? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<MatrixAuthenticationResponse> {
-                httpClient.post(url = Url("https://${address}/_matrix/client/v3/register?kind=user")) {
+                post(url = Url("https://${address}/_matrix/client/v3/register?kind=user")) {
                     setBody(
                         EmailRegistrationRequest(
                             auth = authenticationData,
@@ -95,32 +90,10 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     suspend fun dummyMatrixRegister(address: String): MatrixAuthenticationPlan? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<MatrixAuthenticationPlan> {
-                httpClient.post(url = Url("https://${address}/_matrix/client/v3/register")) {
+                post(url = Url("https://${address}/_matrix/client/v3/register")) {
                     setBody(
                         MatrixRegistrationRequest(
                             initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform"
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    /** Matrix login via email and username */
-    suspend fun loginWithUsername(
-        address: String,
-        identifier: MatrixIdentifierData,
-        password: String?,
-    ): BaseResponse<MatrixAuthenticationResponse> {
-        return withContext(Dispatchers.IO) {
-            httpClient.safeRequest<MatrixAuthenticationResponse> {
-                httpClient.post(url = Url("https://${address}/_matrix/client/v3/login")) {
-                    setBody(
-                        EmailLoginRequest(
-                            identifier = identifier,
-                            initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform",
-                            password = password,
-                            type = Matrix.LOGIN_PASSWORD
                         )
                     )
                 }
@@ -132,7 +105,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     suspend fun dummyMatrixLogin(address: String): MatrixAuthenticationPlan? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<MatrixAuthenticationPlan> {
-                httpClient.get(url = Url("https://${address}/_matrix/client/v3/login"))
+                get(url = Url("https://${address}/_matrix/client/v3/login"))
             }
         }
     }
@@ -144,9 +117,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository(http
     ): UsernameValidationResponse? {
         return withContext(Dispatchers.IO) {
             httpClient.safeRequestError<UsernameValidationResponse> {
-                httpClient.get(
-                    url = Url("https://${address}/_matrix/client/v3/register/available?username=$username")
-                )
+                get(url = Url("https://${address}/_matrix/client/v3/register/available?username=$username"))
             }
         }
     }

@@ -29,6 +29,10 @@ import augmy.composeapp.generated.resources.button_deselect
 import augmy.composeapp.generated.resources.button_invite
 import augmy.composeapp.generated.resources.button_mute
 import augmy.composeapp.generated.resources.button_select_all
+import augmy.composeapp.generated.resources.network_dialog_message_block
+import augmy.composeapp.generated.resources.network_dialog_message_mute
+import augmy.composeapp.generated.resources.network_dialog_title_block
+import augmy.composeapp.generated.resources.network_dialog_title_mute
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
@@ -103,7 +107,9 @@ fun OptionsLayout(
 sealed class OptionsLayoutAction(
     open val textRes: StringResource,
     open val leadingImageVector: ImageVector,
-    open val containerColor: Color? = null
+    open val containerColor: Color? = null,
+    open val title: StringResource? = null,
+    open val message: StringResource? = null
 ) {
     data object SelectAll: OptionsLayoutAction(
         textRes = Res.string.button_select_all,
@@ -119,11 +125,22 @@ sealed class OptionsLayoutAction(
     )
     data object Mute: OptionsLayoutAction(
         textRes = Res.string.button_mute,
+        title = Res.string.network_dialog_title_mute,
+        message = Res.string.network_dialog_message_mute,
+        leadingImageVector = Icons.Outlined.VoiceOverOff,
+        containerColor = SharedColors.RED_ERROR
+    )
+    data object Kick: OptionsLayoutAction(
+        textRes = Res.string.button_mute,
+        title = Res.string.network_dialog_title_mute,
+        message = Res.string.network_dialog_message_mute,
         leadingImageVector = Icons.Outlined.VoiceOverOff,
         containerColor = SharedColors.RED_ERROR
     )
     data object Block: OptionsLayoutAction(
         textRes = Res.string.button_block,
+        title = Res.string.network_dialog_title_block,
+        message = Res.string.network_dialog_message_block,
         leadingImageVector = Icons.Outlined.FaceRetouchingOff,
         containerColor = SharedColors.RED_ERROR.copy(alpha = 0.6f)
     )

@@ -41,7 +41,7 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatrixHomeserverPicker(
-    viewModel: LoginViewModel,
+    viewModel: LoginModel,
     screenType: LoginScreenType,
     homeserver: String,
     onDismissRequest: () -> Unit,
@@ -50,7 +50,7 @@ fun MatrixHomeserverPicker(
     val isLoading = viewModel.isLoading.collectAsState()
     val homeServerResponse = viewModel.homeServerResponse.collectAsState()
     val cancellableScope = rememberCoroutineScope()
-    val isValid = homeServerResponse.value?.state == LoginViewModel.HomeServerState.Valid
+    val isValid = homeServerResponse.value?.state == LoginModel.HomeServerState.Valid
     val homeServerState = remember {
         TextFieldState(
             initialText = if(homeserver != AUGMY_HOME_SERVER && homeserver != MATRIX_HOME_SERVER) homeserver else ""
@@ -184,5 +184,5 @@ fun MatrixHomeserverPicker(
     }
 }
 
-private const val MATRIX_HOME_SERVER = "matrix.org"
+const val MATRIX_HOME_SERVER = "matrix.org"
 const val AUGMY_HOME_SERVER = "homeserver.augmy.org"
