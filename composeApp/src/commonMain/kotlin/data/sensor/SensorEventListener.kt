@@ -37,6 +37,7 @@ interface SensorEventListener {
 
     val id: Int
     val name: String
+    val description: String?
     val maximumRange: Float?
     val resolution: Float?
     var delay: SensorDelay

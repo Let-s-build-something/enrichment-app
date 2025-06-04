@@ -3,6 +3,8 @@ package base.utils
 import android.content.Context
 import android.os.Environment
 import androidx.core.net.toUri
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.path
 import okio.Path.Companion.toOkioPath
 import okio.Sink
 import okio.buffer
@@ -25,10 +27,10 @@ actual fun getDownloadsPath(): String {
     return downloadsDir.absolutePath
 }
 
-actual fun openSinkFromUri(uri: String): Sink {
-    val parsedUri = uri.toUri()
+actual fun PlatformFile.openSinkFromUri(): Sink {
+    val parsedUri = path.toUri()
     val pfd = getKoin().get<Context>().contentResolver.openFileDescriptor(parsedUri, "wa") // append mode
-        ?: throw IOException("Cannot open file descriptor for URI: $uri")
+        ?: throw IOException("Cannot open file descriptor for URI: $parsedUri")
 
     val outputStream = FileOutputStream(pfd.fileDescriptor)
     return outputStream.sink().buffer()

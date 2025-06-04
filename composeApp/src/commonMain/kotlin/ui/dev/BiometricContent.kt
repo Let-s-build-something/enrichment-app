@@ -99,7 +99,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
         val data = sensor.data.collectAsState()
 
         AlertDialog(
-            title = sensor.name,
+            title = sensor.name + if (!sensor.description.isNullOrBlank()) " (${sensor.description})" else "",
             dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
             icon = Icons.Outlined.History,
             onDismissRequest = {
@@ -293,7 +293,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                     ) {
                         Text(
                             modifier = Modifier.padding(start = 8.dp),
-                            text = sensor.name,
+                            text = sensor.name + if (!sensor.description.isNullOrBlank()) " (${sensor.description})" else "",
                             style = LocalTheme.current.styles.category
                         )
                         sensor.maximumRange?.let {

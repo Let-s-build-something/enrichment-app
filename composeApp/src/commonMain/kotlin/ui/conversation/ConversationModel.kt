@@ -107,7 +107,6 @@ open class ConversationModel(
                 )?.let { data ->
                     dataManager.updateConversations { it.apply { this[conversationId] = data } }
                     dataManager.conversations.value.second[conversationId] = data
-                    println("kostka_test, onDataRequest, members: ${data.summary?.members?.size}")
                 }
             }
         }
