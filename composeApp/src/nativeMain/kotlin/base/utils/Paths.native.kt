@@ -1,5 +1,8 @@
 package base.utils
 
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.startAccessingSecurityScopedResource
+import io.github.vinceglb.filekit.stopAccessingSecurityScopedResource
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.Sink
@@ -7,7 +10,6 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
-import platform.Foundation.NSURL
 import platform.Foundation.NSUserDomainMask
 
 actual fun platformPathsModule(): Module = module {
@@ -24,29 +26,21 @@ actual fun platformPathsModule(): Module = module {
     }
 }
 
-actual fun openSinkFromUri(uri: String): Sink {
-    val nsUrl = NSURL.URLWithString(uri)
-        ?: throw IllegalArgumentException("Invalid URL: $uri")
+actual fun PlatformFile.openSinkFromUri(): Sink {
+    val filePath = nsUrl.path ?: throw IllegalArgumentException("Cannot extract file path")
+    val fileIOPath = filePath.toPath()
 
-    val filePath = nsUrl.path ?: throw IllegalArgumentException("Cannot extract file path from URI: $uri")
+    val accessed = startAccessingSecurityScopedResource()
+    println("Security scoped access result: $accessed, uri: $filePath")
 
-    val file = filePath.toPath()
+    val sink = FileSystem.SYSTEM.appendingSink(fileIOPath)
 
-    // Security scoped access (needed if the file is outside sandbox, i.e. user-selected)
-    val accessed = nsUrl.startAccessingSecurityScopedResource()
-    if (!accessed) {
-        println("Failed to access security-scoped resource: $uri")
-    }
-
-    // Wrap with a sink, appending mode
-    val sink = FileSystem.SYSTEM.appendingSink(file)
-
-    // Stop access when the sink is closed (this is important!)
     return object : Sink by sink {
         override fun close() {
             sink.close()
             if (accessed) {
-                nsUrl.stopAccessingSecurityScopedResource()
+                stopAccessingSecurityScopedResource()
+                println("Stopped security scoped access")
             }
         }
     }

@@ -1,9 +1,6 @@
 
-import cocoapods.FirebaseCore.FIRApp
 import cocoapods.FirebaseMessaging.FIRMessaging
 import cocoapods.FirebaseMessaging.FIRMessagingDelegateProtocol
-import cocoapods.GoogleSignIn.GIDConfiguration
-import cocoapods.GoogleSignIn.GIDSignIn
 import data.shared.AppServiceModel
 import koin.commonModule
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -103,11 +100,7 @@ fun onNewNotificationReceived(
 
 @OptIn(ExperimentalForeignApi::class)
 private fun configureFirebase(): Boolean {
-    FIRApp.configure()
-
-    GIDSignIn.sharedInstance.configuration = GIDConfiguration(
-        clientID = FIRApp.defaultApp()?.options?.clientID ?: return false
-    )
+    //FIRApp.configure()
 
     startKoin {
         modules(commonModule)

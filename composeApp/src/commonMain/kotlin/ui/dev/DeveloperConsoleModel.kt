@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -251,44 +252,52 @@ class DeveloperConsoleModel(
     fun stopLocalStream() {
         isLocalStreamRunning.value = false
         localStreamJob?.cancel()
-        sink.close()
+        try {
+            if(::sink.isInitialized) sink.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     lateinit var sink: BufferedSink
     fun setUpLocalStream(file: PlatformFile?) {
-        val path = file?.path
-            //?.removePrefix("file:")
-            //?.removePrefix("content:")
-            //?.replace("%20", " ")
-            ?: return
+        if (file == null) return
 
         viewModelScope.launch {
-            streamingDirectory = path
-            settings.putString(KEY_STREAMING_DIRECTORY, path)
-            isLocalStreamRunning.value = true
+            try {
+                streamingDirectory = file.path
+                settings.putString(KEY_STREAMING_DIRECTORY, streamingDirectory)
+                isLocalStreamRunning.value = true
 
-            localStreamJob = CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    sink = openSinkFromUri(streamingDirectory).buffer()
+                localStreamJob = CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        sink = file.openSinkFromUri().buffer()
 
-                    for (line in streamChannel) {
-                        sink.writeUtf8(line)
-                        sink.writeUtf8("\n")
-                        sink.flush()
-                    }
+                        for (line in streamChannel) {
+                            sink.writeUtf8(line)
+                            sink.writeUtf8("\n")
+                            sink.flush()
+                        }
 
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    if (isLocalStreamRunning.value && this.isActive) setUpLocalStream(file)
-                } finally {
-                    if (::sink.isInitialized) {
-                        try {
-                            sink.close()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        delay(5000)
+                        if (isActive && isLocalStreamRunning.value) {
+                            setUpLocalStream(file)
+                        }
+                    } finally {
+                        if (::sink.isInitialized) {
+                            try {
+                                sink.close()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
                 }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

@@ -35,6 +35,7 @@ private fun Sensor.toSensorEventListener(): SensorEventListener {
 
         override val id: Int = this@toSensorEventListener.id
         override val name: String = this@toSensorEventListener.name
+        override val description: String? = null
         override val maximumRange: Float = this@toSensorEventListener.maximumRange
         override val resolution: Float = this@toSensorEventListener.resolution
         override var delay: SensorDelay = SensorDelay.Slow

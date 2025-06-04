@@ -55,6 +55,7 @@ private fun createRepeatedEventListener(
         override var listener: ((event: SensorEvent) -> Unit)? = null
         override val id: Int = this.hashCode()
         override val name: String = name
+        override val description: String? = null
         override val maximumRange: Float? = null
         override val resolution: Float? = null
         override var delay: SensorDelay = SensorDelay.Slow

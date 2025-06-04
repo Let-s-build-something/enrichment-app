@@ -15,6 +15,7 @@ import org.augmy.macos.getBatteryLevel
 import org.augmy.macos.getForegroundApp
 import org.augmy.macos.getMainDisplayBrightness
 import platform.CoreMotion.CMAltimeter
+import platform.CoreMotion.CMMotionActivityManager
 import platform.CoreMotion.CMMotionManager
 import platform.CoreMotion.CMPedometer
 import platform.Foundation.NSDate
@@ -23,6 +24,7 @@ import platform.Foundation.NSOperationQueue
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
 import platform.UIKit.UIScreen
+
 
 actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener? {
     return null
@@ -38,6 +40,11 @@ enum class SensorType(val description: String? = null) {
     Pressure,
     StepCounter("start date, steps, pace, cadence"),
     Proximity,
+    ActivityRecognition(
+        "stationary/walking/running/automotive/cycling/unknown"
+    ),
+    Attitude,               // New: Euler angles roll, pitch, yaw
+    RelativeAltitude,       // New: explicit relative altitude
     BatteryLevel,
     ForegroundApp,
     ScreenBrightness
@@ -51,12 +58,14 @@ private fun createListener(
         override var data: MutableStateFlow<List<SensorEvent>> = MutableStateFlow(emptyList())
         override var listener: ((event: SensorEvent) -> Unit)? = null
         override val id: Int = type.ordinal
-        override val name: String = type.name + type.description?.let { " ($it)" }
+        override val name: String = type.name
+        override val description: String? = type.description
         override val maximumRange: Float? = null
         override val resolution: Float? = null
         override var delay: SensorDelay = SensorDelay.Slow
 
         private val motionManager = CMMotionManager()
+        private val activityManager = CMMotionActivityManager()
         private val altimeter = CMAltimeter()
         private val pedometer = CMPedometer()
         private val queue = NSOperationQueue.mainQueue
@@ -68,6 +77,63 @@ private fun createListener(
             delay = sensorDelay
 
             when (type) {
+                SensorType.Attitude -> {
+                    motionManager.deviceMotionUpdateInterval = interval
+                    motionManager.startDeviceMotionUpdatesToQueue(queue) { updates, _ ->
+                        updates?.let { data ->
+                            val roll = data.attitude.roll.toFloat()
+                            val pitch = data.attitude.pitch.toFloat()
+                            val yaw = data.attitude.yaw.toFloat()
+                            onSensorChanged(
+                                SensorEvent(
+                                    timestamp = data.timestamp.toLong(),
+                                    values = floatArrayOf(roll, pitch, yaw)
+                                )
+                            )
+                        }
+                    }
+                }
+
+                SensorType.RelativeAltitude -> {
+                    if (CMAltimeter.isRelativeAltitudeAvailable()) {
+                        try {
+                            altimeter.startRelativeAltitudeUpdatesToQueue(queue) { data, _ ->
+                                data?.let {
+                                    val relativeAltitude = it.relativeAltitude.doubleValue.toFloat()
+                                    onSensorChanged(
+                                        SensorEvent(
+                                            values = floatArrayOf(relativeAltitude)
+                                        )
+                                    )
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+                SensorType.ActivityRecognition -> {
+                    if (CMMotionActivityManager.isActivityAvailable()) {
+                        activityManager.startActivityUpdatesToQueue(queue) { activity ->
+                            activity?.let {
+                                // Map activity booleans to floats or an encoded integer
+                                val stationary = if (it.stationary) 0f else -1f
+                                val walking = if (it.walking) 1f else -1f
+                                val running = if (it.running) 2f else -1f
+                                val automotive = if (it.automotive) 3f else -1f
+                                val cycling = if (it.cycling) 4f else -1f
+                                val unknown = if (it.unknown) 5f else -1f
+
+                                onSensorChanged(
+                                    SensorEvent(
+                                        timestamp = NSDate().timeIntervalSinceReferenceDate.toLong(),
+                                        values = floatArrayOf(stationary, walking, running, automotive, cycling, unknown)
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
                 SensorType.Accelerometer -> {
                     motionManager.accelerometerUpdateInterval = interval
                     motionManager.startAccelerometerUpdatesToQueue(queue) { data, _ ->
@@ -253,6 +319,9 @@ private fun createListener(
                 SensorType.StepCounter -> pedometer.stopPedometerUpdates()
                 SensorType.BatteryLevel -> device.setBatteryMonitoringEnabled(false)
                 SensorType.Proximity -> device.setProximityMonitoringEnabled(false)
+                SensorType.Attitude -> motionManager.stopDeviceMotionUpdates()
+                SensorType.RelativeAltitude -> altimeter.stopRelativeAltitudeUpdates()
+                SensorType.ActivityRecognition -> activityManager.stopActivityUpdates()
                 else -> {}
             }
 
@@ -311,6 +380,18 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? = withContext(Dis
     }
     if (getForegroundApp() != null) {
         available += createListener(SensorType.ForegroundApp)
+    }
+
+    if (motionManager.isDeviceMotionAvailable()) {
+        available += createListener(SensorType.Attitude)
+    }
+
+    if (altimeterAvailable) {
+        available += createListener(SensorType.RelativeAltitude)
+    }
+
+    if (CMMotionActivityManager.isActivityAvailable()) {
+        available += createListener(SensorType.ActivityRecognition)
     }
 
     available

@@ -1,5 +1,7 @@
 package base.utils
 
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.path
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.Sink
@@ -16,7 +18,9 @@ actual fun platformPathsModule(): Module = module {
     }
 }
 
-actual fun openSinkFromUri(uri: String): Sink = FileSystem.SYSTEM.appendingSink(uri.toPath()).buffer()
+actual fun PlatformFile.openSinkFromUri(): Sink {
+    return FileSystem.SYSTEM.appendingSink(path.toPath()).buffer()
+}
 
 actual fun getDownloadsPath(): String {
     return when (getOs()) {
