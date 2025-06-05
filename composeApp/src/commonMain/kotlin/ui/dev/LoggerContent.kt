@@ -2,8 +2,11 @@ package ui.dev
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +20,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -48,13 +54,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.input.CustomTextField
+import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
@@ -62,20 +72,18 @@ import base.theme.Colors
 import base.utils.withPlainText
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
-import koin.DeveloperUtils
+import korlibs.logger.Logger
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import utils.DeveloperUtils
 
 @Composable
 internal fun ColumnScope.LoggerContent(
-    model: DeveloperConsoleModel,
+    model: DevelopmentConsoleModel,
     isCompact: Boolean
 ) {
-    val currentUser = model.currentUser.collectAsState()
-    val localSettings = model.localSettings.collectAsState()
-
     val coroutineScope = rememberCoroutineScope()
 
     val selectedTabIndex = rememberSaveable {
@@ -88,8 +96,9 @@ internal fun ColumnScope.LoggerContent(
     )
     val switchThemeState = rememberMultiChoiceState(
         items = mutableListOf(
-            "Information",
-            "HTTP"
+            "General",
+            "Logs",
+            "Http"
         ),
         onSelectionChange = {
             coroutineScope.launch {
@@ -115,168 +124,130 @@ internal fun ColumnScope.LoggerContent(
             .padding(horizontal = 8.dp)
             .padding(end = if(isCompact) 0.dp else 32.dp)
             .weight(1f),
-        state = pagerState,
-        beyondViewportPageCount = 1
+        state = pagerState
     ) { index ->
         when(index) {
-            0 -> {
-                val hostState = remember { TextFieldState(model.hostOverride ?: "") }
+            0 -> GeneralContent(model)
+            1 -> LogsContent(model)
+            2 -> HttpContent(model)
+        }
+    }
+}
 
-                LaunchedEffect(hostState.text) {
-                    model.changeHost(hostState.text)
-                }
+@Composable
+private fun LogsContent(model: DevelopmentConsoleModel) {
+    val coroutineScope = rememberCoroutineScope()
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(
-                        modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
-                        text = "User data",
-                        style = LocalTheme.current.styles.subheading
-                    )
-                    RowInformation(title = "publicId: ", currentUser.value?.publicId)
-                    RowInformation(title = "displayName: ", currentUser.value?.displayName?.plus("#")?.plus(currentUser.value?.tag))
-                    RowInformation(title = "privacy: ", currentUser.value?.configuration?.privacy)
-                    RowInformation(title = "visibility: ", currentUser.value?.configuration?.visibility)
-                    Text(
-                        modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
-                        text = "Matrix",
-                        style = LocalTheme.current.styles.subheading
-                    )
-                    RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
-                    RowInformation(title = "user_id: ", currentUser.value?.matrixUserId)
-                    RowInformation(title = "access_token: ", currentUser.value?.accessToken)
-                    RowInformation(title = "device_id: ", localSettings.value?.deviceId)
-                    RowInformation(title = "pickle_key: ", localSettings.value?.pickleKey)
-                    Text(
-                        modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
-                        text = "Firebase",
-                        style = LocalTheme.current.styles.subheading
-                    )
-                    RowInformation(title = "FCM token: ", localSettings.value?.fcmToken)
+    val logs = model.logData.collectAsState(initial = listOf())
+    val filter = model.logFilter.collectAsState()
 
-                    Spacer(Modifier.height(8.dp))
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        state = rememberLazyListState(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        headers {
+            item {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    val filterState = remember { TextFieldState() }
 
-                    // actions and configuration
-                    Text(
-                        modifier = Modifier
-                            .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
-                        text = "Configuration",
-                        style = LocalTheme.current.styles.subheading
-                    )
-                    RowInformation(title = "Client status: ", localSettings.value?.clientStatus)
-                    RowInformation(title = "Theme: ", localSettings.value?.theme)
-
-                    CustomTextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        hint = "Host, default: ${BuildKonfig.HttpsHostName}",
-                        state = hostState,
-                        isClearable = true,
-                        paddingValues = PaddingValues(start = 16.dp)
-                    )
-
-                    ErrorHeaderButton(
-                        modifier = Modifier
-                            .padding(top = 32.dp)
-                            .fillMaxWidth(),
-                        text = "Delete local data and sign out",
-                        endImageVector = Icons.Outlined.Remove,
-                        onClick = {
-                            model.deleteLocalData()
-                        }
-                    )
-                }
-            }
-            1 -> {
-                val logs = model.httpLogData.collectAsState()
-
-                val filteredLogs = remember {
-                    mutableStateOf<List<DeveloperUtils.HttpCall>>(logs.value.httpCalls)
-                }
-                val isDateAsc = remember {
-                    mutableStateOf(false)
-                }
-                val searchedText = remember {
-                    mutableStateOf("")
-                }
-
-                LaunchedEffect(isDateAsc.value, searchedText.value, logs.value) {
-                    filteredLogs.value = logs.value.httpCalls.filter {
-                        it.url?.contains(searchedText.value) == true
-                                || it.requestBody?.contains(searchedText.value) == true
-                                || it.responseBody?.contains(searchedText.value) == true
-                                || it.method?.value?.contains(searchedText.value) == true
-                                || it.headers?.any { h -> h.contains(searchedText.value) } == true
-                                || it.id.contains(searchedText.value)
-                    }.sortedWith(
-                        if(isDateAsc.value) {
-                            compareBy { it.createdAt }
-                        }else compareByDescending { it.createdAt }
-                    )
-                }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    headers {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                val filterState = remember { TextFieldState() }
-
-                                LaunchedEffect(filterState.text) {
-                                    coroutineScope.coroutineContext.cancelChildren()
-                                    coroutineScope.launch {
-                                        delay(300)
-                                        searchedText.value = filterState.text.toString()
-                                    }
-                                }
-
-                                CustomTextField(
-                                    hint = "Filter anything",
-                                    isClearable = true,
-                                    paddingValues = PaddingValues(start = 16.dp),
-                                    state = filterState
-                                )
-                                SortChip(
-                                    modifier = Modifier.padding(start = 4.dp),
-                                    text = "Date",
-                                    isAsc = isDateAsc.value,
-                                    onClick = {
-                                        isDateAsc.value = !isDateAsc.value
-                                    }
-                                )
-                            }
+                    LaunchedEffect(filterState.text) {
+                        coroutineScope.coroutineContext.cancelChildren()
+                        coroutineScope.launch {
+                            delay(DELAY_BETWEEN_TYPING_SHORT)
+                            model.filterLogs(filterState.text.toString())
                         }
                     }
-                    items(
-                        filteredLogs.value,
-                        key = { it.id }
+
+                    CustomTextField(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        hint = "Filter anything",
+                        isClearable = true,
+                        paddingValues = PaddingValues(start = 16.dp),
+                        state = filterState
+                    )
+
+                    val levelsState = rememberScrollState()
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .fillMaxWidth()
+                            .horizontalScroll(levelsState)
+                            .draggable(levelsState, orientation = Orientation.Horizontal),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        HttpDetail(
-                            modifier = Modifier.animateItem(),
-                            log = it
+                        Spacer(Modifier.width(8.dp))
+                        SortChip(
+                            text = "Date",
+                            isAsc = filter.value.second,
+                            onClick = {
+                                model.filterLogs(isAsc = !filter.value.second)
+                            }
                         )
-                        if(filteredLogs.value.size - 1 != index) {
-                            Divider(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = LocalTheme.current.colors.disabledComponent,
-                                thickness = .3.dp
+                        Logger.Level.entries.forEach { level ->
+                            CheckChip(
+                                text = level.name,
+                                isChecked = filter.value.third == level,
+                                onClick = {
+                                    model.filterLogs(
+                                        level = if (filter.value.third == level) null else level
+                                    )
+                                }
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                }
+            }
+        }
+
+        itemsIndexed(
+            items = logs.value,
+            key = { index, item -> item.timestamp }
+        ) { index, log ->
+            if (log.message != null) {
+                val backgroundColor = when(log.level) {
+                    Logger.Level.FATAL, Logger.Level.ERROR -> SharedColors.RED_ERROR_50
+                    Logger.Level.WARN -> SharedColors.YELLOW_50
+                    else -> LocalTheme.current.colors.backgroundLight
+                }
+
+                Column(modifier = Modifier.animateItem()) {
+                    Row(
+                        modifier = Modifier
+                            .padding(1.dp)
+                            .background(
+                                color = backgroundColor,
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                            .padding(vertical = 2.dp, horizontal = 4.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(.3f),
+                            text = log.level.name,
+                            style = LocalTheme.current.styles.category
+                        )
+                        SelectionContainer {
+                            Text(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .weight(.7f),
+                                text = log.message.toString(),
+                                style = LocalTheme.current.styles.regular
                             )
                         }
                     }
-                    item {
-                        Spacer(Modifier.height(16.dp))
+                    if(index != logs.value.lastIndex) {
+                        Divider(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = LocalTheme.current.colors.disabledComponent,
+                            thickness = .3.dp
+                        )
                     }
                 }
             }
@@ -285,19 +256,181 @@ internal fun ColumnScope.LoggerContent(
 }
 
 @Composable
+private fun GeneralContent(model: DevelopmentConsoleModel) {
+    val currentUser = model.currentUser.collectAsState()
+    val localSettings = model.localSettings.collectAsState()
+
+    val hostState = remember { TextFieldState(model.hostOverride ?: "") }
+
+    LaunchedEffect(hostState.text) {
+        model.changeHost(hostState.text)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
+            text = "User data",
+            style = LocalTheme.current.styles.subheading
+        )
+        RowInformation(title = "publicId: ", currentUser.value?.publicId)
+        RowInformation(title = "displayName: ", currentUser.value?.displayName?.plus("#")?.plus(currentUser.value?.tag))
+        RowInformation(title = "privacy: ", currentUser.value?.configuration?.privacy)
+        RowInformation(title = "visibility: ", currentUser.value?.configuration?.visibility)
+        Text(
+            modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
+            text = "Matrix",
+            style = LocalTheme.current.styles.subheading
+        )
+        RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
+        RowInformation(title = "user_id: ", currentUser.value?.matrixUserId)
+        RowInformation(title = "access_token: ", currentUser.value?.accessToken)
+        RowInformation(title = "device_id: ", localSettings.value?.deviceId)
+        RowInformation(title = "pickle_key: ", localSettings.value?.pickleKey)
+        Text(
+            modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
+            text = "Firebase",
+            style = LocalTheme.current.styles.subheading
+        )
+        RowInformation(title = "FCM token: ", localSettings.value?.fcmToken)
+
+        Spacer(Modifier.height(8.dp))
+
+        // actions and configuration
+        Text(
+            modifier = Modifier
+                .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
+            text = "Configuration",
+            style = LocalTheme.current.styles.subheading
+        )
+        RowInformation(title = "Client status: ", localSettings.value?.clientStatus)
+        RowInformation(title = "Theme: ", localSettings.value?.theme)
+
+        CustomTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            hint = "Host, default: ${BuildKonfig.HttpsHostName}",
+            state = hostState,
+            isClearable = true,
+            paddingValues = PaddingValues(start = 16.dp)
+        )
+
+        val showDeleteDialog = remember {
+            mutableStateOf(false)
+        }
+        if(showDeleteDialog.value) {
+            AlertDialog(
+                title = "Do you know what you're doing?",
+                message = AnnotatedString("This may make your app a bit unfunctional before the app acquires all the necessary data to function again."),
+                onDismissRequest = {
+                    showDeleteDialog.value = true
+                }
+            )
+        }
+
+        ErrorHeaderButton(
+            modifier = Modifier
+                .padding(top = 32.dp)
+                .fillMaxWidth(),
+            text = "Delete local data and sign out",
+            endImageVector = Icons.Outlined.Remove,
+            onClick = {
+                model.deleteLocalData()
+            }
+        )
+    }
+}
+
+@Composable
+private fun HttpContent(model: DevelopmentConsoleModel) {
+    val coroutineScope = rememberCoroutineScope()
+
+    val logs = model.httpLogData.collectAsState(initial = listOf())
+    val filter = model.httpLogFilter.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        headers {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val filterState = remember { TextFieldState() }
+
+                    LaunchedEffect(filterState.text) {
+                        coroutineScope.coroutineContext.cancelChildren()
+                        coroutineScope.launch {
+                            delay(DELAY_BETWEEN_TYPING_SHORT)
+                            model.filterHttpLogs(filterState.text.toString())
+                        }
+                    }
+
+                    CustomTextField(
+                        modifier = Modifier.weight(1f),
+                        hint = "Filter anything",
+                        isClearable = true,
+                        paddingValues = PaddingValues(start = 16.dp),
+                        state = filterState
+                    )
+                    SortChip(
+                        text = "Date",
+                        isAsc = filter.value.second,
+                        onClick = {
+                            model.filterHttpLogs(isAsc = !filter.value.second)
+                        }
+                    )
+                }
+            }
+        }
+        itemsIndexed(
+            items = logs.value,
+            key = { _, item -> item.id }
+        ) { index, item ->
+            HttpDetail(
+                modifier = Modifier.animateItem(),
+                log = item
+            )
+            if(index != logs.value.lastIndex) {
+                Divider(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = LocalTheme.current.colors.disabledComponent,
+                    thickness = .3.dp
+                )
+            }
+        }
+        item {
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
 private fun SortChip(
     modifier: Modifier = Modifier,
     text: String,
-    isAsc: Boolean,
+    isAsc: Boolean?,
     onClick: () -> Unit
 ) {
     Row(
         modifier = modifier
-            .background(color = LocalTheme.current.colors.tetrial)
             .scalingClickable {
                 onClick()
             }
-            .padding(vertical = 2.dp, horizontal = 6.dp),
+            .background(
+                color = LocalTheme.current.colors.tetrial,
+                shape = LocalTheme.current.shapes.componentShape
+            )
+            .padding(vertical = 2.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -307,13 +440,49 @@ private fun SortChip(
                 color = LocalTheme.current.colors.brandMainDark
             )
         )
-        Crossfade(isAsc) { asc ->
-            Icon(
-                imageVector = if(asc) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = LocalTheme.current.colors.brandMainDark
-            )
+        if(isAsc != null) {
+            Crossfade(isAsc) { asc ->
+                Icon(
+                    imageVector = if(asc) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = LocalTheme.current.colors.brandMainDark
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun CheckChip(
+    modifier: Modifier = Modifier,
+    text: String,
+    isChecked: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = animateColorAsState(
+        targetValue = if(isChecked) LocalTheme.current.colors.brandMainDark else LocalTheme.current.colors.tetrial
+    )
+    val contentColor = animateColorAsState(
+        targetValue = if(isChecked) LocalTheme.current.colors.tetrial else LocalTheme.current.colors.brandMainDark
+    )
+
+    Row(
+        modifier = modifier
+            .scalingClickable {
+                onClick()
+            }
+            .background(
+                color = backgroundColor.value,
+                shape = LocalTheme.current.shapes.componentShape
+            )
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = text,
+            style = LocalTheme.current.styles.regular.copy(color = contentColor.value)
+        )
     }
 }
 

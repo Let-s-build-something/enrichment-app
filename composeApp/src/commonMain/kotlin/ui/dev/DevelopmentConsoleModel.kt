@@ -13,7 +13,7 @@ import data.sensor.getAllSensors
 import data.shared.SharedModel
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
-import koin.DeveloperUtils
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -38,37 +39,27 @@ import okio.SYSTEM
 import okio.buffer
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import utils.DeveloperUtils
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val developerConsoleModule = module {
-    single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
-    factory { DeveloperRepository() }
+    single<DevelopmentConsoleDataManager> { DevelopmentConsoleDataManager() }
+    factory { DevelopmentConsoleRepository() }
     factory {
-        DeveloperConsoleModel(
+        DevelopmentConsoleModel(
             get(),
             get()
         )
     }
-    viewModelOf(::DeveloperConsoleModel)
+    viewModelOf(::DevelopmentConsoleModel)
 }
 
-class DeveloperConsoleDataManager {
-
-    /** developer console size */
-    val developerConsoleSize = MutableStateFlow(0f)
-
-    /** Log information for past or ongoing http calls */
-    val httpLogData = MutableStateFlow(DeveloperUtils.HttpLogData())
-
-    /** Current host override if there is any */
-    val hostOverride = MutableStateFlow<String?>(null)
-}
 
 /** Shared viewmodel for developer console */
-class DeveloperConsoleModel(
-    private val dataManager: DeveloperConsoleDataManager,
-    private val repository: DeveloperRepository
+class DevelopmentConsoleModel(
+    private val dataManager: DevelopmentConsoleDataManager,
+    private val repository: DevelopmentConsoleRepository
 ): SharedModel() {
     private val _streamingUrlResponse = MutableStateFlow<BaseResponse<*>>(BaseResponse.Idle)
     private val _availableSensors = MutableStateFlow(listOf<SensorEventListener>())
@@ -86,8 +77,39 @@ class DeveloperConsoleModel(
     /** developer console size */
     val developerConsoleSize = dataManager.developerConsoleSize.asStateFlow()
 
+    val httpLogFilter = dataManager.httpLogFilter.asStateFlow()
+
     /** log data associated with this apps' http calls */
-    val httpLogData = dataManager.httpLogData.asStateFlow()
+    val httpLogData = dataManager.httpLogData.combine(dataManager.httpLogFilter) { logs, filter ->
+        (if (filter.first.isBlank()) {
+            logs.httpCalls
+        }else logs.httpCalls.filter {
+            it.url?.contains(filter.first) == true
+                    || it.requestBody?.contains(filter.first) == true
+                    || it.responseBody?.contains(filter.first) == true
+                    || it.method?.value?.contains(filter.first) == true
+                    || it.headers?.any { h -> h.contains(filter.first) } == true
+                    || it.id.contains(filter.first)
+        }).sortedWith(
+            if(filter.second) {
+                compareBy { it.createdAt }
+            }else compareByDescending { it.createdAt }
+        )
+    }
+
+    val logFilter = dataManager.logFilter.asStateFlow()
+
+    /** log data associated with this apps' http calls */
+    internal val logData = dataManager.logs.combine(dataManager.logFilter) { logs, filter ->
+        logs.filter {
+            (filter.first.isBlank() || it.message?.toString()?.contains(filter.first) == true)
+                    && (filter.third == null || it.level == filter.third)
+        }.sortedWith(
+            if(filter.second) {
+                compareBy { it.timestamp }
+            }else compareByDescending { it.timestamp }
+        )
+    }
 
     /** Current host override if there is any */
     val hostOverride
@@ -123,6 +145,23 @@ class DeveloperConsoleModel(
                 }
             }
         }
+    }
+
+    /** Searches for the input string in the body and headers and sorts the data set */
+    fun filterHttpLogs(
+        input: String = dataManager.httpLogFilter.value.first,
+        isAsc: Boolean = dataManager.httpLogFilter.value.second
+    ) {
+        dataManager.httpLogFilter.value = input to isAsc
+    }
+
+    /** Searches for the input string in the body and headers and sorts the data set */
+    fun filterLogs(
+        input: String = dataManager.logFilter.value.first,
+        isAsc: Boolean = dataManager.logFilter.value.second,
+        level: Logger.Level? = dataManager.logFilter.value.third
+    ) {
+        dataManager.logFilter.value = Triple(input, isAsc, level)
     }
 
     /** Changes the state of the developer console */

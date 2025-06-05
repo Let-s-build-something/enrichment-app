@@ -29,7 +29,7 @@ import net.folivo.trixnity.core.serialization.events.EventContentSerializerMappi
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.audio.mediaProcessorModule
-import ui.dev.DeveloperConsoleModel
+import ui.dev.DevelopmentConsoleModel
 import ui.dev.developerConsoleModule
 import ui.home.homeModule
 import ui.login.LoginDataManager
@@ -80,7 +80,7 @@ internal val commonModule = module {
     single<HttpClient> {
         httpClientFactory(
             sharedModel = get<SharedModel>(),
-            developerViewModel = if(BuildKonfig.isDevelopment) get<DeveloperConsoleModel>() else null,
+            developerViewModel = if(BuildKonfig.isDevelopment) get<DevelopmentConsoleModel>() else null,
             json = get<Json>(),
             authService = get<AuthService>()
         )

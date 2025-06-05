@@ -79,14 +79,14 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-internal fun BiometricContent(model: DeveloperConsoleModel) {
+internal fun BiometricContent(model: DevelopmentConsoleModel) {
     StreamingSection(model)
 
     DashboardSection(model)
 }
 
 @Composable
-private fun DashboardSection(model: DeveloperConsoleModel) {
+private fun DashboardSection(model: DevelopmentConsoleModel) {
     val sensorListState = rememberLazyListState()
     val availableSensors = model.availableSensors.collectAsState()
     val activeSensors = model.activeSensors.collectAsState()
@@ -386,7 +386,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
 }
 
 @Composable
-private fun StreamingSection(model: DeveloperConsoleModel) {
+private fun StreamingSection(model: DevelopmentConsoleModel) {
     val streamingUrlResponse = model.streamingUrlResponse.collectAsState()
 
     val streamingUrlState = remember(model) {

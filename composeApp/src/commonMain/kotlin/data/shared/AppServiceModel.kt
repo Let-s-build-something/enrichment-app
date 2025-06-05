@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import utils.SharedLogger
 
 internal val appServiceModule = module {
     single<AppServiceDataManager> { AppServiceDataManager() }
@@ -107,6 +108,8 @@ class AppServiceModel(
                 MimeType("image/webp", listOf("webp"))
             )
             initUser()
+            SharedLogger.init()
+            SharedLogger.logger.debug { "App initialized" }
         }
     }
 

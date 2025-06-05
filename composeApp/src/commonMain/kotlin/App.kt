@@ -73,7 +73,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.dev.DeveloperContent
+import ui.dev.DevelopmentConsoleContent
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -216,8 +216,10 @@ private fun AppContent(
                     scope.launch {
                         if(snackbarHost?.showSnackbar(
                                 message = getString(Res.string.hard_logout_message),
-                                actionLabel = getString(Res.string.hard_logout_action)
-                            ) == SnackbarResult.ActionPerformed) {
+                                actionLabel = getString(Res.string.hard_logout_action),
+                                withDismissAction = true,
+                            ) == SnackbarResult.ActionPerformed
+                        ) {
                             navController.navigate(NavigationNode.Login())
                         }
                     }
@@ -288,7 +290,7 @@ private fun AppContent(
 
     Column {
         if(isPhone) {
-            if(BuildKonfig.isDevelopment) DeveloperContent(
+            if(BuildKonfig.isDevelopment) DevelopmentConsoleContent(
                 modifier = Modifier.statusBarsPadding(),
             )
             InformationPopUps()
@@ -300,7 +302,7 @@ private fun AppContent(
             InformationPopUps()
             InformationLines(sharedModel = model)
             Row {
-                if(BuildKonfig.isDevelopment) DeveloperContent()
+                if(BuildKonfig.isDevelopment) DevelopmentConsoleContent()
                 Box {
                     NavigationHost(navController = navController)
                 }

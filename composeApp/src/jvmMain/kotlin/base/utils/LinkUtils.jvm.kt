@@ -1,6 +1,7 @@
 package base.utils
 
 import data.io.social.network.conversation.message.MediaIO
+import utils.SharedLogger
 import java.awt.Desktop
 import java.io.File
 import java.io.IOException
@@ -23,11 +24,11 @@ actual fun openLink(link: String): Boolean {
             Desktop.getDesktop().browse(URI(link.replace(" ", "")))
             true
         }catch (e: Exception) { // Jvm is very sensitive to incorrect links
-            println("Error opening URL: ${e.message}")
+            SharedLogger.logger.error { "Error opening URL: ${e.message}" }
             false
         }
     }else {
-        println("Desktop is not supported. Cannot open URL.")
+        SharedLogger.logger.error { "Desktop is not supported. Cannot open URL." }
         false
     }
 }
@@ -50,7 +51,7 @@ actual fun downloadFiles(data: Map<MediaIO, ByteArray>): Boolean {
             Files.createDirectories(filePath.parent)
             Files.write(filePath, data, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
         } catch (e: IOException) {
-            println("Error saving file: ${e.message}")
+            SharedLogger.logger.error { "Error saving file: ${e.message}" }
             result = false
         }
     }

@@ -2,7 +2,6 @@ package database.factory
 
 import data.io.app.SecureSettingsKeys.KEY_DB_KEY
 import data.io.app.SecureSettingsKeys.SECRET_BYTE_ARRAY_KEY_KEY
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.decodeBase64Bytes
 import io.ktor.util.encodeBase64
 import koin.SecureAppSettings
@@ -21,8 +20,7 @@ import net.folivo.trixnity.crypto.core.encryptAesHmacSha2
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
-
-private val log = KotlinLogging.logger {}
+import utils.SharedLogger
 
 @Serializable
 sealed interface SecretByteArray {
@@ -136,7 +134,10 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
             }else existingKey
         } catch (exc: Exception) {
             exc.printStackTrace()
-            log.error(exc) { "Cannot read or set secret ('$SECRET_BYTE_ARRAY_KEY_KEY')." }
+            SharedLogger.logger.error {
+                "Cannot read or set secret ('$SECRET_BYTE_ARRAY_KEY_KEY')." +
+                        "\n${exc.message} - ${exc.cause}"
+            }
             null
         }
     }
@@ -179,7 +180,7 @@ class GetSecretByteArrayKeyBase: GetSecretByteArrayKey {
     }
 
     private suspend fun createKey(sizeOnCreate: Int): ByteArray {
-        log.debug { "there is no SecretByteArrayKey yet, generate new one" }
+        SharedLogger.logger.debug { "there is no SecretByteArrayKey yet, generate new one" }
         val newKey = SecureRandom.nextBytes(sizeOnCreate)
         val secretByteArrayKey = convert(newKey, getSecretByteArrayKeyKey(sizeOnCreate))
         setSecretByteArrayKeyInSettings(secretByteArrayKey)

@@ -208,8 +208,8 @@ fun Modifier.onMouseScroll(
 
 /** Makes a horizontally scrollable layout draggable for desktop */
 fun Modifier.draggable(
-    orientation: Orientation = Orientation.Vertical,
-    state: ScrollState
+    state: ScrollState,
+    orientation: Orientation = Orientation.Vertical
 ) = composed {
     if(LocalIsMouseUser.current) {
         val coroutineScope = rememberCoroutineScope()
