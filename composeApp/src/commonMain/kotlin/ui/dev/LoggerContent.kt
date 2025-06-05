@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -205,7 +206,7 @@ private fun LogsContent(model: DevelopmentConsoleModel) {
 
         itemsIndexed(
             items = logs.value,
-            key = { index, item -> item.timestamp }
+            key = { index, item -> item.uid }
         ) { index, log ->
             if (log.message != null) {
                 val backgroundColor = when(log.level) {
@@ -228,7 +229,9 @@ private fun LogsContent(model: DevelopmentConsoleModel) {
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            modifier = Modifier.weight(.3f),
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .padding(end = 4.dp),
                             text = log.level.name,
                             style = LocalTheme.current.styles.category
                         )
@@ -236,7 +239,8 @@ private fun LogsContent(model: DevelopmentConsoleModel) {
                             Text(
                                 modifier = Modifier
                                     .padding(2.dp)
-                                    .weight(.7f),
+                                    .weight(1f)
+                                    .fillMaxWidth(),
                                 text = log.message.toString(),
                                 style = LocalTheme.current.styles.regular
                             )

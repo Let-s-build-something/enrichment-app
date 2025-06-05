@@ -27,6 +27,7 @@ import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.login.AUGMY_HOME_SERVER
+import utils.SharedLogger
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedModel: ViewModel() {
@@ -77,6 +78,7 @@ open class SharedModel: ViewModel() {
         authService.setupAutoLogin(forceRefresh = false)
         updateClientSettings()
 
+        SharedLogger.logger.debug { "initUser, user: ${currentUser.value}" }
         return currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
     }
 

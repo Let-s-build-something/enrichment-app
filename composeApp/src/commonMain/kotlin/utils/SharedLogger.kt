@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import org.koin.mp.KoinPlatform
 import ui.dev.DevelopmentConsoleDataManager
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 object SharedLogger {
     val logger = Logger("Augmy")
@@ -44,6 +45,7 @@ object SharedLogger {
     internal data class LoggerMessage @OptIn(ExperimentalUuidApi::class) constructor(
         val level: Logger.Level,
         val message: Any?,
-        val timestamp: Long = DateUtils.now.toEpochMilliseconds()
+        val timestamp: Long = DateUtils.now.toEpochMilliseconds(),
+        val uid: String = Uuid.random().toString()
     )
 }

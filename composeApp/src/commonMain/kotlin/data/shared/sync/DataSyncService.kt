@@ -17,6 +17,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -93,7 +94,7 @@ class DataSyncService {
         if(isRunning) {
             handler.stop()
             isRunning = false
-            syncScope.coroutineContext.cancelChildren()
+            if(syncScope.isActive) syncScope.coroutineContext.cancelChildren()
         }
     }
 

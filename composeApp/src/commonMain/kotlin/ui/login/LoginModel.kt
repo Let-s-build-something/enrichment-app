@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -413,16 +414,17 @@ class LoginModel(
     }
 
     /** Authenticates user with a token */
-    private fun initUserObject() {
+    private suspend fun initUserObject() {
         _matrixAuthResponse.value?.accessToken?.let { accessToken ->
             val initialUser = UserIO(
                 accessToken = accessToken,
                 matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
             )
             sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
-            viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
             }
+            _loginResult.emit(LoginResultType.SUCCESS)
         }
     }
 }

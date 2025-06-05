@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -290,12 +291,12 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 
-    if(showNameChangeLauncher.value) {
+    if (showNameChangeLauncher.value) {
         DisplayNameChangeLauncher {
             showNameChangeLauncher.value = false
         }
     }
-    if(showPictureChangeDialog.value) {
+    if (showPictureChangeDialog.value) {
         DialogPictureChange(
             onDismissRequest = {
                 showPictureChangeDialog.value = false
@@ -307,7 +308,8 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
         UserProfileImage(
             modifier = Modifier
                 .zIndex(5f)
-                .fillMaxWidth(.4f),
+                .fillMaxWidth(.4f)
+                .aspectRatio(1f),
             media = MediaIO(url = currentUser.value?.avatarUrl),
             tag = currentUser.value?.tag,
             name = currentUser.value?.displayName
@@ -345,7 +347,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
                 },
             text = buildAnnotatedString {
                 append(currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty))
-                if(currentUser.value?.tag != null) {
+                if (currentUser.value?.tag != null) {
                     withStyle(SpanStyle(color = LocalTheme.current.colors.disabled)) {
                         append("#${currentUser.value?.tag}")
                     }
