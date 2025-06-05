@@ -3,6 +3,7 @@ package base.global.verification
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
@@ -18,6 +20,7 @@ import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.material.icons.outlined.Verified
@@ -25,14 +28,12 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -43,11 +44,13 @@ import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.device_verification_bootstrap_title
 import augmy.composeapp.generated.resources.device_verification_confirm
 import augmy.composeapp.generated.resources.device_verification_match
 import augmy.composeapp.generated.resources.device_verification_no_match
 import augmy.composeapp.generated.resources.device_verification_other_device
+import augmy.composeapp.generated.resources.device_verification_other_request
 import augmy.composeapp.generated.resources.device_verification_passphrase
 import augmy.composeapp.generated.resources.device_verification_passphrase_error
 import augmy.composeapp.generated.resources.device_verification_passphrase_hint
@@ -63,10 +66,11 @@ import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.OutlinedButton
-import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
+import augmy.interactive.shared.ui.components.ProgressPressableContainer
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import kotlinx.coroutines.launch
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -78,44 +82,61 @@ import ui.login.AUGMY_HOME_SERVER
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceVerificationLauncher(
-    modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    ) { value -> value != SheetValue.Hidden || BuildKonfig.isDevelopment }
-) {
+fun DeviceVerificationLauncher(modifier: Modifier = Modifier) {
     loadKoinModules(verificationModule)
     val model: DeviceVerificationModel = koinViewModel()
     val launcherState = model.launcherState.collectAsState()
 
-    if(launcherState.value is LauncherState.Hidden) return
-
-    SimpleModalBottomSheet(
-        modifier = modifier.animateContentSize(),
-        sheetState = sheetState,
-        contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp, bottom = 12.dp
-        ),
-        onDismissRequest = {
-            if(BuildKonfig.isDevelopment) model.cancel(restart = false, manual = false)
-        }
+    AnimatedVisibility(
+       visible = launcherState.value !is LauncherState.Hidden
     ) {
-        Crossfade(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            targetState = launcherState.value
-        ) { state ->
-            when(state) {
-                is LauncherState.SelfVerification -> SelfVerification(
-                    model = model,
-                    state = state
-                )
-                is LauncherState.ComparisonByUser -> ComparisonByUser(
-                    model = model,
-                    launcherState = state
-                )
-                is LauncherState.Success -> Success()
-                is LauncherState.Bootstrap -> Bootstrap(model)
-                else -> {}
+        Column(
+            modifier = modifier
+                .animateContentSize()
+                .fillMaxWidth()
+                .background(color = LocalTheme.current.colors.backgroundDark)
+        ) {
+            if (BuildKonfig.isDevelopment) {
+                ProgressPressableContainer(
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = 16.dp)
+                        .requiredSize(36.dp),
+                    onFinish = {
+                        model.cancel(manual = true)
+                    },
+                    trackColor = LocalTheme.current.colors.disabled,
+                    progressColor = LocalTheme.current.colors.secondary
+                ) {
+                    Icon(
+                        modifier = Modifier.size(32.dp),
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = stringResource(Res.string.button_dismiss),
+                        tint = LocalTheme.current.colors.secondary
+                    )
+                }
+            }
+            Crossfade(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                targetState = launcherState.value
+            ) { state ->
+                when(state) {
+                    is LauncherState.SelfVerification -> SelfVerification(
+                        model = model,
+                        state = state
+                    )
+                    is LauncherState.ComparisonByUser -> ComparisonByUser(
+                        model = model,
+                        launcherState = state
+                    )
+                    is LauncherState.TheirRequest -> TheirRequestContent(
+                        model = model,
+                        launcherState = state
+                    )
+                    is LauncherState.Success -> Success()
+                    is LauncherState.Bootstrap -> Bootstrap(model)
+                    else -> {}
+                }
             }
         }
     }
@@ -373,6 +394,49 @@ private fun SelfVerification(
                 style = LocalTheme.current.styles.regular
             )
         }
+    }
+}
+
+@Composable
+fun TheirRequestContent(
+    model: DeviceVerificationModel,
+    launcherState: LauncherState.TheirRequest
+) {
+    // TODO ability to choose way to confirm the device - QR code should be added, maybe just an improvement task?
+    val isLoading = model.isLoading.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .padding(bottom = 24.dp)
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 32.dp),
+            text = stringResource(Res.string.device_verification_other_request),
+            style = LocalTheme.current.styles.subheading
+        )
+        BrandHeaderButton(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            text = stringResource(
+                when {
+                    isLoading.value -> Res.string.accessibility_cancel
+                    else -> Res.string.button_confirm
+                }
+            ),
+            isLoading = isLoading.value,
+            onClick = {
+                if(isLoading.value) {
+                    model.cancel()
+                }else coroutineScope.launch {
+                    launcherState.onReady()
+                }
+            }
+        )
     }
 }
 

@@ -21,7 +21,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
 import net.folivo.trixnity.client.MatrixClient
+import net.folivo.trixnity.clientserverapi.model.users.Filters
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.Presence
 import org.koin.dsl.module
@@ -40,6 +42,7 @@ class DataSyncService {
 
     companion object {
         const val SYNC_INTERVAL = 60_000L
+        private const val STATE_LIMIT = 20L
         private const val START_ANEW = false // for debug use
     }
 
@@ -47,6 +50,7 @@ class DataSyncService {
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val json: Json by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
@@ -124,6 +128,13 @@ class DataSyncService {
 
         logger.debug { "enqueue, entityId: ${homeserver}_$owner" }
         client.api.sync.start(
+            filter = json.encodeToString(
+                Filters.RoomFilter.RoomEventFilter(
+                    lazyLoadMembers = true,
+                    limit = STATE_LIMIT,
+                    includeRedundantMembers = false
+                )
+            ),
             timeout = SYNC_INTERVAL.milliseconds,
             asUserId = UserId(owner),
             setPresence = when(sharedDataManager.currentUser.value?.configuration?.visibility) {
@@ -133,7 +144,9 @@ class DataSyncService {
             },
             scope = this,
             getBatchToken = {
-                (currentBatch ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch)
+                (currentBatch ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch).also {
+                    logger.debug { "getBatchToken: $it, entityId: ${homeserver}_$owner" }
+                }
             },
             setBatchToken = { nextBatch ->
                 this@DataSyncService.nextBatch = nextBatch

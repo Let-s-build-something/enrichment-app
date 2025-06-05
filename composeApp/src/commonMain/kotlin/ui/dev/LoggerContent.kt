@@ -103,7 +103,7 @@ internal fun ColumnScope.LoggerContent(
         ),
         onSelectionChange = {
             coroutineScope.launch {
-                pagerState.animateScrollToPage(it)
+                pagerState.scrollToPage(it)
             }
         },
         selectedTabIndex = selectedTabIndex

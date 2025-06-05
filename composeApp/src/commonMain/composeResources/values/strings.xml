@@ -214,6 +214,7 @@
   <string name="device_verification_send_info_2">Please confirm the request on the other device</string>
   <string name="device_verification_send">Send</string>
   <string name="device_verification_other_device">Verify with other device</string>
+  <string name="device_verification_other_request">Other device has request confirmation</string>
   <string name="device_verification_passphrase">Enter PIN</string>
   <string name="device_verification_success">Successfully verified! 🥳</string>
   <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>

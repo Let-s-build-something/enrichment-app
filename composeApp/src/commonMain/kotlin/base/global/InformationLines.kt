@@ -34,6 +34,7 @@ import augmy.composeapp.generated.resources.no_connection_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.global.verification.DeviceVerificationLauncher
 import base.theme.Colors
 import components.notification.InfoHintBox
 import data.shared.SharedModel
@@ -67,6 +68,8 @@ fun ColumnScope.InformationLines(
     ) {
         MissingDisplayNameLine()
     }
+
+    DeviceVerificationLauncher()
 }
 
 @OptIn(ExperimentalResourceApi::class)

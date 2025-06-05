@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -48,8 +49,15 @@ data class ComparisonByUserData(
 }
 
 sealed class LauncherState {
+    var selfTransactionId: String? = null
+
     class SelfVerification(
         val methods: List<SelfVerificationMethod>
+    ): LauncherState()
+
+    class TheirRequest(
+        val methods: Set<VerificationMethod>,
+        val onReady: () -> Unit
     ): LauncherState()
 
     data object Bootstrap : LauncherState()
@@ -58,7 +66,6 @@ sealed class LauncherState {
         val data: ComparisonByUserData,
         val senderDeviceId: String
     ) : LauncherState()
-
     data object Success: LauncherState()
     data object Hidden: LauncherState()
 }
@@ -195,7 +202,12 @@ class DeviceVerificationModel: SharedModel() {
                 }
                 is SelfVerificationMethod.CrossSignedDeviceVerification -> {
                     method.createDeviceVerification().getOrNullLoggingError().let {
-                        logger.debug { "verifySelf, ${it?.theirDeviceId}" }
+                        _launcherState.update { prev ->
+                            prev.apply {
+                                selfTransactionId = it?.transactionId
+                            }
+                        }
+                        logger.debug { "verifySelf, theirDeviceId: ${it?.theirDeviceId}, transactionId: ${it?.transactionId}" }
                         if(it == null) isLoading.value = false
                     }
                 }
@@ -212,12 +224,20 @@ class DeviceVerificationModel: SharedModel() {
                         content.methods.forEach { method ->
                             when(method) {
                                 Sas -> {
-                                    logger.debug { "marking Sas as ready" }
-                                    state.ready()
-                                    /*startSasVerification(
-                                        client = client,
-                                        transactionId = content.transactionId
-                                    )*/
+                                    if (_launcherState.value.selfTransactionId == content.transactionId) {
+                                        logger.debug { "marking Sas as ready" }
+                                        state.ready()
+                                    } else {
+                                        _launcherState.value = LauncherState.TheirRequest(
+                                            methods = content.methods,
+                                            onReady = {
+                                                isLoading.value = true
+                                                viewModelScope.launch {
+                                                    state.ready()
+                                                }
+                                            }
+                                        )
+                                    }
                                 }
                                 is VerificationMethod.Unknown -> {
                                 }
@@ -230,6 +250,7 @@ class DeviceVerificationModel: SharedModel() {
                 when(val method = state.method) {
                     is ActiveSasVerificationMethod -> {
                         method.state.collectLatest { sasState ->
+                            logger.debug { "ActiveSasVerificationMethod, sasState: $sasState" }
                             when(sasState) {
                                 is ActiveSasVerificationState.ComparisonByUser -> {
                                     _launcherState.value = LauncherState.ComparisonByUser(
@@ -247,10 +268,10 @@ class DeviceVerificationModel: SharedModel() {
                                     isLoading.value = false
                                 }
                                 is ActiveSasVerificationState.TheirSasStart -> {
-                                    logger.debug { "accepting Their Sas" }
-                                    (_launcherState.value as? LauncherState.SelfVerification)?.let {
-                                        /*if(state.senderDeviceId == it.senderDeviceId) {
-                                        }*/
+                                    if (_launcherState.value is LauncherState.SelfVerification
+                                        || (_launcherState.value is LauncherState.TheirRequest && isLoading.value)
+                                    ) {
+                                        logger.debug { "accepting Their Sas" }
                                         sasState.accept()
                                     }
                                 }
