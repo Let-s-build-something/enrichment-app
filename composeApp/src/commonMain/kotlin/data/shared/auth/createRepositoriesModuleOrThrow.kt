@@ -49,6 +49,7 @@ class MatrixClientFactory(
         credentials: AuthItem,
         deviceId: String?
     ): MatrixClient? {
+        SharedLogger.logger.debug { "initializeMatrixClient, userId: ${credentials.userId}, hasPassword: ${credentials.databasePassword != null}" }
         return if(credentials.userId != null) {
             (if(credentials.databasePassword != null) {
                 MatrixClient.fromStore(

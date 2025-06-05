@@ -1,5 +1,6 @@
 package data.shared.auth
 
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
@@ -27,6 +28,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.Url
 import koin.InterceptingEngine
 import koin.SecureAppSettings
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -48,7 +50,6 @@ import net.folivo.trixnity.core.model.UserId
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
-import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -61,7 +62,7 @@ internal val authModule = module {
  * The DAO informs us of all users on the device, whereas secure settings stores the credentials of the last login.
  */
 class AuthService {
-    private val logger = SharedLogger.logger
+    private val logger = Logger("AuthService")
 
     private val _httpClient by lazy { KoinPlatform.getKoin().inject<HttpClient>() }
     private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
@@ -94,9 +95,11 @@ class AuthService {
         const val TOKEN_REFRESH_THRESHOLD_MS = 2_000L
     }
 
-    suspend fun getDeviceId() = dataManager.localSettings.value?.deviceId ?: koin.secureSettings.getString(
+    suspend fun getDeviceId() = dataManager.localSettings.value?.deviceId ?: (secureSettings.getString(
         SecureSettingsKeys.KEY_DEVICE_ID, ""
-    ).takeIf { it.isNotBlank() } ?: generateDeviceId()
+    ).takeIf { it.isNotBlank() } ?: generateDeviceId()).also { newDeviceId ->
+        dataManager.localSettings.update { it?.copy(deviceId = newDeviceId) }
+    }
 
     val awaitingAutologin: Boolean
         get() = secureSettings.hasKey(SecureSettingsKeys.KEY_CREDENTIALS)
@@ -107,22 +110,30 @@ class AuthService {
                 retrieveCredentials().also {
                     logger.debug { "getLoginInfo, isFullyValid: ${it?.isFullyValid}" }
                 }?.let { credentials ->
-                    val deviceId = dataManager.localSettings.value?.deviceId
                     if (credentials.accessToken != null
                         //&& credentials.refreshToken != null TODO some homeservers do not support refresh tokens
                         && credentials.userId != null
-                        && deviceId != null
                     ) {
                         Result.success(
                             LoginInfo(
                                 userId = UserId(credentials.userId),
-                                deviceId = deviceId,
+                                deviceId = getDeviceId(),
                                 accessToken = credentials.accessToken,
                                 refreshToken = credentials.refreshToken
                             )
                         )
-                    } else Result.failure(Throwable())
-                } ?: Result.failure(Throwable())
+                    } else {
+                        logger.error {
+                            "MatrixClientFactory.getLoginInfo, invalid credentials; accessToken: ${credentials.accessToken}, userId: ${credentials.userId}"
+                        }
+                        Result.failure(Throwable())
+                    }
+                }.ifNull {
+                    logger.error {
+                        "MatrixClientFactory.getLoginInfo, credentials is null"
+                    }
+                    Result.failure(Throwable())
+                }
             },
             httpClientEngine = InterceptingEngine(
                 engine = KoinPlatform.getKoin().get(),
@@ -199,19 +210,17 @@ class AuthService {
         ).takeIf { it.isNotBlank() }
     }
 
-    val userId: String? = secureSettings.getStringOrNull(
-        key = SecureSettingsKeys.KEY_USER_ID
-    )
+    val userId: String?
+        get() = secureSettings.getStringOrNull(key = SecureSettingsKeys.KEY_USER_ID)
 
-    val avatarUrl: String? = secureSettings.getStringOrNull(
-        key = SecureSettingsKeys.KEY_AVATAR_URL
-    )
+    val avatarUrl: String?
+        get() = secureSettings.getStringOrNull(key = SecureSettingsKeys.KEY_AVATAR_URL)
 
     private suspend fun retrieveCredentials(): AuthItem? {
         return withContext(Dispatchers.IO) {
             secureSettings.getString(
                 key = SecureSettingsKeys.KEY_CREDENTIALS,
-                ""
+                defaultValue = ""
             ).takeIf { it.isNotBlank() }?.let { res ->
                 val decoded = json.decodeFromString<AuthItem>(res)
                 val userId = userId
@@ -252,14 +261,15 @@ class AuthService {
         token: String?,
         identifier: MatrixIdentifierData? = null,
         response: MatrixAuthenticationResponse? = null
-    ) {
+    ): AuthItem {
         val user = dataManager.currentUser.value
 
-        withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             val previous = retrieveCredentials()
             val userId = response?.userId ?: identifier?.user ?: previous?.userId
             val server = homeserver ?: response?.homeserver ?: previous?.homeserver
             val accessToken = response?.accessToken ?: previous?.accessToken
+            val pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString()
 
             val credentials = AuthItem(
                 accessToken = accessToken,
@@ -275,7 +285,7 @@ class AuthService {
                 loginType = identifier?.type ?: previous?.loginType,
                 medium = identifier?.medium ?: previous?.medium,
                 address = identifier?.address ?: previous?.address,
-                pickleKey = previous?.pickleKey ?: getPickleKey(userId) ?: Uuid.random().toString(),
+                pickleKey = pickleKey,
                 displayName = user?.displayName ?: previous?.displayName,
                 publicId = user?.publicId ?: previous?.publicId,
                 configuration = user?.configuration ?: previous?.configuration,
@@ -288,20 +298,18 @@ class AuthService {
                 key = SecureSettingsKeys.KEY_CREDENTIALS,
                 json.encodeToString(credentials)
             )
-            if(credentials.userId != null) {
+            if(userId != null) {
                 secureSettings.putString(
                     key = SecureSettingsKeys.KEY_USER_ID,
-                    value = credentials.userId
+                    value = userId
                 )
-            }
-            if(credentials.pickleKey != null) {
                 secureSettings.putString(
-                    key = "${SecureSettingsKeys.KEY_PICKLE_KEY}_${credentials.userId}",
-                    value = credentials.pickleKey
+                    key = "${SecureSettingsKeys.KEY_PICKLE_KEY}_$userId",
+                    value = pickleKey
                 )
             }
-            val newCredentials = retrieveCredentials()
-            logger.debug { "credentials after caching: $newCredentials" }
+
+            credentials
         }
     }
 
@@ -438,8 +446,8 @@ class AuthService {
                     )
                 }
             }.also {
-                it.success?.data?.let { response ->
-                    cacheCredentials(
+                val auth = it.success?.data?.let { response ->
+                    val auth = cacheCredentials(
                         response = response,
                         identifier = identifier ?: MatrixIdentifierData(
                             address = "${it.success?.data?.userId?.replace("@", "")?.replace(":", "@")}"
@@ -448,16 +456,16 @@ class AuthService {
                         password = password ?: it.success?.data?.userId?.toSha256(),
                         token = token
                     )
-                    initializeMatrixClient()
-
+                    initializeMatrixClient(auth = auth)
                     coroutineScope {
                         if(isRunning) stop()
                         if(setupAutoLogin) setupAutoLogin()
                     }
+                    auth
                 }
 
                 if(setupAutoLogin && dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
-                    retrieveCredentials()?.let { credentials ->
+                    (auth ?: retrieveCredentials())?.let { credentials ->
                         if(dataManager.currentUser.value?.matrixUserId == null) {
                             updateUser(credentials = credentials)
                         }
@@ -491,6 +499,9 @@ class AuthService {
 
     private suspend fun initializeMatrixClient(auth: AuthItem? = null) {
         val credentials = auth ?: retrieveCredentials() ?: return
+        if(credentials.userId == null) {
+            logger.error { "Couldn't initiate Matrix client: Missing user id, credentials: $credentials" }
+        }
 
         if(dataManager.matrixClient.value == null) {
             dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
