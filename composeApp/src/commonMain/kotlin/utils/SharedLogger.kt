@@ -26,7 +26,7 @@ object SharedLogger {
             if(BuildKonfig.isDevelopment) {
                 developmentConsoleDataManager?.value?.logs?.update {
                     it.toMutableList().apply {
-                        add(0, LoggerMessage(level = level, message = msg))
+                        add(0, LoggerMessage(level = level, message = "${logger.name}: $msg"))
                     }
                 }
                 DefaultLogOutput.output(logger, level, msg)

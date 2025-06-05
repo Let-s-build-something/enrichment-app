@@ -232,13 +232,15 @@ private fun LogsContent(model: DevelopmentConsoleModel) {
                             text = log.level.name,
                             style = LocalTheme.current.styles.category
                         )
-                        Text(
-                            modifier = Modifier
-                                .padding(2.dp)
-                                .weight(.7f),
-                            text = log.message.toString(),
-                            style = LocalTheme.current.styles.regular
-                        )
+                        SelectionContainer {
+                            Text(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .weight(.7f),
+                                text = log.message.toString(),
+                                style = LocalTheme.current.styles.regular
+                            )
+                        }
                     }
                     if(index != logs.value.lastIndex) {
                         Divider(
