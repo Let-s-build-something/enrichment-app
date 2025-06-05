@@ -14,6 +14,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.core.model.RoomId
+import utils.SharedLogger
 
 class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
 
@@ -74,7 +75,7 @@ class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
                     )
                     invalidateSource()
                 }?.onFailure {
-                    println("kostka_test, ${it.message}")
+                    SharedLogger.logger.debug { "Invitation accept failed: $it" }
                 }
             }else {
                 client?.api?.room?.leaveRoom(roomId = RoomId(roomId))?.onSuccess {

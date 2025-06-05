@@ -6,7 +6,6 @@ import base.utils.speedInMbps
 import data.shared.SharedModel
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -34,12 +33,12 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.MatrixServerException
 import org.koin.mp.KoinPlatform
-import ui.dev.DeveloperConsoleModel
+import ui.dev.DevelopmentConsoleModel
+import utils.DeveloperUtils
+import utils.SharedLogger
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-
-private val log = KotlinLogging.logger {}
 
 internal expect fun httpClient(): HttpClient
 
@@ -47,7 +46,7 @@ internal expect fun httpClient(): HttpClient
 @OptIn(ExperimentalUuidApi::class)
 internal fun httpClientFactory(
     sharedModel: SharedModel,
-    developerViewModel: DeveloperConsoleModel?,
+    developerViewModel: DevelopmentConsoleModel?,
     authService: AuthService,
     json: Json
 ): HttpClient {
@@ -74,13 +73,13 @@ internal fun httpClientFactory(
         install(HttpRequestRetry) {
             retryIf { httpRequest, httpResponse ->
                 (httpResponse.status == HttpStatusCode.TooManyRequests)
-                    .also { if (it) log.warn { "rate limit exceeded for ${httpRequest.method} ${httpRequest.url}" } }
+                    .also { if (it) SharedLogger.logger.warn { "rate limit exceeded for ${httpRequest.method} ${httpRequest.url}" } }
             }
             retryOnExceptionIf { _, throwable ->
                 (throwable is MatrixServerException && throwable.statusCode == HttpStatusCode.TooManyRequests)
                     .also {
                         if (it) {
-                            log.warn(if (log.isDebugEnabled()) throwable else null) { "rate limit exceeded" }
+                            SharedLogger.logger.warn { (if(SharedLogger.logger.isDebugEnabled) "${throwable.message} - ${throwable.cause}" else "") + ": rate limit exceeded" }
                         }
                     }
             }
@@ -129,7 +128,7 @@ internal fun httpClientFactory(
 }
 
 fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
-    val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
+    val developerViewModel = KoinPlatform.getKoin().getOrNull<DevelopmentConsoleModel>()
 
     install(Logging) {
         logger = Logger.DEFAULT

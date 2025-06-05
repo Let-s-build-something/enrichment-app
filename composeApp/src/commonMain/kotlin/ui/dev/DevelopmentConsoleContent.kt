@@ -63,9 +63,9 @@ private enum class ConsoleSection(val imageVector: ImageVector) {
 }
 
 @Composable
-fun DeveloperContent(modifier: Modifier = Modifier) {
+fun DevelopmentConsoleContent(modifier: Modifier = Modifier) {
     loadKoinModules(developerConsoleModule)
-    val model: DeveloperConsoleModel = koinViewModel()
+    val model: DevelopmentConsoleModel = koinViewModel()
 
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current

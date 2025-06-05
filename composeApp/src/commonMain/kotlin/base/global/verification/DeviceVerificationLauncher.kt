@@ -85,7 +85,7 @@ fun DeviceVerificationLauncher(
     ) { value -> value != SheetValue.Hidden || BuildKonfig.isDevelopment }
 ) {
     loadKoinModules(verificationModule)
-    val model: VerificationModel = koinViewModel()
+    val model: DeviceVerificationModel = koinViewModel()
     val launcherState = model.launcherState.collectAsState()
 
     if(launcherState.value is LauncherState.Hidden) return
@@ -122,7 +122,7 @@ fun DeviceVerificationLauncher(
 }
 
 @Composable
-private fun Bootstrap(model: VerificationModel) {
+private fun Bootstrap(model: DeviceVerificationModel) {
     val isLoading = model.isLoading.collectAsState()
 
     val passphraseState = remember { TextFieldState() }
@@ -229,7 +229,7 @@ private fun Success() {
 
 @Composable
 private fun SelfVerification(
-    model: VerificationModel,
+    model: DeviceVerificationModel,
     state: LauncherState.SelfVerification
 ) {
     val isLoading = model.isLoading.collectAsState()
@@ -378,7 +378,7 @@ private fun SelfVerification(
 
 @Composable
 private fun ComparisonByUser(
-    model: VerificationModel,
+    model: DeviceVerificationModel,
     launcherState: LauncherState.ComparisonByUser
 ) {
     val isLoading = model.isLoading.collectAsState()

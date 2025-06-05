@@ -21,7 +21,6 @@ import data.shared.SharedDataManager
 import data.shared.sync.DataService
 import data.shared.sync.DataSyncService
 import database.factory.SecretByteArray
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -49,6 +48,7 @@ import net.folivo.trixnity.core.model.UserId
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -61,7 +61,7 @@ internal val authModule = module {
  * The DAO informs us of all users on the device, whereas secure settings stores the credentials of the last login.
  */
 class AuthService {
-    private val logger = KotlinLogging.logger(name = "AuthServiceLogger")
+    private val logger = SharedLogger.logger
 
     private val _httpClient by lazy { KoinPlatform.getKoin().inject<HttpClient>() }
     private val _dataManager by lazy { KoinPlatform.getKoin().inject<SharedDataManager>() }
@@ -184,7 +184,7 @@ class AuthService {
                     }
                     // something's missing, we gotta get all the info first
                     else -> {
-                        println("setupAutoLogin -> login. AccessToken: ${credentials.accessToken}")
+                        logger.debug { "setupAutoLogin -> login. AccessToken: ${credentials.accessToken}" }
                         if(loginWithCredentials()) setupAutoLogin(forceRefresh = false)
                     }
                 }

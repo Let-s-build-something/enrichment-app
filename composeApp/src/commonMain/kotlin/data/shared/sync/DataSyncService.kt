@@ -9,8 +9,8 @@ import data.shared.SharedDataManager
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.MatrixPagingMetaDao
-import io.github.oshai.kotlinlogging.KotlinLogging
 import korlibs.io.async.onCancel
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -35,7 +35,7 @@ internal val dataSyncModule = module {
 }
 
 class DataSyncService {
-    private val logger = KotlinLogging.logger(name = "DataSyncServiceLogger")
+    private val logger = Logger("DataSyncService")
 
     companion object {
         const val SYNC_INTERVAL = 60_000L

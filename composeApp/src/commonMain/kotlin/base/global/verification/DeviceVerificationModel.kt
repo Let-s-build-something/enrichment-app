@@ -34,7 +34,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 internal val verificationModule = module {
-    viewModelOf(::VerificationModel)
+    viewModelOf(::DeviceVerificationModel)
 }
 
 data class ComparisonByUserData(
@@ -63,18 +63,19 @@ sealed class LauncherState {
     data object Hidden: LauncherState()
 }
 
-class VerificationModel: SharedModel() {
-    val isLoading = MutableStateFlow(false)
-    private val _launcherState = MutableStateFlow<LauncherState>(LauncherState.Hidden)
-    private val _verificationResult = MutableStateFlow<Result<Unit>?>(null)
-
-    val launcherState = _launcherState.asStateFlow()
-    val verificationResult = _verificationResult.asStateFlow()
+class DeviceVerificationModel: SharedModel() {
+    private val logger = korlibs.logger.Logger("DeviceVerification")
+    private val supportedMethods = setOf(Sas)
+    private val keyVerificationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var hasActiveSubscribers = false
 
-    private val supportedMethods = setOf(Sas)
-    private val keyVerificationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val _launcherState = MutableStateFlow<LauncherState>(LauncherState.Hidden)
+    private val _verificationResult = MutableStateFlow<Result<Unit>?>(null)
+    val isLoading = MutableStateFlow(false)
+    val launcherState = _launcherState.asStateFlow()
+
+    val verificationResult = _verificationResult.asStateFlow()
 
     init {
         subscribe()
@@ -94,12 +95,12 @@ class VerificationModel: SharedModel() {
 
                     keyVerificationScope.launch {
                         client.key.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { keys ->
-                            println("kostka_test, crossSigningKeys: $keys")
+                            logger.debug { "crossSigningKeys: $keys" }
                         }
                     }
                     keyVerificationScope.launch {
                         client.key.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { trust ->
-                            println("kostka_test, trustLevel: $trust")
+                            logger.debug { "trustLevel: $trust" }
                         }
                     }
                 }
@@ -115,7 +116,7 @@ class VerificationModel: SharedModel() {
     private fun subscribeToVerificationMethods(client: MatrixClient) {
         keyVerificationScope.launch {
             client.verification.getSelfVerificationMethods().collectLatest { verification ->
-                println("kostka_test, selfVerificationMethods: $verification")
+                logger.debug { "selfVerificationMethods: $verification" }
                 when(verification) {
                     is VerificationService.SelfVerificationMethods.AlreadyCrossSigned -> {
                         if(_launcherState.value !is LauncherState.Hidden && _launcherState.value !is LauncherState.Success) {
@@ -123,7 +124,7 @@ class VerificationModel: SharedModel() {
                         }
                     }
                     is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
-                        println("kostka_test, selfVerificationMethod, methods: ${verification.methods.map { it::class }}")
+                        logger.debug { "selfVerificationMethod, methods: ${verification.methods.map { it::class }}" }
 
                         _launcherState.value = if(verification.methods.isEmpty()) {
                             LauncherState.Bootstrap
@@ -194,7 +195,7 @@ class VerificationModel: SharedModel() {
                 }
                 is SelfVerificationMethod.CrossSignedDeviceVerification -> {
                     method.createDeviceVerification().getOrNullLoggingError().let {
-                        println("kostka_test, verifySelf, ${it?.theirDeviceId}")
+                        logger.debug { "verifySelf, ${it?.theirDeviceId}" }
                         if(it == null) isLoading.value = false
                     }
                 }
@@ -203,7 +204,7 @@ class VerificationModel: SharedModel() {
     }
 
     private suspend fun onActiveState(state: ActiveVerificationState) {
-        println("kostka_test, onActiveState: $state")
+        logger.debug { "onActiveState: $state" }
         when(state) {
             is ActiveVerificationState.TheirRequest -> {
                 when(val content = state.content) {
@@ -211,7 +212,7 @@ class VerificationModel: SharedModel() {
                         content.methods.forEach { method ->
                             when(method) {
                                 Sas -> {
-                                    println("kostka_test, marking Sas as ready")
+                                    logger.debug { "marking Sas as ready" }
                                     state.ready()
                                     /*startSasVerification(
                                         client = client,
@@ -246,7 +247,7 @@ class VerificationModel: SharedModel() {
                                     isLoading.value = false
                                 }
                                 is ActiveSasVerificationState.TheirSasStart -> {
-                                    println("kostka_test, sasState accept")
+                                    logger.debug { "accepting Their Sas" }
                                     (_launcherState.value as? LauncherState.SelfVerification)?.let {
                                         /*if(state.senderDeviceId == it.senderDeviceId) {
                                         }*/
@@ -258,14 +259,14 @@ class VerificationModel: SharedModel() {
                                 is ActiveSasVerificationState.WaitForKeys -> {}
                                 ActiveSasVerificationState.WaitForMacs -> {}
                             }
-                            println("kostka_test, sasState: $sasState")
+                            logger.debug { "sasState: $sasState" }
                         }
                     }
                 }
             }
             is ActiveVerificationState.Ready -> {
                 state.methods.firstOrNull { supportedMethods.contains(it) }?.let { method ->
-                    println("kostka_test, NOT starting $method")
+                    logger.debug { "NOT starting $method" }
                     //state.start(method)
                 }
             }
@@ -299,20 +300,20 @@ class VerificationModel: SharedModel() {
         return sharedDataManager.matrixClient.value?.key?.bootstrapCrossSigningFromPassphrase(
             passphrase = passphrase
         )?.result?.getOrThrow()?.let { result ->
-            println("kostka_test, bootstrap result: $result")
+            logger.debug { "bootstrap result: $result" }
             processBootstrapResult(result)
         }
     }
 
     private suspend fun <T>processBootstrapResult(result: UIA<T>, count: Int = 0): UIA<out Any?> {
-        println("kostka_test, processBootstrapResult: $result")
+        logger.debug { "processBootstrapResult: $result" }
         return when(result) {
             is UIA.Step -> {
                 authService.createLoginRequest()?.let { request ->
-                    println("kostka_test, auth request: $request, count: $count")
+                    logger.debug { "auth request: $request, count: $count" }
                     if(count < 3) {
                         result.authenticate(request).getOrNullLoggingError()?.let { res ->
-                            println("kostka_test, auth res: $res")
+                            logger.debug { "auth res: $res" }
                             processBootstrapResult(result = res, count = count + 1)
                         }
                     }else result

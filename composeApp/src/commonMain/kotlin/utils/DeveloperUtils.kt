@@ -1,4 +1,4 @@
-package koin
+package utils
 
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
@@ -12,6 +12,7 @@ import io.ktor.http.content.TextContent
 import io.ktor.http.encodedPath
 import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.peek
+import koin.IdToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -58,9 +59,9 @@ object DeveloperUtils {
     private suspend fun formatJson(jsonString: String): String {
         return withContext(Dispatchers.Default) {
             try {
-                val jsonElement: JsonElement = Json.parseToJsonElement(jsonString)
+                val jsonElement: JsonElement = Json.Default.parseToJsonElement(jsonString)
                 json.encodeToString(jsonElement)
-            }catch (_: Exception) {
+            } catch (_: Exception) {
                 jsonString
             }
         }
@@ -72,11 +73,11 @@ object DeveloperUtils {
             var id: String? = null
 
             request.headers.entries().toList().sortedBy { it.key }.forEach { (key, values) ->
-                val placeholder = if(key == HttpHeaders.Authorization || key == IdToken) {
+                val placeholder = if (key == HttpHeaders.Authorization || key == IdToken) {
                     values.firstOrNull()?.take(4) + "..." + values.firstOrNull()?.takeLast(4)
                 } else null
                 headers.add("$key: ${placeholder ?: values.joinToString("; ")}")
-                if(key == HttpHeaders.XRequestId) id = values.firstOrNull()
+                if (key == HttpHeaders.XRequestId) id = values.firstOrNull()
             }
 
             HttpCall(
@@ -95,11 +96,11 @@ object DeveloperUtils {
             var id: String? = null
 
             request.headers.entries().toList().sortedBy { it.key }.forEach { (key, values) ->
-                val placeholder = if(key == HttpHeaders.Authorization || key == IdToken) {
+                val placeholder = if (key == HttpHeaders.Authorization || key == IdToken) {
                     values.firstOrNull()?.take(4) + "..." + values.firstOrNull()?.takeLast(4)
                 } else null
                 headers.add("$key: ${placeholder ?: values.joinToString("; ")}")
-                if(key == HttpHeaders.XRequestId) id = values.firstOrNull()
+                if (key == HttpHeaders.XRequestId) id = values.firstOrNull()
             }
 
             HttpCall(
@@ -134,7 +135,9 @@ object DeveloperUtils {
         return withContext(Dispatchers.Default) {
             HttpCall(
                 id = id,
-                responseBody = formatJson((response.body as? ByteChannel)?.peek(10000)?.decodeToString() ?: ""),
+                responseBody = formatJson(
+                    (response.body as? ByteChannel)?.peek(10000)?.decodeToString() ?: ""
+                ),
                 responseSeconds = response.responseTime.seconds - response.requestTime.seconds,
                 responseCode = response.statusCode.value
             )

@@ -15,8 +15,8 @@ import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.matrix.RoomMemberDao
-import io.github.oshai.kotlinlogging.KotlinLogging
 import korlibs.io.util.getOrNullLoggingError
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -66,7 +66,7 @@ abstract class MessageProcessor {
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
 
     protected val decryptionScope = CoroutineScope(Dispatchers.Default)
-    private val logger = KotlinLogging.logger(name = "MessageProcessor")
+    private val logger = Logger(name = "MessageProcessor")
 
     data class SaveEventsResult(
         val messages: List<ConversationMessageIO>,

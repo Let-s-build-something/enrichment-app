@@ -2,7 +2,6 @@ package koin
 
 import base.utils.NetworkSpeed
 import base.utils.speedInMbps
-import ui.dev.DeveloperConsoleModel
 import data.shared.SharedDataManager
 import data.shared.SharedModel
 import data.shared.auth.AuthService
@@ -15,6 +14,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.utils.io.InternalAPI
 import kotlinx.coroutines.CoroutineDispatcher
 import org.koin.mp.KoinPlatform
+import ui.dev.DevelopmentConsoleModel
+import utils.DeveloperUtils
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
@@ -32,7 +33,7 @@ class InterceptingEngine(
     override val supportedCapabilities = engine.supportedCapabilities
 
     private var forceRefreshCountdown = 3
-    private val developerModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
+    private val developerModel = KoinPlatform.getKoin().getOrNull<DevelopmentConsoleModel>()
     private val sharedModel = KoinPlatform.getKoin().get<SharedModel>()
 
     @OptIn(ExperimentalUuidApi::class)
