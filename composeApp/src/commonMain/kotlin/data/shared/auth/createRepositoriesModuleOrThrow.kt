@@ -63,7 +63,9 @@ class MatrixClientFactory(
                     },
                 ).getOrNullLoggingError()
             }else null) ?: MatrixClient.loginWith(
-                baseUrl = Url("https://${credentials.homeserver}"),
+                baseUrl = Url("https://${credentials.homeserver}").also {
+                    SharedLogger.logger.debug { "MatrixClient.loginWith, baseUrl: $it" }
+                },
                 getLoginInfo = {
                     getLoginInfo(it)
                 },

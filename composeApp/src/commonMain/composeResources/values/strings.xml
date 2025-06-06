@@ -205,7 +205,8 @@
   <string name="device_verification_title">You need to verify yourself🗝️👀</string>
   <string name="device_verification_title_passphrase">Create a new PIN</string>
   <string name="device_verification_title_other_device">Use your PIN</string>
-  <string name="device_verification_title_emojis">Do the emoji match the other device, in the same order?</string>
+  <string name="device_verification_loading">Request is being processed...</string>
+  <string name="device_verification_title_emojis">Confirm the emoji below are displayed on both devices, in the same order:</string>
   <string name="device_verification_title_decimal">Do the numbers match the other device, in the same order?</string>
   <string name="device_verification_no_match">They don't match</string>
   <string name="device_verification_match">They are the same</string>
@@ -213,8 +214,9 @@
   <string name="device_verification_send_info">Sends a verification request to your (✅ verified) device 📬</string>
   <string name="device_verification_send_info_2">Please confirm the request on the other device</string>
   <string name="device_verification_send">Send</string>
+  <string name="device_verification_canceled">Device verification request canceled.</string>
   <string name="device_verification_other_device">Verify with other device</string>
-  <string name="device_verification_other_request">Other device has request confirmation</string>
+  <string name="device_verification_other_request">A newly signed in device is requesting a confirmation</string>
   <string name="device_verification_passphrase">Enter PIN</string>
   <string name="device_verification_success">Successfully verified! 🥳</string>
   <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>
@@ -241,6 +243,7 @@
   <string name="button_confirm">Confirm</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
+  <string name="button_reject">Reject</string>
   <string name="button_invite">Invite</string>
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
@@ -272,6 +275,9 @@
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+  <string name="accessibility_device_apple">Apple device</string>
+  <string name="accessibility_device_jvm">Desktop device</string>
+  <string name="accessibility_device_android">Android device</string>
   <string name="accessibility_add_new_member">Add new member</string>
   <string name="accessibility_show_password">Show password</string>
   <string name="accessibility_hide_password">Hide password</string>

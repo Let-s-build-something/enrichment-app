@@ -1,6 +1,6 @@
 package base.global
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -55,21 +55,26 @@ fun ColumnScope.InformationLines(
     val currentUser = sharedModel.currentUser.collectAsState()
 
 
-    // no stable internet connection
-    AnimatedVisibility(networkConnectivity.value?.isStable == false) {
-        NoConnectionLine()
-    }
-
-    // missing display name
-    AnimatedVisibility(
-        currentUser.value != null
-                && currentUser.value?.displayName == null
-                && !sharedModel.awaitingAutologin
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
     ) {
-        MissingDisplayNameLine()
-    }
+        // no stable internet connection
+        if (networkConnectivity.value?.isStable == false) {
+            NoConnectionLine()
+        }
 
-    DeviceVerificationLauncher()
+        // missing display name
+        if (currentUser.value != null
+            && currentUser.value?.displayName == null
+            && !sharedModel.awaitingAutologin
+        ) {
+            MissingDisplayNameLine()
+        }
+
+        DeviceVerificationLauncher()
+    }
 }
 
 @OptIn(ExperimentalResourceApi::class)

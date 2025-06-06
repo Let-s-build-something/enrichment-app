@@ -3,20 +3,22 @@ package base.global.verification
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
 import data.shared.SharedModel
-import korlibs.io.async.onCancel
 import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.none
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.key
@@ -27,7 +29,6 @@ import net.folivo.trixnity.client.verification.ActiveVerificationState
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import net.folivo.trixnity.client.verification.VerificationService
 import net.folivo.trixnity.clientserverapi.client.UIA
-import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod.Sas
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationRequestToDeviceEventContent
@@ -56,7 +57,7 @@ sealed class LauncherState {
     ): LauncherState()
 
     class TheirRequest(
-        val methods: Set<VerificationMethod>,
+        val fromDevice: String,
         val onReady: () -> Unit
     ): LauncherState()
 
@@ -67,7 +68,12 @@ sealed class LauncherState {
         val senderDeviceId: String
     ) : LauncherState()
     data object Success: LauncherState()
+    data object Loading: LauncherState()
     data object Hidden: LauncherState()
+    data object Canceled: LauncherState()
+
+    val isFinished: Boolean
+        get() = this is Hidden || this is Canceled || this is Success
 }
 
 class DeviceVerificationModel: SharedModel() {
@@ -86,8 +92,9 @@ class DeviceVerificationModel: SharedModel() {
 
     init {
         subscribe()
-        viewModelScope.coroutineContext.onCancel {
-            runBlocking { clear() }
+        viewModelScope.launch {
+            awaitCancellation()
+            clear()
         }
     }
 
@@ -95,39 +102,36 @@ class DeviceVerificationModel: SharedModel() {
         hasActiveSubscribers = true
         keyVerificationScope.coroutineContext.cancelChildren()
 
-        keyVerificationScope.launch {
-            sharedDataManager.matrixClient.collectLatest {
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Lazily).collectLatest {
                 it?.let { client ->
                     subscribeToVerificationMethods(client = client)
-
-                    keyVerificationScope.launch {
-                        client.key.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { keys ->
-                            logger.debug { "crossSigningKeys: $keys" }
-                        }
-                    }
-                    keyVerificationScope.launch {
-                        client.key.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: "")).collectLatest { trust ->
-                            logger.debug { "trustLevel: $trust" }
-                        }
-                    }
                 }
             }
         }
     }
 
+    fun hide() {
+        _launcherState.value = LauncherState.Hidden
+    }
+
     fun clear() {
+        logger.debug { "clear()" }
         cancel(restart = false)
         keyVerificationScope.coroutineContext.cancelChildren()
     }
 
     private fun subscribeToVerificationMethods(client: MatrixClient) {
-        keyVerificationScope.launch {
-            client.verification.getSelfVerificationMethods().collectLatest { verification ->
+        viewModelScope.launch {
+            client.verification.getSelfVerificationMethods().shareIn(this, SharingStarted.Eagerly).collectLatest { verification ->
                 logger.debug { "selfVerificationMethods: $verification" }
                 when(verification) {
                     is VerificationService.SelfVerificationMethods.AlreadyCrossSigned -> {
-                        if(_launcherState.value !is LauncherState.Hidden && _launcherState.value !is LauncherState.Success) {
-                            _launcherState.value = LauncherState.Hidden
+                        if (_launcherState.value !is LauncherState.Hidden
+                            && _launcherState.value !is LauncherState.Success
+                            && _launcherState.value.selfTransactionId != null
+                        ) {
+                            clear()
                         }
                     }
                     is VerificationService.SelfVerificationMethods.CrossSigningEnabled -> {
@@ -141,41 +145,52 @@ class DeviceVerificationModel: SharedModel() {
                     }
                     is VerificationService.SelfVerificationMethods.NoCrossSigningEnabled -> {
                         // TODO #86c2y7krb this is how we recognize a new user
-                        _launcherState.value = LauncherState.Bootstrap
+                        if (_launcherState.value.isFinished) {
+                            _launcherState.value = LauncherState.Bootstrap
+                        }
                     }
                     else -> {}
                 }
             }
         }
         keyVerificationScope.launch {
-            client.verification.activeDeviceVerification.collectLatest { deviceVerification ->
-                keyVerificationScope.launch {
-                    deviceVerification?.state?.collectLatest { state ->
-                        onActiveState(state)
+            client.verification.activeDeviceVerification
+                .shareIn(this, SharingStarted.Eagerly)
+                .collectLatest { deviceVerification ->
+                    keyVerificationScope.launch {
+                        deviceVerification?.state?.collectLatest { state ->
+                            onActiveState(state)
+                        }
                     }
                 }
-            }
         }
     }
 
     fun cancel(restart: Boolean = true, manual: Boolean = true) {
+        logger.debug { "cancel()" }
         viewModelScope.launch {
             hasActiveSubscribers = false
             if(manual) {
-                sharedDataManager.matrixClient.value?.verification?.activeDeviceVerification?.value?.cancel()
+                matrixClient?.verification?.activeDeviceVerification?.value?.cancel()
             }
             keyVerificationScope.coroutineContext.cancelChildren()
             isLoading.value = false
+            val state = if (manual) LauncherState.Hidden else LauncherState.Canceled
 
             _launcherState.value = if(restart) {
-                subscribe()
-                (sharedDataManager.matrixClient.value?.verification?.getSelfVerificationMethods()?.firstOrNull()
-                        as? VerificationService.SelfVerificationMethods.CrossSigningEnabled)?.let { verification ->
-                    LauncherState.SelfVerification(
-                        methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
-                    )
-                } ?: LauncherState.Hidden
-            }else LauncherState.Hidden
+                val isCrossSigned = matrixClient?.verification?.getSelfVerificationMethods()?.none {
+                    it is VerificationService.SelfVerificationMethods.AlreadyCrossSigned
+                } != false
+                if (_launcherState.value.selfTransactionId != null && !isCrossSigned) {
+                    (matrixClient?.verification?.getSelfVerificationMethods()?.firstOrNull()
+                            as? VerificationService.SelfVerificationMethods.CrossSigningEnabled)?.let { verification ->
+                        LauncherState.SelfVerification(
+                            methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
+                        )
+                    } ?: state
+                } else state
+            } else state
+            if(manual) _launcherState.value.selfTransactionId = null
         }
     }
 
@@ -225,22 +240,22 @@ class DeviceVerificationModel: SharedModel() {
                             when(method) {
                                 Sas -> {
                                     if (_launcherState.value.selfTransactionId == content.transactionId) {
-                                        logger.debug { "marking Sas as ready" }
+                                        logger.debug { "marking Sas as ready, deviceId: ${content.fromDevice}" }
                                         state.ready()
                                     } else {
                                         _launcherState.value = LauncherState.TheirRequest(
-                                            methods = content.methods,
+                                            fromDevice = content.fromDevice,
                                             onReady = {
                                                 isLoading.value = true
                                                 viewModelScope.launch {
+                                                    logger.debug { "marking Sas as ready, deviceId: ${content.fromDevice}" }
                                                     state.ready()
                                                 }
                                             }
                                         )
                                     }
                                 }
-                                is VerificationMethod.Unknown -> {
-                                }
+                                is VerificationMethod.Unknown -> {}
                             }
                         }
                     }
@@ -269,9 +284,9 @@ class DeviceVerificationModel: SharedModel() {
                                 }
                                 is ActiveSasVerificationState.TheirSasStart -> {
                                     if (_launcherState.value is LauncherState.SelfVerification
-                                        || (_launcherState.value is LauncherState.TheirRequest && isLoading.value)
+                                        || (_launcherState.value is LauncherState.TheirRequest)
                                     ) {
-                                        logger.debug { "accepting Their Sas" }
+                                        logger.debug { "accepting Their Sas, deviceId: ${sasState.content.fromDevice}" }
                                         sasState.accept()
                                     }
                                 }
@@ -280,15 +295,18 @@ class DeviceVerificationModel: SharedModel() {
                                 is ActiveSasVerificationState.WaitForKeys -> {}
                                 ActiveSasVerificationState.WaitForMacs -> {}
                             }
-                            logger.debug { "sasState: $sasState" }
                         }
                     }
                 }
             }
             is ActiveVerificationState.Ready -> {
                 state.methods.firstOrNull { supportedMethods.contains(it) }?.let { method ->
-                    logger.debug { "NOT starting $method" }
-                    //state.start(method)
+                    if(_launcherState.value.selfTransactionId == null) {
+                        logger.debug { "NOT starting $method" }
+                    }else {
+                        logger.debug { "starting $method" }
+                        state.start(method)
+                    }
                 }
             }
             is ActiveVerificationState.Done -> {
@@ -296,8 +314,15 @@ class DeviceVerificationModel: SharedModel() {
                     isLoading.value = false
                     _launcherState.value = LauncherState.Success
                 }
+
+
+                /*matrixClient?.api?.key?.addSignatures(
+                    signedDeviceKeys = ,
+                    signedCrossSigningKeys = emptySet()
+                )*/
             }
-            is ActiveVerificationState.Cancel -> cancel(manual = false)
+            is ActiveVerificationState.WaitForDone -> _launcherState.value = LauncherState.Loading
+            is ActiveVerificationState.Cancel -> cancel(restart = false, manual = false)
             else -> {}
         }
     }

@@ -20,10 +20,13 @@ import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.KeyboardCommandKey
+import androidx.compose.material.icons.outlined.LaptopWindows
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.Pin
-import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,12 +44,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
+import augmy.composeapp.generated.resources.accessibility_device_android
+import augmy.composeapp.generated.resources.accessibility_device_apple
+import augmy.composeapp.generated.resources.accessibility_device_jvm
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_reject
 import augmy.composeapp.generated.resources.device_verification_bootstrap_title
+import augmy.composeapp.generated.resources.device_verification_canceled
 import augmy.composeapp.generated.resources.device_verification_confirm
+import augmy.composeapp.generated.resources.device_verification_loading
 import augmy.composeapp.generated.resources.device_verification_match
 import augmy.composeapp.generated.resources.device_verification_no_match
 import augmy.composeapp.generated.resources.device_verification_other_device
@@ -63,6 +72,7 @@ import augmy.composeapp.generated.resources.device_verification_title_decimal
 import augmy.composeapp.generated.resources.device_verification_title_emojis
 import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.OutlinedButton
@@ -70,6 +80,7 @@ import augmy.interactive.shared.ui.components.ProgressPressableContainer
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import korlibs.io.util.substringBeforeOrNull
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
@@ -87,9 +98,7 @@ fun DeviceVerificationLauncher(modifier: Modifier = Modifier) {
     val model: DeviceVerificationModel = koinViewModel()
     val launcherState = model.launcherState.collectAsState()
 
-    AnimatedVisibility(
-       visible = launcherState.value !is LauncherState.Hidden
-    ) {
+    if (launcherState.value !is LauncherState.Hidden) {
         Column(
             modifier = modifier
                 .animateContentSize()
@@ -133,8 +142,10 @@ fun DeviceVerificationLauncher(modifier: Modifier = Modifier) {
                         model = model,
                         launcherState = state
                     )
-                    is LauncherState.Success -> Success()
-                    is LauncherState.Bootstrap -> Bootstrap(model)
+                    is LauncherState.Success -> SuccessContent(model)
+                    is LauncherState.Canceled -> CanceledContent(model)
+                    is LauncherState.Bootstrap -> BootstrapContent(model)
+                    is LauncherState.Loading -> LoadingContent(model)
                     else -> {}
                 }
             }
@@ -143,7 +154,7 @@ fun DeviceVerificationLauncher(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Bootstrap(model: DeviceVerificationModel) {
+private fun BootstrapContent(model: DeviceVerificationModel) {
     val isLoading = model.isLoading.collectAsState()
 
     val passphraseState = remember { TextFieldState() }
@@ -227,23 +238,73 @@ private fun Bootstrap(model: DeviceVerificationModel) {
 }
 
 @Composable
-private fun Success() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun SuccessContent(model: DeviceVerificationModel) {
+    Row (
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp, start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Icon(
+            modifier = Modifier.size(60.dp),
+            imageVector = Icons.Outlined.VerifiedUser,
+            tint = LocalTheme.current.colors.brandMain,
+            contentDescription = null
+        )
         Text(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 24.dp),
+            modifier = Modifier.weight(1f),
             text = stringResource(Res.string.device_verification_success),
             style = LocalTheme.current.styles.heading
         )
-        Icon(
-            modifier = Modifier.size(64.dp),
-            imageVector = Icons.Outlined.Verified,
-            tint = LocalTheme.current.colors.brandMainDark,
-            contentDescription = null
+        OutlinedButton(
+            text = stringResource(Res.string.button_confirm),
+            onClick = { model.hide() },
+            activeColor = LocalTheme.current.colors.secondary
+        )
+    }
+}
+
+@Composable
+private fun CanceledContent(model: DeviceVerificationModel) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.device_verification_canceled),
+            style = LocalTheme.current.styles.category
+        )
+        OutlinedButton(
+            text = stringResource(Res.string.button_dismiss),
+            onClick = { model.hide() },
+            activeColor = LocalTheme.current.colors.disabled
+        )
+    }
+}
+
+@Composable
+private fun LoadingContent(model: DeviceVerificationModel) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.device_verification_loading),
+            style = LocalTheme.current.styles.category
+        )
+        BrandHeaderButton(
+            text = stringResource(Res.string.accessibility_cancel),
+            onClick = { model.cancel(manual = true) },
+            isLoading = true
         )
     }
 }
@@ -402,41 +463,90 @@ fun TheirRequestContent(
     model: DeviceVerificationModel,
     launcherState: LauncherState.TheirRequest
 ) {
-    // TODO ability to choose way to confirm the device - QR code should be added, maybe just an improvement task?
     val isLoading = model.isLoading.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    val platformType = PlatformType.entries.find {
+        it.name == launcherState.fromDevice.substringBeforeOrNull("_")
+    }
 
-    Column(
+    Row(
         modifier = Modifier
-            .padding(bottom = 24.dp)
+            .padding(
+                bottom = 24.dp,
+                start = 16.dp
+            )
             .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 32.dp),
-            text = stringResource(Res.string.device_verification_other_request),
-            style = LocalTheme.current.styles.subheading
-        )
-        BrandHeaderButton(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            text = stringResource(
-                when {
-                    isLoading.value -> Res.string.accessibility_cancel
-                    else -> Res.string.button_confirm
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                platformType?.let { platform ->
+                    Icon(
+                        modifier = Modifier.size(32.dp),
+                        imageVector = when(platform) {
+                            PlatformType.Jvm -> Icons.Outlined.LaptopWindows
+                            PlatformType.Native -> Icons.Outlined.KeyboardCommandKey
+                            PlatformType.Android -> Icons.Outlined.Android
+                        },
+                        contentDescription = stringResource(
+                            when(platform) {
+                                PlatformType.Jvm -> Res.string.accessibility_device_jvm
+                                PlatformType.Native -> Res.string.accessibility_device_apple
+                                PlatformType.Android -> Res.string.accessibility_device_android
+                            }
+                        ),
+                        tint = LocalTheme.current.colors.disabled
+                    )
                 }
-            ),
-            isLoading = isLoading.value,
-            onClick = {
-                if(isLoading.value) {
-                    model.cancel()
-                }else coroutineScope.launch {
-                    launcherState.onReady()
-                }
+                Text(
+                    text = launcherState.fromDevice.let {
+                        if(platformType != null) it.substringAfter("_") else it
+                    },
+                    style = LocalTheme.current.styles.regular.copy(
+                        color = LocalTheme.current.colors.disabled
+                    )
+                )
             }
-        )
+            Text(
+                text = stringResource(Res.string.device_verification_other_request),
+                style = LocalTheme.current.styles.subheading
+            )
+        }
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AnimatedVisibility(!isLoading.value) {
+                OutlinedButton(
+                    text = stringResource(Res.string.button_reject),
+                    onClick = { model.cancel(manual = true) },
+                    activeColor = LocalTheme.current.colors.disabled
+                )
+            }
+            BrandHeaderButton(
+                text = stringResource(
+                    when {
+                        isLoading.value -> Res.string.accessibility_cancel
+                        else -> Res.string.button_confirm
+                    }
+                ),
+                isLoading = isLoading.value,
+                onClick = {
+                    if(isLoading.value) {
+                        model.cancel()
+                    }else coroutineScope.launch {
+                        launcherState.onReady()
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -449,14 +559,14 @@ private fun ComparisonByUser(
 
     Column(
         modifier = Modifier
-            .padding(bottom = 24.dp)
+            .padding(bottom = 24.dp, top = 4.dp)
             .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 32.dp),
+                .padding(horizontal = 8.dp)
+                .align(Alignment.CenterHorizontally),
             text = stringResource(
                 if(launcherState.data.emojis.isNotEmpty()) {
                     Res.string.device_verification_title_emojis
@@ -500,9 +610,9 @@ private fun ComparisonByUser(
         }
         Row(
             modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .padding(vertical = 8.dp, horizontal = 16.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             AnimatedVisibility(!isLoading.value) {
@@ -516,9 +626,6 @@ private fun ComparisonByUser(
                 )
             }
             BrandHeaderButton(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
                 isLoading = isLoading.value,
                 text = stringResource(
                     if(isLoading.value) Res.string.accessibility_cancel

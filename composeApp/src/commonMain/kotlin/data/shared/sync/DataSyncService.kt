@@ -144,9 +144,7 @@ class DataSyncService {
             },
             scope = this,
             getBatchToken = {
-                (currentBatch ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch).also {
-                    logger.debug { "getBatchToken: $it, entityId: ${homeserver}_$owner" }
-                }
+                (currentBatch ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch)
             },
             setBatchToken = { nextBatch ->
                 this@DataSyncService.nextBatch = nextBatch
@@ -158,9 +156,7 @@ class DataSyncService {
                         currentBatch = currentBatch,
                         prevBatch = prevBatch
                     )
-                ).also {
-                    logger.debug { "setBatchToken: $nextBatch, entityId: ${homeserver}_$owner" }
-                }
+                )
 
                 prevBatch = currentBatch
                 currentBatch = nextBatch

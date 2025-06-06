@@ -29,6 +29,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.http.encodedPath
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.MatrixServerException
@@ -146,18 +147,23 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         )
 
         // sync has a very long timeout which would throw off this calculation
-        if(!response.request.url.toString().contains("/sync")) {
-            val speedMbps = response.speedInMbps().roundToInt()
-            sharedModel.updateNetworkConnectivity(
-                networkSpeed = when {
+        val speedMbps = response.speedInMbps().roundToInt()
+        sharedModel.updateNetworkConnectivity(
+            networkSpeed = if (!response.request.url.toString().contains("/sync")) {
+                when {
                     speedMbps <= 1.0 -> NetworkSpeed.VerySlow
                     speedMbps <= 2.0 -> NetworkSpeed.Slow
                     speedMbps <= 5.0 -> NetworkSpeed.Moderate
                     speedMbps <= 10.0 -> NetworkSpeed.Good
                     else -> NetworkSpeed.Fast
-                }.takeIf { speedMbps != 0 },
-                isNetworkAvailable = true
-            )
+                }.takeIf { speedMbps != 0 }
+            } else null,
+            isNetworkAvailable = response.status.value < 500
+        )
+        if (!response.status.isSuccess()) {
+            SharedLogger.logger.warn {
+                "Http call failed: $response"
+            }
         }
     }
     HttpResponseValidator {
