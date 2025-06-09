@@ -20,8 +20,10 @@ import net.folivo.trixnity.client.MatrixClientConfiguration.CacheExpireDurations
 import net.folivo.trixnity.client.createTrixnityDefaultModuleFactories
 import net.folivo.trixnity.client.fromStore
 import net.folivo.trixnity.client.loginWith
-import net.folivo.trixnity.client.media.InMemoryMediaStore
+import net.folivo.trixnity.client.media.createInMemoryMediaStoreModule
 import net.folivo.trixnity.clientserverapi.client.MatrixClientServerApiClient
+import net.folivo.trixnity.clientserverapi.model.users.Filters
+import net.folivo.trixnity.clientserverapi.model.users.Filters.RoomFilter.RoomEventFilter
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import org.koin.core.module.Module
@@ -57,7 +59,7 @@ class MatrixClientFactory(
                         UserId(credentials.userId),
                         credentials.databasePassword
                     ),
-                    mediaStore = InMemoryMediaStore(),
+                    mediaStoreModule = createInMemoryMediaStoreModule(),
                     configuration = {
                         configureClient(deviceId)
                     },
@@ -74,7 +76,7 @@ class MatrixClientFactory(
                         saveDatabasePassword(loginInfo.userId.full, it.databaseKey)
                     }.module
                 },
-                mediaStoreFactory = { InMemoryMediaStore() },
+                mediaStoreModuleFactory = { createInMemoryMediaStoreModule() },
                 configuration = {
                     configureClient(deviceId)
                 }
@@ -87,6 +89,14 @@ class MatrixClientFactory(
         lastRelevantEventFilter = { roomEvent ->
             roomEvent is RoomEvent.MessageEvent<*>
         }
+        syncFilter = Filters(
+            room = Filters.RoomFilter(
+                state = RoomEventFilter(lazyLoadMembers = true, limit = 20),
+                timeline = RoomEventFilter(lazyLoadMembers = true, limit = 20),
+                accountData = RoomEventFilter(lazyLoadMembers = true, limit = 20),
+                ephemeral = RoomEventFilter(lazyLoadMembers = true, limit = 20),
+            )
+        )
         storeTimelineEventContentUnencrypted = false
         modulesFactories = createTrixnityDefaultModuleFactories()
         httpClientEngine = this@MatrixClientFactory.httpClientEngine

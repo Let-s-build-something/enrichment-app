@@ -29,6 +29,7 @@ import net.folivo.trixnity.client.verification.ActiveVerificationState
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import net.folivo.trixnity.client.verification.VerificationService
 import net.folivo.trixnity.clientserverapi.client.UIA
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod.Sas
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationRequestToDeviceEventContent
@@ -154,6 +155,16 @@ class DeviceVerificationModel: SharedModel() {
             }
         }
         keyVerificationScope.launch {
+            matrixClient?.key?.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: ""))?.collectLatest { keys ->
+                logger.debug { "crossSigningKeys: $keys" }
+            }
+        }
+        keyVerificationScope.launch {
+            matrixClient?.key?.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: ""))?.collectLatest { trust ->
+                logger.debug { "trustLevel: $trust" }
+            }
+        }
+        keyVerificationScope.launch {
             client.verification.activeDeviceVerification
                 .shareIn(this, SharingStarted.Eagerly)
                 .collectLatest { deviceVerification ->
@@ -213,6 +224,7 @@ class DeviceVerificationModel: SharedModel() {
                     _verificationResult.value = method.verify(passphrase)
                 }
                 is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase-> {
+                    method
                     _verificationResult.value = method.verify(passphrase).also {
                         logger.debug { "verifySelf(), verify: ${it.getOrNullLoggingError()}, isSuccess: ${it.isSuccess}" }
                     }

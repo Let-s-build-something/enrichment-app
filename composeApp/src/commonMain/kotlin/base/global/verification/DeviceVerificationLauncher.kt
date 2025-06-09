@@ -443,17 +443,19 @@ private fun SelfVerification(
                     }else verify()
                 }
             )
-            Text(
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, top = 2.dp)
-                    .animateContentSize(),
-                text = stringResource(
-                    if(isLoading.value) {
-                        Res.string.device_verification_send_info_2
-                    }else Res.string.device_verification_send_info
-                ),
-                style = LocalTheme.current.styles.regular
-            )
+            AnimatedVisibility(visible = selectedMethod.value is SelfVerificationMethod.CrossSignedDeviceVerification) {
+                Text(
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, top = 2.dp)
+                        .animateContentSize(),
+                    text = stringResource(
+                        if(isLoading.value) {
+                            Res.string.device_verification_send_info_2
+                        }else Res.string.device_verification_send_info
+                    ),
+                    style = LocalTheme.current.styles.regular
+                )
+            }
         }
     }
 }
