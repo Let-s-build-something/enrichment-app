@@ -102,8 +102,8 @@ class DeviceVerificationModel: SharedModel() {
         hasActiveSubscribers = true
         keyVerificationScope.coroutineContext.cancelChildren()
 
-        viewModelScope.launch {
-            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Lazily).collectLatest {
+        keyVerificationScope.launch {
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest {
                 it?.let { client ->
                     subscribeToVerificationMethods(client = client)
                 }
@@ -122,7 +122,7 @@ class DeviceVerificationModel: SharedModel() {
     }
 
     private fun subscribeToVerificationMethods(client: MatrixClient) {
-        viewModelScope.launch {
+        keyVerificationScope.launch {
             client.verification.getSelfVerificationMethods().shareIn(this, SharingStarted.Eagerly).collectLatest { verification ->
                 logger.debug { "selfVerificationMethods: $verification" }
                 when(verification) {
@@ -213,7 +213,9 @@ class DeviceVerificationModel: SharedModel() {
                     _verificationResult.value = method.verify(passphrase)
                 }
                 is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase-> {
-                    _verificationResult.value = method.verify(passphrase)
+                    _verificationResult.value = method.verify(passphrase).also {
+                        logger.debug { "verifySelf(), verify: ${it.getOrNullLoggingError()}, isSuccess: ${it.isSuccess}" }
+                    }
                 }
                 is SelfVerificationMethod.CrossSignedDeviceVerification -> {
                     method.createDeviceVerification().getOrNullLoggingError().let {
@@ -343,10 +345,10 @@ class DeviceVerificationModel: SharedModel() {
     }
 
     private suspend fun bootstrapCrossSigning(passphrase: String): UIA<out Any?>? {
-        return sharedDataManager.matrixClient.value?.key?.bootstrapCrossSigningFromPassphrase(
+        return matrixClient?.key?.bootstrapCrossSigningFromPassphrase(
             passphrase = passphrase
         )?.result?.getOrThrow()?.let { result ->
-            logger.debug { "bootstrap result: $result" }
+            logger.debug { "bootstrapCrossSigningFromPassphrase result: $result" }
             processBootstrapResult(result)
         }
     }
@@ -380,7 +382,7 @@ class DeviceVerificationModel: SharedModel() {
 
     private fun finishDeviceVerification() {
         viewModelScope.launch {
-            sharedDataManager.matrixClient.value?.let { client ->
+            matrixClient?.let { client ->
                 client.key.getDeviceKeys(client.userId).firstOrNull()?.mapNotNull { key ->
                     key.deviceId.takeIf { it != client.deviceId }
                 }?.toSet()?.takeIf { it.isNotEmpty() }?.let { deviceIds ->

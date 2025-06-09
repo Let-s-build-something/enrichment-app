@@ -188,7 +188,9 @@ private fun BootstrapContent(model: DeviceVerificationModel) {
                 keyboardType = KeyboardType.NumberPassword,
                 imeAction = ImeAction.Send
             ),
-            onKeyboardAction = { verify() },
+            onKeyboardAction = {
+                if (isLoading.value) model.cancel() else verify()
+            },
             trailingIcon = {
                 Crossfade(
                     targetState = showPassphrase.value
@@ -229,9 +231,7 @@ private fun BootstrapContent(model: DeviceVerificationModel) {
             ),
             isLoading = isLoading.value,
             onClick = {
-                if(isLoading.value) {
-                    model.cancel()
-                }else verify()
+                if (isLoading.value) model.cancel() else verify()
             }
         )
     }

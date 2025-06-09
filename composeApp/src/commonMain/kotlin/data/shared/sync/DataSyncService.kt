@@ -42,7 +42,6 @@ class DataSyncService {
 
     companion object {
         const val SYNC_INTERVAL = 60_000L
-        private const val STATE_LIMIT = 20L
         private const val START_ANEW = false // for debug use
     }
 
@@ -129,11 +128,7 @@ class DataSyncService {
         logger.debug { "enqueue, entityId: ${homeserver}_$owner" }
         client.api.sync.start(
             filter = json.encodeToString(
-                Filters.RoomFilter.RoomEventFilter(
-                    lazyLoadMembers = true,
-                    limit = STATE_LIMIT,
-                    includeRedundantMembers = false
-                )
+                Filters.RoomFilter.RoomEventFilter(lazyLoadMembers = true)
             ),
             timeout = SYNC_INTERVAL.milliseconds,
             asUserId = UserId(owner),
