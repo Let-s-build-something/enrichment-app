@@ -498,19 +498,24 @@ class AuthService {
     }
 
     private suspend fun initializeMatrixClient(auth: AuthItem? = null) {
-        val credentials = auth ?: retrieveCredentials() ?: return
+        val credentials = (auth ?: retrieveCredentials())?.takeIf { it.isFullyValid } ?: return
         if(credentials.userId == null) {
             logger.error { "Couldn't initiate Matrix client: Missing user id, credentials: $credentials" }
         }
 
         if(dataManager.matrixClient.value == null) {
-            dataManager.matrixClient.value = matrixClientFactory.initializeMatrixClient(
+            val newClient = matrixClientFactory.initializeMatrixClient(
                 credentials = credentials,
                 deviceId = getDeviceId()
-            ).also {
-                logger.debug { "new Matrix client: $it" }
-                // attempt to start up the app
+            )
+            dataManager.matrixClient.value = newClient
+
+            logger.debug { "new Matrix client: $newClient" }
+            if (newClient != null) {
                 syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
+            }else {
+                delay(10_000)
+                initializeMatrixClient(auth = auth)
             }
         }else syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
 

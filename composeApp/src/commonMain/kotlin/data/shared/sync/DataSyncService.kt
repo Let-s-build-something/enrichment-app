@@ -2,8 +2,6 @@ package data.shared.sync
 
 import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
-import data.io.base.paging.MatrixPagingMetaIO
-import data.io.base.paging.PagingEntityType
 import data.io.social.UserVisibility
 import data.shared.SharedDataManager
 import database.dao.ConversationMessageDao
@@ -14,6 +12,7 @@ import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -21,8 +20,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
 import net.folivo.trixnity.client.MatrixClient
-import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.clientserverapi.model.users.Filters
 import net.folivo.trixnity.core.model.events.m.Presence
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -47,10 +47,10 @@ class DataSyncService {
     private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val json: Json by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
-    private var nextBatch: String? = null
     private var isRunning = false
     private val handler = DataSyncHandler()
     private val synMutex = Mutex()
@@ -63,6 +63,9 @@ class DataSyncService {
 
             syncScope.launch {
                 this.coroutineContext.onCancel {
+                    CoroutineScope(Job()).launch {
+                        sharedDataManager.matrixClient.value?.api?.sync?.stop()
+                    }
                     isRunning = false
                 }
 
@@ -100,20 +103,13 @@ class DataSyncService {
 
     private suspend fun CoroutineScope.enqueue(
         client: MatrixClient,
-        homeserver: String? = this@DataSyncService.homeserver,
-        since: String? = this@DataSyncService.nextBatch
+        homeserver: String? = this@DataSyncService.homeserver
     ) {
         val owner = sharedDataManager.currentUser.value?.matrixUserId
         if(homeserver == null || owner == null) {
             stop()
             return
         }
-
-        val initialEntity = matrixPagingMetaDao.getByEntityId(
-            entityId = "${homeserver}_$owner"
-        )
-        var prevBatch: String? = initialEntity?.currentBatch
-        var currentBatch = since ?: initialEntity?.nextBatch
 
         client.api.sync.subscribe {
             handler.handle(
@@ -124,33 +120,14 @@ class DataSyncService {
 
         logger.debug { "enqueue, entityId: ${homeserver}_$owner" }
         client.api.sync.start(
+            filter = json.encodeToString(
+                Filters.RoomFilter.RoomEventFilter(lazyLoadMembers = true)
+            ),
             timeout = SYNC_INTERVAL.milliseconds,
-            asUserId = UserId(owner),
             setPresence = when(sharedDataManager.currentUser.value?.configuration?.visibility) {
                 UserVisibility.Online -> Presence.ONLINE
                 UserVisibility.Invisible, UserVisibility.Offline -> Presence.OFFLINE
                 else -> Presence.UNAVAILABLE
-            },
-            scope = this,
-            getBatchToken = {
-                (currentBatch ?: matrixPagingMetaDao.getByEntityId(entityId = "${homeserver}_$owner")?.nextBatch)
-            },
-            setBatchToken = { nextBatch ->
-                this@DataSyncService.nextBatch = nextBatch
-                matrixPagingMetaDao.insert(
-                    MatrixPagingMetaIO(
-                        entityId = "${homeserver}_$owner",
-                        entityType = PagingEntityType.Sync.name,
-                        nextBatch = nextBatch,
-                        currentBatch = currentBatch,
-                        prevBatch = prevBatch
-                    )
-                ).also {
-                    logger.debug { "setBatchToken: $nextBatch, entityId: ${homeserver}_$owner" }
-                }
-
-                prevBatch = currentBatch
-                currentBatch = nextBatch
             }
         )
     }

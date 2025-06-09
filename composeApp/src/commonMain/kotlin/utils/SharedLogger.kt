@@ -36,7 +36,7 @@ object SharedLogger {
     }
 
     fun init() {
-        val level = if (BuildKonfig.isDevelopment) Logger.Level.DEBUG else Logger.Level.ERROR
+        val level = if (BuildKonfig.isDevelopment) Logger.Level.TRACE else Logger.Level.ERROR
         Logger.defaultOutput = output
         Logger.defaultLevel = level
         logger.debug { "Logger initialized at level $level" }

@@ -84,12 +84,14 @@ class DevelopmentConsoleModel(
         (if (filter.first.isBlank()) {
             logs.httpCalls
         }else logs.httpCalls.filter {
-            it.url?.contains(filter.first) == true
-                    || it.requestBody?.contains(filter.first) == true
-                    || it.responseBody?.contains(filter.first) == true
-                    || it.method?.value?.contains(filter.first) == true
-                    || it.headers?.any { h -> h.contains(filter.first) } == true
-                    || it.id.contains(filter.first)
+            val input = filter.first.lowercase()
+
+            it.url?.lowercase()?.contains(input) == true
+                    || it.requestBody?.lowercase()?.contains(filter.first) == true
+                    || it.responseBody?.lowercase()?.contains(filter.first) == true
+                    || it.method?.value?.lowercase()?.contains(filter.first) == true
+                    || it.headers?.any { h -> h.lowercase().contains(filter.first) } == true
+                    || it.id.lowercase().contains(filter.first)
         }).sortedWith(
             if(filter.second) {
                 compareBy { it.createdAt }
@@ -102,7 +104,9 @@ class DevelopmentConsoleModel(
     /** log data associated with this apps' http calls */
     internal val logData = dataManager.logs.combine(dataManager.logFilter) { logs, filter ->
         logs.filter {
-            (filter.first.isBlank() || it.message?.toString()?.contains(filter.first) == true)
+            val input = filter.first.lowercase()
+
+            (filter.first.isBlank() || it.message?.toString()?.lowercase()?.contains(input) == true)
                     && (filter.third == null || it.level == filter.third)
         }.sortedWith(
             if(filter.second) {

@@ -92,6 +92,7 @@ import data.io.social.network.conversation.message.MediaIO
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import net.folivo.trixnity.core.model.UserId
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -312,7 +313,9 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
                 .aspectRatio(1f),
             media = MediaIO(url = currentUser.value?.avatarUrl),
             tag = currentUser.value?.tag,
-            name = currentUser.value?.displayName
+            name = (currentUser.value?.displayName ?: "").ifBlank {
+                UserId(currentUser.value?.matrixUserId ?: "").localpart
+            }
         )
         MinimalisticFilledIcon(
             modifier = Modifier

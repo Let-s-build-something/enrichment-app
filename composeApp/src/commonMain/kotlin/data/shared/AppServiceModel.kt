@@ -82,6 +82,9 @@ class AppServiceModel(
 
     /** Initializes the application */
     fun initApp() {
+        SharedLogger.init()
+        SharedLogger.logger.debug { "App initialized" }
+
         CoroutineScope(Dispatchers.IO).launch {
             showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) != false
 
@@ -108,8 +111,6 @@ class AppServiceModel(
                 MimeType("image/webp", listOf("webp"))
             )
             initUser()
-            SharedLogger.init()
-            SharedLogger.logger.debug { "App initialized" }
         }
     }
 

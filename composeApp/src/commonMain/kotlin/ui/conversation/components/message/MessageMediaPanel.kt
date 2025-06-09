@@ -190,8 +190,8 @@ fun MessageMediaPanel(
                             }
                         ),
                         tint = if(pagerState.currentPage == entry.ordinal) {
-                            LocalTheme.current.colors.disabled
-                        } else LocalTheme.current.colors.primary
+                            LocalTheme.current.colors.primary
+                        } else LocalTheme.current.colors.disabled
                     )
                 }
             }

@@ -191,7 +191,7 @@ private fun ContentElement(
                 media = media,
                 contentScale = ContentScale.Crop
             )
-        }else if(name != null) {
+        }else if(name != null || tag != null) {
             val backgroundColor = tagToColor(tag) ?: LocalTheme.current.colors.tetrial
             val textColor = if(backgroundColor.luminance() > .5f) Colors.Coffee else Colors.GrayLight
 
