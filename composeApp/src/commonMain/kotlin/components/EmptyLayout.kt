@@ -28,7 +28,8 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 @Composable
 fun EmptyLayout(
     modifier: Modifier = Modifier,
-    title: String,
+    title: String? = null,
+    animResPath: String = "files/empty.lottie",
     description: String? = null,
     action: String? = null,
     onClick: () -> Unit = {},
@@ -41,7 +42,7 @@ fun EmptyLayout(
     ) {
         val composition by rememberLottieComposition {
             LottieCompositionSpec.DotLottie(
-                Res.readBytes("files/empty.lottie")
+                Res.readBytes(animResPath)
             )
         }
 
@@ -57,13 +58,15 @@ fun EmptyLayout(
             ),
             contentDescription = null
         )
-        Text(
-            modifier = Modifier.fillMaxWidth(.8f),
-            text = title,
-            style = LocalTheme.current.styles.category.copy(
-                textAlign = TextAlign.Center
+        if (title != null) {
+            Text(
+                modifier = Modifier.fillMaxWidth(.8f),
+                text = title,
+                style = LocalTheme.current.styles.category.copy(
+                    textAlign = TextAlign.Center
+                )
             )
-        )
+        }
         description?.let { text ->
             Text(
                 modifier = Modifier.fillMaxWidth(.8f),

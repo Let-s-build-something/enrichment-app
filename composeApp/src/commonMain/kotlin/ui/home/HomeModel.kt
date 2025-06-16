@@ -53,9 +53,15 @@ class HomeModel(
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
-
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
 
+    enum class UiMode {
+        List,
+        Circle,
+        Loading
+    }
+
+    private val _uiMode = MutableStateFlow<UiMode>(UiMode.List)
     private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
@@ -63,6 +69,8 @@ class HomeModel(
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
     var persistentPositionData: PersistentListData? = null
+
+    val uiMode = _uiMode.asStateFlow()
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -138,6 +146,10 @@ class HomeModel(
                 filter.joinToString(",")
             )
         }
+    }
+
+    fun swapUiMode(isList: Boolean) {
+        _uiMode.value = if(isList) UiMode.List else UiMode.Circle
     }
 
     /** Updates color preference */
