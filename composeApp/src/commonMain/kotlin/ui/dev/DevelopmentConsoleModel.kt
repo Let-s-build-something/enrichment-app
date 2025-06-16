@@ -422,9 +422,12 @@ class DevelopmentConsoleModel(
 
     fun deleteLocalData() {
         viewModelScope.launch {
-            repository.clearAllDao()
+            dataManager.logs.value = listOf()
+            dataManager.httpLogData.value = DeveloperUtils.HttpLogData()
+            repository.clearAllDaos()
             sharedDataManager.matrixClient.value?.clearCache()
             sharedDataManager.matrixClient.value?.clearMediaCache()
+            logData
             super.logoutCurrentUser()
         }
     }

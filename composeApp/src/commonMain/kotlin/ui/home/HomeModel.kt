@@ -24,18 +24,23 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import net.folivo.trixnity.clientserverapi.client.SyncState
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.home.utils.NetworkItemUseCase
 import ui.home.utils.networkItemModule
+import utils.SharedLogger
 
 internal val homeModule = module {
     includes(networkItemModule)
@@ -134,6 +139,23 @@ class HomeModel(
         }
         viewModelScope.launch {
             networkItemUseCase.getNetworkItems(ownerPublicId = matrixUserId)
+        }
+
+        viewModelScope.launch {
+            SharedLogger.logger.debug { "HomeModel, starting collector on client" }
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest { client ->
+                viewModelScope.launch {
+                    SharedLogger.logger.debug { "HomeModel, new client: $client" }
+                    client?.syncState?.collect { syncState ->
+                        SharedLogger.logger.debug { "HomeModel, syncState: $syncState" }
+                        if (syncState == SyncState.INITIAL_SYNC) {
+                            _uiMode.value = UiMode.Loading
+                        } else if (syncState == SyncState.RUNNING && _uiMode.value == UiMode.Loading) {
+                            _uiMode.value = UiMode.List
+                        }
+                    }
+                }
+            }
         }
     }
 

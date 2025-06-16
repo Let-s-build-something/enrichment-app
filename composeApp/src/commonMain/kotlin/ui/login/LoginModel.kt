@@ -31,6 +31,7 @@ import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -421,9 +422,11 @@ class LoginModel(
                 matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
             )
             sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
+            updateClientSettings()
             withContext(Dispatchers.IO) {
                 settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
             }
+            SharedLogger.logger.debug { "User initialized as: $initialUser" }
             _loginResult.emit(LoginResultType.SUCCESS)
         }
     }
