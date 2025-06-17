@@ -22,4 +22,9 @@ interface GravityDao {
         WHERE conversation_id = :conversationId
         """)
     suspend fun removeAll(conversationId: String)
+
+    @Query("""
+        DELETE FROM ${AppRoomDatabase.TABLE_GRAVITY}
+        """)
+    suspend fun removeAll()
 }

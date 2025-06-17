@@ -16,7 +16,6 @@ import data.io.matrix.auth.AuthenticationData
 import data.io.matrix.auth.MatrixAuthenticationPlan
 import data.io.matrix.auth.MatrixAuthenticationResponse
 import data.io.matrix.auth.MatrixIdentifierData
-import data.io.user.UserIO
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -31,6 +30,7 @@ import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -333,7 +333,6 @@ class LoginModel(
         val res = if(_matrixAuthResponse.value?.userId == null) {
             val isUser = !username.isNullOrBlank()
             authService.loginWithIdentifier(
-                setupAutoLogin = false,
                 homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                 identifier = MatrixIdentifierData(
                     type = if(isUser) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
@@ -394,16 +393,13 @@ class LoginModel(
                 }
 
                 authService.loginWithIdentifier(
-                    setupAutoLogin = true,
                     homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
                     identifier = null,
                     password = null,
                     token = token
                 ).let {
                     when {
-                        it.success == null -> {
-                            initUserObject()
-                        }
+                        it.success != null -> initUserObject()
                         it.error?.code == Matrix.ErrorCode.FORBIDDEN -> _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
                         else -> _loginResult.emit(LoginResultType.FAILURE)
                     }
@@ -416,15 +412,14 @@ class LoginModel(
     /** Authenticates user with a token */
     private suspend fun initUserObject() {
         _matrixAuthResponse.value?.accessToken?.let { accessToken ->
-            val initialUser = UserIO(
-                accessToken = accessToken,
-                matrixHomeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
-            )
-            sharedDataManager.currentUser.value = sharedDataManager.currentUser.value?.update(initialUser) ?: initialUser
+            updateClientSettings()
             withContext(Dispatchers.IO) {
                 settings.putString(KEY_CLIENT_STATUS, ClientStatus.REGISTERED.name)
+                SharedLogger.logger.debug { "User initialized as: ${sharedDataManager.currentUser.value}" }
             }
-            _loginResult.emit(LoginResultType.SUCCESS)
+            _loginResult.emit(
+                if (currentUser.value != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
+            )
         }
     }
 }

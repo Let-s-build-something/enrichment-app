@@ -156,6 +156,7 @@ class AuthService {
         if(isRunning) {
             isRunning = false
             enqueueScope.coroutineContext.cancelChildren()
+            syncService.stop()
         }
     }
 
@@ -456,7 +457,6 @@ class AuthService {
                         password = password ?: it.success?.data?.userId?.toSha256(),
                         token = token
                     )
-                    initializeMatrixClient(auth = auth)
                     coroutineScope {
                         if(isRunning) stop()
                         if(setupAutoLogin) setupAutoLogin()
@@ -547,9 +547,7 @@ class AuthService {
                 is SecretByteArray.AesHmacSha2 -> {
                     secureSettings.putString(
                         key = "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}",
-                        value = json.encodeToString(key).also {
-                            logger.debug { "saveDatabasePassword: $it, id: $id" }
-                        }
+                        value = json.encodeToString(key)
                     )
                 }
                 else -> {}

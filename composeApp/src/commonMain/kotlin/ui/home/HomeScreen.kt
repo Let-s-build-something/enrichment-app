@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
@@ -34,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +58,9 @@ import augmy.composeapp.generated.resources.invite_new_item_conversation
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
+import augmy.composeapp.generated.resources.screen_home_initial_sync
+import augmy.composeapp.generated.resources.screen_home_no_client_action
+import augmy.composeapp.generated.resources.screen_home_no_client_title
 import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -81,6 +86,8 @@ import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
+import io.github.alexzhirkevich.compottie.DotLottie
+import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -105,11 +112,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
 
     val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
     val categories = model.categories.collectAsState(initial = listOf())
-    val customColors = model.customColors.collectAsState(initial = mapOf())
-    val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
-            || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
-    val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
-            && !isLoadingInitialPage
+    val uiMode = model.uiMode.collectAsState()
 
     val gridState = persistedLazyGridState(
         persistentData = model.persistentPositionData ?: PersistentListData(),
@@ -118,15 +121,8 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         }
     )
     val showTuner = rememberSaveable { mutableStateOf(false) }
-    val isCompactView = rememberSaveable { mutableStateOf(true) }
     val selectedItem = rememberSaveable {
         mutableStateOf<String?>(null)
-    }
-    val showAddNewModal = rememberSaveable {
-        mutableStateOf(false)
-    }
-    val selectedUser = remember {
-        mutableStateOf<NetworkItemIO?>(null)
     }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -145,15 +141,6 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         }
     }
 
-    if(selectedUser.value != null) {
-        UserProfileLauncher(
-            user = selectedUser.value,
-            onDismissRequest = {
-                selectedUser.value = null
-            }
-        )
-    }
-
     if(showTuner.value) {
         NetworkPreferencesLauncher(
             viewModel = model,
@@ -161,10 +148,6 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                 showTuner.value = false
             }
         )
-    }else if(showAddNewModal.value) {
-        NetworkAddNewLauncher(onDismissRequest = {
-            showAddNewModal.value = false
-        })
     }
 
     OnBackHandler(enabled = selectedItem.value != null) {
@@ -208,12 +191,12 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                 },
                 onSelectionChange = { item, isSelected ->
                     val newList = categories.value.toMutableList()
-                    if(isSelected) {
+                    if (isSelected) {
                         newList.add(item)
-                    }else {
+                    } else {
                         newList.removeAll { it == item }
                     }
-                    if(newList.isEmpty()) {
+                    if (newList.isEmpty()) {
                         newList.add(if(item == NetworkProximityCategory.Family) {
                             NetworkProximityCategory.Peers
                         }else NetworkProximityCategory.Family)
@@ -228,149 +211,210 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                     .fillMaxWidth()
                     .weight(1f, fill = true)
             ) {
-                Crossfade(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .zIndex(1f),
-                    targetState = isCompactView.value
-                ) { isList ->
-                    MinimalisticFilledIcon(
+                if (uiMode.value.isFinished) {
+                    Crossfade(
                         modifier = Modifier
-                            .padding(top = 2.dp)
+                            .align(Alignment.TopEnd)
                             .zIndex(1f),
-                        imageVector = if(isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
-                        onTap = {
-                            isCompactView.value = !isCompactView.value
-                        }
-                    )
-                }
-                Crossfade(isCompactView.value) { isList ->
-                    if(isList) {
-                        val networkItems = model.networkItems.collectAsState(null)
-
-                        LazyVerticalGrid(
+                        targetState = uiMode.value == HomeModel.UiMode.List
+                    ) { isList ->
+                        MinimalisticFilledIcon(
                             modifier = Modifier
-                                .pointerInput(Unit) {
-                                    detectTapGestures(onTap = {
-                                        selectedItem.value = null
-                                    })
-                                }
-                                .draggable(
-                                    orientation = Orientation.Vertical,
-                                    state = rememberDraggableState { delta ->
-                                        coroutineScope.launch {
-                                            gridState.scrollBy(-delta)
-                                        }
-                                    }
-                                )
-                                .fillMaxSize(),
-                            columns = GridCells.Fixed(
-                                if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
-                            ),
-                            state = gridState,
-                            verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
-                        ) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {}
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                androidx.compose.animation.AnimatedVisibility(
-                                    enter = expandVertically() + fadeIn(),
-                                    visible = isEmpty
-                                ) {
-                                    EmptyLayout(
-                                        title = stringResource(Res.string.network_list_empty_title),
-                                        action = stringResource(Res.string.network_list_empty_action),
-                                        onClick = {
-                                            showAddNewModal.value = true
-                                        }
-                                    )
-                                }
+                                .padding(top = 2.dp)
+                                .zIndex(1f),
+                            imageVector = if (isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
+                            onTap = {
+                                model.swapUiMode(!isList)
                             }
-                            items(
-                                count = if(conversationRooms.itemCount == 0 && isLoadingInitialPage) {
-                                    NETWORK_SHIMMER_ITEM_COUNT
-                                }else conversationRooms.itemCount,
-                                key = { index -> conversationRooms.getOrNull(index)?.id ?: Uuid.random().toString() }
-                            ) { index ->
-                                val room = conversationRooms.getOrNull(index)
-
-                                ConversationRoomItem(
-                                    modifier = Modifier
-                                        .animateItem()
-                                        .fillMaxWidth(),
-                                    model = model,
-                                    room = room,
-                                    selectedItem = selectedItem.value,
-                                    requestProximityChange = { proximity ->
-                                        val singleUser = if(room?.summary?.isDirect == true) {
-                                            room.summary.members?.firstOrNull()
-                                        }else null
-
-                                        model.requestProximityChange(
-                                            conversationId = room?.id,
-                                            publicId = singleUser?.userId,
-                                            proximity = proximity,
-                                            onOperationDone = {
-                                                if(selectedItem.value == room?.id) {
-                                                    selectedItem.value = null
-                                                }
-                                                conversationRooms.refresh()
-                                            }
-                                        )
-                                    },
-                                    customColors = customColors.value,
-                                    onTap = {
-                                        if(selectedItem.value == room?.id) {
-                                            selectedItem.value = null
-                                        }else navController?.navigate(
-                                            NavigationNode.Conversation(
-                                                conversationId = room?.id,
-                                                name = room?.summary?.roomName
-                                            )
-                                        )
-                                    },
-                                    onLongPress = {
-                                        selectedItem.value = room?.id
-                                    },
-                                    onAvatarClick = {
-                                        if(room?.summary?.isDirect == true) {
-                                            coroutineScope.launch(Dispatchers.Default) {
-                                                selectedUser.value = networkItems.value?.find {
-                                                    it.userId == room.summary.heroes?.firstOrNull()?.full
-                                                }
-                                            }
-                                        }else {
-                                            NavigationNode.ConversationInformation(
-                                                conversationId = room?.id,
-                                                name = room?.summary?.roomName
-                                            )
-                                        }
-                                    }
-                                ) {
-                                    if(index != conversationRooms.itemCount - 1) {
-                                        Divider(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            color = LocalTheme.current.colors.disabledComponent,
-                                            thickness = .3.dp
-                                        )
-                                    }
-                                }
-                            }
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Spacer(
-                                    Modifier
-                                        .padding(WindowInsets.navigationBars.asPaddingValues())
-                                        .height(LocalTheme.current.shapes.betweenItemsSpace * 2)
-                                )
-                            }
-                        }
-                    }else {
-                        SocialCircleContent(
+                        )
+                    }
+                }
+                Crossfade(targetState = uiMode.value) { mode ->
+                    when (mode) {
+                        HomeModel.UiMode.List -> ListContent(
+                            model = model,
+                            gridState = gridState,
+                            selectedItem = selectedItem
+                        )
+                        HomeModel.UiMode.Circle -> SocialCircleContent(
                             modifier = Modifier.fillMaxSize(),
                             viewModel = model
+                        )
+                        HomeModel.UiMode.Loading -> EmptyLayout(
+                            modifier = Modifier.fillMaxSize(),
+                            title = stringResource(Res.string.screen_home_initial_sync),
+                            animReverseOnRepeat = false,
+                            animSpec = {
+                                LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
+                            }
+                        )
+                        HomeModel.UiMode.NoClient -> EmptyLayout(
+                            title = stringResource(Res.string.screen_home_no_client_title),
+                            action = stringResource(Res.string.screen_home_no_client_action),
+                            onClick = {
+                                navController?.navigate(NavigationNode.Login())
+                            }
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun ListContent(
+    model: HomeModel,
+    gridState: LazyGridState,
+    selectedItem: MutableState<String?>
+) {
+    val navController = LocalNavController.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
+    val networkItems = model.networkItems.collectAsState(null)
+    val customColors = model.customColors.collectAsState(initial = mapOf())
+    val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
+            || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
+    val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
+            && !isLoadingInitialPage
+
+    val selectedUser = remember {
+        mutableStateOf<NetworkItemIO?>(null)
+    }
+    val showAddNewModal = rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    if(showAddNewModal.value) {
+        NetworkAddNewLauncher(onDismissRequest = {
+            showAddNewModal.value = false
+        })
+    }
+
+    if(selectedUser.value != null) {
+        UserProfileLauncher(
+            user = selectedUser.value,
+            onDismissRequest = {
+                selectedUser.value = null
+            }
+        )
+    }
+
+    LazyVerticalGrid(
+        modifier = Modifier
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    selectedItem.value = null
+                })
+            }
+            .draggable(
+                orientation = Orientation.Vertical,
+                state = rememberDraggableState { delta ->
+                    coroutineScope.launch {
+                        gridState.scrollBy(-delta)
+                    }
+                }
+            )
+            .fillMaxSize(),
+        columns = GridCells.Fixed(
+            if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
+        ),
+        state = gridState,
+        verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {}
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            androidx.compose.animation.AnimatedVisibility(
+                enter = expandVertically() + fadeIn(),
+                visible = isEmpty
+            ) {
+                EmptyLayout(
+                    title = stringResource(Res.string.network_list_empty_title),
+                    action = stringResource(Res.string.network_list_empty_action),
+                    onClick = {
+                        showAddNewModal.value = true
+                    }
+                )
+            }
+        }
+        items(
+            count = if(conversationRooms.itemCount == 0 && isLoadingInitialPage) {
+                NETWORK_SHIMMER_ITEM_COUNT
+            }else conversationRooms.itemCount,
+            key = { index -> conversationRooms.getOrNull(index)?.id ?: Uuid.random().toString() }
+        ) { index ->
+            val room = conversationRooms.getOrNull(index)
+
+            ConversationRoomItem(
+                modifier = Modifier
+                    .animateItem()
+                    .fillMaxWidth(),
+                model = model,
+                room = room,
+                selectedItem = selectedItem.value,
+                requestProximityChange = { proximity ->
+                    val singleUser = if(room?.summary?.isDirect == true) {
+                        room.summary.members?.firstOrNull()
+                    }else null
+
+                    model.requestProximityChange(
+                        conversationId = room?.id,
+                        publicId = singleUser?.userId,
+                        proximity = proximity,
+                        onOperationDone = {
+                            if(selectedItem.value == room?.id) {
+                                selectedItem.value = null
+                            }
+                            conversationRooms.refresh()
+                        }
+                    )
+                },
+                customColors = customColors.value,
+                onTap = {
+                    if(selectedItem.value == room?.id) {
+                        selectedItem.value = null
+                    }else navController?.navigate(
+                        NavigationNode.Conversation(
+                            conversationId = room?.id,
+                            name = room?.summary?.roomName
+                        )
+                    )
+                },
+                onLongPress = {
+                    selectedItem.value = room?.id
+                },
+                onAvatarClick = {
+                    if(room?.summary?.isDirect == true) {
+                        coroutineScope.launch(Dispatchers.Default) {
+                            selectedUser.value = networkItems.value?.find {
+                                it.userId == room.summary.heroes?.firstOrNull()?.full
+                            }
+                        }
+                    }else {
+                        NavigationNode.ConversationInformation(
+                            conversationId = room?.id,
+                            name = room?.summary?.roomName
+                        )
+                    }
+                }
+            ) {
+                if(index != conversationRooms.itemCount - 1) {
+                    Divider(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = LocalTheme.current.colors.disabledComponent,
+                        thickness = .3.dp
+                    )
+                }
+            }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Spacer(
+                Modifier
+                    .padding(WindowInsets.navigationBars.asPaddingValues())
+                    .height(LocalTheme.current.shapes.betweenItemsSpace * 2)
+            )
         }
     }
 }

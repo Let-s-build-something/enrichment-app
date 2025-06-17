@@ -97,6 +97,12 @@ class DeviceVerificationModel: SharedModel() {
             awaitCancellation()
             clear()
         }
+
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest { client ->
+                if (client == null) hide()
+            }
+        }
     }
 
     private fun subscribe() {
@@ -336,7 +342,9 @@ class DeviceVerificationModel: SharedModel() {
                 )*/
             }
             is ActiveVerificationState.WaitForDone -> _launcherState.value = LauncherState.Loading
-            is ActiveVerificationState.Cancel -> cancel(restart = false, manual = false)
+            is ActiveVerificationState.Cancel -> {
+                if (!state.isOurOwn) cancel(restart = false, manual = false)
+            }
             else -> {}
         }
     }

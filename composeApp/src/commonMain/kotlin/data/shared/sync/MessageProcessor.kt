@@ -302,7 +302,7 @@ abstract class MessageProcessor {
         }.also {
             // the decryption timed-out -> put it to the background
             if(it == null && !save) {
-                logger.debug { "failed to decrypt within given timeout, putting decryption to background" }
+                logger.warn { "failed to decrypt within given timeout, putting decryption to background" }
                 decryptionScope.launch {
                     returnOrSaveEncryptedEvent(
                         messageId = messageId,

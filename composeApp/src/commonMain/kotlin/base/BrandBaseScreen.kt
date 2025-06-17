@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.FabPosition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +23,7 @@ import base.navigation.NavigationNode
 import components.navigation.VerticalAppBar
 import data.shared.SharedModel
 import org.koin.compose.viewmodel.koinViewModel
+import utils.SharedLogger
 
 /**
  * Screen with a brand-specific layout and behavior.
@@ -103,9 +105,15 @@ fun BrandBaseScreen(
         dispatcher?.executeBackPress()
     }
 
+    SideEffect {
+        SharedLogger.logger.debug { "BrandBaseScreen, currentUser outside of actions: ${currentUser.value}" }
+    }
     val actions: @Composable (expanded: Boolean) -> Unit = { expanded ->
         actionIcons?.invoke(expanded)
 
+        SideEffect {
+            SharedLogger.logger.debug { "BrandBaseScreen, currentUser inside of actions: ${currentUser.value}" }
+        }
         if(showDefaultActions) {
             DefaultAppBarActions(
                 isUserSignedIn = currentUser.value != null,
