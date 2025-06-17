@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
 open class MatrixAuthenticationPlan(
     val session: String? = null,
     val flows: List<MatrixAuthenticationFlow>? = null,
-    val params: MatrixAuthenticationParams? = null
+    val params: MatrixAuthenticationParams? = null,
+    val error: String? = null
 )
 
 @Serializable
