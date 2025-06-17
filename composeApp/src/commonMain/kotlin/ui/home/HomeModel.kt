@@ -58,15 +58,23 @@ class HomeModel(
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
-    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
+    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
+        syncService.restart()
+    }
 
     enum class UiMode {
         List,
         Circle,
-        Loading
+        Loading,
+        NoClient;
+
+        val isFinished: Boolean
+            get() = this == List || this == Circle
     }
 
-    private val _uiMode = MutableStateFlow<UiMode>(UiMode.List)
+    private val _uiMode = MutableStateFlow<UiMode>(
+        if (authService.awaitingAutologin || matrixClient != null) UiMode.List else UiMode.NoClient
+    )
     private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
@@ -142,16 +150,18 @@ class HomeModel(
         }
 
         viewModelScope.launch {
-            SharedLogger.logger.debug { "HomeModel, starting collector on client" }
             sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest { client ->
-                viewModelScope.launch {
-                    SharedLogger.logger.debug { "HomeModel, new client: $client" }
-                    client?.syncState?.collect { syncState ->
-                        SharedLogger.logger.debug { "HomeModel, syncState: $syncState" }
-                        if (syncState == SyncState.INITIAL_SYNC) {
-                            _uiMode.value = UiMode.Loading
-                        } else if (syncState == SyncState.RUNNING && _uiMode.value == UiMode.Loading) {
-                            _uiMode.value = UiMode.List
+                if (client == null) {
+                    _uiMode.value = UiMode.NoClient
+                } else {
+                    viewModelScope.launch {
+                        client.syncState.collect { syncState ->
+                            SharedLogger.logger.debug { "HomeModel, syncState: $syncState" }
+                            if (syncState == SyncState.INITIAL_SYNC) {
+                                _uiMode.value = UiMode.Loading
+                            } else if (syncState == SyncState.RUNNING && !_uiMode.value.isFinished) {
+                                _uiMode.value = UiMode.List
+                            }
                         }
                     }
                 }

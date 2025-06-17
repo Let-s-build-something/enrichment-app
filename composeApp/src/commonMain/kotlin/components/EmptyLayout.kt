@@ -29,7 +29,12 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 fun EmptyLayout(
     modifier: Modifier = Modifier,
     title: String? = null,
-    animResPath: String = "files/empty.lottie",
+    animSpec : suspend () -> LottieCompositionSpec = {
+        LottieCompositionSpec.DotLottie(
+            Res.readBytes("files/empty.lottie")
+        )
+    },
+    animReverseOnRepeat: Boolean = true,
     description: String? = null,
     action: String? = null,
     onClick: () -> Unit = {},
@@ -40,11 +45,7 @@ fun EmptyLayout(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        val composition by rememberLottieComposition {
-            LottieCompositionSpec.DotLottie(
-                Res.readBytes(animResPath)
-            )
-        }
+        val composition by rememberLottieComposition(spec = animSpec)
 
         Image(
             modifier = Modifier
@@ -53,7 +54,7 @@ fun EmptyLayout(
                 .requiredHeight(200.dp),
             painter = rememberLottiePainter(
                 composition = composition,
-                reverseOnRepeat = true,
+                reverseOnRepeat = animReverseOnRepeat,
                 iterations = Int.MAX_VALUE
             ),
             contentDescription = null
@@ -63,13 +64,16 @@ fun EmptyLayout(
                 modifier = Modifier.fillMaxWidth(.8f),
                 text = title,
                 style = LocalTheme.current.styles.category.copy(
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = LocalTheme.current.colors.secondary
                 )
             )
         }
         description?.let { text ->
             Text(
-                modifier = Modifier.fillMaxWidth(.8f),
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .fillMaxWidth(.8f),
                 text = text,
                 style = LocalTheme.current.styles.regular.copy(
                     textAlign = TextAlign.Center

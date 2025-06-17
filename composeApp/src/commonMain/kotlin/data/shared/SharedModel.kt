@@ -31,7 +31,7 @@ import utils.SharedLogger
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedModel: ViewModel() {
-    protected val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
+    protected val syncService = KoinPlatform.getKoin().get<DataSyncService>()
     protected val authService = KoinPlatform.getKoin().get<AuthService>()
 
     /** Singleton data manager to keep session-only data alive */
@@ -149,7 +149,8 @@ open class SharedModel: ViewModel() {
 
     /** Logs out the currently signed in user */
     open suspend fun logoutCurrentUser() {
-        dataSyncService.stop()
+        SharedLogger.logger.warn { "Logging current user out" }
+        syncService.stop()
         authService.clear()
         secureSettings.clear()
         sharedDataManager.matrixClient.value?.logout()

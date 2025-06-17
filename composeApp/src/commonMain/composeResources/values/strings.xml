@@ -23,6 +23,10 @@
   <string name="navigate_close">Close</string>
   <string name="navigate_hamburger_menu">Menu</string>
 
+  <string name="screen_home_initial_sync">The postman is on its way with your messages...</string>
+  <string name="screen_home_no_client_title">You need to sign-in to see your messages</string>
+  <string name="screen_home_no_client_action">Okey-dokey, I'll sign-in</string>
+
   <string name="username_change_launcher_title">Hey there, %1$s</string>
   <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
@@ -219,7 +223,7 @@
   <string name="device_verification_other_request">A newly signed in device is requesting a confirmation</string>
   <string name="device_verification_passphrase">Enter PIN</string>
   <string name="device_verification_success">Successfully verified! 🥳</string>
-  <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>
+  <string name="device_verification_passphrase_error">I don't think that's your PIN. Try again 🤷🏼</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>

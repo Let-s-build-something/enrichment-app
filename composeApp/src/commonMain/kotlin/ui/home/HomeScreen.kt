@@ -58,6 +58,9 @@ import augmy.composeapp.generated.resources.invite_new_item_conversation
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
+import augmy.composeapp.generated.resources.screen_home_initial_sync
+import augmy.composeapp.generated.resources.screen_home_no_client_action
+import augmy.composeapp.generated.resources.screen_home_no_client_title
 import augmy.composeapp.generated.resources.screen_search_network
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
@@ -83,6 +86,8 @@ import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
+import io.github.alexzhirkevich.compottie.DotLottie
+import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -206,21 +211,23 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                     .fillMaxWidth()
                     .weight(1f, fill = true)
             ) {
-                Crossfade(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .zIndex(1f),
-                    targetState = uiMode.value == HomeModel.UiMode.List
-                ) { isList ->
-                    MinimalisticFilledIcon(
+                if (uiMode.value.isFinished) {
+                    Crossfade(
                         modifier = Modifier
-                            .padding(top = 2.dp)
+                            .align(Alignment.TopEnd)
                             .zIndex(1f),
-                        imageVector = if (isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
-                        onTap = {
-                            model.swapUiMode(!isList)
-                        }
-                    )
+                        targetState = uiMode.value == HomeModel.UiMode.List
+                    ) { isList ->
+                        MinimalisticFilledIcon(
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .zIndex(1f),
+                            imageVector = if (isList) Icons.Outlined.TrackChanges else Icons.AutoMirrored.Outlined.List,
+                            onTap = {
+                                model.swapUiMode(!isList)
+                            }
+                        )
+                    }
                 }
                 Crossfade(targetState = uiMode.value) { mode ->
                     when (mode) {
@@ -235,7 +242,18 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                         )
                         HomeModel.UiMode.Loading -> EmptyLayout(
                             modifier = Modifier.fillMaxSize(),
-                            animResPath = "files/loading_generic.json"
+                            title = stringResource(Res.string.screen_home_initial_sync),
+                            animReverseOnRepeat = false,
+                            animSpec = {
+                                LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
+                            }
+                        )
+                        HomeModel.UiMode.NoClient -> EmptyLayout(
+                            title = stringResource(Res.string.screen_home_no_client_title),
+                            action = stringResource(Res.string.screen_home_no_client_action),
+                            onClick = {
+                                navController?.navigate(NavigationNode.Login())
+                            }
                         )
                     }
                 }

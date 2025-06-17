@@ -71,8 +71,8 @@ class AppServiceModel(
                 // retry for signed in users, we don't really care about unsigned
                 sharedDataManager.currentUser.value?.matrixHomeserver?.let { homeserver ->
                     if(lastConnectivity == false && it?.isNetworkAvailable == true) {
-                        dataSyncService.stop()
-                        dataSyncService.sync(homeserver = homeserver, delay = 2000)
+                        syncService.stop()
+                        syncService.sync(homeserver = homeserver, delay = 2000)
                     }
                     lastConnectivity = it?.isNetworkAvailable
                 }

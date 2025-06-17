@@ -93,7 +93,15 @@ class DataSyncService {
         }
     }
 
+    fun restart() {
+        stop()
+        sync(homeserver ?: return)
+    }
+
     fun stop() {
+        syncScope.launch {
+            sharedDataManager.matrixClient.value?.api?.sync?.stop()
+        }
         if(isRunning) {
             handler.stop()
             isRunning = false

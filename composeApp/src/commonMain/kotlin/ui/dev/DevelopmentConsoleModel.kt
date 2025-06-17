@@ -427,7 +427,6 @@ class DevelopmentConsoleModel(
             repository.clearAllDaos()
             sharedDataManager.matrixClient.value?.clearCache()
             sharedDataManager.matrixClient.value?.clearMediaCache()
-            logData
             super.logoutCurrentUser()
         }
     }
