@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import base.navigation.NavigationNode
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
+import base.utils.Matrix.LOGIN_EMAIL_IDENTITY
 import base.utils.deeplinkHost
 import base.utils.openLink
 import coil3.toUri
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -48,7 +50,8 @@ class LoginModel(
         val state: HomeServerState,
         val plan: MatrixAuthenticationPlan? = null,
         val address: String,
-        val supportsEmail: Boolean = false
+        val supportsEmail: Boolean = false,
+        val registrationEnabled: Boolean = true
     ) {
         override fun toString(): String {
             return "{" +
@@ -76,6 +79,13 @@ class LoginModel(
     val loginResult = _loginResult.asSharedFlow()
     val isLoading = _isLoading.asStateFlow()
     val homeServerResponse = dataManager.homeServerResponse.asStateFlow()
+    val supportsEmail = dataManager.homeServerResponse.transform { res ->
+        emit(
+            res?.plan?.flows?.any {
+                it.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
+            } != false
+        )
+    }
 
     private var ssoNonce: String?
         get() = runBlocking { settings.getStringOrNull(SecureSettingsKeys.KEY_LOGIN_NONCE) }
@@ -136,32 +146,37 @@ class LoginModel(
             _isLoading.value = true
             dataManager.homeServerResponse.value = (if(screenType == LoginScreenType.SIGN_UP) {
                 repository.dummyMatrixRegister(address = address)
-            }else repository.dummyMatrixLogin(address = address))?.let {
-                session = it.session ?: session
-                HomeServerResponse(
-                    state = if(it.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
-                    plan = it,
-                    address = address,
-                    supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
-                        (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
-                            setupAutoLogin = false,
-                            homeserver = address,
-                            identifier = MatrixIdentifierData(
-                                type = Matrix.Id.THIRD_PARTY,
-                                medium = Matrix.Medium.EMAIL,
-                                address = "email@email.com"
-                            ),
-                            password = "-",
-                            token = null
-                        ).error?.message?.contains("Bad login type") == false)).also { answer ->
-                            homeserverAbilityCache[address] = answer
+            }else repository.dummyMatrixLogin(address = address)).let { response ->
+                if (response != null) {
+                    session = response.session ?: session
+                    HomeServerResponse(
+                        state = if(response.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
+                        plan = response,
+                        address = address,
+                        supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
+                            (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
+                                setupAutoLogin = false,
+                                homeserver = address,
+                                identifier = MatrixIdentifierData(
+                                    type = Matrix.Id.THIRD_PARTY,
+                                    medium = Matrix.Medium.EMAIL,
+                                    address = "email@email.com"
+                                ),
+                                password = "-",
+                                token = null
+                            ).error?.message?.contains("Bad login type") == false)).also { answer ->
+                                homeserverAbilityCache[address] = answer
+                            }
                         }
-                    }
-                )
-            } ?: HomeServerResponse(
-                state = HomeServerState.Invalid,
-                address = address
-            )
+                    )
+                } else {
+                    HomeServerResponse(
+                        state = HomeServerState.Invalid,
+                        address = address,
+                        registrationEnabled = response?.error?.contains("Registration has been disabled.") == false
+                    )
+                }
+            }
             _isLoading.value = false
         }
     }
@@ -246,6 +261,7 @@ class LoginModel(
         screenType: LoginScreenType,
         response: MatrixAuthenticationResponse? = null
     ) {
+        SharedLogger.logger.debug { "signUpWithPassword, username: $username, email: $email, screenType: $screenType" }
         _isLoading.value = true
         viewModelScope.launch {
             val res = if(screenType == LoginScreenType.SIGN_UP && response == null) {
@@ -266,7 +282,7 @@ class LoginModel(
                         session = it.session
                     }
                 }else {
-                    val requiresEmail = flow?.stages?.contains(Matrix.LOGIN_EMAIL_IDENTITY) == true
+                    val requiresEmail = flow?.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
                     // if flow contains email verification, we should check for duplicity first
                     val check = if(requiresEmail) {
                         repository.requestRegistrationToken(
@@ -278,9 +294,11 @@ class LoginModel(
 
                     when(check?.error?.code) {
                         Matrix.ErrorCode.CREDENTIALS_IN_USE -> {
+                            _isLoading.value = false
                             _loginResult.emit(LoginResultType.EMAIL_EXISTS)
                         }
                         Matrix.ErrorCode.CREDENTIALS_DENIED, Matrix.ErrorCode.FORBIDDEN, Matrix.ErrorCode.UNKNOWN -> {
+                            _isLoading.value = false
                             _loginResult.emit(LoginResultType.FAILURE)
                         }
                         else -> {
@@ -319,7 +337,10 @@ class LoginModel(
                         email = email,
                         password = password
                     )
-                }else _loginResult.emit(LoginResultType.FAILURE)
+                }else {
+                    _isLoading.value = false
+                    _loginResult.emit(LoginResultType.FAILURE)
+                }
             }else loginWithCredentials(username, email, password)
         }
     }

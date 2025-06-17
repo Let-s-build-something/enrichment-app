@@ -35,6 +35,9 @@
   <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>
+  <string name="login_identifier_hint">Username or email</string>
+  <string name="login_registration_disabled">Registration on the selected homeserver is disabled, select a different one.</string>
+  <string name="login_username_hint">Unique username</string>
   <string name="login_password_email_hint">Email</string>
   <string name="login_password_password_hint">Password</string>
   <string name="error_general">Even we can fail communicating (with the server), apologies. Try again later.</string>
@@ -44,8 +47,6 @@
   <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
   <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
-  <string name="login_oidc_disable">Disable OIDC</string>
-  <string name="login_oidc_enable">Enable OIDC</string>
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
@@ -60,12 +61,12 @@
   <string name="login_homeserver_description">Homeserver is a remote service, that hosts your account and communicates with other homeservers in order to serve your needs.</string>
   <string name="login_homeserver_address">Homeserver address</string>
   <string name="login_matrix_homeserver">Hosted on %1$s</string>
-  <string name="login_username_hint">Unique username</string>
   <string name="login_username_error">The username is not valid, try a different one.</string>
   <string name="login_homeserver_address_error">Incorrect address, you can always select existing ones.</string>
   <string name="login_error_duplicate_username">Restroom occupied, try a different one.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
+  <string name="login_password_action_oidc">Login through website</string>
   <string name="login_password_action_go">Here I go!</string>
   <string name="login_agreement">By creating an account, you agree to our Terms of Use and Privacy Policy.</string>
   <string name="login_terms_of_use">Terms of Use</string>

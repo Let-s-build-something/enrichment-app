@@ -191,6 +191,7 @@ fun BrandHeaderButton(
         vertical = 10.dp,
         horizontal = 16.dp
     ),
+    shape: Shape = LocalTheme.current.shapes.circularActionShape,
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
     endImageVector: ImageVector? = null,
@@ -208,7 +209,8 @@ fun BrandHeaderButton(
         containerColor = if(isLoading) {
             LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
         }else LocalTheme.current.colors.brandMainDark,
-        endImageVector = endImageVector
+        endImageVector = endImageVector,
+        shape = shape
     )
 }
 
