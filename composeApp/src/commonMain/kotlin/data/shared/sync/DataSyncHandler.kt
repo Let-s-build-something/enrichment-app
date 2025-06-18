@@ -4,6 +4,7 @@ import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
@@ -181,7 +182,8 @@ class DataSyncHandler: MessageProcessor() {
             heroes = summary?.heroes,
             joinedMemberCount = summary?.joinedMemberCount?.toInt(),
             invitedMemberCount = summary?.invitedMemberCount?.toInt()
-        )
+        ),
+        type = RoomType.Joined
     ).also {
         it.state = state
         it.timeline = timeline
@@ -191,16 +193,19 @@ class DataSyncHandler: MessageProcessor() {
 
     private fun Sync.Response.Rooms.KnockedRoom.asConversation(id: RoomId) = ConversationRoomIO(
         id = id.full,
-        knockState = knockState
+        knockState = knockState,
+        type = RoomType.Knocked
     )
 
     private fun Sync.Response.Rooms.InvitedRoom.asConversation(id: RoomId) =  ConversationRoomIO(
         id = id.full,
-        inviteState = inviteState
+        inviteState = inviteState,
+        type = RoomType.Invited
     )
 
     private fun Sync.Response.Rooms.LeftRoom.asConversation(id: RoomId) = ConversationRoomIO(
-        id = id.full
+        id = id.full,
+        type = RoomType.Left
     ).also {
         it.state = state
         it.timeline = timeline
