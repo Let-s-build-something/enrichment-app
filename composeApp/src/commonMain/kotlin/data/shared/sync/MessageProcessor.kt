@@ -44,6 +44,7 @@ import net.folivo.trixnity.core.model.events.m.room.CreateEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
+import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.FileBased
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
@@ -99,7 +100,6 @@ abstract class MessageProcessor {
                     decryptedMessages.add(it)
                 }
             }
-            roomMemberDao.insertAll(result.members)
 
             val messages = result.messages.plus(decryptedMessages).mapNotNull {
                 if (conversationMessageDao.insertIgnore(it) == -1L) {
@@ -107,7 +107,11 @@ abstract class MessageProcessor {
                     null
                 } else it
             }
-            roomMemberDao.insertAll(result.members)
+            result.members.forEach { member ->
+                if (member.first) {
+                    roomMemberDao.insertReplace(member.second)
+                }else roomMemberDao.remove(member.second.userId)
+            }
 
             if (result.messages.isNotEmpty()) {
                 // add the anchor messages
@@ -123,7 +127,7 @@ abstract class MessageProcessor {
 
             SaveEventsResult(
                 messages = messages,
-                members = result.members,
+                members = result.members.map { it.second },
                 events = events.size,
                 prevBatch = prevBatch
             )
@@ -137,7 +141,7 @@ abstract class MessageProcessor {
         roomId: String
     ): ProcessedEvents = withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
-        val members = mutableListOf<ConversationRoomMember>()
+        val members = mutableListOf<Pair<Boolean, ConversationRoomMember>>()
         val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
 
@@ -147,7 +151,7 @@ abstract class MessageProcessor {
                     (event.stateKeyOrNull ?: event.senderOrNull?.full
                         ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
-                            ConversationRoomMember(
+                            (content.membership == Membership.JOIN) to ConversationRoomMember(
                                 content = content,
                                 roomId = roomId,
                                 timestamp = event.originTimestampOrNull,
@@ -156,20 +160,13 @@ abstract class MessageProcessor {
                             )
                         )
                     }
-                    /*if (event is RoomEvent.StateEvent) {
-                        (event as? RoomEvent.StateEvent<MemberEventContent>)?.let {
-                            memberUpdates.add(it)
-                        }
-                    }*/
-                    content.displayName?.let { displayName ->
+                    (content.displayName ?: event.senderOrNull?.localpart)?.let { displayName ->
                         ConversationMessageIO(
                             content = content.membership.asMessage(
                                 isSelf = content.displayName == sharedDataManager.currentUser.value?.matrixDisplayName,
                                 displayName = displayName
                             ),
-                            media = listOf(
-                                MediaIO(url = content.avatarUrl)
-                            ),
+                            media = listOf(MediaIO(url = content.avatarUrl)),
                             authorPublicId = AUTHOR_SYSTEM
                         )
                     }
