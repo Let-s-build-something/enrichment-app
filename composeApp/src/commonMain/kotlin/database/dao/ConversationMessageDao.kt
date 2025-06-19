@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageState
 import database.AppRoomDatabase
 
 /** Interface for communication with local Room database */
@@ -71,6 +72,21 @@ interface ConversationMessageDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIgnore(item: ConversationMessageIO): Long
+
+    @Query("""
+           UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+            SET content = :message, 
+                edited = :edited
+            WHERE id = :id
+        """)
+    suspend fun updateMessage(id: String, message: String, edited: Boolean = true)
+
+    @Query("""
+           UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+            SET state = :state
+            WHERE id = :id
+        """)
+    suspend fun updateState(id: String, state: MessageState)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReplace(item: ConversationMessageIO)

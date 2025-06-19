@@ -94,14 +94,14 @@ class DataSyncService {
     }
 
     fun restart() {
-        stop()
-        sync(homeserver ?: return)
+        CoroutineScope(Job()).launch {
+            stop()
+            sync(homeserver ?: return@launch)
+        }
     }
 
-    fun stop() {
-        syncScope.launch {
-            sharedDataManager.matrixClient.value?.api?.sync?.stop()
-        }
+    suspend fun stop() {
+        sharedDataManager.matrixClient.value?.api?.sync?.stop()
         if(isRunning) {
             handler.stop()
             isRunning = false

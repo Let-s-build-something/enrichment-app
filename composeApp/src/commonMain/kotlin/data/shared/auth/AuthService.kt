@@ -156,7 +156,9 @@ class AuthService {
         if(isRunning) {
             isRunning = false
             enqueueScope.coroutineContext.cancelChildren()
-            syncService.stop()
+            enqueueScope.launch {
+                syncService.stop()
+            }
         }
     }
 

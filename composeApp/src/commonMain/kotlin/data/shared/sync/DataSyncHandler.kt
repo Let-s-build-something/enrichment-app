@@ -15,6 +15,8 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.events.ClientEvent
@@ -164,7 +166,9 @@ class DataSyncHandler: MessageProcessor() {
                         )
                     }
 
-                    val lastMessage = res.messages.firstOrNull { !it.content.isNullOrBlank() }
+                    val lastMessage = res.messages.sortedByDescending {
+                        it.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
+                    }.firstOrNull { !it.content.isNullOrBlank() }
 
                     // either update existing one, or insert new one
                     newItem.copy(

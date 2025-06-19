@@ -3,6 +3,7 @@ package data.shared.sync
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_alias_change
 import augmy.composeapp.generated.resources.message_avatar_change
+import augmy.composeapp.generated.resources.message_redacted
 import augmy.composeapp.generated.resources.message_room_created
 import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
@@ -10,6 +11,7 @@ import data.io.base.AppPingType
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
@@ -33,7 +35,9 @@ import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
+import net.folivo.trixnity.core.model.events.m.ReactionEventContent
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
+import net.folivo.trixnity.core.model.events.m.ReceiptType
 import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationCancelEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationDoneEventContent
@@ -45,6 +49,7 @@ import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
+import net.folivo.trixnity.core.model.events.m.room.RedactionEventContent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.FileBased
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
@@ -73,6 +78,7 @@ abstract class MessageProcessor {
 
     data class SaveEventsResult(
         val messages: List<ConversationMessageIO>,
+        val changeInMessages: Boolean,
         val events: Int,
         val members: List<ConversationRoomMember>,
         val prevBatch: String?
@@ -107,10 +113,48 @@ abstract class MessageProcessor {
                     null
                 } else it
             }
+
+            result.receipts.forEach { receipt ->
+                receipt.content.events.forEach { event ->
+                    if (!event.value[ReceiptType.Read].isNullOrEmpty() || !event.value[ReceiptType.FullyRead].isNullOrEmpty()) {
+                        conversationMessageDao.updateState(
+                            id = event.key.full,
+                            state = MessageState.Read
+                        )
+                    }
+                }
+            }
+
             result.members.forEach { member ->
                 if (member.first) {
                     roomMemberDao.insertReplace(member.second)
                 }else roomMemberDao.remove(member.second.userId)
+            }
+
+            result.redactions.forEach { redaction ->
+                conversationMessageDao.updateMessage(
+                    id = redaction.redacts.full,
+                    message = getString(
+                        Res.string.message_redacted,
+                        redaction.reason ?: ""
+                    )
+                )
+            }
+
+            result.replacements.forEach { replacement ->
+                conversationMessageDao.updateMessage(
+                    id = replacement.key,
+                    message = replacement.value?.content ?: ""
+                )
+            }
+
+            result.reactions.forEach { reaction ->
+                conversationMessageDao.insertReplace(
+                    (conversationMessageDao.get(reaction.key)
+                        ?: ConversationMessageIO(id = reaction.key)).let { message ->
+                            message.copy(reactions = message.reactions.orEmpty().plus(reaction.value))
+                    }
+                )
             }
 
             if (result.messages.isNotEmpty()) {
@@ -129,7 +173,8 @@ abstract class MessageProcessor {
                 messages = messages,
                 members = result.members.map { it.second },
                 events = events.size,
-                prevBatch = prevBatch
+                prevBatch = prevBatch,
+                changeInMessages = !result.isEmpty
             )
         }
     }
@@ -144,6 +189,9 @@ abstract class MessageProcessor {
         val members = mutableListOf<Pair<Boolean, ConversationRoomMember>>()
         val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
+        val redactions = mutableListOf<RedactionEventContent>()
+        val replacements = hashMapOf<String, ConversationMessageIO?>()
+        val reactions = hashMapOf<String, MutableSet<MessageReactionIO>>()
 
         events.forEach { event ->
             when (val content = event.content) {
@@ -174,7 +222,6 @@ abstract class MessageProcessor {
 
                 is ReceiptEventContent -> {
                     (event as? ClientEvent<ReceiptEventContent>)?.let {
-                        // TODO save receipts to DB
                         receipts.add(it)
                     }
                     null
@@ -209,6 +256,19 @@ abstract class MessageProcessor {
                         authorPublicId = AUTHOR_SYSTEM
                     )
                 }
+                is ReactionEventContent -> {
+                    content.relatesTo?.eventId?.full?.let { eventId ->
+                        reactions[eventId] = reactions[eventId].orEmpty().toMutableSet().apply {
+                            add(
+                                MessageReactionIO(
+                                    content = content.relatesTo?.key,
+                                    authorPublicId = event.senderOrNull?.full
+                                )
+                            )
+                        }
+                    }
+                    null
+                }
                 is CreateEventContent -> {
                     ConversationMessageIO(
                         content = getString(
@@ -218,14 +278,24 @@ abstract class MessageProcessor {
                         authorPublicId = AUTHOR_SYSTEM
                     )
                 }
-                is MessageEventContent -> content.process()
+                is RedactionEventContent -> {
+                    redactions.add(content)
+                    null
+                }
+                is MessageEventContent -> {
+                    (content.relatesTo as? RelatesTo.Replace).let {
+                        if (it != null) {
+                            replacements[it.eventId.full] = it.newContent?.process()
+                            null
+                        }else content.process()
+                    }
+                }
                 else -> null
                 /*EmptyEventContent -> TODO()
                 is EphemeralDataUnitContent -> TODO()
                 is EphemeralEventContent -> TODO()
                 is GlobalAccountDataEventContent -> TODO()
                 is RoomAccountDataEventContent -> TODO()
-                is MessageEventContent -> TODO()
                 is RedactedEventContent -> TODO()
                 is StateEventContent -> TODO()
                 is UnknownEventContent -> TODO()
@@ -246,6 +316,9 @@ abstract class MessageProcessor {
             messages = messages,
             members = members,
             receipts = receipts,
+            redactions = redactions,
+            reactions = reactions,
+            replacements = replacements,
             encryptedEvents = encryptedEvents
         )
     }
