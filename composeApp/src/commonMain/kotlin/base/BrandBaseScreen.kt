@@ -105,15 +105,9 @@ fun BrandBaseScreen(
         dispatcher?.executeBackPress()
     }
 
-    SideEffect {
-        SharedLogger.logger.debug { "BrandBaseScreen, currentUser outside of actions: ${currentUser.value}" }
-    }
     val actions: @Composable (expanded: Boolean) -> Unit = { expanded ->
         actionIcons?.invoke(expanded)
 
-        SideEffect {
-            SharedLogger.logger.debug { "BrandBaseScreen, currentUser inside of actions: ${currentUser.value}" }
-        }
         if(showDefaultActions) {
             DefaultAppBarActions(
                 isUserSignedIn = currentUser.value != null,

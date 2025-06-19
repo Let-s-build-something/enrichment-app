@@ -111,7 +111,8 @@ class NetworkItemRepository(
                                     ).apply {
                                         members = roomMemberDao.get(userIds = userPublicIds.orEmpty())
                                     },
-                                    ownerPublicId = ownerPublicId
+                                    ownerPublicId = ownerPublicId,
+                                    type = RoomType.Joined
                                 )
                             )
                         )

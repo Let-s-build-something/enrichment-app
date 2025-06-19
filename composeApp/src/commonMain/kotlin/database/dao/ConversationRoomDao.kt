@@ -13,11 +13,14 @@ import database.AppRoomDatabase
 interface ConversationRoomDao {
 
     /** Returns paginated conversation based on the owner as defined by [ownerPublicId] */
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
-            "WHERE owner_public_id = :ownerPublicId " +
-            "ORDER BY proximity DESC, last_message_timestamp DESC " +
-            "LIMIT :limit " +
-            "OFFSET :offset")
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+        WHERE owner_public_id = :ownerPublicId
+        AND (type == "Joined") OR (type == "Invited")
+        ORDER BY proximity DESC, last_message_timestamp DESC
+        LIMIT :limit
+        OFFSET :offset
+        """)
     suspend fun getPaginated(
         ownerPublicId: String?,
         limit: Int,
@@ -25,18 +28,25 @@ interface ConversationRoomDao {
     ): List<ConversationRoomIO>
 
     /** Returns all conversations related to an owner as defined by [ownerPublicId] */
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
-            "WHERE owner_public_id = :ownerPublicId ")
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+        WHERE owner_public_id = :ownerPublicId 
+        AND (type == "Joined") OR (type == "Invited") 
+        """
+    )
     suspend fun getNonFiltered(
         ownerPublicId: String?
     ): List<ConversationRoomIO>
 
     /** Returns all conversations specific to proximity bounds as defined by [proximityMin] and [proximityMax] */
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
-            "WHERE owner_public_id = :ownerPublicId " +
-            "AND id != :excludeId " +
-            "AND proximity BETWEEN :proximityMin AND :proximityMax " +
-            "LIMIT :count")
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+            WHERE owner_public_id = :ownerPublicId
+            AND id != :excludeId
+            AND (type == "Joined") OR (type == "Invited")
+            AND proximity BETWEEN :proximityMin AND :proximityMax
+            LIMIT :count
+            """)
     suspend fun getByProximity(
         count: Int,
         ownerPublicId: String?,
@@ -56,8 +66,10 @@ interface ConversationRoomDao {
     )
 
     /** Counts the number of items */
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +
-            "WHERE owner_public_id = :ownerPublicId")
+    @Query("""
+        SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
+        WHERE owner_public_id = :ownerPublicId
+    """)
     suspend fun getCount(ownerPublicId: String?): Int
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} " +

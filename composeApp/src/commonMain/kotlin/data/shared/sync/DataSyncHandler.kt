@@ -4,6 +4,7 @@ import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.PresenceData
@@ -18,11 +19,13 @@ import net.folivo.trixnity.clientserverapi.model.sync.Sync
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
+import net.folivo.trixnity.core.model.events.m.DirectEventContent
 import net.folivo.trixnity.core.model.events.m.TypingEventContent
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
 import org.koin.mp.KoinPlatform
 
@@ -50,13 +53,24 @@ class DataSyncHandler: MessageProcessor() {
             }
             val rooms = mutableListOf<ConversationRoomIO>()
             val presenceContent = mutableListOf<PresenceData>()
+            val directRoomIds = mutableSetOf<RoomId>()
+
+            response.accountData?.events?.forEach { event ->
+                when (val content = event.content) {
+                    is DirectEventContent -> {
+                        directRoomIds.addAll(content.mappings.flatMap { it.value.orEmpty() })
+                    }
+                }
+            }
 
             matrixRooms?.forEach { room ->
+                val isDirect = directRoomIds.contains(RoomId(room.id))
                 var alias: String? = null
                 var name: String? = null
                 var avatar: AvatarEventContent? = null
                 var historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null
                 var algorithm: EncryptionEventContent? = null
+                val members = mutableListOf<Pair<Boolean?, String?>>()
 
                 val events = mutableListOf<ClientEvent<*>>()
                     .apply {
@@ -73,6 +87,9 @@ class DataSyncHandler: MessageProcessor() {
                             is HistoryVisibilityEventContent -> historyVisibility = content.historyVisibility
                             is CanonicalAliasEventContent -> {
                                 alias = (content.alias ?: content.aliases?.firstOrNull())?.full
+                            }
+                            is MemberEventContent -> {
+                                members.add(content.isDirect to content.displayName)
                             }
                             is NameEventContent -> name = content.name
                             is AvatarEventContent -> avatar = content
@@ -120,7 +137,11 @@ class DataSyncHandler: MessageProcessor() {
                                 size = avatar.info?.size
                             )
                         },
-                        canonicalAlias = alias ?: name
+                        canonicalAlias = alias
+                            ?: name
+                            ?: room.summary.canonicalAlias
+                            ?: (if (isDirect) room.summary.heroes?.firstOrNull()?.full ?: members.first { it.first != false }.second else null),
+                        isDirect = isDirect
                     ),
                     prevBatch = room.timeline?.previousBatch,
                     ownerPublicId = owner,
@@ -181,7 +202,8 @@ class DataSyncHandler: MessageProcessor() {
             heroes = summary?.heroes,
             joinedMemberCount = summary?.joinedMemberCount?.toInt(),
             invitedMemberCount = summary?.invitedMemberCount?.toInt()
-        )
+        ),
+        type = RoomType.Joined
     ).also {
         it.state = state
         it.timeline = timeline
@@ -191,16 +213,19 @@ class DataSyncHandler: MessageProcessor() {
 
     private fun Sync.Response.Rooms.KnockedRoom.asConversation(id: RoomId) = ConversationRoomIO(
         id = id.full,
-        knockState = knockState
+        knockState = knockState,
+        type = RoomType.Knocked
     )
 
     private fun Sync.Response.Rooms.InvitedRoom.asConversation(id: RoomId) =  ConversationRoomIO(
         id = id.full,
-        inviteState = inviteState
+        inviteState = inviteState,
+        type = RoomType.Invited
     )
 
     private fun Sync.Response.Rooms.LeftRoom.asConversation(id: RoomId) = ConversationRoomIO(
-        id = id.full
+        id = id.full,
+        type = RoomType.Left
     ).also {
         it.state = state
         it.timeline = timeline

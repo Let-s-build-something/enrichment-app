@@ -111,6 +111,7 @@
 
   <string name="message_decrypting">This message couldn't be decrypted:(</string>
   <string name="message_alias_change">%1$s changed the room name to %2$s.</string>
+  <string name="message_room_created">Contents: 100% online interactions, 0% misunderstanding. Made by %1$s.</string>
   <string name="message_avatar_change">%1$s changed the room avatar.</string>
   <string name="message_read_more">Read more</string>
   <string name="message_user_verification">%1$s asked for a verification.</string>

@@ -72,12 +72,7 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val algorithm: EncryptionAlgorithm? = null,
 
     /** Type of the room */
-    val type: RoomType = when {
-        inviteState != null -> RoomType.Invited
-        knockState != null -> RoomType.Knocked
-        summary == null -> RoomType.Left
-        else -> RoomType.Joined
-    }
+    val type: RoomType
 ) {
     @Ignore
     @Transient
