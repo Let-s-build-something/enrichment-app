@@ -77,6 +77,8 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     val verification: VerificationRequestInfo? = null,
 
+    val edited: Boolean = false,
+
     val user: ConversationRoomMember? = null
 ) {
 
