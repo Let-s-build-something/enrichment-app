@@ -3,6 +3,7 @@ package data.shared.sync
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_alias_change
 import augmy.composeapp.generated.resources.message_avatar_change
+import augmy.composeapp.generated.resources.message_room_created
 import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
 import data.io.base.AppPingType
@@ -39,6 +40,7 @@ import net.folivo.trixnity.core.model.events.m.key.verification.VerificationDone
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationStep
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
+import net.folivo.trixnity.core.model.events.m.room.CreateEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
@@ -193,7 +195,7 @@ abstract class MessageProcessor {
                     ConversationMessageIO(
                         content = getString(
                             Res.string.message_avatar_change,
-                            event.senderOrNull?.full ?: ""
+                            event.senderOrNull?.localpart ?: ""
                         ),
                         media = listOf(MediaIO(url = content.url)),
                         authorPublicId = AUTHOR_SYSTEM
@@ -203,10 +205,19 @@ abstract class MessageProcessor {
                     ConversationMessageIO(
                         content = getString(
                             Res.string.message_alias_change,
-                            (content.alias ?: content.aliases?.firstOrNull())?.full ?: "",
-                            event.senderOrNull?.full ?: ""
+                            (content.alias ?: content.aliases?.firstOrNull())?.localpart ?: "",
+                            event.senderOrNull?.localpart ?: ""
                         ),
                         media = listOf(MediaIO(name = event.senderOrNull?.full ?: "")),
+                        authorPublicId = AUTHOR_SYSTEM
+                    )
+                }
+                is CreateEventContent -> {
+                    ConversationMessageIO(
+                        content = getString(
+                            Res.string.message_room_created,
+                            event.senderOrNull?.localpart ?: content.creator?.localpart ?: "",
+                        ),
                         authorPublicId = AUTHOR_SYSTEM
                     )
                 }
