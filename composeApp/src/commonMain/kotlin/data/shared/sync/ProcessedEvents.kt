@@ -8,7 +8,8 @@ import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
 
 data class ProcessedEvents(
     val messages: List<ConversationMessageIO>,
-    val members: List<ConversationRoomMember>,
+    /** List of new member information and whether they should be added or removed */
+    val members: List<Pair<Boolean, ConversationRoomMember>>,
     val receipts: List<ClientEvent<ReceiptEventContent>>,
     /** Message id to the encrypted event */
     val encryptedEvents: List<Pair<String, RoomEvent.MessageEvent<*>>>

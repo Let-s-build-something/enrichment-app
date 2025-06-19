@@ -280,20 +280,13 @@ private fun GeneralContent(model: DevelopmentConsoleModel) {
             text = "User data",
             style = LocalTheme.current.styles.subheading
         )
-        RowInformation(title = "publicId: ", currentUser.value?.publicId)
-        RowInformation(title = "displayName: ", currentUser.value?.displayName?.plus("#")?.plus(currentUser.value?.tag))
-        RowInformation(title = "privacy: ", currentUser.value?.configuration?.privacy)
-        RowInformation(title = "visibility: ", currentUser.value?.configuration?.visibility)
-        Text(
-            modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
-            text = "Matrix",
-            style = LocalTheme.current.styles.subheading
-        )
-        RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
         RowInformation(title = "user_id: ", currentUser.value?.matrixUserId)
         RowInformation(title = "access_token: ", currentUser.value?.accessToken)
         RowInformation(title = "device_id: ", localSettings.value?.deviceId)
         RowInformation(title = "pickle_key: ", localSettings.value?.pickleKey)
+        RowInformation(title = "privacy: ", currentUser.value?.configuration?.privacy)
+        RowInformation(title = "visibility: ", currentUser.value?.configuration?.visibility)
+        RowInformation(title = "homeserver: ", currentUser.value?.matrixHomeserver)
         Text(
             modifier = Modifier.padding(vertical = LocalTheme.current.shapes.betweenItemsSpace),
             text = "Firebase",

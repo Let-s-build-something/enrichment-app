@@ -63,6 +63,12 @@ interface RoomMemberDao {
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}")
     suspend fun removeAll()
 
+    @Query("""
+        DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+        WHERE user_id = :userId
+    """)
+    suspend fun remove(userId: String)
+
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} WHERE room_id = :roomId")
     suspend fun removeAll(roomId: String)
 }
