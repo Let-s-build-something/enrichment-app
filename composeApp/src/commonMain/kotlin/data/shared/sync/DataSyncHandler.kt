@@ -7,11 +7,8 @@ import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.message.MediaIO
-import data.io.user.PresenceData
 import database.dao.ConversationRoomDao
-import database.dao.matrix.PresenceEventDao
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
@@ -34,7 +31,6 @@ import org.koin.mp.KoinPlatform
 class DataSyncHandler: MessageProcessor() {
 
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
-    private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
     fun stop() {
         decryptionScope.coroutineContext.cancelChildren()
@@ -54,7 +50,6 @@ class DataSyncHandler: MessageProcessor() {
                 }
             }
             val rooms = mutableListOf<ConversationRoomIO>()
-            val presenceContent = mutableListOf<PresenceData>()
             val directRoomIds = mutableSetOf<RoomId>()
 
             response.accountData?.events?.forEach { event ->
@@ -185,13 +180,6 @@ class DataSyncHandler: MessageProcessor() {
                             rooms.add(data)
                         }
                     }
-                }
-            }
-
-            // Save presence locally
-            withContext(Dispatchers.IO) {
-                if(presenceContent.isNotEmpty()) {
-                    presenceEventDao.insertAll(presenceContent)
                 }
             }
 

@@ -15,6 +15,7 @@ import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
 import database.dao.matrix.MatrixPagingMetaDao
+import database.dao.matrix.PresenceEventDao
 import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
 import io.ktor.client.HttpClient
@@ -40,6 +41,7 @@ class ConversationSettingsRepository(
     private val conversationRoomDao: ConversationRoomDao,
     private val conversationMessageDao: ConversationMessageDao,
     private val matrixPagingDao: MatrixPagingMetaDao,
+    private val presenceEventDao: PresenceEventDao,
     mediaDataManager: MediaProcessorDataManager,
     fileAccess: FileAccess
 ): MediaRepository(httpClient, mediaDataManager, fileAccess)  {
@@ -59,7 +61,9 @@ class ConversationSettingsRepository(
         userId: String,
         ownerPublicId: String?
     ): NetworkItemIO? = withContext(Dispatchers.IO) {
-        networkItemDao.get(userId = userId, ownerPublicId = ownerPublicId)
+        networkItemDao.get(userId = userId, ownerPublicId = ownerPublicId)?.copy(
+            presence = presenceEventDao.get(userId)?.content
+        )
     }
 
     suspend fun removeRoom(

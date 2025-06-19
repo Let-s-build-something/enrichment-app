@@ -24,6 +24,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO.Companion.generateUserTag
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -56,7 +57,7 @@ fun TypingIndicator(
         UserProfileImage(
             modifier = Modifier.size(userProfileSize),
             media = MediaIO(url = data.user?.content?.avatarUrl),
-            tag = null,//data.user?.tag,
+            tag = data.user?.sender?.generateUserTag(),
             name = data.user?.content?.displayName
         )
         LoadingMessageBubble(

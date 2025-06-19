@@ -38,7 +38,7 @@ import ui.home.utils.NetworkItemUseCase
 
 val conversationSettingsModule = module {
     factory {
-        ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get(), get())
+        ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     viewModelOf(::ConversationSettingsModel)
 }
@@ -70,13 +70,13 @@ class ConversationSettingsModel(
     }
 
     private val _ongoingChange = MutableStateFlow<ChangeType?>(null)
-    private val _selectedUser = MutableStateFlow<NetworkItemIO?>(null)
+    private val _selectedInvitedUser = MutableStateFlow<NetworkItemIO?>(null)
     private val _verifications = MutableStateFlow<HashMap<String, ActiveUserVerification?>>(hashMapOf())
 
     /** Detailed information about this conversation */
     val conversation = dataManager.conversations.map { it.second[conversationId] }
     val ongoingChange = _ongoingChange.asStateFlow()
-    val selectedUser = _selectedUser.asStateFlow()
+    val selectedInvitedUser = _selectedInvitedUser.asStateFlow()
     val verifications = _verifications.asStateFlow()
 
     val members: Flow<PagingData<ConversationRoomMember>> = repository.getMembersListFlow(
@@ -167,9 +167,9 @@ class ConversationSettingsModel(
         }
     }
 
-    fun selectUser(userId: String?) {
+    fun selectInvitedUser(userId: String?) {
         viewModelScope.launch {
-            _selectedUser.value = if(userId == null) null else repository.getUser(userId, matrixUserId)
+            _selectedInvitedUser.value = if(userId == null) null else repository.getUser(userId, matrixUserId)
         }
     }
 
