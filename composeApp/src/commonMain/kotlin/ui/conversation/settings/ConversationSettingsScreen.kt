@@ -99,6 +99,7 @@ import collectResult
 import components.UserProfileImage
 import components.network.NetworkItemRow
 import data.io.base.BaseResponse
+import data.io.matrix.room.event.ConversationRoomMember
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -115,8 +116,8 @@ import org.koin.core.parameter.parametersOf
 import ui.conversation.settings.ConversationSettingsModel.Companion.MAX_MEMBERS_COUNT
 import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
+import ui.network.components.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @Composable
 fun ConversationSettingsScreen(conversationId: String?) {
@@ -146,7 +147,7 @@ fun ConversationSettingsContent(conversationId: String?) {
 
     val detail = model.conversation.collectAsState(null)
     val ongoingChange = model.ongoingChange.collectAsState()
-    val selectedUser = model.selectedUser.collectAsState()
+    val selectedUserToInvite = model.selectedInvitedUser.collectAsState()
     val members = model.members.collectAsLazyPagingItems()
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
@@ -155,6 +156,7 @@ fun ConversationSettingsContent(conversationId: String?) {
     val showPictureChangeDialog = remember { mutableStateOf(false) }
     val showLeaveDialog = remember { mutableStateOf(false) }
     val selectedMemberId = remember { mutableStateOf<String?>(null) }
+    val selectedMemberDetail = remember { mutableStateOf<ConversationRoomMember?>(null) }
     val kickMemberUserId = remember { mutableStateOf<String?>(null) }
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
 
@@ -183,7 +185,7 @@ fun ConversationSettingsContent(conversationId: String?) {
         )
     }
 
-    selectedUser.value?.let { user ->
+    selectedUserToInvite.value?.let { user ->
         AlertDialog(
             title = stringResource(Res.string.conversation_action_invite_title),
             confirmButtonState = ButtonState(
@@ -203,7 +205,7 @@ fun ConversationSettingsContent(conversationId: String?) {
             dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
             icon = Icons.Outlined.Face,
             onDismissRequest = {
-                model.selectUser(null)
+                model.selectInvitedUser(null)
             }
         )
     }
@@ -247,7 +249,7 @@ fun ConversationSettingsContent(conversationId: String?) {
         key = NavigationArguments.SEARCH_USER_ID,
         defaultValue = null,
         listener = { userId ->
-            if (userId != null) model.selectUser(userId)
+            if (userId != null) model.selectInvitedUser(userId)
         }
     )
 
@@ -273,6 +275,15 @@ fun ConversationSettingsContent(conversationId: String?) {
                 )
             }
         }
+    }
+
+    selectedMemberDetail.value?.let {
+        UserDetailDialog(
+            member = it,
+            onDismissRequest = {
+                selectedMemberDetail.value = null
+            }
+        )
     }
 
     //TODO different layout for direct conversations
@@ -350,7 +361,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                 enableMembersPaging.value -> members.itemCount
                 else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
             },
-            key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
+            //key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
         ) { index ->
             val member = members.getOrNull(index)
             val isSelected = selectedMemberId.value == member?.id
@@ -384,6 +395,9 @@ fun ConversationSettingsContent(conversationId: String?) {
                 modifier = itemModifier,
                 data = member?.toNetworkItem(),
                 isSelected = isSelected,
+                onAvatarClick = {
+                    selectedMemberDetail.value = member
+                },
                 actions = {
                     Column {
                         val verifications = model.verifications.collectAsState()

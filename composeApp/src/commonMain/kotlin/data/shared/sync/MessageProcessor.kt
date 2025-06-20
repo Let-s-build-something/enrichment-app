@@ -13,10 +13,12 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
+import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
+import database.dao.matrix.PresenceEventDao
 import database.dao.matrix.RoomMemberDao
 import korlibs.io.util.getOrNullLoggingError
 import korlibs.logger.Logger
@@ -35,6 +37,7 @@ import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import net.folivo.trixnity.core.model.events.m.ReactionEventContent
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
 import net.folivo.trixnity.core.model.events.m.ReceiptType
@@ -72,6 +75,7 @@ abstract class MessageProcessor {
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
+    private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
     protected val decryptionScope = CoroutineScope(Dispatchers.Default)
     private val logger = Logger(name = "MessageProcessor")
@@ -123,6 +127,10 @@ abstract class MessageProcessor {
                         )
                     }
                 }
+            }
+
+            if(result.presenceData.isNotEmpty()) {
+                presenceEventDao.insertAll(result.presenceData)
             }
 
             result.members.forEach { member ->
@@ -192,6 +200,7 @@ abstract class MessageProcessor {
         val redactions = mutableListOf<RedactionEventContent>()
         val replacements = hashMapOf<String, ConversationMessageIO?>()
         val reactions = hashMapOf<String, MutableSet<MessageReactionIO>>()
+        val presenceData = mutableListOf<PresenceData>()
 
         events.forEach { event ->
             when (val content = event.content) {
@@ -219,14 +228,21 @@ abstract class MessageProcessor {
                         )
                     }
                 }
-
                 is ReceiptEventContent -> {
                     (event as? ClientEvent<ReceiptEventContent>)?.let {
                         receipts.add(it)
                     }
                     null
                 }
-
+                is PresenceEventContent -> {
+                    presenceData.add(
+                        PresenceData(
+                            userIdFull = event.senderOrNull?.full ?: "",
+                            content = content
+                        )
+                    )
+                    null
+                }
                 is OlmEncryptedToDeviceEventContent, is MegolmEncryptedMessageEventContent -> {
                     if (event is RoomEvent.MessageEvent) {
                         val id = event.idOrNull?.full ?: Uuid.random().toString()
@@ -317,6 +333,7 @@ abstract class MessageProcessor {
             members = members,
             receipts = receipts,
             redactions = redactions,
+            presenceData = presenceData,
             reactions = reactions,
             replacements = replacements,
             encryptedEvents = encryptedEvents

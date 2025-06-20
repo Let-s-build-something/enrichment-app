@@ -2,6 +2,7 @@ package augmy.interactive.shared.ui.components.dialog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -32,7 +33,7 @@ fun AlertDialog(
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
     intrinsicContent: Boolean = true,
-    additionalContent: @Composable (() -> Unit)? = null,
+    additionalContent: @Composable (ColumnScope.() -> Unit)? = null,
     properties: DialogProperties = dismissibleDialogProperties,
     onDismissRequest: () -> Unit,
     icon: ImageVector? = null,
@@ -76,7 +77,7 @@ fun AlertDialog(
                             style = LocalTheme.current.styles.regular
                         )
                     }
-                    additionalContent?.invoke()
+                    additionalContent?.invoke(this)
                 }
             }
         }else null,
