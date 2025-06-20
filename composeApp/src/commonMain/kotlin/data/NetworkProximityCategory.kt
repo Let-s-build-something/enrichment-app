@@ -22,7 +22,7 @@ enum class NetworkProximityCategory(
      * the strongest bonds and most frequent interactions.
      */
     Family(
-        range = 10f..10.9f,
+        range = 10f..11f,
         res = Res.string.category_family,
         color = Color(0xFFB57057),
         share = .3164f
@@ -33,7 +33,7 @@ enum class NetworkProximityCategory(
      * standing. These are individuals you interact with regularly and consider trusted confidants.
      */
     Peers(
-        range = 8f..9.9f,
+        range = 8f..9.99999f,
         res = Res.string.category_peers,
         color = Color(0xFFC7BA6F), //C68E6F
         share = .1836f
@@ -44,7 +44,7 @@ enum class NetworkProximityCategory(
      * spaces, such as coworkers, neighbors, or acquaintances from groups you’re part of.
      */
     Community(
-        range = 5f..7.9f,
+        range = 5f..7.99999f,
         res = Res.string.category_community,
         color = Color(0xFFD5A497), // D6C598
         share = .207f
@@ -56,7 +56,7 @@ enum class NetworkProximityCategory(
      * (e.g., work or events).
      */
     Contacts(
-        range = 3f..4.9f,
+        range = 3f..4.99999f,
         res = Res.string.category_contacts,
         color = Color(0xFF7BA6B2),
         share = .159f
@@ -68,7 +68,7 @@ enum class NetworkProximityCategory(
      * public spaces, but don't have a personal relationship with.
      */
     Public(
-        range = 1f..2.9f,
+        range = 1f..2.99999f,
         res = Res.string.category_public,
         color = Color(0xFFA3CCE6),
         share = .134f

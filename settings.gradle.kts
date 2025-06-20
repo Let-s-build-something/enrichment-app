@@ -25,8 +25,12 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven("https://jogamp.org/deployment/maven")
+        maven("https://www.jetbrains.com/intellij-repository/releases")
+        maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
     }
 }
 
 include(":composeApp")
 include(":shared")
+include(":macos")

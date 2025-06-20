@@ -38,10 +38,9 @@ import augmy.interactive.shared.ui.components.navigation.NavigationIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavIconType
 import components.pull_refresh.LocalRefreshCallback
-import data.shared.SharedViewModel
+import data.shared.SharedModel
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Custom app bar with options of customization
@@ -51,11 +50,10 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun VerticalAppBar(
     modifier: Modifier = Modifier,
+    model: SharedModel,
     actions: @Composable (Boolean) -> Unit
 ) {
-    val sharedViewModel = koinViewModel<SharedViewModel>()
-
-    val isBarExpanded = sharedViewModel.isToolbarExpanded.collectAsState()
+    val isBarExpanded = model.isToolbarExpanded.collectAsState()
     val actionsWidth = remember { mutableFloatStateOf(0f) }
 
     Column(
@@ -100,7 +98,7 @@ fun VerticalAppBar(
             NavIconType.HAMBURGER.imageVector?.let {
                 NavigationIcon(
                     onClick = {
-                        sharedViewModel.changeToolbarState(!isBarExpanded.value)
+                        model.changeToolbarState(!isBarExpanded.value)
                     },
                     imageVector = it.first,
                     contentDescription = it.second

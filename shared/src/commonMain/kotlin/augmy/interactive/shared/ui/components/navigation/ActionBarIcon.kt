@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -47,8 +48,10 @@ fun ActionBarIcon(
     enabled: Boolean = true,
     text: String? = null,
     imageVector: ImageVector? = null,
+    painter: Painter? = null,
     imageUrl: String? = null,
     onClick: () -> Unit = {},
+    icon: (@Composable (Modifier) -> Unit)? = null,
     content: @Composable () -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -69,14 +72,19 @@ fun ActionBarIcon(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        val itemModifier = Modifier
+            .clip(CircleShape)
+            .then(if(text == null) {
+                Modifier.size(22.dp + with(density) { 12.sp.toDp() })
+            }else Modifier.size(24.dp))
+
         when {
+            icon != null -> {
+                icon(itemModifier)
+            }
             imageUrl.isNullOrBlank().not() -> {
                 AsyncImage(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .then(if(text == null) {
-                            Modifier.size(22.dp + with(density) { 12.sp.toDp() })
-                        }else Modifier.size(24.dp)),
+                    modifier = itemModifier,
                     model = imageUrl,
                     contentDescription = text,
                     contentScale = ContentScale.Crop
@@ -86,6 +94,14 @@ fun ActionBarIcon(
                 Icon(
                     modifier = Modifier.size(24.dp),
                     imageVector = imageVector,
+                    contentDescription = text,
+                    tint = tint
+                )
+            }
+            painter != null -> {
+                Icon(
+                    modifier = Modifier.size(24.dp),
+                    painter = painter,
                     contentDescription = text,
                     tint = tint
                 )

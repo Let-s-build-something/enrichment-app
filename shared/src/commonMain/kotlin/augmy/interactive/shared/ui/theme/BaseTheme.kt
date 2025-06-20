@@ -5,6 +5,8 @@ import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButtonColors
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
@@ -50,6 +52,7 @@ private object DefaultValues {
     val defaultThemeShapes = object: ThemeShapes {
         override val circularActionShape: Shape = RectangleShape
         override val rectangularActionShape: Shape = RectangleShape
+        override val rectangularActionRadius: Dp = 0.dp
         override val componentShape: Shape = RectangleShape
         override val chipShape: Shape = RectangleShape
         override val componentCornerRadius: Dp = 0.dp
@@ -96,6 +99,9 @@ private object DefaultValues {
         override val chipColorsDefault: SelectableChipColors
             @Composable
             get() = FilterChipDefaults.filterChipColors()
+        override val radioButtonColors: RadioButtonColors
+            @Composable
+            get() = RadioButtonDefaults.colors()
         override val heading: TextStyle
             @Composable
             get() = TextStyle.Default
@@ -116,6 +122,7 @@ private object DefaultValues {
     val defaultThemeIcons = object: ThemeIcons {
         override val googleSignUp: DrawableResource = Res.drawable.logo_google_dark
         override val appleSignUp: DrawableResource = Res.drawable.logo_apple_light
+        override val matrixSignUp: DrawableResource = Res.drawable.logo_apple_light
         override val giphy: DrawableResource = Res.drawable.logo_apple_light
     }
 

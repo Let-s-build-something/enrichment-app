@@ -20,8 +20,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ui.base.LocalDeviceType
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
+import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.components.getDefaultPullRefreshSize
 import augmy.interactive.shared.ui.components.navigation.AppBarHeightDp
 import base.BrandBaseScreen
@@ -107,7 +106,7 @@ fun RefreshableScreen(
                     indicatorWidth.value = size.width
                 }
                 .then(
-                    if(currentPlatform == PlatformType.Jvm) Modifier
+                    if(LocalIsMouseUser.current) Modifier
                     else Modifier.pullRefresh(pullRefreshState)
                 ),
             content = content,

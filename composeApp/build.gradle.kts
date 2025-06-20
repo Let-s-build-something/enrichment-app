@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
 
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
@@ -54,42 +57,52 @@ kotlin {
 
     cocoapods {
         version = libs.versions.version.name.get()
-        summary = "Communicate meaningfully"
+        summary = "Expressive messenger"
         homepage = "https://augmy.org"
 
-        // Optional properties
-        // Configure the Pod name here instead of changing the Gradle project name
         name = "ComposeApp"
 
         podfile = project.file("../iosApp/Podfile")
         ios.deploymentTarget = "15.3"
         osx.deploymentTarget = "14.4"
 
-        pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseStorage") { extraOpts += listOf("-compiler-option", "-fmodules") }
-        pod("FirebaseMessaging") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("GoogleSignIn") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("FirebaseCore") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("FirebaseAuth") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        //pod("FirebaseStorage") { extraOpts += listOf("-compiler-option", "-fmodules") }
+        pod("FirebaseMessaging") {
+            extraOpts += listOf("-compiler-option", "-fmodules")
+            linkOnly = true
+        }
 
         framework {
-            // Required properties
-            // Framework name configuration. Use this property instead of deprecated 'frameworkName'
             baseName = "ComposeApp"
-
-            // Optional properties
-            // Specify the framework linking type. It's dynamic by default.
+            transitiveExport = true
             isStatic = true
+            linkerOpts("-ObjC")
 
             binaryOption("bundleId", "augmy.interactive.com")
             binaryOption("bundleVersion", "$vCode")
         }
 
-        // Maps custom Xcode configuration to NativeBuildType
         xcodeConfigurationToNativeBuildType["CUSTOM_DEBUG"] = NativeBuildType.DEBUG
         xcodeConfigurationToNativeBuildType["CUSTOM_RELEASE"] = NativeBuildType.RELEASE
     }
 
     sourceSets {
+        commonTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+        androidUnitTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+        jvmTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+        iosTest.dependencies {
+            implementation(libs.bundles.kotlin.test)
+        }
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -102,6 +115,7 @@ kotlin {
 
             implementation(libs.androidx.splashscreen)
             implementation(libs.android.accompanist.permissions)
+            implementation(libs.androidx.security.crypto.ktx)
 
             implementation(libs.coil.gif)
 
@@ -111,8 +125,7 @@ kotlin {
             implementation(libs.google.identity)
 
             //Firebase
-            implementation(libs.android.firebase.common)
-            implementation(libs.android.firebase.auth)
+            //implementation(libs.android.firebase.common)
             implementation(libs.android.firebase.messaging)
         }
         nativeMain.dependencies {
@@ -123,14 +136,16 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
-            implementation(libs.java.cloud.storage)
+            implementation(libs.credential.store)
+            implementation(libs.logback.classic)
+            implementation(libs.oshi.core)
 
             implementation(libs.ktor.client.java)
             implementation(libs.kotlinx.coroutines.swing)
         }
-
         commonMain.dependencies {
             implementation(project(":shared"))
+            implementation(project(":macos"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
@@ -143,7 +158,10 @@ kotlin {
             implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)
             implementation(libs.material3.window.size)
-            implementation(libs.compose.file.kit)
+            implementation(libs.compose.file.kit.core)
+            implementation(libs.compose.file.kit.dialogs)
+            implementation(libs.trixnity.client)
+            implementation(libs.trixnity.repository.room)
 
             implementation(libs.room.runtime)
             //implementation(libs.room.paging)
@@ -162,19 +180,20 @@ kotlin {
             implementation(libs.kotlinx.coroutines)
             implementation(libs.kotlinx.serialization)
             implementation(libs.bundles.ktor.common)
-            implementation(libs.firebase.gitlive.common)
-            implementation(libs.firebase.gitlive.auth)
+            implementation(libs.ksoup.korlibs)
+
             implementation(libs.firebase.gitlive.messaging)
-            implementation(libs.firebase.gitlive.storage)
 
             implementation(libs.coil)
             implementation(libs.coil.svg)
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.core)
             implementation(libs.coil.network.ktor)
-            //implementation(libs.media.player.chaintech)
+            api(libs.compose.webview.multiplatform)
+            implementation(libs.media.player.chaintech)
 
             implementation(libs.lifecycle.runtime)
+            implementation(libs.lifecycle.compose)
             implementation(libs.lifecycle.viewmodel)
         }
     }
@@ -281,6 +300,13 @@ compose.desktop {
             configurationFiles.from(project.file("proguard-rules.pro"))
         }
         jvmArgs.add("-Djava.version=17")
+        jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+        jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED") // recommended but not necessary
+
+        if (System.getProperty("os.name").contains("Mac")) {
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+            jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
@@ -289,7 +315,7 @@ compose.desktop {
 
             macOS {
                 appStore = true
-                iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/app_icon.icns"))
+                iconFile.set(project.file("${project.projectDir}/src/nativeMain/resources/drawable/AppIcon.icns"))
             }
             windows {
                 modules(
@@ -329,6 +355,7 @@ buildkonfig {
 
     // this is the production setting
     defaultConfigs {
+        buildConfigField(BOOLEAN, "isDevelopment", "false")
         buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
         buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
         buildConfigField(STRING, "BearerToken", keystoreProperties["bearerToken"] as String)
@@ -341,6 +368,7 @@ buildkonfig {
 
     // change the setting just for development
     defaultConfigs("development") {
+        buildConfigField(BOOLEAN, "isDevelopment", "true")
         buildConfigField(STRING, "HttpsHostName", debugHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidDebugAppId"] as String)
     }

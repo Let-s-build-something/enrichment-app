@@ -1,6 +1,5 @@
 package data.io.social.network.conversation.giphy
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
@@ -24,7 +23,6 @@ data class GiphyData(
     val title: String? = null,
 
     /** Textual description of the gif */
-    @SerialName("alt_text")
     val altText: String? = null,
 
     /** Url to original Giphy detail */

@@ -27,11 +27,11 @@ import augmy.composeapp.generated.resources.emojis_preference_set_heading
 import augmy.composeapp.generated.resources.emojis_preference_set_hint
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.InfoHintBox
+import components.notification.InfoHintBox
 import data.io.social.network.conversation.EmojiData
 import augmy.interactive.shared.ext.scalingClickable
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 
 /**
  * Bottom sheet for displaying a picker and preference modifier of preferred emoji set
@@ -40,7 +40,7 @@ import ui.conversation.ConversationViewModel
 @Composable
 fun EmojiPreferencePicker(
     modifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    model: ConversationModel,
     onEmojiSelected: (String) -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
     onDismissRequest: () -> Unit
@@ -50,10 +50,10 @@ fun EmojiPreferencePicker(
         mutableStateOf(-1)
     }
     val showHint = remember {
-        mutableStateOf(viewModel.showEmojiPreferenceHint)
+        mutableStateOf(model.showEmojiPreferenceHint)
     }
 
-    val preferredEmojis = viewModel.preferredEmojis.collectAsState()
+    val preferredEmojis = model.preferredEmojis.collectAsState()
 
 
     SimpleModalBottomSheet(
@@ -98,7 +98,7 @@ fun EmojiPreferencePicker(
                     InfoHintBox(
                         text = stringResource(Res.string.emojis_preference_set_hint),
                         onDismissRequest = {
-                            viewModel.showEmojiPreferenceHint = false
+                            model.showEmojiPreferenceHint = false
                             showHint.value = false
                         }
                     )
@@ -106,10 +106,10 @@ fun EmojiPreferencePicker(
             }
         }
         EmojiPicker(
-            viewModel = viewModel,
+            viewModel = model,
             onEmojiSelected = { emoji ->
                 if(selectedIndex.value != -1) {
-                    viewModel.updatePreferredEmojiSet(
+                    model.updatePreferredEmojiSet(
                         preferredEmojis.value.toMutableList().apply {
                             set(selectedIndex.value, EmojiData(emoji))
                         }

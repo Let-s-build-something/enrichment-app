@@ -9,6 +9,9 @@ interface ThemeShapes {
     /** shape for circular action */
     val circularActionShape: Shape
 
+    /** rectangular action corner radius */
+    val rectangularActionRadius: Dp
+
     /** shape for rectangular action */
     val rectangularActionShape: Shape
 

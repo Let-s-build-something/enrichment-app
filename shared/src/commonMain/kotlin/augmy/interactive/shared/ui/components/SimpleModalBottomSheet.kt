@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -68,13 +67,12 @@ fun SimpleModalBottomSheet(
     }
 
     ModalBottomSheet(
-        modifier = modifier,
         onDismissRequest = onDismissRequest,
         content = {
             Column(
-                modifier = Modifier
+                modifier = modifier
                     .padding(contentPadding)
-                    .systemBarsPadding()
+                    .navigationBarsPadding()
                     .then(
                         if(scrollEnabled) {
                             Modifier.verticalScroll(rememberScrollState())

@@ -7,7 +7,7 @@ object LightAppColors: BaseColors {
 
     override val primary: Color = Colors.Onyx
     override val secondary: Color = Colors.Coffee
-    override val tetrial: Color = Colors.Flax
+    override val tetrial: Color = Colors.DutchWhite
     override val brandMain: Color = Colors.Asparagus
     override val brandMainDark: Color = Colors.HunterGreen
 

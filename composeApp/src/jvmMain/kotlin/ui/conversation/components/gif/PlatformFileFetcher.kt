@@ -1,6 +1,7 @@
 package ui.conversation.components.gif
 
 import base.utils.PlatformFileShell
+import io.github.vinceglb.filekit.readBytes
 import io.kamel.core.DataSource
 import io.kamel.core.Resource
 import io.kamel.core.config.ResourceConfig

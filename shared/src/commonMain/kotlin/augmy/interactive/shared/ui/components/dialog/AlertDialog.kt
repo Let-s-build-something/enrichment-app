@@ -2,17 +2,20 @@ package augmy.interactive.shared.ui.components.dialog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -26,10 +29,11 @@ val dismissibleDialogProperties = DialogProperties(dismissOnBackPress = true, di
 @Composable
 fun AlertDialog(
     title: String? = null,
-    message: String? = null,
+    message: AnnotatedString? = null,
     confirmButtonState: ButtonState? = null,
     dismissButtonState: ButtonState? = null,
-    additionalContent: @Composable (() -> Unit)? = null,
+    intrinsicContent: Boolean = true,
+    additionalContent: @Composable (ColumnScope.() -> Unit)? = null,
     properties: DialogProperties = dismissibleDialogProperties,
     onDismissRequest: () -> Unit,
     icon: ImageVector? = null,
@@ -52,11 +56,7 @@ fun AlertDialog(
                     if(title != null) {
                         Text(
                             text = title,
-                            style = TextStyle(
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = LocalTheme.current.colors.primary
-                            )
+                            style = LocalTheme.current.styles.title
                         )
                     }
                 }
@@ -64,17 +64,20 @@ fun AlertDialog(
         },
         text = if(message != null || additionalContent != null) {
             {
-                Column {
+                Column(
+                    modifier = if (intrinsicContent) {
+                        Modifier
+                            .height(IntrinsicSize.Max)
+                            .width(IntrinsicSize.Max)
+                    }else Modifier
+                ) {
                     if(message != null) {
                         Text(
                             text = message,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = LocalTheme.current.colors.primary
-                            )
+                            style = LocalTheme.current.styles.regular
                         )
                     }
-                    additionalContent?.invoke()
+                    additionalContent?.invoke(this)
                 }
             }
         }else null,

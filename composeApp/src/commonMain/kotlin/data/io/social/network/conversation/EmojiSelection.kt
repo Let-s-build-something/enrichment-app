@@ -3,10 +3,10 @@ package data.io.social.network.conversation
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import database.AppRoomDatabase.Companion.ROOM_EMOJI_SELECTION_TABLE
+import database.AppRoomDatabase.Companion.TABLE_EMOJI_SELECTION
 
 /** Object for storing information about emoji selection specific to a conversation and its author */
-@Entity(tableName = ROOM_EMOJI_SELECTION_TABLE)
+@Entity(tableName = TABLE_EMOJI_SELECTION)
 data class EmojiSelection(
     /** Description of the emoji, has to be unique */
     val name: String,

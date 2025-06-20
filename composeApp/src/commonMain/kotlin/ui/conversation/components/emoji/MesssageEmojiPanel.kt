@@ -33,13 +33,13 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.theme.Colors
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 
 /** Panel for picking and removing emojis in a message */
 @Composable
 fun MessageEmojiPanel(
     modifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     showBackSpace: Boolean,
     onEmojiSelected: (String) -> Unit,
     onBackSpace: () -> Unit,

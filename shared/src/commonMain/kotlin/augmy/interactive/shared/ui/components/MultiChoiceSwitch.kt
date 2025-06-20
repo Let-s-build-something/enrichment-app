@@ -67,7 +67,7 @@ data class TabSwitchState(
  * Remembers the current state
  * @param selectedTabIndex currently selected tab index
  * @param onSelectionChange called whenever tab selection is changed
- * @param tabs list of all tabs that will be displayed
+ * @param items list of all tabs that will be displayed
  */
 @Composable
 fun rememberMultiChoiceState(
@@ -75,7 +75,7 @@ fun rememberMultiChoiceState(
     onSelectionChange: (index: Int) -> Unit = { index ->
         selectedTabIndex.value = index
     },
-    tabs: MutableList<String> = mutableListOf(),
+    items: MutableList<String> = mutableListOf(),
     scrollState: ScrollState = rememberScrollState()
 ): TabSwitchState {
     val scope = rememberCoroutineScope()
@@ -83,7 +83,7 @@ fun rememberMultiChoiceState(
         TabSwitchState(
             selectedTabIndex = selectedTabIndex,
             onSelectionChange = onSelectionChange,
-            tabs = tabs,
+            tabs = items,
             scrollState = scrollState
         )
     }

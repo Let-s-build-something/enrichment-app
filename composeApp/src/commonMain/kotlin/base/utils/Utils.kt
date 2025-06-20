@@ -1,9 +1,14 @@
 package base.utils
 
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.Clipboard
 import app.cash.paging.compose.LazyPagingItems
-import io.github.vinceglb.filekit.core.PlatformFile
+import augmy.interactive.shared.ui.base.LocalDeviceType
+import coil3.toUri
+import io.github.vinceglb.filekit.PlatformFile
 
 /** Returns item at a specific index and handles indexOutOfBounds exception */
 fun <T: Any> LazyPagingItems<T>.getOrNull(index: Int): T? {
@@ -17,18 +22,23 @@ fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else
 fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)
 
 /** Returns a media type of a file */
-fun getMediaType(extension: String): MediaType {
-    return when (extension.lowercase()) {
-        "jpg", "jpeg", "png", "bmp", "svg", "webp", "avif" -> MediaType.IMAGE
-        "gif" -> MediaType.GIF
-        "mp4", "avi", "mkv", "mov", "webm" -> MediaType.VIDEO
-        "mp3", "wav", "aac", "flac", "ogg" -> MediaType.AUDIO
-        "txt", "csv", "log" -> MediaType.TEXT
-        "pdf" -> MediaType.PDF
-        "ppt", "pptx" -> MediaType.PRESENTATION
+fun getMediaType(mimeType: String): MediaType {
+    return when {
+        mimeType.lowercase().contains("gif") -> MediaType.GIF
+        mimeType.lowercase().contains("image") -> MediaType.IMAGE
+        mimeType.lowercase().contains("video") -> MediaType.VIDEO
+        mimeType.lowercase().contains("audio") -> MediaType.AUDIO
+        mimeType.lowercase().contains("text") -> MediaType.TEXT
+        mimeType.lowercase().contains("pdf") -> MediaType.PDF
+        mimeType.lowercase().contains("powerpoint")
+                || mimeType.lowercase().contains("presentation")
+                || mimeType.lowercase().contains("slideshow") -> MediaType.PRESENTATION
         else -> MediaType.UNKNOWN
     }
 }
+
+/** Returns the extension of an url */
+fun getUrlExtension(url: String): String = (url.toUri().path ?: url).substringAfterLast(".").lowercase()
 
 /** Type of a media file */
 enum class MediaType {
@@ -39,14 +49,29 @@ enum class MediaType {
     TEXT,
     PDF,
     PRESENTATION,
-    UNKNOWN
+    UNKNOWN;
+
+    val isVisual: Boolean
+        get() = this == IMAGE || this == VIDEO || this == GIF
 }
+
+val maxMultiLineHeight: Int
+    @Composable
+    get() = when(LocalDeviceType.current) {
+        WindowWidthSizeClass.Compact -> 5
+        WindowWidthSizeClass.Medium -> 8
+        else -> 15
+    }
+
+expect suspend fun Clipboard.withPlainText(content: String)
 
 /** Returns a bitmap from a given file */
 expect suspend fun getBitmapFromFile(file: PlatformFile): ImageBitmap?
 
 /**
  * Converts any value to SHA-256 hash
- * @return the generated SHA-256 hash
  */
-expect fun sha256(value: Any?): String
+expect fun Any.toSha256(): String
+
+/** Retrieves the current device name */
+expect fun deviceName(): String?

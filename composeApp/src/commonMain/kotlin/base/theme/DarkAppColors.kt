@@ -7,7 +7,7 @@ object DarkAppColors: BaseColors {
 
     override val primary: Color = Color.White
     override val secondary: Color = Colors.GrayLight
-    override val tetrial: Color = Colors.Flax
+    override val tetrial: Color = Colors.DutchWhite
     override val brandMain: Color = Colors.Asparagus
     override val brandMainDark: Color = Colors.HunterGreen
 

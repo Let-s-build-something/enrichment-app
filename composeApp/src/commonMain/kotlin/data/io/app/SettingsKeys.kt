@@ -26,6 +26,8 @@ object SettingsKeys {
 
     /** Prefix key for last unsent message */
     const val KEY_LAST_MESSAGE = "last_message"
+    const val KEY_LAST_MESSAGE_TIMINGS = "last_message_timings"
+    const val KEY_LAST_MESSAGE_GRAVITY = "last_message_gravity"
 
     /** Height of soft keyboard */
     const val KEY_KEYBOARD_HEIGHT = "keyboard_height"
@@ -35,4 +37,12 @@ object SettingsKeys {
 
     /** List of preferred emojis */
     const val KEY_PREFERRED_EMOJIS = "preferred_emojis"
+
+    const val KEY_PACING_WIDE_AVG = "pacing_wide_avg"
+    const val KEY_PACING_NARROW_AVG = "pacing_narrow_avg"
+
+
+    // DEV use only
+    const val KEY_STREAMING_URL = "streaming_url"
+    const val KEY_STREAMING_DIRECTORY = "streaming_directory"
 }

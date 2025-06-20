@@ -14,13 +14,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import data.io.social.network.conversation.giphy.GifAsset
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 
 /** Panel for picking a gif to be sent in a message */
 @Composable
 fun MessageGifPanel(
     modifier: Modifier = Modifier,
-    viewModel: ConversationViewModel,
+    viewModel: ConversationModel,
     onGifSelected: (GifAsset) -> Unit,
     isFilterFocused: MutableState<Boolean>
 ) {

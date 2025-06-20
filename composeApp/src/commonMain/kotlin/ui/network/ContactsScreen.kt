@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
@@ -52,15 +53,14 @@ import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.screen_home
+import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalScreenSize
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import components.UserProfileImage
 import data.io.user.NetworkItemIO
-import data.io.user.PublicUserProfileIO
-import augmy.interactive.shared.ext.scalingClickable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import ui.network.profile.UserProfileLauncher
@@ -87,19 +87,17 @@ fun ContactsScreen() {
         0.075f,
     )
 
-    val searchContent = rememberSaveable {
-        mutableStateOf("")
-    }
+    val searchState = remember { TextFieldState() }
     val contentHeight = rememberSaveable {
         mutableStateOf(screenHeight)
     }
     val selectedProfile = remember {
-        mutableStateOf<PublicUserProfileIO?>(null)
+        mutableStateOf<NetworkItemIO?>(null)
     }
 
     if(selectedProfile.value != null) {
         UserProfileLauncher(
-            userProfile = selectedProfile.value,
+            user = selectedProfile.value,
             onDismissRequest = {
                 selectedProfile.value = null
             }
@@ -113,21 +111,18 @@ fun ContactsScreen() {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            EditFieldInput(
+            CustomTextField(
                 modifier = Modifier
                     .zIndex(10f)
                     .fillMaxWidth(),
                 hint = stringResource(Res.string.button_search),
-                value = searchContent.value,
+                state = searchState,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Search
                 ),
                 isClearable = true,
-                leadingIcon = Icons.Outlined.Search,
-                onValueChange = { value ->
-                    searchContent.value = value.text
-                },
+                prefixIcon = Icons.Outlined.Search,
                 paddingValues = PaddingValues(start = 16.dp),
                 shape = RoundedCornerShape(
                     topStart = LocalTheme.current.shapes.screenCornerRadius,
@@ -166,10 +161,7 @@ fun ContactsScreen() {
                         gridState = gridState,
                         height = height * .8f,
                         rows = if(index == 0) 2 else 1,
-                        showNames = index < 3,
-                        onClick = { profile ->
-                            selectedProfile.value = profile
-                        }
+                        showNames = index < 3
                     )
                 }
             }
@@ -184,8 +176,7 @@ private fun SocialCircleTier(
     height: Float,
     gridState: LazyGridState,
     showNames: Boolean,
-    rows: Int = 1,
-    onClick: (PublicUserProfileIO) -> Unit
+    rows: Int = 1
 ) {
     val maxOffsetY = height * 2.5
     val width = gridState.layoutInfo.viewportSize.width.toFloat()
@@ -235,8 +226,9 @@ private fun SocialCircleTier(
                         .weight(1f)
                         .fillMaxHeight()
                         .aspectRatio(1f),
-                    model = data.photoUrl,
-                    tag = data.tag
+                    media = data.avatar,
+                    tag = data.tag,
+                    name = data.displayName
                 )
                 if(showNames) {
                     Text(

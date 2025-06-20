@@ -1,6 +1,5 @@
 package data.io.social.network.conversation.giphy
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Information about current pagination */
@@ -13,6 +12,5 @@ data class GiphyPaginationInfo(
     val count: Int? = null,
 
     /** Total number of items available (not returned on every endpoint). */
-    @SerialName("total_count")
     val totalCount: Int? = null
 )

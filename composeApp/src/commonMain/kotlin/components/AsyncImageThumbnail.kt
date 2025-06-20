@@ -1,10 +1,10 @@
 package components
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import coil3.PlatformContext
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -17,6 +17,7 @@ fun AsyncImageThumbnail(
     modifier: Modifier = Modifier,
     thumbnail: String,
     url: String,
+    contentScale: ContentScale = ContentScale.Fit,
     contentDescription: String? = null
 ) {
     val loadOriginal = rememberSaveable {
@@ -47,9 +48,10 @@ fun AsyncImageThumbnail(
         .build()
 
     AsyncImage(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier,
         model = if(displayOriginal.value) originalRequest else thumbnailRequest,
-        contentDescription = contentDescription
+        contentDescription = contentDescription,
+        contentScale = contentScale
     )
 }
 
@@ -58,12 +60,14 @@ fun AsyncImageThumbnail(
 fun AsyncImageThumbnail(
     modifier: Modifier = Modifier,
     image: Asset.Image,
+    contentScale: ContentScale = ContentScale.Fit,
     contentDescription: String? = null
 ) {
     AsyncImageThumbnail(
         modifier = modifier,
         thumbnail = image.thumbnail,
         url = image.url,
+        contentScale = contentScale,
         contentDescription = contentDescription
     )
 }

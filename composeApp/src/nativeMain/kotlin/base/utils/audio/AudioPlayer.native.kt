@@ -1,14 +1,10 @@
 package base.utils.audio
 
-import androidx.collection.MutableFloatList
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import io.ktor.utils.io.core.ByteOrder
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.ShortVar
-import kotlinx.cinterop.ShortVarOf
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.allocPointerTo
 import kotlinx.cinterop.convert
@@ -18,11 +14,14 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okio.Buffer
-import platform.AVFAudio.AVAudioCommonFormat
 import platform.AVFAudio.AVAudioEngine
 import platform.AVFAudio.AVAudioFormat
 import platform.AVFAudio.AVAudioPCMBuffer
@@ -32,15 +31,12 @@ import platform.AVFAudio.AVAudioPlayerNode
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionMixWithOthers
-import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
 import platform.AVFAudio.AVAudioSessionCategoryPlayback
-import platform.AVFAudio.AVAudioSessionModeMeasurement
 import platform.AVFAudio.AVAudioSessionModeSpokenAudio
 import platform.AVFAudio.availableInputs
 import platform.AVFAudio.setActive
 import platform.AVFAudio.setPreferredSampleRate
 import platform.Foundation.NSError
-import platform.darwin.ByteVar
 import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_sync
 import platform.posix.memcpy
@@ -59,9 +55,9 @@ actual fun rememberAudioPlayer(
     secondsPerBar: Double,
     bufferSize: Int
 ): AudioPlayer {
-    val scope = rememberCoroutineScope()
-
     return remember(byteArray.size) {
+        val scope = CoroutineScope(Job() + Dispatchers.IO)
+
         object : AudioPlayer(
             byteArray = byteArray,
             barsCount = barsCount,
@@ -151,12 +147,13 @@ actual fun rememberAudioPlayer(
             }
 
             override fun pause() {
+                scope.coroutineContext.cancelChildren()
                 playerNode?.pause()
             }
 
             override fun discard() {
                 scope.coroutineContext.cancelChildren()
-                scope.launch(Dispatchers.Main) {
+                runBlocking {
                     onFinish()
                     engine?.mainMixerNode?.removeTapOnBus(0u)
                     playerNode?.stop()
@@ -256,4 +253,14 @@ actual fun rememberAudioPlayer(
 
         }
     }
+}
+
+actual fun getMinBufferSize(sampleRate: Int, channels: Int, encoding: Int): Int {
+    val bytesPerSample = when (encoding) {
+        16 -> 2
+        8 -> 1
+        else -> throw IllegalArgumentException("Unsupported encoding: $encoding")
+    }
+    val estimatedFramesPerBuffer = (sampleRate * 0.02).toInt() // 20ms buffer
+    return estimatedFramesPerBuffer * channels * bytesPerSample
 }

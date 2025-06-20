@@ -4,11 +4,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
@@ -45,14 +47,13 @@ import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.CorrectionText
 import augmy.interactive.shared.ui.components.ErrorHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
-import augmy.interactive.shared.ui.components.input.EditFieldInput
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import data.io.ApiErrorCode
 import data.io.DELAY_BETWEEN_REQUESTS_SHORT
 import koin.profileChangeModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -74,7 +75,7 @@ fun DisplayNameChangeLauncher(
     onDismissRequest: () -> Unit
 ) {
     loadKoinModules(profileChangeModule)
-    val viewModel: ProfileChangeViewModel = koinViewModel()
+    val viewModel: ProfileChangeModel = koinViewModel()
 
     val coroutineScope = rememberCoroutineScope()
     val cancellableScope = rememberCoroutineScope()
@@ -84,9 +85,10 @@ fun DisplayNameChangeLauncher(
     val currentUser = viewModel.currentUser.collectAsState()
     val isLoading = viewModel.isLoading.collectAsState()
 
-    val username = rememberSaveable(currentUser.value) {
+    val persistentValue = rememberSaveable(currentUser.value) {
         mutableStateOf(currentUser.value?.displayName ?: "")
     }
+    val displayNameState = remember { TextFieldState(persistentValue.value) }
     val errorMessage = remember {
         mutableStateOf<String?>(null)
     }
@@ -130,21 +132,24 @@ fun DisplayNameChangeLauncher(
         focusRequester.requestFocus()
     }
 
-    LaunchedEffect(username.value) {
+    LaunchedEffect(displayNameState.text) {
+        persistentValue.value = displayNameState.text.toString()
+        errorMessage.value = null
+
         coroutineScope.launch(Dispatchers.Default) {
             validations.value = listOf(
                 FieldValidation(
-                    isValid = username.value.length <= USERNAME_MAX_LENGTH,
+                    isValid = displayNameState.text.length <= USERNAME_MAX_LENGTH,
                     message = getString(Res.string.account_username_error_long),
                     isVisibleCorrect = false
                 ),
                 FieldValidation(
-                    isValid = username.value.length >= USERNAME_MIN_LENGTH,
+                    isValid = displayNameState.text.length >= USERNAME_MIN_LENGTH,
                     message = getString(Res.string.account_username_error_short),
                     isVisibleCorrect = false
                 ),
                 FieldValidation(
-                    isValid = !username.value.startsWith(' ') && !username.value.endsWith(' '),
+                    isValid = !(displayNameState.text.startsWith(' ') || displayNameState.text.endsWith(' ')),
                     message = getString(Res.string.account_username_error_spaces),
                     isVisibleCorrect = false
                 )
@@ -153,7 +158,7 @@ fun DisplayNameChangeLauncher(
                 cancellableScope.coroutineContext.cancelChildren()
                 cancellableScope.launch {
                     delay(DELAY_BETWEEN_REQUESTS_SHORT)
-                    viewModel.validateDisplayName(username.value)
+                    viewModel.validateDisplayName(displayNameState.text)
                 }
             }
         }
@@ -183,25 +188,21 @@ fun DisplayNameChangeLauncher(
             style = LocalTheme.current.styles.regular
         )
 
-        EditFieldInput(
+        CustomTextField(
             modifier = Modifier
                 .padding(top = 16.dp)
                 .focusRequester(focusRequester)
                 .fillMaxWidth(0.8f),
             hint = stringResource(Res.string.account_username_hint),
-            value = currentUser.value?.displayName ?: "",
+            prefixIcon = Icons.Outlined.Face,
+            state = displayNameState,
+            errorText = errorMessage.value ?: if(!isUsernameValid) " " else null,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done
             ),
             maxCharacters = USERNAME_MAX_LENGTH,
-            onValueChange = { value ->
-                username.value = value.text
-                errorMessage.value = null
-            },
-            isClearable = true,
-            errorText = errorMessage.value ?: if(!isUsernameValid) " " else null,
-            paddingValues = PaddingValues(start = 16.dp)
+            isClearable = true
         )
 
         Column(
@@ -243,9 +244,9 @@ fun DisplayNameChangeLauncher(
                 text = stringResource(Res.string.username_change_launcher_confirm),
                 isEnabled = isUsernameValid
                         && errorMessage.value == null
-                        && username.value != currentUser.value?.displayName,
+                        && displayNameState.text != currentUser.value?.displayName,
                 onClick = {
-                    viewModel.requestDisplayNameChange(username.value)
+                    viewModel.requestDisplayNameChange(displayNameState.text)
                 }
             )
         }

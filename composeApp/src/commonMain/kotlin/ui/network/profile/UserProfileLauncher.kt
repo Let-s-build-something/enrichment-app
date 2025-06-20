@@ -33,6 +33,7 @@ import augmy.composeapp.generated.resources.error_general
 import augmy.composeapp.generated.resources.network_inclusion_action_2
 import augmy.composeapp.generated.resources.network_inclusion_success
 import augmy.composeapp.generated.resources.network_inclusion_success_action
+import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
@@ -44,8 +45,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
 import components.UserProfileImage
 import data.io.base.BaseResponse
-import data.io.user.PublicUserProfileIO
-import augmy.interactive.shared.ext.brandShimmerEffect
+import data.io.user.NetworkItemIO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -57,6 +57,7 @@ import org.koin.core.context.loadKoinModules
 
 /** Launcher for quick actions relevant to a single user other than currently signed in */
 @OptIn(ExperimentalMaterial3Api::class)
+@Deprecated("Use UserDetailDialog.kt instead")
 @Composable
 fun UserProfileLauncher(
     modifier: Modifier = Modifier,
@@ -68,11 +69,10 @@ fun UserProfileLauncher(
         initialValue = SheetValue.Expanded,
         skipHiddenState = false
     ),
-    publicId: String? = null,
-    userProfile: PublicUserProfileIO? = null
+    user: NetworkItemIO? = null
 ) {
     loadKoinModules(userProfileModule)
-    val viewModel: UserProfileViewModel = koinViewModel()
+    val viewModel: UserProfileModel = koinViewModel()
 
     val snackbarHostState = LocalSnackbarHost.current
     val navController = LocalNavController.current
@@ -81,8 +81,61 @@ fun UserProfileLauncher(
         maximumValue = 150
     ).dp
 
+
     val responseProfile = viewModel.responseProfile.collectAsState()
     val responseInclusion = viewModel.responseInclusion.collectAsState()
+
+
+    /*
+    val showActionDialog = rememberSaveable {
+        mutableStateOf<OptionsLayoutAction?>(null)
+    }
+    showActionDialog.value?.let { action ->
+        AlertDialog(
+            title = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_title_mute
+                }else Res.string.network_dialog_title_block
+            ),
+            message = stringResource(
+                if(action == OptionsLayoutAction.Mute) {
+                    Res.string.network_dialog_message_mute
+                }else Res.string.network_dialog_message_block
+            ),
+            icon = action.leadingImageVector,
+            confirmButtonState = ButtonState(
+                text = stringResource(Res.string.button_confirm)
+            ) {
+                viewModel.requestProximityChange(
+                    selectedConnections = checkedItems,
+                    proximity = if(action == OptionsLayoutAction.Mute) {
+                        NetworkProximityCategory.Public.range.start
+                    }else BlockedProximityValue,
+                    onOperationDone = {
+                        networkItems.refresh()
+                    }
+                )
+                checkedItems.clear()
+            },
+            dismissButtonState = ButtonState(
+                text = stringResource(Res.string.button_dismiss)
+            ),
+            onDismissRequest = {
+                showActionDialog.value = null
+            }
+        )
+    }*/
+    /*data object Mute: OptionsLayoutAction(
+        textRes = Res.string.button_mute,
+        leadingImageVector = Icons.Outlined.VoiceOverOff,
+        containerColor = SharedColors.RED_ERROR
+    )
+    data object Block: OptionsLayoutAction(
+        textRes = Res.string.button_block,
+        leadingImageVector = Icons.Outlined.FaceRetouchingOff,
+        containerColor = SharedColors.RED_ERROR.copy(alpha = 0.6f)
+    )
+    Icons.Outlined.TrackChanges*/
 
     LaunchedEffect(Unit) {
         viewModel.responseInclusion.collectLatest {
@@ -127,8 +180,8 @@ fun UserProfileLauncher(
     }
 
     LaunchedEffect(Unit) {
-        publicId?.let {
-            viewModel.getUserProfile(publicId)
+        user?.publicId?.takeIf { it.isNotBlank() }?.let {
+            viewModel.getUserProfile(it)
         }
     }
 
@@ -147,7 +200,7 @@ fun UserProfileLauncher(
                 if(isLoading) {
                     ShimmerContent(pictureSize = pictureSize)
                 }else {
-                    (userProfile ?: responseProfile.value.success?.data)?.let { profile ->
+                    (user ?: responseProfile.value.success?.data)?.let { profile ->
                         DataContent(
                             userProfile = profile,
                             pictureSize = pictureSize,
@@ -186,9 +239,9 @@ private fun ShimmerContent(pictureSize: Dp) {
 
 @Composable
 private fun DataContent(
-    userProfile: PublicUserProfileIO,
+    userProfile: NetworkItemIO,
     pictureSize: Dp,
-    viewModel: UserProfileViewModel,
+    viewModel: UserProfileModel,
     onDismissRequest: () -> Unit
 ) {
     val navController = LocalNavController.current
@@ -208,8 +261,9 @@ private fun DataContent(
                     .size(pictureSize)
                     .zIndex(1f),
                 animate = true,
-                model = userProfile.photoUrl,
-                tag = userProfile.tag
+                media = userProfile.avatar,
+                tag = userProfile.tag,
+                name = userProfile.displayName
             )
         }
         Text(
@@ -246,10 +300,7 @@ private fun DataContent(
                     isLoading = responseInclusion.value is BaseResponse.Loading,
                     text = stringResource(Res.string.network_inclusion_action_2),
                     onClick = {
-                        viewModel.includeNewUser(
-                            displayName = userProfile.displayName ?: "",
-                            tag = userProfile.tag ?: ""
-                        )
+                        viewModel.includeNewUser(displayName = userProfile.displayName ?: "")
                     }
                 )
             }

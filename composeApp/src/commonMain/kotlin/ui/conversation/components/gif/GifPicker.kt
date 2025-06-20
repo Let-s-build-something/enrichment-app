@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -24,6 +23,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -38,7 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -46,7 +46,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
@@ -57,17 +56,18 @@ import augmy.composeapp.generated.resources.action_search_gifs
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
-import augmy.interactive.shared.ui.components.input.EditFieldInput
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.getOrNull
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.giphy.GifAsset
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.components.KeyboardViewModel
+import ui.conversation.components.KeyboardModel
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -76,7 +76,7 @@ import kotlin.uuid.Uuid
 @Composable
 fun GifPicker(
     modifier: Modifier = Modifier,
-    viewModel: KeyboardViewModel,
+    viewModel: KeyboardModel,
     gridState: LazyStaggeredGridState,
     isFilterFocused: MutableState<Boolean>,
     onGifSelected: (GifAsset) -> Unit
@@ -85,11 +85,8 @@ fun GifPicker(
     val focusManager = LocalFocusManager.current
     val searchCoroutineScope = rememberCoroutineScope()
 
-    val filterQuery = remember(density) {
-        mutableStateOf(TextFieldValue())
-    }
-
-    val gifs = (if(filterQuery.value.text.isBlank()) {
+    val searchState = remember { TextFieldState() }
+    val gifs = (if(searchState.text.isBlank()) {
         viewModel.trendingGifs
     }else viewModel.queriedGifs).collectAsState().value?.collectAsLazyPagingItems()
     val isLoadingInitialPage = gifs?.loadState?.refresh is LoadState.Loading
@@ -108,6 +105,13 @@ fun GifPicker(
         }
     }
 
+    LaunchedEffect(searchState.text) {
+        searchCoroutineScope.coroutineContext.cancelChildren()
+        searchCoroutineScope.launch {
+            delay(DELAY_BETWEEN_TYPING_SHORT)
+            viewModel.requestGifSearch(searchState.text)
+        }
+    }
 
     Column(
         modifier = modifier.pointerInput(Unit) {
@@ -120,7 +124,7 @@ fun GifPicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = LocalTheme.current.colors.backgroundLight),
-            visible = (isFilterFocused.value || filterQuery.value.text.isNotBlank())
+            visible = (isFilterFocused.value || searchState.text.isNotBlank())
                     && gridState.firstVisibleItemIndex > 0
         ) {
             Image(
@@ -149,14 +153,11 @@ fun GifPicker(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    EditFieldInput(
+                    CustomTextField(
                         modifier = Modifier
-                            .requiredHeight(44.dp)
-                            .fillMaxWidth(.65f)
-                            .onFocusChanged {
-                                isFilterFocused.value = it.isFocused
-                            },
-                        value = "",
+                            .height(44.dp)
+                            .fillMaxWidth(.65f),
+                        isFocused = isFilterFocused,
                         shape = LocalTheme.current.shapes.circularActionShape,
                         hint = stringResource(Res.string.action_search_gifs),
                         keyboardOptions = KeyboardOptions(
@@ -164,20 +165,8 @@ fun GifPicker(
                             imeAction = ImeAction.Search
                         ),
                         paddingValues = PaddingValues(start = 16.dp),
-                        minHeight = 38.dp,
-                        leadingIcon = Icons.Outlined.Search,
-                        onValueChange = {
-                            filterQuery.value = it
-                            searchCoroutineScope.coroutineContext.cancelChildren()
-                            searchCoroutineScope.launch {
-                                delay(DELAY_BETWEEN_TYPING_SHORT)
-                                viewModel.requestGifSearch(it.text)
-                            }
-                        },
-                        onClear = {
-                            filterQuery.value = TextFieldValue()
-                            focusManager.clearFocus()
-                        },
+                        prefixIcon = Icons.Outlined.Search,
+                        state = searchState,
                         isClearable = true,
                         colors = LocalTheme.current.styles.textFieldColors.copy(
                             focusedTextColor = LocalTheme.current.colors.disabled,
@@ -221,7 +210,6 @@ fun GifPicker(
                             modifier = Modifier
                                 .zIndex(1f)
                                 .scalingClickable(scaleInto = .95f) {
-                                    filterQuery.value = TextFieldValue()
                                     onGifSelected(
                                         GifAsset(
                                             original = data?.images?.original?.url,
@@ -230,6 +218,7 @@ fun GifPicker(
                                             description = data?.altText ?: data?.title
                                         )
                                     )
+                                    searchState.setTextAndPlaceCursorAtEnd("")
                                 }
                                 .clip(RoundedCornerShape(6.dp))
                                 .fillMaxWidth()
@@ -256,7 +245,7 @@ fun GifPicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = LocalTheme.current.colors.backgroundLight),
-            visible = (isFilterFocused.value || filterQuery.value.text.isNotBlank())
+            visible = (isFilterFocused.value || searchState.text.isNotBlank())
                     && gridState.firstVisibleItemIndex == 0
         ) {
             Image(
@@ -279,5 +268,6 @@ expect fun GifImage(
     modifier: Modifier = Modifier,
     data: Any,
     contentDescription: String?,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    onState: (BaseResponse<Any>) -> Unit = {}
 )

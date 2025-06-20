@@ -1,10 +1,7 @@
 
-import cocoapods.FirebaseCore.FIRApp
 import cocoapods.FirebaseMessaging.FIRMessaging
 import cocoapods.FirebaseMessaging.FIRMessagingDelegateProtocol
-import cocoapods.GoogleSignIn.GIDConfiguration
-import cocoapods.GoogleSignIn.GIDSignIn
-import data.shared.AppServiceViewModel
+import data.shared.AppServiceModel
 import koin.commonModule
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.core.context.startKoin
@@ -44,7 +41,7 @@ fun onAppTerminate() {
  * Informs the app that the APNS token has been set
  */
 fun onAPNSTokenSet() {
-    val viewModel: AppServiceViewModel = KoinPlatform.getKoin().get()
+    val viewModel: AppServiceModel = KoinPlatform.getKoin().get()
     viewModel.initApp()
 }
 
@@ -103,11 +100,7 @@ fun onNewNotificationReceived(
 
 @OptIn(ExperimentalForeignApi::class)
 private fun configureFirebase(): Boolean {
-    FIRApp.configure()
-
-    GIDSignIn.sharedInstance.configuration = GIDConfiguration(
-        clientID = FIRApp.defaultApp()?.options?.clientID ?: return false
-    )
+    //FIRApp.configure()
 
     startKoin {
         modules(commonModule)
@@ -117,6 +110,6 @@ private fun configureFirebase(): Boolean {
 
 /** Called whenever iOS catches a new url routing to the app */
 fun onNewUrl(path: String) {
-    val viewModel: AppServiceViewModel = KoinPlatform.getKoin().get()
+    val viewModel: AppServiceModel = KoinPlatform.getKoin().get()
     viewModel.emitDeepLink(path)
 }

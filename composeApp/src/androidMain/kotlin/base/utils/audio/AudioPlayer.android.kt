@@ -8,9 +8,13 @@ import android.media.AudioManager
 import android.media.AudioTrack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 
 /**
@@ -26,9 +30,9 @@ actual fun rememberAudioPlayer(
     secondsPerBar: Double,
     bufferSize: Int
 ): AudioPlayer {
-    val scope = rememberCoroutineScope()
-
     return remember(byteArray.size) {
+        val scope = CoroutineScope(Job() + Dispatchers.IO)
+
         object : AudioPlayer(
             byteArray = byteArray,
             barsCount = barsCount,
@@ -70,8 +74,6 @@ actual fun rememberAudioPlayer(
                         barBuffer?.write(byteArray, offset, chunkSize)
                         playedBytes += chunkSize
 
-
-                        // Process chunk for visualization based on playback progress
                         if (playedBytes >= bytesPerBar) {
                             processChunk(byteArray = barBuffer?.toByteArray())
                             barBuffer?.reset()
@@ -87,20 +89,34 @@ actual fun rememberAudioPlayer(
             }
 
             override fun pause() {
+                scope.coroutineContext.cancelChildren()
                 audioTrack?.stop()
             }
 
             override fun discard() {
                 onFinish()
-                audioTrack?.stop()
-                audioTrack?.release()
-                audioTrack?.flush()
-                barBuffer?.reset()
-                offset = 0
-                playedBytes = 0
-                audioTrack = null
-                barBuffer = null
+                scope.coroutineContext.cancelChildren()
+                runBlocking {
+                    audioTrack?.stop()
+                    audioTrack?.release()
+                    audioTrack?.flush()
+                    barBuffer?.reset()
+                    offset = 0
+                    playedBytes = 0
+                    audioTrack = null
+                    barBuffer = null
+                }
             }
         }
     }
 }
+
+actual fun getMinBufferSize(
+    sampleRate: Int,
+    channels: Int,
+    encoding: Int
+): Int = AudioTrack.getMinBufferSize(
+    sampleRate,
+    AudioFormat.CHANNEL_OUT_MONO,
+    AudioFormat.ENCODING_PCM_16BIT
+)

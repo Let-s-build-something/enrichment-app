@@ -63,10 +63,8 @@ fun <T> HorizontalScrollChoice(
     val coroutineScope = rememberCoroutineScope()
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
     val defaultShape = RoundedCornerShape(
-        topEnd = LocalTheme.current.shapes.screenCornerRadius,
-        topStart = if(isCompact) LocalTheme.current.shapes.screenCornerRadius else 0.dp,
-        bottomEnd = LocalTheme.current.shapes.componentCornerRadius,
-        bottomStart = if(isCompact) LocalTheme.current.shapes.componentCornerRadius else 0.dp
+        topEnd = if(isCompact) LocalTheme.current.shapes.screenCornerRadius else 0.dp,
+        topStart = if(isCompact) LocalTheme.current.shapes.screenCornerRadius else 0.dp
     )
 
     val componentWidth = remember { mutableStateOf(0f) }
@@ -106,12 +104,7 @@ fun <T> HorizontalScrollChoice(
             .clip(defaultShape)
             .background(
                 color = borderColor,
-                shape = RoundedCornerShape(
-                    topEnd = LocalTheme.current.shapes.screenCornerRadius,
-                    topStart = if(isCompact) LocalTheme.current.shapes.screenCornerRadius else 0.dp,
-                    bottomEnd = 50.dp,
-                    bottomStart = 50.dp
-                )
+                shape = defaultShape
             )
             .padding(top = 1.dp)
     ) {
@@ -147,7 +140,7 @@ fun <T> HorizontalScrollChoice(
                 val isSelectedBefore = selectedItems.contains(choices.getOrNull(index -1)?.id)
                 val isSelectedAfter = selectedItems.contains(choices.getOrNull(index + 1)?.id)
 
-                val shape = if(isSelected) {
+                val shape = if(isCompact && isSelected) {
                     val cornersRadiusStart = animateFloatAsState(
                         if (isSelectedBefore) 0f else LocalTheme.current.shapes.screenCornerRadius.value,
                         label = "animCornersRadiusStart$index",
@@ -166,13 +159,7 @@ fun <T> HorizontalScrollChoice(
                     )
                     RoundedCornerShape(
                         topEnd = cornersRadiusEnd.value.coerceAtLeast(0f).dp,
-                        topStart = if(isCompact || index != 0) {
-                            cornersRadiusStart.value.coerceAtLeast(0f).dp
-                        }else 0.dp,
-                        bottomEnd = cornersRadiusEnd.value.coerceIn(0f, LocalTheme.current.shapes.componentCornerRadius.value).dp,
-                        bottomStart = if(isCompact || index != 0) {
-                            cornersRadiusStart.value.coerceIn(0f, LocalTheme.current.shapes.componentCornerRadius.value).dp
-                        }else 0.dp
+                        topStart = cornersRadiusStart.value.coerceAtLeast(0f).dp
                     )
                 }else null
 

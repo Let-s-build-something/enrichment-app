@@ -1,13 +1,9 @@
 import SwiftUI
 import ComposeApp
-import FirebaseCore
-import FirebaseAuth
-import GoogleSignIn
 import FirebaseMessaging
 import CryptoKit
-import AuthenticationServices
 
-class AppDelegate: ASPresentationAnchor,
+class AppDelegate: NSObject,
                    UNUserNotificationCenterDelegate,
                    UIApplicationDelegate {
 
@@ -17,12 +13,6 @@ class AppDelegate: ASPresentationAnchor,
     ) -> Bool {
         // while Swift is great, Kotlin is simply better, we call initialization of everything in Helper.kt - in Kotlin
         return HelperKt.onIOSApplication(self, application: application, launchOptions: launchOptions)
-    }
-
-    func application(_ app: UIApplication,
-                     open url: URL,
-                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
     }
 
     func application(_ application: UIApplication,

@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import augmy.interactive.shared.ui.theme.ThemeShapes
 
-/** Styles specific to main app theme [LocalTheme.current] */
+/** Styles specific to main app theme LocalTheme.current */
 class AppThemeShapes: ThemeShapes {
     override val betweenItemsSpace: Dp = 10.dp
     override val iconSizeSmall: Dp = 32.dp
@@ -16,7 +16,8 @@ class AppThemeShapes: ThemeShapes {
     override val screenCornerRadius: Dp = 24.dp
     override val componentCornerRadius: Dp = 16.dp
     override val circularActionShape: Shape = CircleShape
-    override val rectangularActionShape: Shape = RoundedCornerShape(10.dp)
+    override val rectangularActionRadius: Dp = 10.dp
+    override val rectangularActionShape: Shape = RoundedCornerShape(rectangularActionRadius)
     override val componentShape: Shape = RoundedCornerShape(componentCornerRadius)
     override val chipShape: Shape = CircleShape
 }

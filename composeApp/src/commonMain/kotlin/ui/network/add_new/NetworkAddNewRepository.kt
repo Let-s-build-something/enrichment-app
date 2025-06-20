@@ -5,6 +5,8 @@ import data.io.base.BaseResponse
 import data.io.social.network.request.CircleRequestResponse
 import data.io.social.network.request.CirclingRequest
 import data.io.user.NetworkItemIO
+import database.dao.ConversationRoomDao
+import database.dao.NetworkItemDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -14,7 +16,11 @@ import kotlinx.coroutines.withContext
 import ui.login.safeRequest
 
 /** Class for calling APIs and remote work in general */
-class NetworkAddNewRepository(private val httpClient: HttpClient) {
+class NetworkAddNewRepository(
+    private val httpClient: HttpClient,
+    private val conversationRoomDao: ConversationRoomDao,
+    private val networkItemDao: NetworkItemDao
+) {
 
     /** Acts upon a circling request */
     suspend fun includeNewUser(action: CirclingRequest): BaseResponse<CircleRequestResponse> {
@@ -31,10 +37,34 @@ class NetworkAddNewRepository(private val httpClient: HttpClient) {
     }
 
     /** Returns list of recommended users from each proximity category */
-    suspend fun getUserRecommendations(): BaseResponse<Map<NetworkProximityCategory, List<NetworkItemIO>>> {
+    suspend fun getUserRecommendations(
+        takeCount: Int,
+        excludeId: String?,
+        ownerPublicId: String?
+    ): BaseResponse<Map<NetworkProximityCategory, List<NetworkItemIO>>> {
         return withContext(Dispatchers.IO) {
-            // TODO local Room database required here
-            BaseResponse.Error()
+            BaseResponse.Success(
+                NetworkProximityCategory.entries.associateWith { category ->
+                    (conversationRoomDao.getByProximity(
+                        ownerPublicId = ownerPublicId,
+                        proximityMin = category.range.start,
+                        proximityMax = category.range.endInclusive,
+                        count = takeCount,
+                        excludeId = excludeId
+                    ).map { conversation ->
+                        NetworkItemIO(
+                            displayName = conversation.summary?.roomName,
+                            avatar = conversation.summary?.avatar
+                        )
+                    } + networkItemDao.getByProximity(
+                        ownerPublicId = ownerPublicId,
+                        proximityMin = category.range.start,
+                        proximityMax = category.range.endInclusive,
+                        count = takeCount,
+                        excludeId = excludeId
+                    )).shuffled().take(takeCount)
+                }
+            )
         }
     }
 }

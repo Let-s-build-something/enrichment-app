@@ -1,7 +1,10 @@
 
 import android.app.Application
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -27,19 +30,26 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebasePlatform
 import com.google.firebase.initialize
 import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.coroutines.FlowSettings
 import com.russhwolf.settings.coroutines.SuspendSettings
 import com.russhwolf.settings.coroutines.toBlockingSettings
-import data.shared.AppServiceViewModel
+import data.io.app.ThemeChoice
+import data.shared.AppServiceModel
+import dev.datlag.kcef.KCEF
 import io.kamel.core.config.KamelConfig
 import io.kamel.core.config.takeFrom
 import io.kamel.image.config.Default
 import io.kamel.image.config.LocalKamelConfig
+import koin.AppSettings
 import koin.commonModule
 import koin.settingsModule
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.cef.CefSettings
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.startKoin
@@ -47,6 +57,7 @@ import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.gif.PlatformFileFetcher
+import utils.SharedLogger
 import java.awt.Button
 import java.awt.Dialog
 import java.awt.Dimension
@@ -68,15 +79,27 @@ private var isAppInitialized = false
 fun main(args: Array<String>) = application {
     var arguments: Array<String>? = args
     val coroutineScope = rememberCoroutineScope()
+    val systemDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = remember { mutableStateOf(systemDarkTheme) }
 
     if(isAppInitialized.not()) {
         startKoin {
             modules(settingsModule)
             initializeFirebase(
-                settings = KoinPlatform.getKoin().get<FlowSettings>(),
+                settings = KoinPlatform.getKoin().get<AppSettings>(),
                 scope = coroutineScope
             )
             modules(commonModule)
+            coroutineScope.launch {
+                KoinPlatform.getKoin().get<AppServiceModel>().localSettings.collectLatest {
+                    isDarkTheme.value = when(it?.theme) {
+                        ThemeChoice.DARK -> true
+                        ThemeChoice.LIGHT -> false
+                        ThemeChoice.SYSTEM -> systemDarkTheme
+                        null -> true
+                    }
+                }
+            }
         }
         isAppInitialized = true
     }
@@ -107,7 +130,10 @@ fun main(args: Array<String>) = application {
             add(scrollPane)
             add(
                 Button("I'll report this to info@augmy.org").apply {
-                    addActionListener { dispose() }
+                    addActionListener {
+                        KCEF.disposeBlocking()
+                        dispose()
+                    }
                 }
             )
             setSize(1000, 500)
@@ -121,6 +147,7 @@ fun main(args: Array<String>) = application {
     val backPressDispatcher = remember {
         object: BackPressDispatcher {
             val listeners = mutableListOf<() -> Unit>()
+            override val progress = mutableFloatStateOf(0f)
 
             override fun addOnBackPressedListener(listener: () -> Unit) {
                 this.listeners.add(0, listener)
@@ -132,9 +159,32 @@ fun main(args: Array<String>) = application {
                 listeners.firstOrNull()?.invoke()
             }
             override fun executeSystemBackPress() {
+                KCEF.disposeBlocking()
                 unloadKoinModules(commonModule)
                 stopKoin()
                 exitApplication()
+            }
+        }
+    }
+
+    LaunchedEffect(isDarkTheme.value) {
+        withContext(Dispatchers.IO) {
+            try {
+                KCEF.init(builder = {
+                    settings {
+                        backgroundColor = if(isDarkTheme.value) {
+                            CefSettings().ColorType(255, 34, 31, 28)
+                        }else CefSettings().ColorType(255, 236, 241, 231)
+                        cachePath = File("cache").absolutePath
+                    }
+                    installDir(File("kcef-bundle"))
+                }, onError = {
+                    it?.printStackTrace()
+                }, onRestartRequired = {
+                    // should we restart the app?
+                })
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -186,7 +236,7 @@ fun main(args: Array<String>) = application {
                 width = with(density) { containerSize.width.toDp() }.value.toInt()
             )
         ) {
-            val viewModel: AppServiceViewModel = koinViewModel()
+            val viewModel: AppServiceModel = koinViewModel()
 
             App(viewModel)
 
@@ -215,6 +265,8 @@ private fun associateWithDomain() {
     }
 }
 
+private val logger = Logger("JvmRegistry")
+
 private fun initWindowsRegistry() {
     try {
         val exePath = System.getProperty("user.dir") + File.separator + "Augmy.exe"
@@ -228,14 +280,14 @@ private fun initWindowsRegistry() {
         )
 
         for (cmd in commands) {
-            val process = Runtime.getRuntime().exec(cmd)
+            val process = Runtime.getRuntime().exec(arrayOf(cmd))
             process.waitFor()
             if (process.exitValue() != 0) {
-                println("Command failed: $cmd")
+                logger.error { "Command failed: $cmd" }
                 process.errorStream.bufferedReader()
-                    .use { it.lines().forEach { line -> println(line) } }
+                    .use { it.lines().forEach { line -> logger.error { line } } }
             } else {
-                println("Command succeeded: $cmd")
+                logger.debug { "Command succeeded: $cmd" }
             }
         }
     }catch (e: Exception) {
@@ -244,40 +296,61 @@ private fun initWindowsRegistry() {
 }
 
 private fun registerUriSchemeLinux() {
-    val appPath = System.getProperty("user.dir") + File.separator + "Augmy"
-    val desktopFilePath = System.getProperty("user.home") + "/.local/share/applications/augmy.desktop"
+    val home = System.getProperty("user.home")
+    val desktopFilePath = "$home/.local/share/applications/augmy.desktop"
+
+    // Determine the executable path based on build type
+    val execPath = if (BuildKonfig.isDevelopment) {
+        // Debug: Use the launcher script
+        "/home/jacob/StudioProjects/enrichment-app/composeApp/augmy-launcher.sh"
+    } else System.getProperty("user.dir") + File.separator + "Augmy"
+    logger.debug { "execPath: $execPath" }
+
     val desktopFileContent = """
         [Desktop Entry]
         Name=Augmy
-        Exec=$appPath %u
+        Exec=gnome-terminal -- $execPath %u
         Type=Application
-        MimeType=x-scheme-handler/augmy
+        MimeType=x-scheme-handler/augmy;
         Terminal=false
+        Categories=Utility;
     """.trimIndent()
 
     try {
-        // Create and write to the .desktop file
         val desktopFile = File(desktopFilePath)
-        desktopFile.parentFile.mkdirs() // Ensure directory exists
+        desktopFile.parentFile.mkdirs()
         desktopFile.writeText(desktopFileContent)
+        desktopFile.setExecutable(true)
 
-        // Register with xdg-mime and xdg-settings
         val commands = listOf(
             "xdg-mime default augmy.desktop x-scheme-handler/augmy",
-            "xdg-settings set default-url-scheme-handler augmy augmy.desktop"
+            "update-desktop-database ~/.local/share/applications"
         )
 
         for (cmd in commands) {
-            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
-            process.waitFor()
-            if (process.exitValue() == 0) {
-                println("Command succeeded: $cmd")
-            } else {
-                println("Command failed: $cmd")
-                process.errorStream.bufferedReader().use { it.lines().forEach { line -> println(line) } }
+            val process = ProcessBuilder("sh", "-c", cmd)
+                .redirectErrorStream(true)
+                .start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            logger.debug {
+                "Command: $cmd" +
+                        "\nExit Code: $exitCode" +
+                        "\nOutput:\n$output"
             }
         }
+
+        // Optional: Confirm it's registered
+        val verify = ProcessBuilder("sh", "-c", "xdg-mime query default x-scheme-handler/augmy")
+            .redirectErrorStream(true)
+            .start()
+
+        verify.waitFor()
+        val result = verify.inputStream.bufferedReader().readText().trim()
+        logger.debug { "Verified x-scheme-handler/augmy: $result" }
+
     } catch (e: Exception) {
+        logger.debug { "Failed to register URI scheme:" }
         e.printStackTrace()
     }
 }
@@ -304,7 +377,7 @@ private fun initializeFirebase(
                     settings.remove(key)
                 }
             }
-            override fun log(msg: String) = println(msg)
+            override fun log(msg: String) = SharedLogger.logger.debug { msg }
         }
     )
 

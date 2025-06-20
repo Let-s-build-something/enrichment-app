@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -47,7 +49,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -61,9 +62,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionOnScreen
@@ -72,8 +76,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_action_emojis
 import augmy.composeapp.generated.resources.accessibility_action_keyboard
@@ -84,12 +90,15 @@ import augmy.composeapp.generated.resources.accessibility_message_action_image
 import augmy.composeapp.generated.resources.accessibility_message_more_options
 import augmy.composeapp.generated.resources.account_picture_pick_title
 import augmy.composeapp.generated.resources.conversation_attached
+import augmy.composeapp.generated.resources.file_too_large
 import augmy.interactive.shared.ext.contentReceiver
-import augmy.interactive.shared.ext.horizontallyDraggable
+import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -97,59 +106,80 @@ import augmy.interactive.shared.ui.base.currentPlatform
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
+import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
+import base.utils.LinkUtils
 import base.utils.MediaType
 import base.utils.getMediaType
-import coil3.toUri
-import data.io.social.network.conversation.ConversationMessageIO
+import base.utils.getUrlExtension
+import base.utils.maxMultiLineHeight
 import data.io.social.network.conversation.giphy.GifAsset
-import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
-import io.github.vinceglb.filekit.core.PickerMode
-import io.github.vinceglb.filekit.core.PickerType
-import io.github.vinceglb.filekit.core.PlatformFile
+import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.size
+import korlibs.io.net.MimeType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.ConversationViewModel
+import ui.conversation.ConversationModel
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
+import ui.conversation.components.link.LinkPreview
+import ui.conversation.components.message.MessageMediaPanel
+import ui.conversation.components.message.ReplyIndication
 
 /** Horizontal panel for sending and managing a message, and attaching media to it */
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
     keyboardMode: MutableState<Int>,
+    overrideAnchorMessage: ConversationMessageIO? = null,
     replyToMessage: MutableState<ConversationMessageIO?>,
     scrollToMessage: (ConversationMessageIO) -> Unit,
-    viewModel: ConversationViewModel
+    model: ConversationModel
 ) {
     val screenSize = LocalScreenSize.current
     val density = LocalDensity.current
     val navController = LocalNavController.current
+    val snackbarHost = LocalSnackbarHost.current
     val isDesktop = LocalDeviceType.current == WindowWidthSizeClass.Expanded || currentPlatform == PlatformType.Jvm
     val spacing = LocalTheme.current.shapes.betweenItemsSpace / 2
     val imeHeightPadding = WindowInsets.ime.getBottom(density)
     val keyboardController  = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
+    val cancellableScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
-    val keyboardHeight = viewModel.keyboardHeight.collectAsState()
-    val savedMessage = viewModel.savedMessage.collectAsState()
+    val keyboardHeight = model.keyboardHeight.collectAsState()
+    val savedMessage = model.savedMessage.collectAsState()
+    val repositoryConfig = model.repositoryConfig.collectAsState()
     val messageState = remember(savedMessage.value) {
         TextFieldState(
-            initialText = savedMessage.value,
-            initialSelection = TextRange(savedMessage.value.length)
+            initialText = savedMessage.value ?: "",
+            initialSelection = TextRange(savedMessage.value?.length ?: 0)
         )
     }
+    val timingSensor = model.timingSensor.collectAsState()
     val missingKeyboardHeight = remember { keyboardHeight.value < 2 }
     val mediaAttached = remember {
         mutableStateListOf<PlatformFile>()
     }
     val urlsAttached = remember {
         mutableStateListOf<String>()
+    }
+    val showPreview = remember {
+        mutableStateOf(true)
     }
     val gifAttached = remember {
         mutableStateOf<GifAsset?>(null)
@@ -159,6 +189,9 @@ internal fun BoxScope.SendMessagePanel(
     }
     val actionYCoordinate = rememberSaveable {
         mutableStateOf(-1f)
+    }
+    val typedUrl = remember {
+        mutableStateOf<String?>(null)
     }
 
     val isContentEmpty = messageState.text.isBlank()
@@ -183,8 +216,8 @@ internal fun BoxScope.SendMessagePanel(
         animationSpec = tween(durationMillis = DEFAULT_ANIMATION_LENGTH_LONG)
     )
     val launcherImageVideo = rememberFilePickerLauncher(
-        type = PickerType.ImageAndVideo,
-        mode = PickerMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
+        type = FileKitType.ImageAndVideo,
+        mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
         title = stringResource(Res.string.account_picture_pick_title)
     ) { files ->
         if(!files.isNullOrEmpty()) {
@@ -193,14 +226,26 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
+                                && newFile.size() < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
+                if(files.any { it.size() > (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                    snackbarHost?.showSnackbar(
+                        CustomSnackbarVisuals(
+                            message = getString(
+                                Res.string.file_too_large,
+                                repositoryConfig.value?.maxUploadSize?.div(1_000_000).toString()
+                            ),
+                            isError = true
+                        )
+                    )
+                }
             }
         }
     }
     val launcherFile = rememberFilePickerLauncher(
-        type = PickerType.File(),
-        mode = PickerMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
+        type = FileKitType.File(),
+        mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
         title = stringResource(Res.string.account_picture_pick_title)
     ) { files ->
         if(!files.isNullOrEmpty()) {
@@ -209,37 +254,68 @@ internal fun BoxScope.SendMessagePanel(
                     index = 0,
                     files.filter { newFile ->
                         mediaAttached.none { it.name == newFile.name }
+                                && newFile.size() < (repositoryConfig.value?.maxUploadSize ?: 0)
                     }
                 )
+                if(files.any { it.size() < (repositoryConfig.value?.maxUploadSize ?: 0) }) {
+                    snackbarHost?.showSnackbar(
+                        getString(
+                            Res.string.file_too_large,
+                            repositoryConfig.value?.maxUploadSize?.div(1_000_000).toString()
+                        )
+                    )
+                }
             }
         }
     }
 
     val sendMessage = {
-        viewModel.sendMessage(
-            content = messageState.text.toString(),
-            mediaFiles = mediaAttached.toList(),
-            anchorMessage = replyToMessage.value,
-            gifAsset = gifAttached.value,
-            mediaUrls = urlsAttached
-        )
-        mediaAttached.clear()
-        keyboardMode.value = ConversationKeyboardMode.Default.ordinal
-        messageState.clearText()
-        viewModel.saveMessage(null)
-        replyToMessage.value = null
-        gifAttached.value = null
-    }
+        if(messageState.text.toString().isNotBlank()
+            || mediaAttached.isNotEmpty()
+            || gifAttached.value != null
+            || urlsAttached.isNotEmpty()
+        ) {
+            model.sendMessage(
+                content = messageState.text.toString(),
+                mediaFiles = mediaAttached.toList(),
+                anchorMessage = replyToMessage.value ?: overrideAnchorMessage,
+                gifAsset = gifAttached.value,
+                mediaUrls = urlsAttached,
+                showPreview = showPreview.value,
+                timings = timingSensor.value.timings.toList(),
+                gravityValues = model.gravityValues.value
+            )
+            model.cache(null)
+            timingSensor.value.flush()
+            typedUrl.value = null
+            model.stopTypingServices()
+            mediaAttached.clear()
+            keyboardMode.value = ConversationKeyboardMode.Default.ordinal
+            messageState.clearText()
+            replyToMessage.value = null
+            gifAttached.value = null
+            showPreview.value = true
 
-
-    DisposableEffect(null) {
-        onDispose {
-            viewModel.saveMessage(messageState.text.toString())
+            navController?.previousBackStackEntry
+                ?.savedStateHandle
+                ?.apply {
+                    set(NavigationArguments.CONVERSATION_NEW_MESSAGE, true)
+                }
         }
     }
 
+
+    LifecycleResumeEffect(model) {
+        // temporary init to showcase the behaviour, remove for implementation
+        model.initPacing(widthPx = with(density) { screenSize.width.dp.toPx() })
+
+        onPauseOrDispose {
+            model.stopTypingServices()
+            model.cache(content = messageState.text.toString())
+        }
+    }
     LaunchedEffect(savedMessage.value) {
-        if(missingKeyboardHeight || savedMessage.value.isNotBlank()) {
+        if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) {
             focusRequester.requestFocus()
             keyboardController?.show()
         }else focusRequester.captureFocus()
@@ -250,7 +326,7 @@ internal fun BoxScope.SendMessagePanel(
             if(missingKeyboardHeight) {
                 imeHeightPadding.let { imeHeight ->
                     if(imeHeight > keyboardHeight.value) {
-                        viewModel.setKeyboardHeight(imeHeight)
+                        model.setKeyboardHeight(imeHeight)
                     }
                 }
             }
@@ -259,14 +335,30 @@ internal fun BoxScope.SendMessagePanel(
 
     LaunchedEffect(keyboardMode.value) {
         when(keyboardMode.value) {
-            ConversationKeyboardMode.Default.ordinal -> viewModel.additionalBottomPadding.animateTo(0f)
+            ConversationKeyboardMode.Default.ordinal -> model.additionalBottomPadding.animateTo(0f)
             else -> keyboardController?.hide()
         }
     }
 
     LaunchedEffect(messageState.text) {
         if(messageState.text.isNotBlank()) {
+            model.startTypingServices()
             showMoreOptions.value = false
+        }else model.stopTypingServices()
+
+        timingSensor.value.onNewText(messageState.text)?.let { result ->
+            model.onKeyPressed(
+                char = result.newChar,
+                timingMs = result.timing
+            )
+        }
+        if(showPreview.value) {
+            cancellableScope.coroutineContext.cancelChildren()
+            cancellableScope.launch(Dispatchers.Default) {
+                delay(DELAY_BETWEEN_TYPING_SHORT)
+                model.updateTypingStatus(content = messageState.text)
+                typedUrl.value = LinkUtils.urlRegex.findAll(messageState.text).firstOrNull()?.value
+            }
         }
     }
 
@@ -279,7 +371,9 @@ internal fun BoxScope.SendMessagePanel(
 
 
     Column(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier.animateContentSize(
+            alignment = Alignment.BottomCenter
+        ),
         verticalArrangement = Arrangement.Top
     ) {
         gifAttached.value?.let { gifAsset ->
@@ -289,7 +383,12 @@ internal fun BoxScope.SendMessagePanel(
                         .zIndex(1f)
                         .scalingClickable(scaleInto = .95f) {
                             navController?.navigate(
-                                NavigationNode.MediaDetail(listOf(gifAsset.original ?: ""))
+                                NavigationNode.MediaDetail(
+                                    media = listOf(MediaIO(
+                                        url = gifAsset.original ?: "",
+                                        mimetype = "image/gif"
+                                    ))
+                                )
                             )
                         }
                         .height(MEDIA_MAX_HEIGHT_DP.dp)
@@ -313,7 +412,7 @@ internal fun BoxScope.SendMessagePanel(
 
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
-        replyToMessage.value?.let { originalMessage ->
+        replyToMessage.value?.takeIf { it.id != overrideAnchorMessage?.id } ?.let { originalMessage ->
             LaunchedEffect(Unit) {
                 focusRequester.requestFocus()
             }
@@ -330,7 +429,7 @@ internal fun BoxScope.SendMessagePanel(
                 onRemoveRequest = {
                     replyToMessage.value = null
                 },
-                isCurrentUser = originalMessage.authorPublicId == viewModel.currentUser.value?.publicId,
+                isCurrentUser = originalMessage.authorPublicId == model.currentUser.value?.matrixUserId,
                 removable = true
             )
         }
@@ -355,9 +454,9 @@ internal fun BoxScope.SendMessagePanel(
                     modifier = Modifier
                         .padding(bottom = 4.dp)
                         .fillMaxWidth()
-                        .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
+                        .heightIn(max = MEDIA_MAX_HEIGHT_DP.dp)
                         .horizontalScroll(state = mediaListState)
-                        .horizontallyDraggable(state = mediaListState),
+                        .draggable(state = mediaListState, orientation = Orientation.Horizontal),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
                     Spacer(Modifier)
@@ -369,7 +468,7 @@ internal fun BoxScope.SendMessagePanel(
                             MinimalisticIcon(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .zIndex(1f)
+                                    .zIndex(4f)
                                     .background(
                                         color = LocalTheme.current.colors.backgroundDark,
                                         shape = LocalTheme.current.shapes.componentShape
@@ -383,18 +482,65 @@ internal fun BoxScope.SendMessagePanel(
                                 }
                             )
 
+                            val remoteMedia = urlsAttached.getOrNull(index - mediaAttached.lastIndex)
                             MediaElement(
                                 modifier = Modifier
                                     .requiredHeight(MEDIA_MAX_HEIGHT_DP.dp)
                                     .wrapContentWidth()
                                     .clip(LocalTheme.current.shapes.rectangularActionShape),
-                                media = media,
-                                url = urlsAttached.getOrNull(index - mediaAttached.lastIndex),
+                                localMedia = media,
+                                media = if(remoteMedia != null) {
+                                    MediaIO(
+                                        url = remoteMedia,
+                                        mimetype = MimeType.getByExtension(getUrlExtension(remoteMedia)).mime
+                                    )
+                                }else null,
                                 contentScale = ContentScale.FillHeight
                             )
                         }
                     }
                     Spacer(Modifier)
+                }
+            }
+        }
+
+        typedUrl.value?.let { url ->
+            val shape = RoundedCornerShape(
+                topStart = LocalTheme.current.shapes.componentCornerRadius,
+                topEnd = LocalTheme.current.shapes.componentCornerRadius
+            )
+
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = shape
+                    )
+                    .padding(6.dp)
+                    .animateContentSize(
+                        alignment = Alignment.BottomCenter
+                    )
+            ) {
+                MinimalisticIcon(
+                    modifier = Modifier
+                        .zIndex(1f)
+                        .align(Alignment.TopEnd),
+                    imageVector = Icons.Outlined.Close,
+                    tint = LocalTheme.current.colors.secondary,
+                    onTap = {
+                        showPreview.value = false
+                        typedUrl.value = null
+                    }
+                )
+                Column {
+                    LinkPreview(
+                        shape = shape,
+                        url = url,
+                        textBackground = Color.Transparent,
+                        imageSize = IntSize(height = 140, width = 0),
+                        alignment = Alignment.Start
+                    )
                 }
             }
         }
@@ -410,23 +556,37 @@ internal fun BoxScope.SendMessagePanel(
         ) {
             CustomTextField(
                 modifier = Modifier
-                    .requiredHeight(44.dp)
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionOnScreen().y
+                    },
+                fieldModifier = Modifier
+                    .onKeyEvent { keyEvent ->
+                        if(keyEvent.key == Key.Enter) {
+                            sendMessage()
+                            true
+                        }else false
                     }
                     .contentReceiver { uri ->
-                        when(getMediaType((uri.toUri().path ?: uri).substringAfterLast("."))) {
+                        when(getMediaType(uri)) {
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
                             else -> urlsAttached.add(uri)
                         }
                     }
-                    .focusRequester(focusRequester),
+                    .onFocusChanged {
+                        if(it.isFocused && messageState.text.isNotBlank()) {
+                            model.updateTypingStatus(content = messageState.text)
+                            model.startTypingServices()
+                        }else model.stopTypingServices()
+                    }
+                    .fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Send
+                    imeAction = ImeAction.Send,
+                    showKeyboardOnFocus = true
                 ),
+                focusRequester = focusRequester,
                 state = messageState,
                 onKeyboardAction = {
                     sendMessage()
@@ -437,7 +597,7 @@ internal fun BoxScope.SendMessagePanel(
                             modifier = Modifier.scalingClickable {
                                 if(isMedia) {
                                     coroutineScope.launch {
-                                        viewModel.additionalBottomPadding.animateTo(0f)
+                                        model.additionalBottomPadding.animateTo(0f)
                                     }
                                     focusRequester.requestFocus()
                                     keyboardController?.show()
@@ -445,12 +605,12 @@ internal fun BoxScope.SendMessagePanel(
                                 }else {
                                     // hack to not close the emoji picker right away
                                     if(keyboardHeight.value > 99) {
-                                        viewModel.setKeyboardHeight(keyboardHeight.value + 1)
+                                        model.setKeyboardHeight(keyboardHeight.value + 1)
                                         coroutineScope.launch {
                                             delay(200)
-                                            viewModel.setKeyboardHeight(keyboardHeight.value - 1)
+                                            model.setKeyboardHeight(keyboardHeight.value - 1)
                                         }
-                                    }else viewModel.setKeyboardHeight(screenSize.height / 3)
+                                    }else model.setKeyboardHeight(screenSize.height / 3)
 
                                     keyboardController?.hide()
                                     keyboardMode.value = ConversationKeyboardMode.Emoji.ordinal
@@ -466,7 +626,9 @@ internal fun BoxScope.SendMessagePanel(
                         )
                     }
                 },
-                lineLimits = TextFieldLineLimits.SingleLine,
+                lineLimits = if(messageState.text.length < 100) {
+                    TextFieldLineLimits.SingleLine
+                }else TextFieldLineLimits.MultiLine(maxHeightInLines = maxMultiLineHeight),
                 shape = LocalTheme.current.shapes.componentShape
             )
 
@@ -552,7 +714,7 @@ internal fun BoxScope.SendMessagePanel(
         if(keyboardMode.value != ConversationKeyboardMode.Default.ordinal) {
             MessageMediaPanel(
                 mode = keyboardMode,
-                viewModel = viewModel,
+                viewModel = model,
                 showBackSpace = messageState.text.isNotBlank(),
                 onGifSelected = { gif ->
                     gifAttached.value = gif
@@ -631,7 +793,7 @@ internal fun BoxScope.SendMessagePanel(
                 .offset(y = - (screenSize.height.dp - with(density) { actionYCoordinate.value.toDp() } - 44.dp))
                 .align(Alignment.BottomEnd),
             onSaveRequest = { byteArray ->
-                viewModel.sendAudioMessage(byteArray)
+                model.sendAudioMessage(byteArray)
             }
         )
     }
@@ -653,7 +815,8 @@ const val MEDIA_MAX_HEIGHT_DP = 250
 
 // IOS does not support unicode special classes, must be done manually
 private val REGEX_GRAPHEME_IOS = """
-    (?:[\uD800-\uDBFF][\uDC00-\uDFFF][\uFE0F\u200D\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*|[\u0020-\u007E]|[\u00A0-\uFFFF]|\s|.)[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]*
+    (?:\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*|\p{L}\p{M}*)
 """.trimIndent()
 
-private val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""
+/** regular expression for a singular grapheme */
+val REGEX_GRAPHEME = if(currentPlatform == PlatformType.Native) REGEX_GRAPHEME_IOS else """\X"""

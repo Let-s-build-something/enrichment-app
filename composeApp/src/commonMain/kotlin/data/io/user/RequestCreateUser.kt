@@ -19,6 +19,12 @@ data class RequestCreateUser(
      */
     val fcmToken: String? = null, //optional
 
+    /** Fully qualified Matrix id */
+    val matrixUserId: String?, //optional
+
+    /** home server under which this user has been created */
+    val matrixHomeserver: String?,
+
     /** Currently used platform */
     val platform: PlatformType = currentPlatform
 )

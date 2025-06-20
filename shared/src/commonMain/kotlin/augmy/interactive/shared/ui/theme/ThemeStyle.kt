@@ -2,6 +2,7 @@ package augmy.interactive.shared.ui.theme
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.CheckboxColors
+import androidx.compose.material3.RadioButtonColors
 import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.TextFieldColors
@@ -38,6 +39,9 @@ interface ThemeStyle {
 
     @get:Composable
     val chipColorsDefault: SelectableChipColors
+
+    @get:Composable
+    val radioButtonColors: RadioButtonColors
 
     /** Large, bold, heading style for text */
     @get:Composable
