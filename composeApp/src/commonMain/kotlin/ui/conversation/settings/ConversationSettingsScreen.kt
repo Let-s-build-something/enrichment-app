@@ -118,7 +118,6 @@ import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
 import ui.network.components.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @Composable
 fun ConversationSettingsScreen(conversationId: String?) {
@@ -362,7 +361,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                 enableMembersPaging.value -> members.itemCount
                 else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
             },
-            key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
+            //key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
         ) { index ->
             val member = members.getOrNull(index)
             val isSelected = selectedMemberId.value == member?.id

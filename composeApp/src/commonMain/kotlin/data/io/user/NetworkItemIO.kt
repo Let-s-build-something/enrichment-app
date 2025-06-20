@@ -47,6 +47,7 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     val isMutual: Boolean? = null,
 
     /** Last message sent within this network item */
+    @Deprecated("Only rooms can have messages")
     @ColumnInfo("last_message")
     val lastMessage: String? = null,
 

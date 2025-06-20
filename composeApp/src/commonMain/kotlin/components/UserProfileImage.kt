@@ -186,6 +186,10 @@ private fun ContentElement(
             MediaElement(
                 modifier = modifier
                     .clip(CircleShape)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = CircleShape
+                    )
                     .aspectRatio(1f),
                 contentDescription = contentDescription,
                 media = media,

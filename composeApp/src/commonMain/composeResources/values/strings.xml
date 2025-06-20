@@ -23,7 +23,7 @@
   <string name="navigate_close">Close</string>
   <string name="navigate_hamburger_menu">Menu</string>
 
-  <string name="screen_home_initial_sync">The postman is on its way with your messages...</string>
+  <string name="screen_home_initial_sync">Postman is on their way with your messages...</string>
   <string name="screen_home_no_client_title">You need to sign-in to see your messages</string>
   <string name="screen_home_no_client_action">Okey-dokey, I'll sign-in</string>
 
