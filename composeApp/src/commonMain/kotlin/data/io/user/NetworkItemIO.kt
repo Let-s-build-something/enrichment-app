@@ -77,5 +77,5 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     val tag: String?
         @Ignore
-        get() = UserId(userId ?: displayName ?: publicId).generateUserTag()
+        get() = UserId(userId ?: publicId).generateUserTag()
 }

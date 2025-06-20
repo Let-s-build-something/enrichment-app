@@ -375,7 +375,7 @@ class LoginModel(
             }
         }else _matrixAuthResponse.value
 
-        if(res?.userId != null || username == null) {
+        if(res?.userId != null || matrixClient != null) {
             _matrixAuthResponse.value = res
             clearMatrixProgress()
             initUserObject()

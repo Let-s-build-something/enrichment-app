@@ -302,7 +302,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                         .zIndex(5f)
                         .fillMaxWidth(.5f),
                     media = detail.value?.summary?.avatar,
-                    tag = detail.value?.summary?.tag,
+                    tag = detail.value?.tag,
                     name = detail.value?.summary?.roomName
                 )
                 MinimalisticFilledIcon(

@@ -5,7 +5,6 @@ import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.UserIO
-import data.io.user.UserIO.Companion.generateUserTag
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -82,15 +81,10 @@ data class RoomSummary(
             else -> "Room"
         }
 
-    val tag: String?
-        @Ignore
-        get() = roomName.takeIf { it != "Room" }?.let { UserId(it).generateUserTag() }
-
     override fun toString(): String {
         return "{" +
                 "heroes: $heroes, " +
                 "canonicalAlias: $canonicalAlias, " +
-                "tag: $tag, " +
                 "avatar: $avatar, " +
                 "isDirect: $isDirect, " +
                 "invitationMessage: $invitationMessage, " +

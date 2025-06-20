@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
+import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
@@ -16,6 +17,7 @@ import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.Knocke
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.RoomAccountData
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.State
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.Timeline
+import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import kotlin.uuid.ExperimentalUuidApi
@@ -110,9 +112,14 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
         )
     }
 
+    val tag: String?
+        @Ignore
+        get() = UserId(id).generateUserTag()
+
     /** Converts this item to a network item representation */
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
+        userId = id,
         displayName = summary?.roomName,
         avatar = summary?.avatar,
         lastMessage = summary?.lastMessage?.content

@@ -161,7 +161,7 @@ fun ConversationScreen(
                                 .align(Alignment.CenterVertically)
                                 .size(32.dp),
                             media = conversationDetail.value?.summary?.avatar,
-                            tag = conversationDetail.value?.summary?.tag,
+                            tag = conversationDetail.value?.tag,
                             animate = true,
                             name = conversationDetail.value?.summary?.roomName
                         )

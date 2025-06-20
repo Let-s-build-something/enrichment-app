@@ -292,16 +292,20 @@ private fun createListener(
                     }
                 }
                 SensorType.Proximity -> {
-                    device.setProximityMonitoringEnabled(true)
-                    NSNotificationCenter.defaultCenter.addObserverForName(
-                        name = UIDeviceProximityStateDidChangeNotification,
-                        `object` = null,
-                        queue = queue
-                    ) { _ ->
-                        val near = if (UIDevice.currentDevice.proximityState) 1f else 0f
-                        onSensorChanged(
-                            SensorEvent(values = listOf(near).toFloatArray())
-                        )
+                    CoroutineScope(Job()).launch {
+                        withContext(Dispatchers.Main) {
+                            device.setProximityMonitoringEnabled(true)
+                            NSNotificationCenter.defaultCenter.addObserverForName(
+                                name = UIDeviceProximityStateDidChangeNotification,
+                                `object` = null,
+                                queue = queue
+                            ) { _ ->
+                                val near = if (UIDevice.currentDevice.proximityState) 1f else 0f
+                                onSensorChanged(
+                                    SensorEvent(values = listOf(near).toFloatArray())
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -375,8 +379,12 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? = withContext(Dis
     if (stepAvailable) {
         available += createListener(SensorType.StepCounter)
     }
-    if (device.isProximityMonitoringEnabled()) {
-        available += createListener(SensorType.Proximity)
+    withContext(Dispatchers.Default) {
+        device.setProximityMonitoringEnabled(true)
+
+        if (device.isProximityMonitoringEnabled()) {
+            available += createListener(SensorType.Proximity)
+        }
     }
     if (getForegroundApp() != null) {
         available += createListener(SensorType.ForegroundApp)
