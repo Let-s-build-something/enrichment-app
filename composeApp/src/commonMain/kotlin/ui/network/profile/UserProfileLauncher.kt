@@ -57,6 +57,7 @@ import org.koin.core.context.loadKoinModules
 
 /** Launcher for quick actions relevant to a single user other than currently signed in */
 @OptIn(ExperimentalMaterial3Api::class)
+@Deprecated("Use UserDetailDialog.kt instead")
 @Composable
 fun UserProfileLauncher(
     modifier: Modifier = Modifier,

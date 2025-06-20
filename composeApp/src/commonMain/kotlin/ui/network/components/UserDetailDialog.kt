@@ -66,6 +66,7 @@ private val userDetailModule = module {
 
 @Composable
 fun UserDetailDialog(
+    userId: String? = null,
     member: ConversationRoomMember? = null,
     networkItem: NetworkItemIO? = null,
     onDismissRequest: () -> Unit
@@ -73,7 +74,7 @@ fun UserDetailDialog(
     loadKoinModules(userDetailModule)
     val model: UserDetailModel = koinViewModel(
         parameters = {
-            parametersOf(member?.userId, networkItem)
+            parametersOf(userId ?: member?.userId, networkItem)
         }
     )
 

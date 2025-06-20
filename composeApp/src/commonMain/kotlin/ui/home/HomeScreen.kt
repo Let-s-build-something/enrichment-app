@@ -96,8 +96,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
+import ui.network.components.UserDetailDialog
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
-import ui.network.profile.UserProfileLauncher
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -281,7 +281,7 @@ private fun ListContent(
             && !isLoadingInitialPage
 
     val selectedUser = remember {
-        mutableStateOf<NetworkItemIO?>(null)
+        mutableStateOf<String?>(null)
     }
     val showAddNewModal = rememberSaveable {
         mutableStateOf(false)
@@ -294,8 +294,8 @@ private fun ListContent(
     }
 
     if(selectedUser.value != null) {
-        UserProfileLauncher(
-            user = selectedUser.value,
+        UserDetailDialog(
+            userId = selectedUser.value,
             onDismissRequest = {
                 selectedUser.value = null
             }
@@ -388,15 +388,10 @@ private fun ListContent(
                 onAvatarClick = {
                     if(room?.summary?.isDirect == true) {
                         coroutineScope.launch(Dispatchers.Default) {
-                            selectedUser.value = networkItems.value?.find {
-                                it.userId == room.summary.heroes?.firstOrNull()?.full
-                            }
+                            selectedUser.value = room.summary.heroes?.firstOrNull()?.full ?: room.summary.members?.firstOrNull()?.id
                         }
                     }else {
-                        NavigationNode.ConversationInformation(
-                            conversationId = room?.id,
-                            name = room?.summary?.roomName
-                        )
+                        // TODO room settings window dialog
                     }
                 }
             ) {
