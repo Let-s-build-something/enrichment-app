@@ -96,7 +96,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
-import ui.network.components.UserDetailDialog
+import ui.network.components.user_detail.UserDetailDialog
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

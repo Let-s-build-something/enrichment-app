@@ -32,11 +32,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
 import ui.conversation.components.audio.MediaHttpProgress
@@ -57,10 +57,12 @@ internal val conversationModule = module {
 
     single { ConversationDataManager() }
     factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
-    factory {
+
+    factory { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
         ConversationModel(
-            get<String>(),
-            get<Boolean>(),
+            MutableStateFlow(conversationId ?: ""),
+            userId,
+            enableMessages,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -70,12 +72,26 @@ internal val conversationModule = module {
             get<GravityUseCase>(),
         )
     }
-    viewModelOf(::ConversationModel)
+    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
+        ConversationModel(
+            MutableStateFlow(conversationId ?: ""),
+            userId,
+            enableMessages,
+            get<ConversationRepository>(),
+            get<ConversationDataManager>(),
+            get<EmojiUseCase>(),
+            get<GifUseCase>(),
+            get<FileAccess>(),
+            get<PacingUseCase>(),
+            get<GravityUseCase>(),
+        )
+    }
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
 open class ConversationModel(
-    private val conversationId: String,
+    private var conversationId: MutableStateFlow<String>,
+    private val userId: String? = null,
     enableMessages: Boolean = true,
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
@@ -89,55 +105,24 @@ open class ConversationModel(
 ): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
-    conversationId = conversationId
+    conversationId = conversationId.value
 ), RefreshableViewModel {
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
-
-
-    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
-        if((conversationId.isNotBlank() && dataManager.conversations.value.second[conversationId] == null)
-            || isSpecial
-        ) {
-            withContext(Dispatchers.IO) {
-                repository.getConversationDetail(
-                    conversationId = conversationId,
-                    owner = matrixUserId
-                )?.let { data ->
-                    dataManager.updateConversations { it.apply { this[conversationId] = data } }
-                    dataManager.conversations.value.second[conversationId] = data
-                }
-            }
-        }
-        withContext(Dispatchers.IO) {
-            savedMessage.value = settings.getStringOrNull(
-                "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
-            )?.take(messageMaxLength) ?: ""
-
-            if(dataManager.repositoryConfig.value == null || isSpecial) {
-                currentUser.value?.matrixHomeserver?.let { homeserver ->
-                    dataManager.repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
-                }
-            }
-        }
-
-        if(isSpecial) {
-            repository.invalidateLocalSource()
-        }
-    }
 
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
     var persistentPositionData: PersistentListData? = null
 
-
     /** Detailed information about this conversation */
-    val conversation = dataManager.conversations.map { it.second[conversationId] }
+    val conversation = dataManager.conversations.combine(conversationId) { conversation, id ->
+        conversation.second[id]
+    }
 
     /** Current typing indicators, indicating typing statuses of other users */
-    val typingIndicators = sharedDataManager.typingIndicators.map { indicators ->
+    val typingIndicators = sharedDataManager.typingIndicators.combine(conversationId) { indicators, conversationId ->
         withContext(Dispatchers.Default) {
             indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
                 if(userId.full != matrixUserId) {
@@ -166,31 +151,33 @@ open class ConversationModel(
 
     /** flow of current messages */
     val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if(enableMessages) {
-        repository.getMessagesListFlow(
-            config = PagingConfig(
-                pageSize = 30,
-                enablePlaceholders = true,
-                initialLoadSize = 30
-            ),
-            homeserver = { homeserver },
-            conversationId = conversationId
-        ).flow
-            .cachedIn(viewModelScope)
-            .combine(conversation) { messages, detail ->
-                messages.map { message ->
-                    message.copy(
-                        user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
-                        anchorMessage = message.anchorMessage?.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
-                        ),
-                        reactions = message.reactions?.map { reaction ->
-                            reaction.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
-                            )
-                        }?.toList().orEmpty()
-                    )
+        conversationId.transform { conversationId ->
+            repository.getMessagesListFlow(
+                config = PagingConfig(
+                    pageSize = 30,
+                    enablePlaceholders = true,
+                    initialLoadSize = 30
+                ),
+                homeserver = { homeserver },
+                conversationId = conversationId
+            ).flow
+                .cachedIn(viewModelScope)
+                .combine(conversation) { messages, detail ->
+                    messages.map { message ->
+                        message.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
+                            anchorMessage = message.anchorMessage?.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
+                            ),
+                            reactions = message.reactions?.map { reaction ->
+                                reaction.copy(
+                                    user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                                )
+                            }?.toList().orEmpty()
+                        )
+                    }
                 }
-            }
+        }
     }else flow { PagingData.empty<ConversationMessageIO>() }
 
     /** Last saved message relevant to this conversation */
@@ -201,8 +188,51 @@ open class ConversationModel(
     private val messageMaxLength = 5000
 
     init {
+        // no conversationId, attempt to retrieve it from userId
+        if (userId != null && conversationId.value.isBlank()) {
+            viewModelScope.launch {
+                repository.getRoomIdByUser(userId)?.let { newConversationId ->
+                    conversationId.value = newConversationId
+                }
+            }
+        }
+
         viewModelScope.launch {
             onDataRequest(isSpecial = false, isPullRefresh = false)
+        }
+    }
+
+    // ==================== functions ===========================
+
+    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
+        if((conversationId.value.isNotBlank()
+                    && dataManager.conversations.value.second[conversationId.value] == null)
+            || isSpecial
+        ) {
+            withContext(Dispatchers.IO) {
+                repository.getConversationDetail(
+                    conversationId = conversationId.value,
+                    owner = matrixUserId
+                )?.let { data ->
+                    dataManager.updateConversations { it.apply { this[conversationId.value] = data } }
+                    dataManager.conversations.value.second[conversationId.value] = data
+                }
+            }
+        }
+        withContext(Dispatchers.IO) {
+            savedMessage.value = settings.getStringOrNull(
+                "${SettingsKeys.KEY_LAST_MESSAGE}_$conversationId"
+            )?.take(messageMaxLength) ?: ""
+
+            if(dataManager.repositoryConfig.value == null || isSpecial) {
+                currentUser.value?.matrixHomeserver?.let { homeserver ->
+                    dataManager.repositoryConfig.value = repository.getMediaConfig(homeserver = homeserver).success?.data
+                }
+            }
+        }
+
+        if(isSpecial) {
+            repository.invalidateLocalSource()
         }
     }
 
@@ -210,8 +240,6 @@ open class ConversationModel(
         gravityUseCase.kill()
         super.onCleared()
     }
-
-    // ==================== functions ===========================
 
     /** Experimental typing services */
     fun startTypingServices() {
@@ -233,7 +261,7 @@ open class ConversationModel(
     fun updateTypingStatus(content: CharSequence) {
         viewModelScope.launch {
             repository.updateTypingIndicator(
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 indicator = ConversationTypingIndicator(content = content.toString())
             )
         }
@@ -248,10 +276,10 @@ open class ConversationModel(
     fun initPacing(widthPx: Float) {
         if(pacingUseCase.isInitialized) return
         viewModelScope.launch {
-            gravityUseCase.init(conversationId)
+            gravityUseCase.init(conversationId.value)
             pacingUseCase.init(
                 maxWaves = (WAVES_PER_PIXEL * widthPx).toInt(),
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 savedMessage = savedMessage.value ?: ""
             )
             pacingUseCase.timingSensor.value.onTick(ms = TICK_MILLIS) {
@@ -270,10 +298,10 @@ open class ConversationModel(
             }else settings.remove(key)
 
             if(content != null) {
-                pacingUseCase.cache(conversationId)
+                pacingUseCase.cache(conversationId.value)
             }else {
-                pacingUseCase.clearCache(conversationId)
-                gravityUseCase.clearCache(conversationId)
+                pacingUseCase.clearCache(conversationId.value)
+                gravityUseCase.clearCache(conversationId.value)
             }
             savedMessage.value = content
         }
@@ -302,10 +330,15 @@ open class ConversationModel(
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
+        // no conversation room yet, let's create it
+        if (userId != null && conversationId.value.isBlank()) {
+            // TODO create new room
+        }
+
         CoroutineScope(Job()).launch {
             var progressId = ""
             sendMessage(
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 homeserver = homeserver,
                 mediaFiles = mediaFiles,
                 onProgressChange = { progress ->
@@ -492,7 +525,7 @@ open class ConversationModel(
         if(messageId == null) return
         viewModelScope.launch {
             repository.reactToMessage(
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 reaction = MessageReactionRequest(
                     content = content,
                     messageId = messageId
@@ -506,7 +539,7 @@ open class ConversationModel(
         viewModelScope.launch {
             sendMessage(
                 audioByteArray = byteArray,
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 homeserver = homeserver,
                 message = ConversationMessageIO()
             )

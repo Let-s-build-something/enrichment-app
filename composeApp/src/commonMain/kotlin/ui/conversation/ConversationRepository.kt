@@ -128,6 +128,10 @@ open class ConversationRepository(
         }else null
     }
 
+    suspend fun getRoomIdByUser(userId: String): String? {
+        // TODO local + remote?
+    }
+
     /** Returns a flow of conversation messages */
     fun getMessagesListFlow(
         homeserver: () -> String,
@@ -139,7 +143,7 @@ open class ConversationRepository(
             pagingSourceFactory = {
                 ConversationRoomSource(
                     getMessages = { page ->
-                        if(conversationId == null) return@ConversationRoomSource GetMessagesResponse(
+                        if(conversationId.isNullOrBlank()) return@ConversationRoomSource GetMessagesResponse(
                             data = listOf(), hasNext = false
                         )
 

@@ -77,13 +77,14 @@ private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
 @Composable
 fun ConversationScreen(
     conversationId: String? = null,
+    userId: String? = null,
     name: String? = null
 ) {
     loadKoinModules(conversationModule)
     val model: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
-            parametersOf(conversationId ?: "", true)
+            parametersOf(conversationId, userId, true)
         }
     )
     val navController = LocalNavController.current

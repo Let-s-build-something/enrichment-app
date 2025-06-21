@@ -1,5 +1,8 @@
-package ui.network.components
+package ui.network.components.user_detail
 
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,59 +13,56 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.IosShare
+import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.viewModelScope
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_share
+import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.user_profile_add_to_circle
+import augmy.composeapp.generated.resources.user_profile_interact
 import augmy.composeapp.generated.resources.user_profile_last_active
+import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.components.BrandHeaderButton
+import augmy.interactive.shared.ui.components.ComponentHeaderButton
+import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.utils.DateUtils.formatAsRelative
-import base.utils.tagToColor
+import base.navigation.NavigationNode
 import components.UserProfileImage
 import data.NetworkProximityCategory
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.user.NetworkItemIO
-import data.shared.SharedModel
-import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomMemberDao
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.folivo.trixnity.core.model.events.m.Presence
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
-import org.koin.core.module.dsl.viewModel
 import org.koin.core.parameter.parametersOf
-import org.koin.dsl.module
-
-private val userDetailModule = module {
-    factory { UserDetailRepository(get(), get()) }
-    factory { (userId: String?, itemIO: NetworkItemIO?) ->
-        UserDetailModel(userId, itemIO, get())
-    }
-    viewModel { (userId: String?, itemIO: NetworkItemIO?) ->
-        UserDetailModel(userId, itemIO, get())
-    }
-}
+import ui.account.shareProfile
+import ui.network.add_new.NetworkAddNewModel
+import ui.network.add_new.networkAddNewModule
+import ui.network.components.ProximityPicker
 
 @Composable
 fun UserDetailDialog(
@@ -77,11 +77,16 @@ fun UserDetailDialog(
             parametersOf(userId ?: member?.userId, networkItem)
         }
     )
+    val coroutineScope = rememberCoroutineScope()
+    val clipboard = LocalClipboard.current
+    val navController = LocalNavController.current
+    val snackbarHostState = LocalSnackbarHost.current
 
     val user = model.user.collectAsState()
     val socialCircleColors = model.socialCircleColors.collectAsState(initial = null)
 
     AlertDialog(
+        intrinsicContent = false,
         additionalContent = {
             user.value?.proximity?.let { proximity ->
                 Row(
@@ -138,7 +143,7 @@ fun UserDetailDialog(
                     tag = user.value?.tag,
                     animate = user.value?.presence?.presence == Presence.ONLINE
                 )
-                Column(modifier = Modifier.fillMaxWidth(.8f)) {
+                Column {
                     Text(
                         modifier = Modifier
                             .padding(top = 2.dp)
@@ -160,6 +165,19 @@ fun UserDetailDialog(
                         )
                     )
                 }
+                MinimalisticComponentIcon(
+                    modifier = Modifier.padding(start = 4.dp),
+                    imageVector = Icons.Outlined.IosShare,
+                    contentDescription = stringResource(Res.string.accessibility_share),
+                    onTap = {
+                        shareProfile(
+                            coroutineScope = coroutineScope,
+                            publicId = user.value?.userId,
+                            clipboard = clipboard,
+                            snackbarHostState = snackbarHostState
+                        )
+                    }
+                )
             }
             user.value?.presence?.let { presence ->
                 Row(
@@ -193,53 +211,80 @@ fun UserDetailDialog(
                     )
                 }
             }
+
+            user.value?.let {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)
+                ) {
+                    AddToCircleAction(user = it)
+                    ComponentHeaderButton(
+                        endImageVector = Icons.Outlined.Close,
+                        text = stringResource(Res.string.user_profile_interact),
+                        onClick = {
+                            navController?.navigate(
+                                NavigationNode.Conversation(
+                                    userId = it.userId,
+                                    name = it.displayName ?: it.userId
+                                )
+                            )
+                        }
+                    )
+                }
+            }
         },
         onDismissRequest = onDismissRequest
     )
 }
 
-class UserDetailModel(
-    userId: String?,
-    networkItem: NetworkItemIO?,
-    private val repository: UserDetailRepository
-): SharedModel() {
-    private val _user = MutableStateFlow<NetworkItemIO?>(null)
-    val user = _user.asStateFlow()
-
-    /** Customized social circle colors */
-    val socialCircleColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
-        withContext(Dispatchers.Default) {
-            settings?.networkColors?.mapIndexedNotNull { index, s ->
-                tagToColor(s)?.let { color ->
-                    NetworkProximityCategory.entries[index] to color
-                }
-            }.orEmpty().toMap()
-        }
-    }
-
-    init {
-        if (userId != null) getUser(userId) else if (networkItem != null) {
-            _user.value = networkItem
-        }
-    }
-
-    private fun getUser(userId: String) {
-        viewModelScope.launch {
-            _user.value = repository.getUser(userId)
-        }
-    }
-}
-
-class UserDetailRepository(
-    private val roomMemberDao: RoomMemberDao,
-    private val presenceEventDao: PresenceEventDao
+@Composable
+private fun AddToCircleAction(
+    modifier: Modifier = Modifier,
+    user: NetworkItemIO
 ) {
+    val selectedCategory = remember {
+        mutableStateOf(NetworkProximityCategory.Public)
+    }
+    val showProximityChoice = remember {
+        mutableStateOf(false)
+    }
 
-    suspend fun getUser(
-        userId: String
-    ): NetworkItemIO? = withContext(Dispatchers.IO) {
-        roomMemberDao.get(userId = userId)?.toNetworkItem()?.copy(
-            presence = presenceEventDao.get(userId)?.content
+    Column(
+        modifier = modifier.wrapContentHeight(),
+        horizontalAlignment = Alignment.End
+    ) {
+        ComponentHeaderButton(
+            endImageVector = if (showProximityChoice.value) Icons.Outlined.Close else Icons.Outlined.TrackChanges,
+            text = stringResource(Res.string.user_profile_add_to_circle),
+            onClick = {
+                showProximityChoice.value = !showProximityChoice.value
+            }
         )
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showProximityChoice.value,
+            enter = expandVertically() + fadeIn()
+        ) {
+            loadKoinModules(networkAddNewModule)
+            val model = koinViewModel<NetworkAddNewModel>()
+
+            ProximityPicker(
+                model = model,
+                selectedCategory = selectedCategory,
+                newItem = user
+            )
+        }
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showProximityChoice.value,
+            enter = expandHorizontally() + fadeIn()
+        ) {
+            BrandHeaderButton(
+                modifier = Modifier.padding(top = 4.dp),
+                text = stringResource(Res.string.button_confirm),
+                onClick = {
+                    showProximityChoice.value = false
+                }
+            )
+        }
     }
 }

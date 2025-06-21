@@ -116,7 +116,7 @@ import org.koin.core.parameter.parametersOf
 import ui.conversation.settings.ConversationSettingsModel.Companion.MAX_MEMBERS_COUNT
 import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
-import ui.network.components.UserDetailDialog
+import ui.network.components.user_detail.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
 
 @Composable

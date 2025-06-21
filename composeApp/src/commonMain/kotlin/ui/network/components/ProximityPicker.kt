@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +29,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.network_inclusion_proximity_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.AsyncSvgImage
+import components.UserProfileImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
 import org.jetbrains.compose.resources.stringResource
@@ -38,15 +39,14 @@ import ui.network.add_new.NetworkAddNewModel
 fun ProximityPicker(
     modifier: Modifier = Modifier,
     newItem: NetworkItemIO,
-    viewModel: NetworkAddNewModel,
-    selectedCategory: NetworkProximityCategory?,
-    onSelectionChange: (NetworkProximityCategory) -> Unit
+    model: NetworkAddNewModel,
+    selectedCategory: MutableState<NetworkProximityCategory>
 ) {
-    val customColors = viewModel.customColors.collectAsState(initial = hashMapOf())
-    val recommendedUsers = viewModel.recommendedUsers.collectAsState(initial = hashMapOf())
+    val customColors = model.customColors.collectAsState(initial = hashMapOf())
+    val recommendedUsers = model.recommendedUsers.collectAsState(initial = hashMapOf())
 
     LaunchedEffect(Unit) {
-        viewModel.requestRecommendedUsers(newItem.publicId)
+        model.requestRecommendedUsers(newItem.publicId)
     }
 
     Column(modifier = modifier) {
@@ -67,11 +67,11 @@ fun ProximityPicker(
             val corner = LocalTheme.current.shapes.componentCornerRadius
             NetworkProximityCategory.entries.forEachIndexed { index, category ->
                 val weight = animateFloatAsState(
-                    targetValue = if(selectedCategory == category) 3f else 1f,
+                    targetValue = if(selectedCategory.value == category) 3f else 1f,
                     label = "weightChange"
                 )
                 val colorAlpha = animateFloatAsState(
-                    targetValue = if(selectedCategory == category) 1f else .7f,
+                    targetValue = if(selectedCategory.value == category) 1f else .7f,
                     label = "alphaChange"
                 )
 
@@ -81,7 +81,7 @@ fun ProximityPicker(
                             scaleInto = .95f,
                             hoverEnabled = false
                         ) {
-                            onSelectionChange(category)
+                            selectedCategory.value = category
                         }
                         .background(
                             color = (customColors.value[category] ?: category.color).copy(colorAlpha.value),
@@ -110,7 +110,7 @@ fun ProximityPicker(
                     recommendedUsers.value?.get(category).orEmpty()
                         .toMutableList()
                         .apply {
-                            if(selectedCategory == category) {
+                            if(selectedCategory.value == category) {
                                 add(
                                     index = this.size.div(2)
                                         .coerceAtMost(this.lastIndex)
@@ -127,14 +127,15 @@ fun ProximityPicker(
                                 horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                AsyncSvgImage(
+                                UserProfileImage(
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .size(42.dp),
-                                    model = user.avatar,
-                                    contentDescription = null
+                                    media = user.avatar,
+                                    name = user.displayName,
+                                    tag = user.tag
                                 )
-                                if(selectedCategory == category) {
+                                if(selectedCategory.value == category) {
                                     Text(
                                         modifier = Modifier.weight(1f),
                                         text = user.displayName ?: "",

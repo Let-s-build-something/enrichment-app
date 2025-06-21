@@ -78,11 +78,14 @@ sealed class NavigationNode {
         /** unique identifier of the conversation */
         val conversationId: String? = null,
 
+        /** identifier of the user with which the conversation can be started */
+        val userId: String? = null,
+
         /** Name of the conversation */
         val name: String? = null
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
-        override val deepLink: String = "messages?conversation=$conversationId&name=$name"
+        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId"
     }
 
     @Serializable
