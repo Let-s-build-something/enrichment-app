@@ -24,6 +24,8 @@ object SettingsKeys {
     /** Whether dialog when leaving should be displayed */
     const val KEY_SHOW_LEAVE_DIALOG = "show_leave_dialog"
 
+    const val KEY_REFEREE_USER_ID = "referee_user_id"
+
     /** Prefix key for last unsent message */
     const val KEY_LAST_MESSAGE = "last_message"
     const val KEY_LAST_MESSAGE_TIMINGS = "last_message_timings"
