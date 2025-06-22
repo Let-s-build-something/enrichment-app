@@ -3,6 +3,7 @@ package ui.conversation
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.MediaType
 import base.utils.getMediaType
 import base.utils.toSha256
@@ -147,7 +148,7 @@ open class ConversationRepository(
                         userId = userId,
                         roomId = conversationId,
                         sender = UserId(userId),
-                        timestamp = null,
+                        timestamp = DateUtils.now.toEpochMilliseconds(),
                         content = MemberEventContent(
                             isDirect = true,
                             membership = Membership.INVITE,

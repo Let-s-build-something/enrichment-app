@@ -50,6 +50,7 @@ import net.folivo.trixnity.core.model.UserId
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
+import utils.ReferralUtils
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -505,21 +506,24 @@ class AuthService {
             logger.error { "Couldn't initiate Matrix client: Missing user id, credentials: $credentials" }
         }
 
-        if(dataManager.matrixClient.value == null) {
-            val newClient = matrixClientFactory.initializeMatrixClient(
-                credentials = credentials,
-                deviceId = getDeviceId()
-            )
-            dataManager.matrixClient.value = newClient
+        (credentials.homeserver ?: dataManager.currentUser.value?.matrixHomeserver)?.let { homeserver ->
+            if(dataManager.matrixClient.value == null) {
+                val newClient = matrixClientFactory.initializeMatrixClient(
+                    credentials = credentials,
+                    deviceId = getDeviceId()
+                )
+                dataManager.matrixClient.value = newClient
 
-            logger.debug { "new Matrix client: $newClient" }
-            if (newClient != null) {
-                syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
-            }else {
-                delay(10_000)
-                initializeMatrixClient(auth = auth)
-            }
-        }else syncService.sync(homeserver = dataManager.currentUser.value?.matrixHomeserver ?: "")
+                logger.debug { "new Matrix client: $newClient" }
+                if (newClient != null) {
+                    syncService.sync(homeserver)
+                    ReferralUtils.findAndUseReferee(newClient, homeserver)
+                }else {
+                    delay(10_000)
+                    initializeMatrixClient(auth = auth)
+                }
+            }else syncService.sync(homeserver)
+        }
 
         observeAvatarChanges()
     }
