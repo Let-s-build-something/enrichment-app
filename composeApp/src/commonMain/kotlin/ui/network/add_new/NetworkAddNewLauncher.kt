@@ -32,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.account_username_error_format
 import augmy.composeapp.generated.resources.account_username_hint
+import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.error_general
-import augmy.composeapp.generated.resources.network_inclusion_action
 import augmy.composeapp.generated.resources.network_inclusion_description
 import augmy.composeapp.generated.resources.network_inclusion_error_blocked
 import augmy.composeapp.generated.resources.network_inclusion_error_duplicate
@@ -236,11 +236,8 @@ fun NetworkAddNewLauncher(
             enter = expandVertically() + fadeIn()
         ) {
             ProximityPicker(
-                viewModel = viewModel,
-                selectedCategory = selectedCategory.value,
-                onSelectionChange = {
-                    selectedCategory.value = it
-                },
+                model = viewModel,
+                selectedCategory = selectedCategory,
                 newItem = NetworkItemIO(
                     displayName = displayNameState.text.toString(),
                     avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
@@ -252,7 +249,7 @@ fun NetworkAddNewLauncher(
             modifier = Modifier.padding(top = 16.dp),
             isEnabled = isDisplayNameValid && isTagValid && errorMessage.value == null,
             isLoading = isLoading.value,
-            text = stringResource(Res.string.network_inclusion_action),
+            text = stringResource(Res.string.button_confirm),
             onClick = {
                 viewModel.includeNewUser(
                     displayName = displayNameState.text,

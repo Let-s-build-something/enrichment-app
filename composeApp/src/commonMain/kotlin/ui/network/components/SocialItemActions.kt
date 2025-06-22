@@ -79,7 +79,7 @@ fun SocialItemActions(
     val selectedCategory = remember {
         mutableStateOf(NetworkProximityCategory.entries.find {
             it.range.contains(newItem.proximity ?: -1f)
-        })
+        } ?: NetworkProximityCategory.Public)
     }
     val actionsState = rememberScrollState()
 
@@ -126,12 +126,9 @@ fun SocialItemActions(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ProximityPicker(
-                viewModel = koinViewModel(),
-                selectedCategory = selectedCategory.value,
-                newItem = newItem,
-                onSelectionChange = {
-                    selectedCategory.value = it
-                }
+                model = koinViewModel(),
+                selectedCategory = selectedCategory,
+                newItem = newItem
             )
             Row(
                 modifier = Modifier
@@ -150,7 +147,7 @@ fun SocialItemActions(
                     text = stringResource(Res.string.accessibility_save),
                     onClick = {
                         requestProximityChange(
-                            selectedCategory.value?.range?.start ?: newItem.proximity ?: 1f
+                            selectedCategory.value.range.start
                         )
                     },
                     activeColor = LocalTheme.current.colors.brandMain

@@ -113,6 +113,7 @@ fun NavigationHost(
             composable<NavigationNode.Conversation> {
                 ConversationScreen(
                     conversationId = it.arguments?.getString("conversationId"),
+                    userId = it.arguments?.getString("userId"),
                     name = it.arguments?.getString("name")
                 )
             }

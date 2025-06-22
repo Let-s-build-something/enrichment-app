@@ -129,7 +129,7 @@ fun ComponentHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    startIconVector: ImageVector? = null,
+    endImageVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
 ) {
@@ -139,7 +139,7 @@ fun ComponentHeaderButton(
         shape = shape,
         onClick = onClick,
         additionalContent = extraContent,
-        endImageVector = startIconVector,
+        endImageVector = endImageVector,
         contentColor = LocalTheme.current.colors.secondary,
         containerColor = LocalTheme.current.colors.backgroundLight
     )

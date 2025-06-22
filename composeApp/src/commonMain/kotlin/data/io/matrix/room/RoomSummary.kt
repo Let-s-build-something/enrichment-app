@@ -81,6 +81,11 @@ data class RoomSummary(
             else -> "Room"
         }
 
+    val roomAvatar: MediaIO?
+        get() = avatar ?: if (isDirect == true && !members.isNullOrEmpty()) {
+            members?.firstOrNull()?.content?.avatarUrl?.let { MediaIO(url = it) }
+        } else null
+
     override fun toString(): String {
         return "{" +
                 "heroes: $heroes, " +

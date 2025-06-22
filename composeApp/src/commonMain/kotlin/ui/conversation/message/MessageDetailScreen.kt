@@ -135,9 +135,6 @@ fun MessageDetailScreen(
             conversationId = conversationId,
             model = viewModel,
             messages = replies,
-            emptyLayout = {
-                // TODO
-            },
             lazyScope = {
                 item {
                     Column(

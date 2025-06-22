@@ -77,13 +77,14 @@ private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
 @Composable
 fun ConversationScreen(
     conversationId: String? = null,
+    userId: String? = null,
     name: String? = null
 ) {
     loadKoinModules(conversationModule)
     val model: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
-            parametersOf(conversationId ?: "", true)
+            parametersOf(conversationId, userId, true)
         }
     )
     val navController = LocalNavController.current
@@ -160,7 +161,7 @@ fun ConversationScreen(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .size(32.dp),
-                            media = conversationDetail.value?.summary?.avatar,
+                            media = conversationDetail.value?.summary?.roomAvatar,
                             tag = conversationDetail.value?.tag,
                             animate = true,
                             name = conversationDetail.value?.summary?.roomName
@@ -209,10 +210,7 @@ fun ConversationScreen(
                             messages = messages,
                             conversationId = conversationId,
                             shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-                            model = model,
-                            emptyLayout = {
-                                // TODO
-                            }
+                            model = model
                         )
                     }
                 }

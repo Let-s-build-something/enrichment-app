@@ -54,7 +54,7 @@ class NetworkAddNewRepository(
                     ).map { conversation ->
                         NetworkItemIO(
                             displayName = conversation.summary?.roomName,
-                            avatar = conversation.summary?.avatar
+                            avatar = conversation.summary?.roomAvatar
                         )
                     } + networkItemDao.getByProximity(
                         ownerPublicId = ownerPublicId,

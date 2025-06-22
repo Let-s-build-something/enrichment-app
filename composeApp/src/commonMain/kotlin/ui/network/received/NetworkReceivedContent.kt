@@ -192,12 +192,9 @@ private fun ProximityPickerModal(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ProximityPicker(
-            viewModel = koinViewModel(),
-            selectedCategory = selectedCategory.value,
-            newItem = networkItem,
-            onSelectionChange = {
-                selectedCategory.value = it
-            }
+            model = koinViewModel(),
+            selectedCategory = selectedCategory,
+            newItem = networkItem
         )
         Row(
             modifier = Modifier

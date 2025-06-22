@@ -61,7 +61,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.network.RefreshHandler
 import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
-import ui.network.profile.UserProfileLauncher
+import ui.network.components.user_detail.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -106,12 +106,9 @@ fun NetworkListContent(
     )
 
     if(selectedUser.value != null) {
-        UserProfileLauncher(
-            user = selectedUser.value,
-            onDismissRequest = {
-                selectedUser.value = null
-            }
-        )
+        UserDetailDialog(networkItem = selectedUser.value) {
+            selectedUser.value = null
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -247,8 +244,8 @@ private fun NetworkItem(
                 if(!it?.conversationId.isNullOrBlank()) {
                     navController?.navigate(
                         NavigationNode.Conversation(
-                            conversationId = it?.conversationId,
-                            name = it?.alias
+                            conversationId = it.conversationId,
+                            name = it.alias
                         )
                     )
                 }
@@ -278,7 +275,7 @@ private fun NetworkItem(
                     displayName = it.summary?.roomName,
                     proximity = it.proximity,
                     publicId = it.id,
-                    avatar = it.summary?.avatar
+                    avatar = it.summary?.roomAvatar
                 )
             },
             onDismissRequest = {

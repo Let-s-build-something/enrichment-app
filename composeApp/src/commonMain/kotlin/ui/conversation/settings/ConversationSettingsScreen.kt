@@ -116,7 +116,7 @@ import org.koin.core.parameter.parametersOf
 import ui.conversation.settings.ConversationSettingsModel.Companion.MAX_MEMBERS_COUNT
 import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
-import ui.network.components.UserDetailDialog
+import ui.network.components.user_detail.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
@@ -301,7 +301,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                     modifier = Modifier
                         .zIndex(5f)
                         .fillMaxWidth(.5f),
-                    media = detail.value?.summary?.avatar,
+                    media = detail.value?.summary?.roomAvatar,
                     tag = detail.value?.tag,
                     name = detail.value?.summary?.roomName
                 )

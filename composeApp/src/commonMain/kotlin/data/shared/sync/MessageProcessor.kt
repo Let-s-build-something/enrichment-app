@@ -220,10 +220,10 @@ abstract class MessageProcessor {
                     (content.displayName ?: event.senderOrNull?.localpart)?.let { displayName ->
                         ConversationMessageIO(
                             content = content.membership.asMessage(
-                                isSelf = content.displayName == sharedDataManager.currentUser.value?.matrixDisplayName,
+                                isSelf = event.senderOrNull?.localpart == sharedDataManager.currentUser.value?.matrixUserId,
                                 displayName = displayName
                             ),
-                            media = listOf(MediaIO(url = content.avatarUrl)),
+                            media = content.avatarUrl?.let { listOf(MediaIO(url = it, name = event.senderOrNull?.localpart)) },
                             authorPublicId = AUTHOR_SYSTEM
                         )
                     }

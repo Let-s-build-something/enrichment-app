@@ -215,7 +215,7 @@ fun <T>AddToLauncher(
                                         .fillMaxWidth(.7f)
                                         .align(Alignment.Center),
                                     text = stringResource(Res.string.invite_new_item_button),
-                                    startIconVector = Icons.Outlined.Add
+                                    endImageVector = Icons.Outlined.Add
                                 ) {
                                     newItem.value = true
                                 }

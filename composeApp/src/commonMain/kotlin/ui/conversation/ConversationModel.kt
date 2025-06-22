@@ -5,6 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.getUrlExtension
@@ -25,18 +26,28 @@ import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.core.module.dsl.viewModelOf
+import net.folivo.trixnity.clientserverapi.model.rooms.CreateRoom
+import net.folivo.trixnity.clientserverapi.model.rooms.DirectoryVisibility
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.InitialStateEvent
+import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
+import net.folivo.trixnity.core.model.events.m.room.GuestAccessEventContent
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent.HistoryVisibility
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
 import ui.conversation.components.audio.MediaHttpProgress
@@ -57,10 +68,12 @@ internal val conversationModule = module {
 
     single { ConversationDataManager() }
     factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
-    factory {
+
+    factory { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
         ConversationModel(
-            get<String>(),
-            get<Boolean>(),
+            MutableStateFlow(conversationId ?: ""),
+            userId,
+            enableMessages,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -70,12 +83,26 @@ internal val conversationModule = module {
             get<GravityUseCase>(),
         )
     }
-    viewModelOf(::ConversationModel)
+    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
+        ConversationModel(
+            MutableStateFlow(conversationId ?: ""),
+            userId,
+            enableMessages,
+            get<ConversationRepository>(),
+            get<ConversationDataManager>(),
+            get<EmojiUseCase>(),
+            get<GifUseCase>(),
+            get<FileAccess>(),
+            get<PacingUseCase>(),
+            get<GravityUseCase>(),
+        )
+    }
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
 open class ConversationModel(
-    private val conversationId: String,
+    protected var conversationId: MutableStateFlow<String>,
+    private val userId: String? = null,
     enableMessages: Boolean = true,
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
@@ -89,24 +116,129 @@ open class ConversationModel(
 ): KeyboardModel(
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,
-    conversationId = conversationId
+    conversationId = conversationId.value
 ), RefreshableViewModel {
+
+    enum class UiMode {
+        Idle,
+        IdleNoRoom,
+        InternalError,
+        CreatingRoom
+    }
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
+    private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
+    private val _uiMode = MutableStateFlow<UiMode>(UiMode.Idle)
+
+    // firstVisibleItemIndex to firstVisibleItemScrollOffset
+    var persistentPositionData: PersistentListData? = null
+
+    /** Detailed information about this conversation */
+    val conversation = dataManager.conversations.combine(conversationId) { conversation, id ->
+        conversation.second[id]
+    }
+
+    /** Current typing indicators, indicating typing statuses of other users */
+    val typingIndicators = sharedDataManager.typingIndicators.combine(conversationId) { indicators, conversationId ->
+        withContext(Dispatchers.Default) {
+            indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
+                if(userId.full != matrixUserId) {
+                    ConversationTypingIndicator().apply {
+                        user = dataManager.conversations.value.second[conversationId]?.summary?.members?.find { user ->
+                            user.userId == userId.full
+                        }
+                    }
+                }else null
+            }.let {
+                // hashcode to enforce recomposition
+                it.hashCode() to it?.takeLast(MAX_TYPING_INDICATORS).orEmpty()
+            }
+        }
+    }
+
+    /** flow of current messages */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if (enableMessages) {
+        conversationId.flatMapLatest { conversationId ->
+            repository.getMessagesListFlow(
+                config = PagingConfig(
+                    pageSize = 30,
+                    enablePlaceholders = true,
+                    initialLoadSize = 30
+                ),
+                homeserver = { homeserver },
+                conversationId = conversationId
+            ).flow
+                .cachedIn(viewModelScope)
+                .combine(conversation) { messages, detail ->
+                    messages.map { message ->
+                        message.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
+                            anchorMessage = message.anchorMessage?.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
+                            ),
+                            reactions = message.reactions?.map { reaction ->
+                                reaction.copy(
+                                    user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                                )
+                            }?.toList().orEmpty()
+                        )
+                    }
+                }
+        }
+    }else flow { PagingData.empty<ConversationMessageIO>() }
+
+    /** Current configuration of media repository */
+    val repositoryConfig = dataManager.repositoryConfig.asStateFlow()
+
+    val uiMode = _uiMode.asStateFlow()
+    /** Progress of the current upload */
+    val uploadProgress = _uploadProgress.asStateFlow()
+
+    /** currently locally cached byte arrays */
+    val temporaryFiles
+        get() = repository.cachedFiles
+
+    /** Last saved message relevant to this conversation */
+    val savedMessage = MutableStateFlow<String?>(null)
+    val timingSensor = pacingUseCase.timingSensor
+    val gravityValues = gravityUseCase.gravityValues.asStateFlow()
+
+    private val messageMaxLength = 5000
+
+    init {
+        viewModelScope.launch {
+            // no conversationId, attempt to retrieve it from userId
+            if (conversationId.value.isBlank()) {
+                if (userId != null) {
+                    repository.getRoomIdByUser(userId)?.let { newConversationId ->
+                        conversationId.value = newConversationId
+                    }.ifNull {
+                        _uiMode.value = UiMode.IdleNoRoom
+                    }
+                }else _uiMode.value = UiMode.InternalError
+            }
+
+            onDataRequest(isSpecial = false, isPullRefresh = false)
+        }
+    }
+
+    // ==================== functions ===========================
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
-        if((conversationId.isNotBlank() && dataManager.conversations.value.second[conversationId] == null)
+        if((conversationId.value.isNotBlank()
+                    && dataManager.conversations.value.second[conversationId.value] == null)
             || isSpecial
         ) {
             withContext(Dispatchers.IO) {
                 repository.getConversationDetail(
-                    conversationId = conversationId,
+                    conversationId = conversationId.value,
                     owner = matrixUserId
                 )?.let { data ->
-                    dataManager.updateConversations { it.apply { this[conversationId] = data } }
-                    dataManager.conversations.value.second[conversationId] = data
+                    dataManager.updateConversations { it.apply { this[conversationId.value] = data } }
+                    dataManager.conversations.value.second[conversationId.value] = data
                 }
             }
         }
@@ -127,91 +259,10 @@ open class ConversationModel(
         }
     }
 
-    private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
-
-    // firstVisibleItemIndex to firstVisibleItemScrollOffset
-    var persistentPositionData: PersistentListData? = null
-
-
-    /** Detailed information about this conversation */
-    val conversation = dataManager.conversations.map { it.second[conversationId] }
-
-    /** Current typing indicators, indicating typing statuses of other users */
-    val typingIndicators = sharedDataManager.typingIndicators.map { indicators ->
-        withContext(Dispatchers.Default) {
-            indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
-                if(userId.full != matrixUserId) {
-                    ConversationTypingIndicator().apply {
-                        user = dataManager.conversations.value.second[conversationId]?.summary?.members?.find { user ->
-                            user.userId == userId.full
-                        }
-                    }
-                }else null
-            }.let {
-                // hashcode to enforce recomposition
-                it.hashCode() to it?.takeLast(MAX_TYPING_INDICATORS).orEmpty()
-            }
-        }
-    }
-
-    /** Current configuration of media repository */
-    val repositoryConfig = dataManager.repositoryConfig.asStateFlow()
-
-    /** Progress of the current upload */
-    val uploadProgress = _uploadProgress.asStateFlow()
-
-    /** currently locally cached byte arrays */
-    val temporaryFiles
-        get() = repository.cachedFiles
-
-    /** flow of current messages */
-    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if(enableMessages) {
-        repository.getMessagesListFlow(
-            config = PagingConfig(
-                pageSize = 30,
-                enablePlaceholders = true,
-                initialLoadSize = 30
-            ),
-            homeserver = { homeserver },
-            conversationId = conversationId
-        ).flow
-            .cachedIn(viewModelScope)
-            .combine(conversation) { messages, detail ->
-                messages.map { message ->
-                    message.copy(
-                        user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
-                        anchorMessage = message.anchorMessage?.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
-                        ),
-                        reactions = message.reactions?.map { reaction ->
-                            reaction.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
-                            )
-                        }?.toList().orEmpty()
-                    )
-                }
-            }
-    }else flow { PagingData.empty<ConversationMessageIO>() }
-
-    /** Last saved message relevant to this conversation */
-    val savedMessage = MutableStateFlow<String?>(null)
-    val timingSensor = pacingUseCase.timingSensor
-    val gravityValues = gravityUseCase.gravityValues.asStateFlow()
-
-    private val messageMaxLength = 5000
-
-    init {
-        viewModelScope.launch {
-            onDataRequest(isSpecial = false, isPullRefresh = false)
-        }
-    }
-
     override fun onCleared() {
         gravityUseCase.kill()
         super.onCleared()
     }
-
-    // ==================== functions ===========================
 
     /** Experimental typing services */
     fun startTypingServices() {
@@ -233,7 +284,7 @@ open class ConversationModel(
     fun updateTypingStatus(content: CharSequence) {
         viewModelScope.launch {
             repository.updateTypingIndicator(
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 indicator = ConversationTypingIndicator(content = content.toString())
             )
         }
@@ -248,10 +299,10 @@ open class ConversationModel(
     fun initPacing(widthPx: Float) {
         if(pacingUseCase.isInitialized) return
         viewModelScope.launch {
-            gravityUseCase.init(conversationId)
+            gravityUseCase.init(conversationId.value)
             pacingUseCase.init(
                 maxWaves = (WAVES_PER_PIXEL * widthPx).toInt(),
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 savedMessage = savedMessage.value ?: ""
             )
             pacingUseCase.timingSensor.value.onTick(ms = TICK_MILLIS) {
@@ -270,10 +321,10 @@ open class ConversationModel(
             }else settings.remove(key)
 
             if(content != null) {
-                pacingUseCase.cache(conversationId)
+                pacingUseCase.cache(conversationId.value)
             }else {
-                pacingUseCase.clearCache(conversationId)
-                gravityUseCase.clearCache(conversationId)
+                pacingUseCase.clearCache(conversationId.value)
+                gravityUseCase.clearCache(conversationId.value)
             }
             savedMessage.value = content
         }
@@ -303,9 +354,35 @@ open class ConversationModel(
         showPreview: Boolean
     ) {
         CoroutineScope(Job()).launch {
+            // no conversation room yet, let's create it
+            if (userId != null && conversationId.value.isBlank()) {
+                _uiMode.value = UiMode.CreatingRoom
+
+                matrixClient?.api?.room?.createRoom(
+                    visibility = DirectoryVisibility.PRIVATE,
+                    initialState = listOf<InitialStateEvent<*>>(
+                        InitialStateEvent(GuestAccessEventContent(GuestAccessEventContent.GuestAccessType.FORBIDDEN), ""),
+                        InitialStateEvent(HistoryVisibilityEventContent(HistoryVisibility.INVITED), ""),
+                        InitialStateEvent(EncryptionEventContent(algorithm = EncryptionAlgorithm.Megolm), "")
+                    ),
+                    roomVersion = "11",
+                    isDirect = true,
+                    preset = CreateRoom.Request.Preset.TRUSTED_PRIVATE,
+                    invite = setOf(UserId(userId)),
+                )?.getOrNull()?.full?.let { newConversationId ->
+                    _uiMode.value = UiMode.Idle
+                    repository.insertMemberByUserId(
+                        conversationId = newConversationId,
+                        userId = userId,
+                        homeserver = homeserver
+                    )
+                    conversationId.value = newConversationId
+                }
+            }
+
             var progressId = ""
             sendMessage(
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 homeserver = homeserver,
                 mediaFiles = mediaFiles,
                 onProgressChange = { progress ->
@@ -492,7 +569,7 @@ open class ConversationModel(
         if(messageId == null) return
         viewModelScope.launch {
             repository.reactToMessage(
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 reaction = MessageReactionRequest(
                     content = content,
                     messageId = messageId
@@ -506,7 +583,7 @@ open class ConversationModel(
         viewModelScope.launch {
             sendMessage(
                 audioByteArray = byteArray,
-                conversationId = conversationId,
+                conversationId = conversationId.value,
                 homeserver = homeserver,
                 message = ConversationMessageIO()
             )
