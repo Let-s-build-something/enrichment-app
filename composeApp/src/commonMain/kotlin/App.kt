@@ -49,6 +49,7 @@ import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
+import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -281,12 +282,14 @@ private fun AppContent(
         )
     }
 
-    ModalHost(
-        deepLink = modalDeepLink.value,
-        onDismissRequest = {
-            modalDeepLink.value = null
-        }
-    )
+    CompositionLocalProvider(LocalNavController provides navController) {
+        ModalHost(
+            deepLink = modalDeepLink.value,
+            onDismissRequest = {
+                modalDeepLink.value = null
+            }
+        )
+    }
 
     Column {
         if(isPhone) {

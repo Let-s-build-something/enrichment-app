@@ -20,7 +20,7 @@ import kotlin.uuid.Uuid
 data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** username of the current user */
     @ColumnInfo("display_name")
-    @SerialName("display_name")
+    @SerialName("displayname")
     val displayName: String? = null,
 
     /** Public identification of this entity */

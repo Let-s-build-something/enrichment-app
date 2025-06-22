@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
 import base.utils.tagToColor
 import data.NetworkProximityCategory
+import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 internal val userDetailModule = module {
-    factory { UserDetailRepository(get(), get()) }
+    factory { UserDetailRepository(get(), get(), get()) }
     factory { (userId: String?, itemIO: NetworkItemIO?) ->
         UserDetailModel(userId, itemIO, get())
     }
@@ -31,8 +32,8 @@ class UserDetailModel(
     networkItem: NetworkItemIO?,
     private val repository: UserDetailRepository
 ): SharedModel() {
-    private val _user = MutableStateFlow<NetworkItemIO?>(null)
-    val user = _user.asStateFlow()
+    private val _response = MutableStateFlow<BaseResponse<NetworkItemIO>>(BaseResponse.Idle)
+    val response = _response.asStateFlow()
 
     /** Customized social circle colors */
     val socialCircleColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
@@ -46,14 +47,16 @@ class UserDetailModel(
     }
 
     init {
-        if (userId != null) getUser(userId) else if (networkItem != null) {
-            _user.value = networkItem
-        }
+        if (networkItem != null) _response.value = BaseResponse.Success(networkItem)
+        (userId ?: networkItem?.userId)?.let { getUser(it) }
     }
 
     private fun getUser(userId: String) {
+        _response.value = BaseResponse.Loading
         viewModelScope.launch {
-            _user.value = repository.getUser(userId)
+            repository.getUser(userId, homeserver).let {
+                _response.value = if (it != null) BaseResponse.Success(it) else BaseResponse.Error()
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package ui.network.components.user_detail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.TrackChanges
@@ -34,11 +37,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_share
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.user_profile_add_to_circle
 import augmy.composeapp.generated.resources.user_profile_interact
 import augmy.composeapp.generated.resources.user_profile_last_active
+import augmy.composeapp.generated.resources.user_profile_not_found
+import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.BrandHeaderButton
@@ -60,6 +66,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.account.shareProfile
+import ui.conversation.components.ErrorInfoBox
 import ui.network.add_new.NetworkAddNewModel
 import ui.network.add_new.networkAddNewModule
 import ui.network.components.ProximityPicker
@@ -82,48 +89,60 @@ fun UserDetailDialog(
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
-    val user = model.user.collectAsState()
+    val user = model.response.collectAsState()
     val socialCircleColors = model.socialCircleColors.collectAsState(initial = null)
 
     AlertDialog(
         intrinsicContent = false,
         additionalContent = {
-            user.value?.proximity?.let { proximity ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val selectedCategory = NetworkProximityCategory.entries.firstOrNull { proximity in it.range }
-                        ?: NetworkProximityCategory.Community
+            AnimatedVisibility(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                visible = user.value.error != null
+            ) {
+                ErrorInfoBox(
+                    modifier = Modifier.fillMaxWidth(.7f),
+                    message = stringResource(Res.string.user_profile_not_found)
+                )
+            }
 
-                    Text(
-                        text = stringResource(selectedCategory.res),
-                        style = LocalTheme.current.styles.regular
-                    )
-
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.Center
+            AnimatedVisibility(user.value.data?.proximity != null) {
+                user.value.data?.proximity?.let { proximity ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        var previousShares = 0.0
-                        val entries = NetworkProximityCategory.entries
+                        val selectedCategory = NetworkProximityCategory.entries.firstOrNull { proximity in it.range }
+                            ?: NetworkProximityCategory.Community
 
-                        entries.toList().forEach { category ->
-                            val zIndex = entries.size - entries.indexOf(category) + 1f
-                            val shares = (if (selectedCategory == category) .7f else .3f / entries.size) + previousShares
+                        Text(
+                            text = stringResource(selectedCategory.res),
+                            style = LocalTheme.current.styles.regular
+                        )
 
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        (socialCircleColors.value?.get(category) ?: category.color).copy(
-                                            alpha = if (selectedCategory == category) 1f else .5f
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            var previousShares = 0.0
+                            val entries = NetworkProximityCategory.entries
+
+                            entries.toList().forEach { category ->
+                                val zIndex = entries.size - entries.indexOf(category) + 1f
+                                val shares = (if (selectedCategory == category) .7f else .3f / entries.size) + previousShares
+
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            (socialCircleColors.value?.get(category) ?: category.color).copy(
+                                                alpha = if (selectedCategory == category) 1f else .5f
+                                            )
                                         )
-                                    )
-                                    .zIndex(zIndex)
-                                    .fillMaxWidth(shares.toFloat())
-                                    .height(8.dp)
-                            )
-                            previousShares = shares
+                                        .zIndex(zIndex)
+                                        .fillMaxWidth(shares.toFloat())
+                                        .height(8.dp)
+                                )
+                                previousShares = shares
+                            }
                         }
                     }
                 }
@@ -138,23 +157,27 @@ fun UserDetailDialog(
                         maxWidth = 125.dp,
                         maxHeight = 125.dp
                     ),
-                    media = user.value?.avatar,
-                    name = user.value?.displayName ?: user.value?.userId,
-                    tag = user.value?.tag,
-                    animate = user.value?.presence?.presence == Presence.ONLINE
+                    media = user.value.data?.avatar,
+                    name = user.value.data?.displayName ?: user.value.data?.userId,
+                    tag = user.value.data?.tag,
+                    animate = user.value.data?.presence?.presence == Presence.ONLINE
                 )
-                Column {
+                Crossfade(user.value.isLoading) { isLoading ->
                     Text(
                         modifier = Modifier
                             .padding(top = 2.dp)
-                            .align(Alignment.CenterHorizontally),
+                            .then(
+                                if (isLoading) {
+                                    Modifier.fillMaxWidth(.7f).brandShimmerEffect()
+                                }else Modifier
+                            ),
                         text = buildAnnotatedString {
-                            user.value?.displayName?.let {
+                            user.value.data?.displayName?.let {
                                 withStyle(SpanStyle(fontSize = LocalTheme.current.styles.subheading.fontSize)) {
                                     append(it)
                                 }
                             }
-                            user.value?.userId?.let { userId ->
+                            user.value.data?.userId?.let { userId ->
                                 withStyle(SpanStyle(color = LocalTheme.current.colors.disabled)) {
                                     append(" (${userId})")
                                 }
@@ -170,66 +193,73 @@ fun UserDetailDialog(
                     imageVector = Icons.Outlined.IosShare,
                     contentDescription = stringResource(Res.string.accessibility_share),
                     onTap = {
-                        shareProfile(
-                            coroutineScope = coroutineScope,
-                            publicId = user.value?.userId,
-                            clipboard = clipboard,
-                            snackbarHostState = snackbarHostState
-                        )
+                        if (user.value.data != null) {
+                            shareProfile(
+                                coroutineScope = coroutineScope,
+                                publicId = userId,
+                                clipboard = clipboard,
+                                snackbarHostState = snackbarHostState
+                            )
+                        }
                     }
                 )
             }
-            user.value?.presence?.let { presence ->
-                Row(
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .align(Alignment.Start),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    presence.statusMessage.takeIf { !it.isNullOrBlank() } ?: presence.lastActiveAgo?.let {
-                        stringResource(
-                            Res.string.user_profile_last_active,
-                            DateUtils.fromMillis(it).formatAsRelative()
-                        )
-                    }?.let { statusMessage ->
-                        Text(
-                            text = statusMessage,
-                            style = LocalTheme.current.styles.regular
-                        )
-                    }
-
-                    val color = when (presence.presence) {
-                        Presence.ONLINE -> SharedColors.GREEN_CORRECT
-                        Presence.OFFLINE -> SharedColors.RED_ERROR_50
-                        // Presence.UNAVAILABLE
-                        else -> LocalTheme.current.colors.disabled
-                    }
-                    Box(
+            AnimatedVisibility(user.value.data?.presence != null) {
+                user.value.data?.presence?.let { presence ->
+                    Row(
                         modifier = Modifier
-                            .size(20.dp)
-                            .background(color = color, shape = CircleShape)
-                    )
+                            .padding(top = 2.dp)
+                            .align(Alignment.Start),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presence.statusMessage.takeIf { !it.isNullOrBlank() } ?: presence.lastActiveAgo?.let {
+                            stringResource(
+                                Res.string.user_profile_last_active,
+                                DateUtils.fromMillis(it).formatAsRelative()
+                            )
+                        }?.let { statusMessage ->
+                            Text(
+                                text = statusMessage,
+                                style = LocalTheme.current.styles.regular
+                            )
+                        }
+
+                        val color = when (presence.presence) {
+                            Presence.ONLINE -> SharedColors.GREEN_CORRECT
+                            Presence.OFFLINE -> SharedColors.RED_ERROR_50
+                            // Presence.UNAVAILABLE
+                            else -> LocalTheme.current.colors.disabled
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(color = color, shape = CircleShape)
+                        )
+                    }
                 }
             }
 
-            user.value?.let {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)
-                ) {
-                    AddToCircleAction(user = it)
-                    ComponentHeaderButton(
-                        endImageVector = Icons.Outlined.Close,
-                        text = stringResource(Res.string.user_profile_interact),
-                        onClick = {
-                            navController?.navigate(
-                                NavigationNode.Conversation(
-                                    userId = it.userId,
-                                    name = it.displayName ?: it.userId
+            AnimatedVisibility(user.value.data != null) {
+                user.value.data?.let {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)
+                    ) {
+                        AddToCircleAction(user = it)
+                        ComponentHeaderButton(
+                            endImageVector = Icons.AutoMirrored.Outlined.Chat,
+                            text = stringResource(Res.string.user_profile_interact),
+                            onClick = {
+                                navController?.navigate(
+                                    NavigationNode.Conversation(
+                                        userId = it.userId,
+                                        name = it.displayName ?: it.userId
+                                    )
                                 )
-                            )
-                        }
-                    )
+                                onDismissRequest()
+                            }
+                        )
+                    }
                 }
             }
         },
@@ -253,13 +283,17 @@ private fun AddToCircleAction(
         modifier = modifier.wrapContentHeight(),
         horizontalAlignment = Alignment.End
     ) {
-        ComponentHeaderButton(
-            endImageVector = if (showProximityChoice.value) Icons.Outlined.Close else Icons.Outlined.TrackChanges,
-            text = stringResource(Res.string.user_profile_add_to_circle),
-            onClick = {
-                showProximityChoice.value = !showProximityChoice.value
-            }
-        )
+        Crossfade(showProximityChoice.value) { proximity ->
+            ComponentHeaderButton(
+                endImageVector = if (proximity) Icons.Outlined.TrackChanges else Icons.Outlined.Close,
+                text = stringResource(
+                    if (proximity) Res.string.accessibility_cancel else Res.string.user_profile_add_to_circle
+                ),
+                onClick = {
+                    showProximityChoice.value = !showProximityChoice.value
+                }
+            )
+        }
 
         androidx.compose.animation.AnimatedVisibility(
             visible = showProximityChoice.value,

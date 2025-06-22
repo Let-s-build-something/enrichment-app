@@ -77,6 +77,9 @@ interface ConversationRoomDao {
             "LIMIT 1")
     suspend fun get(id: String?): ConversationRoomIO?
 
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} ")
+    suspend fun getAll(): List<ConversationRoomIO>
+
     @Query("""
            UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
             SET prev_batch = :prevBatch

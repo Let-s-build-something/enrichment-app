@@ -6,6 +6,7 @@ import androidx.paging.cachedIn
 import androidx.paging.map
 import database.file.FileAccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
@@ -44,7 +45,7 @@ class PrototypeConversationModel(
     gravityUseCase: GravityUseCase,
     fileAccess: FileAccess
 ): ConversationModel(
-    conversationId = conversationId ?: "",
+    conversationId = MutableStateFlow(conversationId ?: ""),
     repository = repository,
     emojiUseCase = emojiUseCase,
     gifUseCase = gifUseCase,

@@ -29,13 +29,13 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 fun EmptyLayout(
     modifier: Modifier = Modifier,
     title: String? = null,
+    description: String? = null,
     animSpec : suspend () -> LottieCompositionSpec = {
         LottieCompositionSpec.DotLottie(
             Res.readBytes("files/empty.lottie")
         )
     },
     animReverseOnRepeat: Boolean = true,
-    description: String? = null,
     action: String? = null,
     onClick: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit = {}

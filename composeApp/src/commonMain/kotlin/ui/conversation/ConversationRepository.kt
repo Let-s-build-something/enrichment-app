@@ -12,12 +12,14 @@ import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
+import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
@@ -49,10 +51,13 @@ import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
 import net.folivo.trixnity.core.model.events.m.room.FileInfo
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
+import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
+import utils.SharedLogger
 
 /** Class for calling APIs and remote work in general */
 open class ConversationRepository(
@@ -128,8 +133,53 @@ open class ConversationRepository(
         }else null
     }
 
+    suspend fun insertMemberByUserId(
+        conversationId: String,
+        userId: String,
+        homeserver: String
+    ) {
+        return withContext(Dispatchers.IO) {
+            if (roomMemberDao.get(userId) == null) {
+                val remoteInfo = getRemoteUser(userId, homeserver)
+
+                roomMemberDao.insertReplace(
+                    ConversationRoomMember(
+                        userId = userId,
+                        roomId = conversationId,
+                        sender = UserId(userId),
+                        timestamp = null,
+                        content = MemberEventContent(
+                            isDirect = true,
+                            membership = Membership.INVITE,
+                            avatarUrl = remoteInfo?.avatarUrl,
+                            displayName = remoteInfo?.displayName
+                        )
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun getRemoteUser(
+        userId: String,
+        homeserver: String
+    ) = httpClient.safeRequest<NetworkItemIO> {
+        httpClient.get(urlString = "https://${homeserver}/_matrix/client/v3/profile/${userId}")
+    }.success?.data
+
     suspend fun getRoomIdByUser(userId: String): String? {
-        // TODO local + remote?
+        return withContext(Dispatchers.IO) {
+            conversationRoomDao.getAll().let {
+                withContext(Dispatchers.Default) {
+                    it.find {
+                        it.summary?.isDirect == true && roomMemberDao.getOfRoom(it.id).firstOrNull()?.userId == userId
+                    }?.id ?: it.find {
+                        roomMemberDao.getOfRoom(it.id).size == 1 && roomMemberDao.getOfRoom(it.id).firstOrNull()?.userId == userId
+                    }?.id
+
+                }
+            }
+        }
     }
 
     /** Returns a flow of conversation messages */
@@ -143,9 +193,12 @@ open class ConversationRepository(
             pagingSourceFactory = {
                 ConversationRoomSource(
                     getMessages = { page ->
-                        if(conversationId.isNullOrBlank()) return@ConversationRoomSource GetMessagesResponse(
-                            data = listOf(), hasNext = false
-                        )
+                        if(conversationId.isNullOrBlank()) {
+                            SharedLogger.logger.debug { "conversation id is null, can't load messages" }
+                            return@ConversationRoomSource GetMessagesResponse(
+                                data = listOf(), hasNext = false
+                            )
+                        }
 
                         withContext(Dispatchers.IO) {
                             val prevBatch = conversationRoomDao.get(conversationId)?.prevBatch

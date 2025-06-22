@@ -5,6 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
+import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.getUrlExtension
@@ -25,17 +26,27 @@ import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import net.folivo.trixnity.clientserverapi.model.rooms.CreateRoom
+import net.folivo.trixnity.clientserverapi.model.rooms.DirectoryVisibility
+import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.InitialStateEvent
+import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
+import net.folivo.trixnity.core.model.events.m.room.GuestAccessEventContent
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
+import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent.HistoryVisibility
+import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import ui.conversation.components.KeyboardModel
@@ -90,7 +101,7 @@ internal val conversationModule = module {
 
 /** Communication between the UI, the control layers, and control and data layers */
 open class ConversationModel(
-    private var conversationId: MutableStateFlow<String>,
+    protected var conversationId: MutableStateFlow<String>,
     private val userId: String? = null,
     enableMessages: Boolean = true,
     private val repository: ConversationRepository,
@@ -108,10 +119,18 @@ open class ConversationModel(
     conversationId = conversationId.value
 ), RefreshableViewModel {
 
+    enum class UiMode {
+        Idle,
+        IdleNoRoom,
+        InternalError,
+        CreatingRoom
+    }
+
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
 
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
+    private val _uiMode = MutableStateFlow<UiMode>(UiMode.Idle)
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
     var persistentPositionData: PersistentListData? = null
@@ -139,19 +158,10 @@ open class ConversationModel(
         }
     }
 
-    /** Current configuration of media repository */
-    val repositoryConfig = dataManager.repositoryConfig.asStateFlow()
-
-    /** Progress of the current upload */
-    val uploadProgress = _uploadProgress.asStateFlow()
-
-    /** currently locally cached byte arrays */
-    val temporaryFiles
-        get() = repository.cachedFiles
-
     /** flow of current messages */
-    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if(enableMessages) {
-        conversationId.transform { conversationId ->
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if (enableMessages) {
+        conversationId.flatMapLatest { conversationId ->
             repository.getMessagesListFlow(
                 config = PagingConfig(
                     pageSize = 30,
@@ -180,6 +190,17 @@ open class ConversationModel(
         }
     }else flow { PagingData.empty<ConversationMessageIO>() }
 
+    /** Current configuration of media repository */
+    val repositoryConfig = dataManager.repositoryConfig.asStateFlow()
+
+    val uiMode = _uiMode.asStateFlow()
+    /** Progress of the current upload */
+    val uploadProgress = _uploadProgress.asStateFlow()
+
+    /** currently locally cached byte arrays */
+    val temporaryFiles
+        get() = repository.cachedFiles
+
     /** Last saved message relevant to this conversation */
     val savedMessage = MutableStateFlow<String?>(null)
     val timingSensor = pacingUseCase.timingSensor
@@ -188,16 +209,18 @@ open class ConversationModel(
     private val messageMaxLength = 5000
 
     init {
-        // no conversationId, attempt to retrieve it from userId
-        if (userId != null && conversationId.value.isBlank()) {
-            viewModelScope.launch {
-                repository.getRoomIdByUser(userId)?.let { newConversationId ->
-                    conversationId.value = newConversationId
-                }
-            }
-        }
-
         viewModelScope.launch {
+            // no conversationId, attempt to retrieve it from userId
+            if (conversationId.value.isBlank()) {
+                if (userId != null) {
+                    repository.getRoomIdByUser(userId)?.let { newConversationId ->
+                        conversationId.value = newConversationId
+                    }.ifNull {
+                        _uiMode.value = UiMode.IdleNoRoom
+                    }
+                }else _uiMode.value = UiMode.InternalError
+            }
+
             onDataRequest(isSpecial = false, isPullRefresh = false)
         }
     }
@@ -330,12 +353,33 @@ open class ConversationModel(
         gifAsset: GifAsset?,
         showPreview: Boolean
     ) {
-        // no conversation room yet, let's create it
-        if (userId != null && conversationId.value.isBlank()) {
-            // TODO create new room
-        }
-
         CoroutineScope(Job()).launch {
+            // no conversation room yet, let's create it
+            if (userId != null && conversationId.value.isBlank()) {
+                _uiMode.value = UiMode.CreatingRoom
+
+                matrixClient?.api?.room?.createRoom(
+                    visibility = DirectoryVisibility.PRIVATE,
+                    initialState = listOf<InitialStateEvent<*>>(
+                        InitialStateEvent(GuestAccessEventContent(GuestAccessEventContent.GuestAccessType.FORBIDDEN), ""),
+                        InitialStateEvent(HistoryVisibilityEventContent(HistoryVisibility.INVITED), ""),
+                        InitialStateEvent(EncryptionEventContent(algorithm = EncryptionAlgorithm.Megolm), "")
+                    ),
+                    roomVersion = "11",
+                    isDirect = true,
+                    preset = CreateRoom.Request.Preset.TRUSTED_PRIVATE,
+                    invite = setOf(UserId(userId)),
+                )?.getOrNull()?.full?.let { newConversationId ->
+                    _uiMode.value = UiMode.Idle
+                    repository.insertMemberByUserId(
+                        conversationId = newConversationId,
+                        userId = userId,
+                        homeserver = homeserver
+                    )
+                    conversationId.value = newConversationId
+                }
+            }
+
             var progressId = ""
             sendMessage(
                 conversationId = conversationId.value,

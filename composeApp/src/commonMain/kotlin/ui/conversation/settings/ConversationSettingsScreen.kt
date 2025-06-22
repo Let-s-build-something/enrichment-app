@@ -301,7 +301,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                     modifier = Modifier
                         .zIndex(5f)
                         .fillMaxWidth(.5f),
-                    media = detail.value?.summary?.avatar,
+                    media = detail.value?.summary?.roomAvatar,
                     tag = detail.value?.tag,
                     name = detail.value?.summary?.roomName
                 )

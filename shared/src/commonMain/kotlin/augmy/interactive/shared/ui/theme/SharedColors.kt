@@ -9,5 +9,6 @@ object SharedColors {
     val YELLOW_50: Color = Color(0x80FFC107)
     val ORANGE: Color = Color(0xFFFF5722)
     val RED_ERROR: Color = Color(0xFFFF6060)
+    val RED_ERROR_DARK: Color = Color(0xFFB00020)
     val RED_ERROR_50: Color = Color(0x80FF6060)
 }

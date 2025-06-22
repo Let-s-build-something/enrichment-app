@@ -161,7 +161,7 @@ fun ConversationScreen(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .size(32.dp),
-                            media = conversationDetail.value?.summary?.avatar,
+                            media = conversationDetail.value?.summary?.roomAvatar,
                             tag = conversationDetail.value?.tag,
                             animate = true,
                             name = conversationDetail.value?.summary?.roomName
@@ -210,10 +210,7 @@ fun ConversationScreen(
                             messages = messages,
                             conversationId = conversationId,
                             shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-                            model = model,
-                            emptyLayout = {
-                                // TODO
-                            }
+                            model = model
                         )
                     }
                 }

@@ -1,9 +1,7 @@
 package ui.conversation
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -43,7 +41,10 @@ import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.LazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.conversation_creating_room
 import augmy.composeapp.generated.resources.conversation_detail_you
+import augmy.composeapp.generated.resources.conversation_no_room_message
+import augmy.composeapp.generated.resources.conversation_no_room_title
 import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -51,18 +52,22 @@ import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
+import components.EmptyLayout
 import data.io.social.network.conversation.message.ConversationMessageIO
+import io.github.alexzhirkevich.compottie.DotLottie
+import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import ui.conversation.components.ConversationKeyboardMode
 import ui.conversation.components.SendMessagePanel
+import ui.conversation.components.SystemMessage
 import ui.conversation.components.TypingIndicator
 import ui.conversation.components.emoji.EmojiPreferencePicker
 import ui.conversation.components.message.MessageBubbleModel
 import ui.conversation.message.AUTHOR_SYSTEM
 import ui.conversation.message.ConversationMessageContent
 import ui.conversation.message.MessageType
-import ui.conversation.message.SystemMessage
 import ui.conversation.message.user_verification.UserVerificationMessage
 
 /**
@@ -81,7 +86,6 @@ fun ConversationComponent(
     conversationId: String?,
     thread: ConversationMessageIO? = null,
     lazyScope: LazyListScope.() -> Unit,
-    emptyLayout: @Composable () -> Unit,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -122,8 +126,6 @@ fun ConversationComponent(
     }
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
             || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
-    val isEmpty = messages.itemCount == 0 && messages.loadState.append.endOfPaginationReached
-            && !isLoadingInitialPage
     
 
     val scrollToMessage: (String?, Int?) -> Unit = { id, fallBackIndex ->
@@ -170,6 +172,7 @@ fun ConversationComponent(
         contentAlignment = Alignment.BottomCenter
     ) {
         val typingIndicators = model.typingIndicators.collectAsState(initial = 0 to listOf())
+        val uiMode = model.uiMode.collectAsState()
 
         if(typingIndicators.value.second.isNotEmpty()) {
             Box(
@@ -227,16 +230,31 @@ fun ConversationComponent(
                         .animateContentSize()
                 )
             }
-            item(key = "emptyLayout") {
-                AnimatedVisibility(
-                    enter = expandVertically() + fadeIn(),
-                    visible = isEmpty
-                ) {
-                    emptyLayout()
+            item(key = "uiModeIndication") {
+                Crossfade(
+                    modifier = Modifier.animateContentSize(),
+                    targetState = uiMode.value
+                ) { mode ->
+                    when(mode) {
+                        ConversationModel.UiMode.IdleNoRoom -> EmptyLayout(
+                            title = stringResource(Res.string.conversation_no_room_title),
+                            description = stringResource(Res.string.conversation_no_room_message)
+                        )
+                        ConversationModel.UiMode.CreatingRoom -> EmptyLayout(
+                            title = stringResource(Res.string.conversation_creating_room),
+                            animSpec = {
+                                LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
+                            }
+                        )
+                        ConversationModel.UiMode.InternalError -> {}
+                        else -> {}
+                    }
                 }
             }
             items(
-                count = if(messages.itemCount == 0 && isLoadingInitialPage) shimmerItemCount else messages.itemCount,
+                count = (if(messages.itemCount == 0 && isLoadingInitialPage) shimmerItemCount else messages.itemCount).takeIf {
+                    uiMode.value == ConversationModel.UiMode.Idle
+                } ?: 0,
                 key = { index -> messages.getOrNull(index)?.id ?: index }
             ) { index ->
                 val data = messages.getOrNull(index)

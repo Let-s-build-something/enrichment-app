@@ -273,7 +273,6 @@ private fun ListContent(
     val coroutineScope = rememberCoroutineScope()
 
     val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
-    val networkItems = model.networkItems.collectAsState(null)
     val customColors = model.customColors.collectAsState(initial = mapOf())
     val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
             || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
@@ -588,7 +587,7 @@ private fun ConversationRoomItem(
                                 },
                                 newItem = NetworkItemIO(
                                     displayName = room?.summary?.roomName,
-                                    avatar = room?.summary?.avatar,
+                                    avatar = room?.summary?.roomAvatar,
                                     publicId = room?.id ?: "-",
                                     proximity = room?.proximity
                                 )
