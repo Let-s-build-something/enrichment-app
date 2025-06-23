@@ -1,12 +1,18 @@
 package utils
 
 import augmy.interactive.shared.utils.DateUtils
+import data.io.app.SecureSettingsKeys
 import data.io.app.SettingsKeys.KEY_REFEREE_USER_ID
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.user.NetworkItemIO
+import database.dao.ConversationRoomDao
 import database.dao.matrix.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import koin.secureSettings
 import koin.settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -47,8 +53,27 @@ object ReferralUtils {
                     userId = userId,
                     homeserver = homeserver
                 )
+                insertConversation(
+                    ConversationRoomIO(
+                        id = conversationId,
+                        summary = RoomSummary(
+                            heroes = listOf(UserId(userId)),
+                            isDirect = true
+                        ),
+                        ownerPublicId = secureSettings.getStringOrNull(key = SecureSettingsKeys.KEY_USER_ID),
+                        historyVisibility = HistoryVisibility.INVITED,
+                        prevBatch = null,
+                        type = RoomType.Joined
+                    )
+                )
                 settings.remove(KEY_REFEREE_USER_ID)
             }
+        }
+    }
+
+    suspend fun insertConversation(conversation: ConversationRoomIO) {
+        return withContext(Dispatchers.IO) {
+            KoinPlatform.getKoin().get<ConversationRoomDao>().insert(conversation)
         }
     }
 

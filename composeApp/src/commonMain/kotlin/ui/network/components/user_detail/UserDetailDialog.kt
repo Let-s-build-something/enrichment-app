@@ -285,7 +285,7 @@ private fun AddToCircleAction(
     ) {
         Crossfade(showProximityChoice.value) { proximity ->
             ComponentHeaderButton(
-                endImageVector = if (proximity) Icons.Outlined.TrackChanges else Icons.Outlined.Close,
+                endImageVector = if (proximity) Icons.Outlined.Close else Icons.Outlined.TrackChanges,
                 text = stringResource(
                     if (proximity) Res.string.accessibility_cancel else Res.string.user_profile_add_to_circle
                 ),

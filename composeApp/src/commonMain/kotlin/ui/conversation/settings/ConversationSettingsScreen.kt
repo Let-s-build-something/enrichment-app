@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
@@ -78,6 +79,7 @@ import augmy.composeapp.generated.resources.message_user_verification_canceled
 import augmy.composeapp.generated.resources.message_user_verification_ready
 import augmy.composeapp.generated.resources.message_user_verification_start
 import augmy.composeapp.generated.resources.screen_conversation_settings
+import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
@@ -100,6 +102,7 @@ import components.UserProfileImage
 import components.network.NetworkItemRow
 import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
+import korlibs.math.toInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -114,6 +117,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.settings.ConversationSettingsModel.Companion.MAX_MEMBERS_COUNT
+import ui.conversation.settings.ConversationSettingsModel.Companion.SHIMMER_ITEM_COUNT
 import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
 import ui.network.components.user_detail.UserDetailDialog
@@ -125,21 +129,103 @@ fun ConversationSettingsScreen(conversationId: String?) {
         title = stringResource(Res.string.screen_conversation_settings),
         navIconType = NavIconType.CLOSE
     ) {
-        ConversationSettingsContent(conversationId = conversationId)
+        val showLeaveDialog = remember { mutableStateOf(false) }
+        loadKoinModules(conversationSettingsModule)
+        val model = koinViewModel<ConversationSettingsModel>(
+            key = conversationId,
+            parameters = {
+                parametersOf(conversationId ?: "")
+            }
+        )
+
+        if(showLeaveDialog.value) {
+            val reasonState = remember { TextFieldState() }
+
+            AlertDialog(
+                title = stringResource(Res.string.leave_app_dialog_title),
+                message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
+                confirmButtonState = ButtonState(
+                    text = stringResource(Res.string.button_yes),
+                    onClick = {
+                        model.leaveRoom(reason = reasonState.text)
+                    }
+                ),
+                additionalContent = {
+                    CustomTextField(
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .fillMaxWidth(),
+                        hint = stringResource(Res.string.conversation_action_leave_hint),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Done
+                        ),
+                        paddingValues = PaddingValues(start = 16.dp),
+                        prefixIcon = Icons.Outlined.QuestionAnswer,
+                        state = reasonState
+                    )
+                },
+                dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
+                icon = Icons.AutoMirrored.Outlined.Logout,
+                onDismissRequest = {
+                    showLeaveDialog.value = false
+                }
+            )
+        }
+
+        ConversationSettingsContent(
+            modifier = Modifier
+                .background(color = LocalTheme.current.colors.backgroundDark)
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            conversationId = conversationId,
+            model = model,
+            additionalContent = {
+                item {
+                    val ongoingChange = model.ongoingChange.collectAsState()
+                    val isLoading = ongoingChange.value is ConversationSettingsModel.ChangeType.Leave
+                            && ongoingChange.value?.state is BaseResponse.Loading
+
+                    OutlinedButton(
+                        modifier = Modifier.padding(top = 32.dp),
+                        activeColor = SharedColors.RED_ERROR_50,
+                        inactiveColor = SharedColors.RED_ERROR.copy(alpha = 0.25f),
+                        enabled = !isLoading,
+                        text = stringResource(Res.string.conversation_action_leave),
+                        content = {
+                            AnimatedVisibility(isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .padding(start = 4.dp)
+                                        .requiredSize(24.dp),
+                                    color = SharedColors.RED_ERROR_50,
+                                    trackColor = LocalTheme.current.colors.disabled
+                                )
+                            }
+                        }
+                    ) {
+                        showLeaveDialog.value = true
+                    }
+                }
+            }
+        )
     }
 }
 
 @OptIn(ExperimentalUuidApi::class)
 @Composable
-fun ConversationSettingsContent(conversationId: String?) {
-    loadKoinModules(conversationSettingsModule)
-    val model: ConversationSettingsModel = koinViewModel(
+fun ConversationSettingsContent(
+    modifier: Modifier = Modifier,
+    conversationId: String?,
+    model: ConversationSettingsModel  = koinViewModel(
         key = conversationId,
         parameters = {
             parametersOf(conversationId ?: "")
         }
-    )
-
+    ),
+    inviteEnabled: Boolean = true,
+    additionalContent: LazyListScope.() -> Unit = {}
+) {
     val navController = LocalNavController.current
     val snackbarHost = LocalSnackbarHost.current
     val listState = rememberLazyListState()
@@ -154,7 +240,6 @@ fun ConversationSettingsContent(conversationId: String?) {
             || (members.itemCount == 0 && !members.loadState.append.endOfPaginationReached)
 
     val showPictureChangeDialog = remember { mutableStateOf(false) }
-    val showLeaveDialog = remember { mutableStateOf(false) }
     val selectedMemberId = remember { mutableStateOf<String?>(null) }
     val selectedMemberDetail = remember { mutableStateOf<ConversationRoomMember?>(null) }
     val kickMemberUserId = remember { mutableStateOf<String?>(null) }
@@ -210,40 +295,7 @@ fun ConversationSettingsContent(conversationId: String?) {
         )
     }
 
-    if(showLeaveDialog.value) {
-        val reasonState = remember { TextFieldState() }
 
-        AlertDialog(
-            title = stringResource(Res.string.leave_app_dialog_title),
-            message = AnnotatedString(stringResource(Res.string.account_sign_out_message)),
-            confirmButtonState = ButtonState(
-                text = stringResource(Res.string.button_yes),
-                onClick = {
-                    model.leaveRoom(reason = reasonState.text)
-                }
-            ),
-            additionalContent = {
-                CustomTextField(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth(),
-                    hint = stringResource(Res.string.conversation_action_leave_hint),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done
-                    ),
-                    paddingValues = PaddingValues(start = 16.dp),
-                    prefixIcon = Icons.Outlined.QuestionAnswer,
-                    state = reasonState
-                )
-            },
-            dismissButtonState = ButtonState(text = stringResource(Res.string.button_dismiss)),
-            icon = Icons.AutoMirrored.Outlined.Logout,
-            onDismissRequest = {
-                showLeaveDialog.value = false
-            }
-        )
-    }
 
     navController?.collectResult<String?>(
         key = NavigationArguments.SEARCH_USER_ID,
@@ -286,12 +338,9 @@ fun ConversationSettingsContent(conversationId: String?) {
         )
     }
 
-    //TODO different layout for direct conversations
+    //TODO different layout for direct conversations #86c446h4v
     LazyColumn(
-        modifier = Modifier
-            .background(color = LocalTheme.current.colors.backgroundDark)
-            .fillMaxSize()
-            .padding(horizontal = 6.dp),
+        modifier = modifier,
         state = listState,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -305,22 +354,24 @@ fun ConversationSettingsContent(conversationId: String?) {
                     tag = detail.value?.tag,
                     name = detail.value?.summary?.roomName
                 )
-                MinimalisticFilledIcon(
-                    modifier = Modifier
-                        .padding(bottom = 8.dp, end = 8.dp)
-                        .align(Alignment.BottomEnd),
-                    onTap = {
-                        showPictureChangeDialog.value = true
-                    },
-                    imageVector = Icons.Outlined.Brush,
-                    contentDescription = stringResource(Res.string.accessibility_change_avatar)
-                )
+                AnimatedVisibility(detail.value != null) {
+                    MinimalisticFilledIcon(
+                        modifier = Modifier
+                            .padding(bottom = 8.dp, end = 8.dp)
+                            .align(Alignment.BottomEnd),
+                        onTap = {
+                            showPictureChangeDialog.value = true
+                        },
+                        imageVector = Icons.Outlined.Brush,
+                        contentDescription = stringResource(Res.string.accessibility_change_avatar)
+                    )
+                }
             }
         }
         item {
             RoomNameContent(
                 model = model,
-                roomName = detail.value?.summary?.roomName ?: ""
+                roomName = detail.value?.summary?.roomName
             )
         }
         if(detail.value?.summary?.isDirect != true) {
@@ -336,28 +387,30 @@ fun ConversationSettingsContent(conversationId: String?) {
                             color = LocalTheme.current.colors.disabled
                         )
                     )
-                    MinimalisticIcon(
-                        imageVector = Icons.Outlined.PersonAddAlt,
-                        contentDescription = stringResource(Res.string.accessibility_add_new_member),
-                        onTap = {
-                            scope.launch {
-                                navController?.navigate(
-                                    NavigationNode.SearchUser(
-                                        awaitingResult = true,
-                                        excludeUsers = withContext(Dispatchers.Default) {
-                                            members.itemSnapshotList.joinToString(",") { it?.userId ?: "" }
-                                        }
+                    if (inviteEnabled) {
+                        MinimalisticIcon(
+                            imageVector = Icons.Outlined.PersonAddAlt,
+                            contentDescription = stringResource(Res.string.accessibility_add_new_member),
+                            onTap = {
+                                scope.launch {
+                                    navController?.navigate(
+                                        NavigationNode.SearchUser(
+                                            awaitingResult = true,
+                                            excludeUsers = withContext(Dispatchers.Default) {
+                                                members.itemSnapshotList.joinToString(",") { it?.userId ?: "" }
+                                            }
+                                        )
                                     )
-                                )
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
         items(
             count = when {
-                members.itemCount == 0 && isLoadingInitialPage -> MAX_MEMBERS_COUNT
+                members.itemCount == 0 && isLoadingInitialPage -> SHIMMER_ITEM_COUNT
                 enableMembersPaging.value -> members.itemCount
                 else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
             },
@@ -481,31 +534,7 @@ fun ConversationSettingsContent(conversationId: String?) {
                 )
             }
         }
-        item {
-            val isLoading = ongoingChange.value is ConversationSettingsModel.ChangeType.Leave
-                    && ongoingChange.value?.state is BaseResponse.Loading
-
-            OutlinedButton(
-                modifier = Modifier.padding(top = 32.dp),
-                activeColor = SharedColors.RED_ERROR_50,
-                inactiveColor = SharedColors.RED_ERROR.copy(alpha = 0.25f),
-                enabled = !isLoading,
-                text = stringResource(Res.string.conversation_action_leave),
-                content = {
-                    AnimatedVisibility(isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .requiredSize(24.dp),
-                            color = SharedColors.RED_ERROR_50,
-                            trackColor = LocalTheme.current.colors.disabled
-                        )
-                    }
-                }
-            ) {
-                showLeaveDialog.value = true
-            }
-        }
+        additionalContent()
     }
 }
 
@@ -513,7 +542,7 @@ fun ConversationSettingsContent(conversationId: String?) {
 private fun RoomNameContent(
     modifier: Modifier = Modifier,
     model: ConversationSettingsModel,
-    roomName: String
+    roomName: String?
 ) {
     val ongoingChange = model.ongoingChange.collectAsState()
     val isLoading = ongoingChange.value?.state is BaseResponse.Loading
@@ -521,82 +550,95 @@ private fun RoomNameContent(
 
     Crossfade(
         modifier = modifier,
-        targetState = showNameChangeLauncher.value
-    ) { change ->
+        targetState = when {
+            roomName == null -> 2
+            else -> showNameChangeLauncher.value.toInt()
+        }
+    ) { stateIndex ->
         Row(
             modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            if(change) {
-                val focusRequester = remember { FocusRequester() }
-                val roomNameState = remember {
-                    TextFieldState(roomName)
+            when (stateIndex) {
+                0 -> {
+                    Text(
+                        modifier = Modifier.padding(end = 8.dp),
+                        text = roomName ?: "",
+                        style = LocalTheme.current.styles.subheading
+                    )
+                    MinimalisticComponentIcon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = stringResource(Res.string.accessibility_change_username),
+                        onTap = {
+                            showNameChangeLauncher.value = true
+                        }
+                    )
                 }
-                val isValid = remember {
-                    derivedStateOf {
-                        roomName != roomNameState.text && !isLoading
+                1 -> {
+                    val focusRequester = remember { FocusRequester() }
+                    val roomNameState = remember {
+                        TextFieldState(roomName ?: "")
+                    }
+                    val isValid = remember {
+                        derivedStateOf {
+                            roomName != roomNameState.text && !isLoading
+                        }
+                    }
+
+                    LaunchedEffect(roomNameState.text) {
+                        if(roomNameState.text.isBlank()) showNameChangeLauncher.value = false
+                    }
+
+                    LaunchedEffect(Unit) {
+                        delay(200)
+                        focusRequester.requestFocus()
+                    }
+
+                    CustomTextField(
+                        modifier = Modifier.weight(1f),
+                        focusRequester = focusRequester,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Done
+                        ),
+                        enabled = !isLoading,
+                        onKeyboardAction = {
+                            if(isValid.value) model.requestRoomNameChange(roomNameState.text)
+                        },
+                        paddingValues = PaddingValues(start = 16.dp),
+                        prefixIcon = Icons.AutoMirrored.Outlined.Label,
+                        state = roomNameState,
+                        isClearable = !isLoading
+                    )
+
+                    Crossfade(isLoading && ongoingChange.value is ConversationSettingsModel.ChangeType.Name) {
+                        if(isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.requiredSize(32.dp),
+                                color = LocalTheme.current.colors.brandMain,
+                                trackColor = LocalTheme.current.colors.tetrial
+                            )
+                        }else {
+                            MinimalisticComponentIcon(
+                                imageVector = Icons.Outlined.Check,
+                                tint = if(isValid.value) {
+                                    LocalTheme.current.colors.brandMain
+                                }else LocalTheme.current.colors.disabled,
+                                contentDescription = stringResource(Res.string.accessibility_change_username),
+                                onTap = {
+                                    if(isValid.value) model.requestRoomNameChange(roomNameState.text)
+                                }
+                            )
+                        }
                     }
                 }
-
-                LaunchedEffect(roomNameState.text) {
-                    if(roomNameState.text.isBlank()) showNameChangeLauncher.value = false
-                }
-
-                LaunchedEffect(Unit) {
-                    delay(200)
-                    focusRequester.requestFocus()
-                }
-
-                CustomTextField(
-                    modifier = Modifier.weight(1f),
-                    focusRequester = focusRequester,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done
-                    ),
-                    enabled = !isLoading,
-                    onKeyboardAction = {
-                        if(isValid.value) model.requestRoomNameChange(roomNameState.text)
-                    },
-                    paddingValues = PaddingValues(start = 16.dp),
-                    prefixIcon = Icons.AutoMirrored.Outlined.Label,
-                    state = roomNameState,
-                    isClearable = !isLoading
-                )
-
-                Crossfade(isLoading && ongoingChange.value is ConversationSettingsModel.ChangeType.Name) {
-                    if(isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.requiredSize(32.dp),
-                            color = LocalTheme.current.colors.brandMain,
-                            trackColor = LocalTheme.current.colors.tetrial
-                        )
-                    }else {
-                        MinimalisticComponentIcon(
-                            imageVector = Icons.Outlined.Check,
-                            tint = if(isValid.value) {
-                                LocalTheme.current.colors.brandMain
-                            }else LocalTheme.current.colors.disabled,
-                            contentDescription = stringResource(Res.string.accessibility_change_username),
-                            onTap = {
-                                if(isValid.value) model.requestRoomNameChange(roomNameState.text)
-                            }
-                        )
-                    }
-                }
-            }else {
-                Text(
-                    modifier = Modifier.padding(end = 8.dp),
-                    text = roomName,
+                2 -> Text(
+                    modifier = Modifier
+                        .fillMaxWidth(.4f)
+                        .brandShimmerEffect(),
+                    text = "",
                     style = LocalTheme.current.styles.subheading
-                )
-                MinimalisticComponentIcon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = stringResource(Res.string.accessibility_change_username),
-                    onTap = {
-                        showNameChangeLauncher.value = true
-                    }
                 )
             }
         }

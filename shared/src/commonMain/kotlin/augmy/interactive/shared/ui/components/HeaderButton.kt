@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
@@ -99,6 +100,7 @@ private fun HeaderButton(
             Text(
                 modifier = Modifier
                     .animateContentSize()
+                    .weight(1f)
                     .padding(end = 6.dp),
                 text = text,
                 style = textStyle.copy(color = animContentColor)
@@ -108,7 +110,7 @@ private fun HeaderButton(
             Icon(
                 modifier = Modifier
                     .padding(start = 4.dp)
-                    .requiredSize(
+                    .size(
                         with(density) { textStyle.fontSize.toDp() }
                     ),
                 imageVector = endImageVector ?: Icons.Outlined.Close,
