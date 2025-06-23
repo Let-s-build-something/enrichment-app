@@ -40,10 +40,6 @@ open class SharedModel: ViewModel() {
     /** persistent settings saved locally to a device */
     protected val settings: AppSettings by KoinPlatform.getKoin().inject()
 
-    init {
-        matrixClient
-    }
-
     //======================================== public variables ==========================================
 
     val matrixUserId: String?

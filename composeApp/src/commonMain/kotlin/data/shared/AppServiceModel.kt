@@ -1,9 +1,12 @@
 package data.shared
 
+import androidx.core.uri.UriUtils
 import androidx.lifecycle.viewModelScope
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
+import data.io.app.SettingsKeys.KEY_REFEREE_USER_ID
+import data.io.app.SettingsKeys.KEY_REFERRER_FINISHED
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.login.strippedUsernameRegex
 import utils.SharedLogger
 
 internal val appServiceModule = module {
@@ -125,11 +129,23 @@ class AppServiceModel(
     fun emitDeepLink(uri: String?) {
         if(uri == null) return
         viewModelScope.launch {
-            dataManager.newDeeplink.emit(
-                uri.replace("""^\/""".toRegex(), "")
-                    .replace("""\/$""".toRegex(), "")
-                    .replace(deeplinkHost, "")
-            )
+            val strippedUri = uri.replace("""^\/""".toRegex(), "")
+                .replace("""\/$""".toRegex(), "")
+                .replace(deeplinkHost, "")
+
+            val uriObject = UriUtils.parse(strippedUri)
+            if (uriObject.getPathSegments().firstOrNull() == "referral"
+                && settings.getBooleanOrNull(KEY_REFERRER_FINISHED) != true
+            ) {
+                uriObject.getQueryParameters("user").firstOrNull()?.let { query ->
+                    if (strippedUsernameRegex.matches(query)) {
+                        settings.putString(KEY_REFEREE_USER_ID, query)
+                        settings.putBoolean(KEY_REFERRER_FINISHED, true)
+                    }
+                }
+            }else {
+                dataManager.newDeeplink.emit(strippedUri)
+            }
         }
     }
 

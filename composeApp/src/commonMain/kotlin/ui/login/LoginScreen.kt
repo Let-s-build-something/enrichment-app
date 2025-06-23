@@ -973,7 +973,7 @@ private const val PASSWORD_MAX_LENGTH = 64
 private val emailAddressRegex = """[a-zA-Z0-9+._%-+]{1,256}@[a-zA-Z0-9][a-zA-Z0-9-]{0,64}(\.[a-zA-Z0-9][a-zA-Z0-9-]{0,25})+""".toRegex()
 
 /** Matrix stripped username */
-private val strippedUsernameRegex = """^[a-zA-Z0-9._=\-/]+${'$'}""".toRegex()
+val strippedUsernameRegex = """^[a-zA-Z0-9._=\-/]+${'$'}""".toRegex()
 
 private const val PASSWORD_MIN_LENGTH = 8
 

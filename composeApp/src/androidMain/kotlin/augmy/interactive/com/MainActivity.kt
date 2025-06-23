@@ -14,12 +14,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import augmy.interactive.shared.ui.base.BackPressDispatcher
@@ -27,10 +30,17 @@ import augmy.interactive.shared.ui.base.DeviceOrientation
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalOrientation
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import com.android.installreferrer.api.InstallReferrerClient
+import com.android.installreferrer.api.InstallReferrerStateListener
+import data.io.app.SettingsKeys.KEY_REFEREE_USER_ID
+import data.io.app.SettingsKeys.KEY_REFERRER_FINISHED
 import data.shared.AppServiceModel
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import koin.commonModule
+import koin.settings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -124,6 +134,11 @@ class MainActivity: ComponentActivity() {
             val configuration = LocalConfiguration.current
             val containerSize = LocalWindowInfo.current.containerSize
             val density = LocalDensity.current
+            val scope = rememberCoroutineScope()
+
+            LaunchedEffect(scope) {
+                installReferrer(scope)
+            }
 
             CompositionLocalProvider(
                 LocalBackPressDispatcher provides backPressDispatcher,
@@ -155,6 +170,36 @@ class MainActivity: ComponentActivity() {
         if(intent.data != null) {
             val viewModel: AppServiceModel = getKoin().get()
             viewModel.emitDeepLink(intent.data?.toString())
+        }
+    }
+
+    private fun installReferrer(scope: CoroutineScope) {
+        scope.launch {
+            if (settings.getBooleanOrNull(KEY_REFERRER_FINISHED) != true
+                && settings.getString(KEY_REFEREE_USER_ID, "").isBlank()
+            ) {
+                val referrerClient = InstallReferrerClient.newBuilder(this@MainActivity).build()
+                referrerClient.startConnection(object: InstallReferrerStateListener {
+                    override fun onInstallReferrerSetupFinished(responseCode: Int) {
+                        if (responseCode == InstallReferrerClient.InstallReferrerResponse.OK) {
+                            val response = referrerClient.installReferrer
+                            val referrerUrl = response.installReferrer
+                            val referralUserId = "https://dummy?$referrerUrl".toUri()
+                                .getQueryParameter("ref")
+
+                            if (!referralUserId.isNullOrEmpty()) {
+                                scope.launch {
+                                    settings.putBoolean(KEY_REFERRER_FINISHED, true)
+                                    settings.putString(KEY_REFEREE_USER_ID, referralUserId)
+                                }
+                            }
+                        }
+                        referrerClient.endConnection()
+                    }
+
+                    override fun onInstallReferrerServiceDisconnected() {}
+                })
+            }
         }
     }
 }

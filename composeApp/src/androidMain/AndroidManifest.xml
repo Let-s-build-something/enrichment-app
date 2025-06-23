@@ -59,8 +59,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="https"
-                    android:host="augmy.org" />
+                <data android:scheme="https" android:host="augmy.org" android:pathPrefix="/login"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data android:scheme="https" android:host="augmy.org" android:pathPrefix="/users"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data android:scheme="https" android:host="augmy.org" android:pathPrefix="/conversation"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
+
+                <data android:scheme="https" android:host="augmy.org" android:pathPrefix="/referral"
+                    tools:ignore="IntentFilterUniqueDataAttributes" />
             </intent-filter>
 
         </activity>
