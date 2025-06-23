@@ -88,7 +88,6 @@ import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -99,6 +98,7 @@ import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
 import ui.network.components.user_detail.UserDetailDialog
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -275,26 +275,28 @@ private fun ListContent(
 
     val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
     val customColors = model.customColors.collectAsState(initial = mapOf())
+    val selectedUserId = model.selectedUserId.collectAsState()
+
     val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
             || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
     val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
-    val selectedUserId = remember { mutableStateOf<String?>(null) }
     val selectedRoomId = remember { mutableStateOf<String?>(null) }
     val showAddNewModal = rememberSaveable { mutableStateOf(false) }
 
     if(showAddNewModal.value) {
-        NetworkAddNewLauncher(onDismissRequest = {
-            showAddNewModal.value = false
-        })
+        NetworkAddNewLauncher(
+            onDismissRequest = {
+                showAddNewModal.value = false
+            }
+        )
     }
-
     selectedUserId.value?.let { userId ->
         UserDetailDialog(
             userId = userId,
             onDismissRequest = {
-                selectedUserId.value = null
+                model.selectUser(null)
             }
         )
     }
@@ -391,10 +393,9 @@ private fun ListContent(
                     selectedItem.value = room?.id
                 },
                 onAvatarClick = {
+                    SharedLogger.logger.debug { "clicked room: $room" }
                     if(room?.summary?.isDirect == true) {
-                        coroutineScope.launch(Dispatchers.Default) {
-                            selectedUserId.value = room.summary.heroes?.firstOrNull()?.full ?: room.summary.members?.firstOrNull()?.id
-                        }
+                        model.selectUser(room)
                     }else {
                         selectedRoomId.value = room?.id
                     }

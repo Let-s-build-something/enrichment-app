@@ -16,9 +16,12 @@ import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import korlibs.io.util.getOrNullLoggingError
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -78,6 +81,16 @@ class ConversationSettingsModel(
 
     /** Detailed information about this conversation */
     val conversation = dataManager.conversations.map { it.second[conversationId] }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val directUser = conversation.flatMapLatest {
+        flow<ConversationRoomMember?> {
+            if (it?.summary?.isDirect == true) {
+                // TODO
+                null
+            }else null
+        }
+    }
     val ongoingChange = _ongoingChange.asStateFlow()
     val selectedInvitedUser = _selectedInvitedUser.asStateFlow()
     val verifications = _verifications.asStateFlow()

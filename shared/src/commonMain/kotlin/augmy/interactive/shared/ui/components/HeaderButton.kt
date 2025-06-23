@@ -100,7 +100,6 @@ private fun HeaderButton(
             Text(
                 modifier = Modifier
                     .animateContentSize()
-                    .weight(1f)
                     .padding(end = 6.dp),
                 text = text,
                 style = textStyle.copy(color = animContentColor)

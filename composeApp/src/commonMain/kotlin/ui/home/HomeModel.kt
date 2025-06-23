@@ -44,7 +44,7 @@ import utils.SharedLogger
 
 internal val homeModule = module {
     includes(networkItemModule)
-    factory { HomeRepository(get()) }
+    factory { HomeRepository(get(), get()) }
     factory { HomeModel(get<HomeRepository>(), get()) }
     viewModelOf(::HomeModel)
 }
@@ -75,6 +75,7 @@ class HomeModel(
     private val _uiMode = MutableStateFlow<UiMode>(
         if (authService.awaitingAutologin || matrixClient != null) UiMode.List else UiMode.NoClient
     )
+    private val _selectedUserId = MutableStateFlow<String?>(null)
     private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
@@ -84,6 +85,7 @@ class HomeModel(
     var persistentPositionData: PersistentListData? = null
 
     val uiMode = _uiMode.asStateFlow()
+    val selectedUserId = _selectedUserId.asStateFlow()
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -165,6 +167,21 @@ class HomeModel(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    fun selectUser(room: ConversationRoomIO?) {
+        viewModelScope.launch {
+            withContext(Dispatchers.Default) {
+                if (room == null || room.summary?.isDirect == false) {
+                    _selectedUserId.value = null
+                    return@withContext
+                }
+
+                _selectedUserId.value = room.summary?.heroes?.firstOrNull()?.full
+                    ?: room.summary?.members?.firstOrNull()?.userId
+                            ?: repository.getUsersByRoom(room.id).firstOrNull()?.userId
             }
         }
     }

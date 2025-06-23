@@ -50,7 +50,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -245,6 +244,40 @@ fun ConversationSettingsContent(
     val kickMemberUserId = remember { mutableStateOf<String?>(null) }
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
 
+
+    navController?.collectResult<String?>(
+        key = NavigationArguments.SEARCH_USER_ID,
+        defaultValue = null,
+        listener = { userId ->
+            if (userId != null) model.selectInvitedUser(userId)
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
+            if(it > 2) {
+                // TODO show members filter
+            }else {
+                // TODO if members filter was visible, stop the pagination
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        model.ongoingChange.collectLatest { change ->
+            if(change is ConversationSettingsModel.ChangeType.Leave && change.state is BaseResponse.Success) {
+                CoroutineScope(Job()).launch {
+                    snackbarHost?.showSnackbar(getString(Res.string.conversation_left_message))
+                }
+                navController?.currentBackStackEntry?.savedStateHandle?.set(
+                    NavigationArguments.CONVERSATION_LEFT,
+                    true
+                )
+            }
+        }
+    }
+
+
     kickMemberUserId.value?.let { memberId ->
         AlertDialog(
             title = stringResource(Res.string.conversation_kick_title),
@@ -295,40 +328,6 @@ fun ConversationSettingsContent(
         )
     }
 
-
-
-    navController?.collectResult<String?>(
-        key = NavigationArguments.SEARCH_USER_ID,
-        defaultValue = null,
-        listener = { userId ->
-            if (userId != null) model.selectInvitedUser(userId)
-        }
-    )
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
-            if(it > 2) {
-                // TODO show members filter
-            }else {
-                // TODO if members filter was visible, stop the pagination
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        model.ongoingChange.collectLatest { change ->
-            if(change is ConversationSettingsModel.ChangeType.Leave && change.state is BaseResponse.Success) {
-                CoroutineScope(Job()).launch {
-                    snackbarHost?.showSnackbar(getString(Res.string.conversation_left_message))
-                }
-                navController?.currentBackStackEntry?.savedStateHandle?.set(
-                    NavigationArguments.CONVERSATION_LEFT,
-                    true
-                )
-            }
-        }
-    }
-
     selectedMemberDetail.value?.let {
         UserDetailDialog(
             member = it,
@@ -347,18 +346,17 @@ fun ConversationSettingsContent(
         item {
             Box(modifier = Modifier.padding(top = 6.dp)) {
                 UserProfileImage(
-                    modifier = Modifier
-                        .zIndex(5f)
-                        .fillMaxWidth(.5f),
+                    modifier = Modifier.fillMaxWidth(.5f),
                     media = detail.value?.summary?.roomAvatar,
                     tag = detail.value?.tag,
                     name = detail.value?.summary?.roomName
                 )
-                AnimatedVisibility(detail.value != null) {
+                AnimatedVisibility(
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                    visible = detail.value != null
+                ) {
                     MinimalisticFilledIcon(
-                        modifier = Modifier
-                            .padding(bottom = 8.dp, end = 8.dp)
-                            .align(Alignment.BottomEnd),
+                        modifier = Modifier.padding(bottom = 8.dp, end = 8.dp),
                         onTap = {
                             showPictureChangeDialog.value = true
                         },
