@@ -25,6 +25,7 @@ object SettingsKeys {
     const val KEY_SHOW_LEAVE_DIALOG = "show_leave_dialog"
 
     const val KEY_REFEREE_USER_ID = "referee_user_id"
+    const val KEY_REFERRER_FINISHED = "referrer_finished"
 
     /** Prefix key for last unsent message */
     const val KEY_LAST_MESSAGE = "last_message"

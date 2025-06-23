@@ -6,6 +6,7 @@ import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_REFEREE_USER_ID
+import data.io.app.SettingsKeys.KEY_REFERRER_FINISHED
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -133,10 +134,13 @@ class AppServiceModel(
                 .replace(deeplinkHost, "")
 
             val uriObject = UriUtils.parse(strippedUri)
-            if (uriObject.getPathSegments().firstOrNull() == "referral") {
+            if (uriObject.getPathSegments().firstOrNull() == "referral"
+                && settings.getBooleanOrNull(KEY_REFERRER_FINISHED) != true
+            ) {
                 uriObject.getQueryParameters("user").firstOrNull()?.let { query ->
                     if (strippedUsernameRegex.matches(query)) {
                         settings.putString(KEY_REFEREE_USER_ID, query)
+                        settings.putBoolean(KEY_REFERRER_FINISHED, true)
                     }
                 }
             }else {

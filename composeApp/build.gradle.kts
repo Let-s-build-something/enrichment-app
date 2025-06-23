@@ -104,7 +104,6 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(compose.preview)
 
@@ -118,6 +117,7 @@ kotlin {
             implementation(libs.androidx.security.crypto.ktx)
 
             implementation(libs.coil.gif)
+            implementation(libs.android.installreferrer)
 
             //Credentials
             implementation(libs.androidx.credentials)
