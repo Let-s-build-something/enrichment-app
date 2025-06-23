@@ -37,6 +37,8 @@ import ui.conversation.ConversationDataManager
 import ui.home.utils.NetworkItemUseCase
 
 val conversationSettingsModule = module {
+    factory { ConversationDataManager() }
+    single { ConversationDataManager() }
     factory {
         ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
@@ -50,6 +52,7 @@ class ConversationSettingsModel(
     private val dataManager: ConversationDataManager
 ): SharedModel() {
     companion object {
+        const val SHIMMER_ITEM_COUNT = 4
         const val MAX_MEMBERS_COUNT = 8
         const val PAGE_ITEM_COUNT = 20
 

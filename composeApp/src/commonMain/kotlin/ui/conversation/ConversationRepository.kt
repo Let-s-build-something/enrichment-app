@@ -161,6 +161,12 @@ open class ConversationRepository(
         }
     }
 
+    suspend fun insertConversation(conversation: ConversationRoomIO) {
+        return withContext(Dispatchers.IO) {
+            conversationRoomDao.insert(conversation)
+        }
+    }
+
     suspend fun getRemoteUser(
         userId: String,
         homeserver: String

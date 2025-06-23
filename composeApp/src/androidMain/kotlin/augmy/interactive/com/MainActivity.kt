@@ -187,11 +187,11 @@ class MainActivity: ComponentActivity() {
                             val referralUserId = "https://dummy?$referrerUrl".toUri()
                                 .getQueryParameter("ref")
 
-                            if (!referralUserId.isNullOrEmpty()) {
-                                scope.launch {
-                                    settings.putBoolean(KEY_REFERRER_FINISHED, true)
+                            scope.launch {
+                                if (!referralUserId.isNullOrEmpty()) {
                                     settings.putString(KEY_REFEREE_USER_ID, referralUserId)
                                 }
+                                settings.putBoolean(KEY_REFERRER_FINISHED, true)
                             }
                         }
                         referrerClient.endConnection()

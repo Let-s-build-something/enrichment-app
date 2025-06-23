@@ -93,6 +93,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import ui.conversation.settings.ConversationDetailDialog
 import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
@@ -279,12 +280,9 @@ private fun ListContent(
     val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
-    val selectedUser = remember {
-        mutableStateOf<String?>(null)
-    }
-    val showAddNewModal = rememberSaveable {
-        mutableStateOf(false)
-    }
+    val selectedUserId = remember { mutableStateOf<String?>(null) }
+    val selectedRoomId = remember { mutableStateOf<String?>(null) }
+    val showAddNewModal = rememberSaveable { mutableStateOf(false) }
 
     if(showAddNewModal.value) {
         NetworkAddNewLauncher(onDismissRequest = {
@@ -292,11 +290,19 @@ private fun ListContent(
         })
     }
 
-    if(selectedUser.value != null) {
+    selectedUserId.value?.let { userId ->
         UserDetailDialog(
-            userId = selectedUser.value,
+            userId = userId,
             onDismissRequest = {
-                selectedUser.value = null
+                selectedUserId.value = null
+            }
+        )
+    }
+    selectedRoomId.value?.let { roomId ->
+        ConversationDetailDialog(
+            conversationId = roomId,
+            onDismissRequest = {
+                selectedRoomId.value = null
             }
         )
     }
@@ -387,10 +393,10 @@ private fun ListContent(
                 onAvatarClick = {
                     if(room?.summary?.isDirect == true) {
                         coroutineScope.launch(Dispatchers.Default) {
-                            selectedUser.value = room.summary.heroes?.firstOrNull()?.full ?: room.summary.members?.firstOrNull()?.id
+                            selectedUserId.value = room.summary.heroes?.firstOrNull()?.full ?: room.summary.members?.firstOrNull()?.id
                         }
                     }else {
-                        // TODO room settings window dialog
+                        selectedRoomId.value = room?.id
                     }
                 }
             ) {

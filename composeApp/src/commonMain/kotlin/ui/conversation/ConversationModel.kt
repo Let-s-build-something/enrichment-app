@@ -12,6 +12,9 @@ import base.utils.getUrlExtension
 import base.utils.toSha256
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
+import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
@@ -355,7 +358,7 @@ open class ConversationModel(
     ) {
         CoroutineScope(Job()).launch {
             // no conversation room yet, let's create it
-            if (userId != null && conversationId.value.isBlank()) {
+            if (userId != null && conversationId.value.isBlank() && _uiMode.value != UiMode.CreatingRoom) {
                 _uiMode.value = UiMode.CreatingRoom
 
                 matrixClient?.api?.room?.createRoom(
@@ -371,6 +374,19 @@ open class ConversationModel(
                     invite = setOf(UserId(userId)),
                 )?.getOrNull()?.full?.let { newConversationId ->
                     _uiMode.value = UiMode.Idle
+                    repository.insertConversation(
+                        ConversationRoomIO(
+                            id = newConversationId,
+                            summary = RoomSummary(
+                                heroes = listOf(UserId(userId)),
+                                isDirect = true
+                            ),
+                            ownerPublicId = matrixUserId,
+                            historyVisibility = HistoryVisibility.INVITED,
+                            prevBatch = null,
+                            type = RoomType.Joined
+                        )
+                    )
                     repository.insertMemberByUserId(
                         conversationId = newConversationId,
                         userId = userId,
