@@ -270,9 +270,7 @@ open class ConversationRepository(
         owner: String?
     ): ConversationRoomIO? = withContext(Dispatchers.IO) {
         conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.let { room ->
-            val members = roomMemberDao.get(
-                userIds = room.summary?.heroes?.map { it.full }.orEmpty()
-            ).let { local ->
+            val members = roomMemberDao.getOfRoom(conversationId).let { local ->
                 // if there are missing members, let's use API
                 if (local.size < (room.summary?.heroes?.size?.plus(1) ?: 1) || local.isEmpty()) {
                     (sharedDataManager.matrixClient.value?.api?.room?.getMembers(

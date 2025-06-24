@@ -1,10 +1,13 @@
 package ui.conversation.settings
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import base.global.verification.ComparisonByUserData
+import base.utils.tagToColor
+import data.NetworkProximityCategory
 import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.MediaIO
@@ -16,15 +19,16 @@ import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import korlibs.io.util.getOrNullLoggingError
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.client.verification.ActiveUserVerification
 import net.folivo.trixnity.client.verification.ActiveVerificationState
@@ -80,17 +84,9 @@ class ConversationSettingsModel(
     private val _verifications = MutableStateFlow<HashMap<String, ActiveUserVerification?>>(hashMapOf())
 
     /** Detailed information about this conversation */
-    val conversation = dataManager.conversations.map { it.second[conversationId] }
-
     @OptIn(ExperimentalCoroutinesApi::class)
-    val directUser = conversation.flatMapLatest {
-        flow<ConversationRoomMember?> {
-            if (it?.summary?.isDirect == true) {
-                // TODO
-                null
-            }else null
-        }
-    }
+    val conversation = dataManager.conversations.mapLatest { it.second[conversationId] }
+
     val ongoingChange = _ongoingChange.asStateFlow()
     val selectedInvitedUser = _selectedInvitedUser.asStateFlow()
     val verifications = _verifications.asStateFlow()
@@ -104,6 +100,18 @@ class ConversationSettingsModel(
         ignoreUserId = matrixUserId,
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)
+
+    /** Customized social circle colors */
+    val socialCircleColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
+        withContext(Dispatchers.Default) {
+            settings?.networkColors?.mapIndexedNotNull { index, s ->
+                tagToColor(s)?.let { color ->
+                    NetworkProximityCategory.entries[index] to color
+                }
+            }.orEmpty().toMap()
+        }
+    }
+
 
     /** Removes a member out of a conversation */
     fun kickMember(memberId: String) {
