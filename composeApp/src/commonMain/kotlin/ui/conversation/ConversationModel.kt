@@ -69,6 +69,7 @@ import kotlin.uuid.Uuid
 internal val conversationModule = module {
     includes(keyboardModule)
 
+    factory { ConversationDataManager() }
     single { ConversationDataManager() }
     factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
 

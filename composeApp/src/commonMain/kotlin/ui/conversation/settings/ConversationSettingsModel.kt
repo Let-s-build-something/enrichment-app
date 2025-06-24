@@ -44,8 +44,6 @@ import ui.conversation.ConversationDataManager
 import ui.home.utils.NetworkItemUseCase
 
 val conversationSettingsModule = module {
-    factory { ConversationDataManager() }
-    single { ConversationDataManager() }
     factory {
         ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
