@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
@@ -100,6 +101,7 @@ import base.utils.getOrNull
 import collectResult
 import components.UserProfileImage
 import components.network.NetworkItemRow
+import data.NetworkProximityCategory
 import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import korlibs.math.toInt
@@ -120,6 +122,7 @@ import ui.conversation.settings.ConversationSettingsModel.Companion.MAX_MEMBERS_
 import ui.conversation.settings.ConversationSettingsModel.Companion.SHIMMER_ITEM_COUNT
 import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
+import ui.network.components.user_detail.AddToCircleAction
 import ui.network.components.user_detail.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -173,6 +176,8 @@ fun ConversationSettingsScreen(conversationId: String?) {
             )
         }
 
+        val conversation = model.conversation.collectAsState(null)
+
         ConversationSettingsContent(
             modifier = Modifier
                 .background(color = LocalTheme.current.colors.backgroundDark)
@@ -181,30 +186,32 @@ fun ConversationSettingsScreen(conversationId: String?) {
             conversationId = conversationId,
             model = model,
             additionalContent = {
-                item {
-                    val ongoingChange = model.ongoingChange.collectAsState()
-                    val isLoading = ongoingChange.value is ConversationSettingsModel.ChangeType.Leave
-                            && ongoingChange.value?.state is BaseResponse.Loading
+                if (conversation.value?.summary?.isDirect == false) {
+                    item {
+                        val ongoingChange = model.ongoingChange.collectAsState()
+                        val isLoading = ongoingChange.value is ConversationSettingsModel.ChangeType.Leave
+                                && ongoingChange.value?.state is BaseResponse.Loading
 
-                    OutlinedButton(
-                        modifier = Modifier.padding(top = 32.dp),
-                        activeColor = SharedColors.RED_ERROR_50,
-                        inactiveColor = SharedColors.RED_ERROR.copy(alpha = 0.25f),
-                        enabled = !isLoading,
-                        text = stringResource(Res.string.conversation_action_leave),
-                        content = {
-                            AnimatedVisibility(isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .padding(start = 4.dp)
-                                        .requiredSize(24.dp),
-                                    color = SharedColors.RED_ERROR_50,
-                                    trackColor = LocalTheme.current.colors.disabled
-                                )
+                        OutlinedButton(
+                            modifier = Modifier.padding(top = 32.dp),
+                            activeColor = SharedColors.RED_ERROR_50,
+                            inactiveColor = SharedColors.RED_ERROR.copy(alpha = 0.25f),
+                            enabled = !isLoading,
+                            text = stringResource(Res.string.conversation_action_leave),
+                            content = {
+                                AnimatedVisibility(isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier
+                                            .padding(start = 4.dp)
+                                            .requiredSize(24.dp),
+                                        color = SharedColors.RED_ERROR_50,
+                                        trackColor = LocalTheme.current.colors.disabled
+                                    )
+                                }
                             }
+                        ) {
+                            showLeaveDialog.value = true
                         }
-                    ) {
-                        showLeaveDialog.value = true
                     }
                 }
             }
@@ -234,6 +241,7 @@ fun ConversationSettingsContent(
     val detail = model.conversation.collectAsState(null)
     val ongoingChange = model.ongoingChange.collectAsState()
     val selectedUserToInvite = model.selectedInvitedUser.collectAsState()
+    val directUser = detail.value?.summary?.members?.firstOrNull()?.toNetworkItem()
     val members = model.members.collectAsLazyPagingItems()
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
@@ -244,6 +252,41 @@ fun ConversationSettingsContent(
     val selectedMemberDetail = remember { mutableStateOf<ConversationRoomMember?>(null) }
     val kickMemberUserId = remember { mutableStateOf<String?>(null) }
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
+
+
+    navController?.collectResult<String?>(
+        key = NavigationArguments.SEARCH_USER_ID,
+        defaultValue = null,
+        listener = { userId ->
+            if (userId != null) model.selectInvitedUser(userId)
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
+            // TODO filtering
+            if(it > 2) {
+                // show members filter
+            }else {
+                // if members filter was visible, stop the pagination
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        model.ongoingChange.collectLatest { change ->
+            if(change is ConversationSettingsModel.ChangeType.Leave && change.state is BaseResponse.Success) {
+                CoroutineScope(Job()).launch {
+                    snackbarHost?.showSnackbar(getString(Res.string.conversation_left_message))
+                }
+                navController?.currentBackStackEntry?.savedStateHandle?.set(
+                    NavigationArguments.CONVERSATION_LEFT,
+                    true
+                )
+            }
+        }
+    }
+
 
     kickMemberUserId.value?.let { memberId ->
         AlertDialog(
@@ -295,40 +338,6 @@ fun ConversationSettingsContent(
         )
     }
 
-
-
-    navController?.collectResult<String?>(
-        key = NavigationArguments.SEARCH_USER_ID,
-        defaultValue = null,
-        listener = { userId ->
-            if (userId != null) model.selectInvitedUser(userId)
-        }
-    )
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
-            if(it > 2) {
-                // TODO show members filter
-            }else {
-                // TODO if members filter was visible, stop the pagination
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        model.ongoingChange.collectLatest { change ->
-            if(change is ConversationSettingsModel.ChangeType.Leave && change.state is BaseResponse.Success) {
-                CoroutineScope(Job()).launch {
-                    snackbarHost?.showSnackbar(getString(Res.string.conversation_left_message))
-                }
-                navController?.currentBackStackEntry?.savedStateHandle?.set(
-                    NavigationArguments.CONVERSATION_LEFT,
-                    true
-                )
-            }
-        }
-    }
-
     selectedMemberDetail.value?.let {
         UserDetailDialog(
             member = it,
@@ -338,7 +347,6 @@ fun ConversationSettingsContent(
         )
     }
 
-    //TODO different layout for direct conversations #86c446h4v
     LazyColumn(
         modifier = modifier,
         state = listState,
@@ -347,18 +355,17 @@ fun ConversationSettingsContent(
         item {
             Box(modifier = Modifier.padding(top = 6.dp)) {
                 UserProfileImage(
-                    modifier = Modifier
-                        .zIndex(5f)
-                        .fillMaxWidth(.5f),
-                    media = detail.value?.summary?.roomAvatar,
-                    tag = detail.value?.tag,
-                    name = detail.value?.summary?.roomName
+                    modifier = Modifier.fillMaxWidth(.5f),
+                    media = detail.value?.summary?.roomAvatar ?: directUser?.avatar,
+                    tag = detail.value?.tag ?: directUser?.tag,
+                    name = detail.value?.summary?.roomName ?: directUser?.displayName ?: directUser?.userId
                 )
-                AnimatedVisibility(detail.value != null) {
+                AnimatedVisibility(
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                    visible = detail.value != null
+                ) {
                     MinimalisticFilledIcon(
-                        modifier = Modifier
-                            .padding(bottom = 8.dp, end = 8.dp)
-                            .align(Alignment.BottomEnd),
+                        modifier = Modifier.padding(bottom = 8.dp, end = 8.dp),
                         onTap = {
                             showPictureChangeDialog.value = true
                         },
@@ -371,7 +378,7 @@ fun ConversationSettingsContent(
         item {
             RoomNameContent(
                 model = model,
-                roomName = detail.value?.summary?.roomName
+                roomName = detail.value?.summary?.roomName ?: directUser?.displayName ?: directUser?.userId
             )
         }
         if(detail.value?.summary?.isDirect != true) {
@@ -407,131 +414,186 @@ fun ConversationSettingsContent(
                     }
                 }
             }
-        }
-        items(
-            count = when {
-                members.itemCount == 0 && isLoadingInitialPage -> SHIMMER_ITEM_COUNT
-                enableMembersPaging.value -> members.itemCount
-                else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
-            },
-            //key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
-        ) { index ->
-            val member = members.getOrNull(index)
-            val isSelected = selectedMemberId.value == member?.id
-            val itemModifier = Modifier
-                .animateItem()
-                .scalingClickable(
-                    hoverEnabled = !isSelected,
-                    scaleInto = .9f,
-                    onTap = {
-                        model.checkVerificationState(userId = member?.id)
-                        selectedMemberId.value = if(selectedMemberId.value == member?.id) null else member?.id
-                    }
-                )
-                .fillMaxWidth()
-                .then(
-                    (if (selectedMemberId.value != null && isSelected) {
-                        Modifier
-                            .background(
-                                color = LocalTheme.current.colors.backgroundLight,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                            .border(
-                                width = 2.dp,
-                                color = LocalTheme.current.colors.backgroundDark,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                    }else Modifier)
-                )
-
-            NetworkItemRow(
-                modifier = itemModifier,
-                data = member?.toNetworkItem(),
-                isSelected = isSelected,
-                onAvatarClick = {
-                    selectedMemberDetail.value = member
+            items(
+                count = when {
+                    members.itemCount == 0 && isLoadingInitialPage -> SHIMMER_ITEM_COUNT
+                    enableMembersPaging.value -> members.itemCount
+                    else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
                 },
-                actions = {
-                    Column {
-                        val verifications = model.verifications.collectAsState()
-                        val verification = verifications.value[member?.id]
-
-                        AnimatedVisibility(verification != null) {
-                            Row(
-                                modifier = Modifier
-                                    .background(
-                                        color = LocalTheme.current.colors.backgroundDark,
-                                        shape = LocalTheme.current.shapes.rectangularActionShape
-                                    )
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = stringResource(
-                                        when(verification?.state?.value) {
-                                            is ActiveVerificationState.Done -> Res.string.device_verification_success
-                                            is ActiveVerificationState.Ready -> Res.string.message_user_verification_ready
-                                            is ActiveVerificationState.Start -> Res.string.message_user_verification_start
-                                            is ActiveVerificationState.Cancel -> Res.string.message_user_verification_canceled
-                                            else -> Res.string.message_user_verification_awaiting
-                                        }
-                                    ),
-                                    style = LocalTheme.current.styles.regular
+                //key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
+            ) { index ->
+                val member = members.getOrNull(index)
+                val isSelected = selectedMemberId.value == member?.id
+                val itemModifier = Modifier
+                    .animateItem()
+                    .scalingClickable(
+                        hoverEnabled = !isSelected,
+                        scaleInto = .9f,
+                        onTap = {
+                            model.checkVerificationState(userId = member?.id)
+                            selectedMemberId.value = if(selectedMemberId.value == member?.id) null else member?.id
+                        }
+                    )
+                    .fillMaxWidth()
+                    .then(
+                        (if (selectedMemberId.value != null && isSelected) {
+                            Modifier
+                                .background(
+                                    color = LocalTheme.current.colors.backgroundLight,
+                                    shape = LocalTheme.current.shapes.rectangularActionShape
                                 )
+                                .border(
+                                    width = 2.dp,
+                                    color = LocalTheme.current.colors.backgroundDark,
+                                    shape = LocalTheme.current.shapes.rectangularActionShape
+                                )
+                        }else Modifier)
+                    )
 
-                                AnimatedVisibility(verification?.state?.value?.isFinished() == false) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.requiredSize(24.dp),
-                                        color = LocalTheme.current.colors.disabled,
-                                        trackColor = LocalTheme.current.colors.disabledComponent
+                NetworkItemRow(
+                    modifier = itemModifier,
+                    data = member?.toNetworkItem(),
+                    isSelected = isSelected,
+                    onAvatarClick = {
+                        selectedMemberDetail.value = member
+                    },
+                    actions = {
+                        Column {
+                            val verifications = model.verifications.collectAsState()
+                            val verification = verifications.value[member?.id]
+
+                            AnimatedVisibility(verification != null) {
+                                Row(
+                                    modifier = Modifier
+                                        .background(
+                                            color = LocalTheme.current.colors.backgroundDark,
+                                            shape = LocalTheme.current.shapes.rectangularActionShape
+                                        )
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(
+                                            when(verification?.state?.value) {
+                                                is ActiveVerificationState.Done -> Res.string.device_verification_success
+                                                is ActiveVerificationState.Ready -> Res.string.message_user_verification_ready
+                                                is ActiveVerificationState.Start -> Res.string.message_user_verification_start
+                                                is ActiveVerificationState.Cancel -> Res.string.message_user_verification_canceled
+                                                else -> Res.string.message_user_verification_awaiting
+                                            }
+                                        ),
+                                        style = LocalTheme.current.styles.regular
+                                    )
+
+                                    AnimatedVisibility(verification?.state?.value?.isFinished() == false) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.requiredSize(24.dp),
+                                            color = LocalTheme.current.colors.disabled,
+                                            trackColor = LocalTheme.current.colors.disabledComponent
+                                        )
+                                    }
+                                }
+                            }
+                            Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                                Spacer(Modifier.width(6.dp))
+                                ScalingIcon(
+                                    color = SharedColors.RED_ERROR.copy(.6f),
+                                    imageVector = Icons.Outlined.FaceRetouchingOff,
+                                    contentDescription = stringResource(Res.string.button_block),
+                                    onClick = {
+                                        kickMemberUserId.value = member?.userId
+                                    }
+                                )
+                                AnimatedVisibility(ongoingChange.value !is ConversationSettingsModel.ChangeType.VerifyMember) {
+                                    ScalingIcon(
+                                        color = SharedColors.YELLOW.copy(.6f),
+                                        imageVector = Icons.Outlined.SensorOccupied,
+                                        contentDescription = stringResource(Res.string.button_verify),
+                                        onClick = {
+                                            model.verifyUser(userId = member?.userId)
+                                        }
                                     )
                                 }
                             }
                         }
-                        Row(modifier = Modifier.padding(bottom = 4.dp)) {
-                            Spacer(Modifier.width(6.dp))
-                            ScalingIcon(
-                                color = SharedColors.RED_ERROR.copy(.6f),
-                                imageVector = Icons.Outlined.FaceRetouchingOff,
-                                contentDescription = stringResource(Res.string.button_block),
-                                onClick = {
-                                    kickMemberUserId.value = member?.userId
-                                }
+                    }
+                )
+            }
+            if (!isLoadingInitialPage
+                && members.itemCount > MAX_MEMBERS_COUNT
+                && !enableMembersPaging.value
+            ) {
+                item {
+                    Text(
+                        modifier = Modifier.scalingClickable {
+                            selectedMemberId.value = null
+                            enableMembersPaging.value = true
+                        },
+                        text = stringResource(
+                            Res.string.items_see_more,
+                            detail.value?.summary?.joinedMemberCount?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
+                        ),
+                        style = LocalTheme.current.styles.category.copy(
+                            color = LocalTheme.current.colors.secondary
+                        )
+                    )
+                }
+            }
+        }else {
+            item {
+                val socialCircleColors = model.socialCircleColors.collectAsState(initial = null)
+
+                AnimatedVisibility(visible = directUser?.proximity != null) {
+                    directUser?.proximity?.let { proximity ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val selectedCategory = NetworkProximityCategory.entries.firstOrNull { proximity in it.range }
+                                ?: NetworkProximityCategory.Community
+
+                            Text(
+                                text = stringResource(selectedCategory.res),
+                                style = LocalTheme.current.styles.regular
                             )
-                            AnimatedVisibility(ongoingChange.value !is ConversationSettingsModel.ChangeType.VerifyMember) {
-                                ScalingIcon(
-                                    color = SharedColors.YELLOW.copy(.6f),
-                                    imageVector = Icons.Outlined.SensorOccupied,
-                                    contentDescription = stringResource(Res.string.button_verify),
-                                    onClick = {
-                                        model.verifyUser(userId = member?.userId)
-                                    }
-                                )
+
+                            Box(
+                                modifier = Modifier.weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                var previousShares = 0.0
+                                val entries = NetworkProximityCategory.entries
+
+                                entries.toList().forEach { category ->
+                                    val zIndex = entries.size - entries.indexOf(category) + 1f
+                                    val shares = (if (selectedCategory == category) .7f else .3f / entries.size) + previousShares
+
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                (socialCircleColors.value?.get(category) ?: category.color).copy(
+                                                    alpha = if (selectedCategory == category) 1f else .5f
+                                                )
+                                            )
+                                            .zIndex(zIndex)
+                                            .fillMaxWidth(shares.toFloat())
+                                            .height(8.dp)
+                                    )
+                                    previousShares = shares
+                                }
                             }
                         }
                     }
                 }
-            )
-        }
-        if (!isLoadingInitialPage
-            && members.itemCount > MAX_MEMBERS_COUNT
-            && !enableMembersPaging.value
-        ) {
+            }
             item {
-                Text(
-                    modifier = Modifier.scalingClickable {
-                        selectedMemberId.value = null
-                        enableMembersPaging.value = true
-                    },
-                    text = stringResource(
-                        Res.string.items_see_more,
-                        detail.value?.summary?.joinedMemberCount?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
-                    ),
-                    style = LocalTheme.current.styles.category.copy(
-                        color = LocalTheme.current.colors.secondary
+                if (directUser != null) {
+                    AddToCircleAction(
+                        modifier = Modifier.padding(top = 16.dp),
+                        user = directUser
                     )
-                )
+                }
             }
         }
         additionalContent()

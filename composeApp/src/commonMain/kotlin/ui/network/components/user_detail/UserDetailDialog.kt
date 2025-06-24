@@ -226,7 +226,7 @@ fun UserDetailDialog(
 
                         val color = when (presence.presence) {
                             Presence.ONLINE -> SharedColors.GREEN_CORRECT
-                            Presence.OFFLINE -> SharedColors.RED_ERROR_50
+                            //Presence.OFFLINE -> SharedColors.RED_ERROR_50
                             // Presence.UNAVAILABLE
                             else -> LocalTheme.current.colors.disabled
                         }
@@ -268,7 +268,7 @@ fun UserDetailDialog(
 }
 
 @Composable
-private fun AddToCircleAction(
+fun AddToCircleAction(
     modifier: Modifier = Modifier,
     user: NetworkItemIO
 ) {

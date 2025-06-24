@@ -9,6 +9,7 @@ import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.ConversationListResponse
 import database.dao.ConversationRoomDao
+import database.dao.matrix.RoomMemberDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -16,7 +17,10 @@ import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.core.model.RoomId
 import utils.SharedLogger
 
-class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
+class HomeRepository(
+    private val conversationRoomDao: ConversationRoomDao,
+    private val roomMemberDao: RoomMemberDao
+) {
 
     private var currentPagingSource: PagingSource<*, *>? = null
 
@@ -86,5 +90,9 @@ class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
                 }
             }
         }
+    }
+
+    suspend fun getUsersByRoom(roomId: String) = withContext(Dispatchers.IO) {
+        roomMemberDao.getOfRoom(roomId)
     }
 }
