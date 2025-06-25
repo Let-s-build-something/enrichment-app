@@ -5,7 +5,7 @@ import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.network.HttpException
 import data.io.base.BaseResponse
-import data.io.matrix.room.event.FullConversationRoom
+import data.io.matrix.room.FullConversationRoom
 import data.io.social.network.conversation.ConversationListResponse
 import kotlinx.io.IOException
 

@@ -1,7 +1,7 @@
 package ui.conversation
 
 import data.io.matrix.media.MediaRepositoryConfig
-import data.io.matrix.room.event.FullConversationRoom
+import data.io.matrix.room.FullConversationRoom
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update

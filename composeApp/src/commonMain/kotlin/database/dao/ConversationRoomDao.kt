@@ -7,7 +7,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
-import data.io.matrix.room.event.FullConversationRoom
+import data.io.matrix.room.FullConversationRoom
 import database.AppRoomDatabase
 
 /** Interface for communication with local Room database */

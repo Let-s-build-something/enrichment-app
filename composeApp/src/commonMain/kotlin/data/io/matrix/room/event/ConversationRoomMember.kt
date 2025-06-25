@@ -8,12 +8,10 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase.Companion.TABLE_ROOM_MEMBER
-import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 
 @Entity(TABLE_ROOM_MEMBER)
-@Serializable
 data class ConversationRoomMember(
 
     val userId: String,

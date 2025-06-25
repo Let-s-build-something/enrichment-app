@@ -3,10 +3,8 @@ package database
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import data.io.matrix.room.RoomSummary
-import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
-import data.io.social.network.conversation.message.MessageReactionIO
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.serialization.json.Json
@@ -19,7 +17,6 @@ import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.experimental.gravity.GravityData
-import utils.SharedLogger
 
 /** Factory converter for Room database */
 @ProvidedTypeConverter
@@ -65,17 +62,6 @@ class AppDatabaseConverter {
     @TypeConverter
     fun toPresenceEventContent(value: String): PresenceEventContent {
         return json.decodeFromString(value)
-    }
-
-    @TypeConverter
-    fun fromConversationRoomMember(value: ConversationRoomMember): String {
-        return json.encodeToString(value)
-    }
-
-    @TypeConverter
-    fun toConversationRoomMember(value: String): ConversationRoomMember {
-        SharedLogger.logger.debug { "converter, toConversationRoomMember: $value" }
-        return json.decodeFromString<ConversationRoomMember>(value)
     }
 
     @TypeConverter
@@ -164,16 +150,6 @@ class AppDatabaseConverter {
     
     @TypeConverter
     fun toMediaList(value: String?): List<MediaIO>? {
-        return if(value == null) null else json.decodeFromString(value)
-    }
-    
-    @TypeConverter
-    fun fromReactionList(value: List<MessageReactionIO>?): String? {
-        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
-    }
-    
-    @TypeConverter
-    fun toReactionList(value: String?): List<MessageReactionIO>? {
         return if(value == null) null else json.decodeFromString(value)
     }
     
