@@ -43,8 +43,8 @@ import base.navigation.NavigationNode
 import base.theme.Colors
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getMediaType
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
-import data.io.social.network.conversation.message.MessageWithReactions
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,7 +60,7 @@ fun MediaRow(
     modifier: Modifier = Modifier,
     mediaProcessorModel: MediaProcessorModel = koinViewModel(),
     scrollState: ScrollState,
-    data: MessageWithReactions?,
+    data: FullConversationMessage?,
     media: List<MediaIO>,
     temporaryFiles: Map<String, PlatformFile?>,
     isCurrentUser: Boolean,
@@ -122,7 +122,7 @@ fun MediaRow(
                                 selectedIndex = index,
                                 title = if(isCurrentUser) {
                                     getString(Res.string.conversation_detail_you)
-                                } else data.message.user?.content?.displayName,
+                                } else data.author?.content?.displayName,
                                 subtitle = date
                             )
                         )

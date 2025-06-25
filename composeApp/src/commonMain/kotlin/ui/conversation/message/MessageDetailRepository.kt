@@ -2,7 +2,7 @@ package ui.conversation.message
 
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import data.io.social.network.conversation.message.MessageWithReactions
+import data.io.social.network.conversation.message.FullConversationMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.MessageReactionDao
@@ -36,7 +36,7 @@ class MessageDetailRepository(
 ) {
 
     /** Retrieves singular message from the local DB */
-    suspend fun getMessage(id: String): MessageWithReactions? {
+    suspend fun getMessage(id: String): FullConversationMessage? {
         return withContext(Dispatchers.IO) {
             conversationMessageDao.get(id)
         }
@@ -47,7 +47,7 @@ class MessageDetailRepository(
         config: PagingConfig,
         conversationId: String? = null,
         anchorMessageId: String? = null
-    ): Pager<Int, MessageWithReactions> {
+    ): Pager<Int, FullConversationMessage> {
         return Pager(
             config = config,
             pagingSourceFactory = {

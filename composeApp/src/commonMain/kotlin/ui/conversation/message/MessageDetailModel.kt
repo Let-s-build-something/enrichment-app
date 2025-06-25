@@ -3,16 +3,13 @@ package ui.conversation.message
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
-import androidx.paging.map
-import data.io.social.network.conversation.message.MessageWithReactions
+import data.io.social.network.conversation.message.FullConversationMessage
 import database.file.FileAccess
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationDataManager
@@ -62,22 +59,10 @@ class MessageDetailModel(
     dataManager = dataManager
 ) {
 
-    private val _message = MutableStateFlow<MessageWithReactions?>(null)
+    private val _message = MutableStateFlow<FullConversationMessage?>(null)
 
     /** Locally retrieved information */
-    val message = _message
-        .combine(conversation) { message, detail ->
-            withContext(Dispatchers.Default) {
-                message?.copy(
-                    message = message.message.copy(
-                        user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
-                        anchorMessage = message.message.anchorMessage?.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
-                        )
-                    )
-                )
-            }
-        }
+    val message = _message.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val replies = super.conversationId.flatMapLatest { conversationId ->
@@ -89,22 +74,7 @@ class MessageDetailModel(
             ),
             anchorMessageId = messageId,
             conversationId = conversationId
-        ).flow
-            .cachedIn(viewModelScope)
-            .combine(conversation) { messages, detail ->
-                withContext(Dispatchers.Default) {
-                    messages.map { message ->
-                        message.copy(
-                            message = message.message.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
-                                anchorMessage = message.message.anchorMessage?.copy(
-                                    user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
-                                )
-                            )
-                        )
-                    }
-                }
-            }
+        ).flow.cachedIn(viewModelScope)
     }
 
     init {

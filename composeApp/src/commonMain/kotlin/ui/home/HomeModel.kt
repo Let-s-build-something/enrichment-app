@@ -17,7 +17,7 @@ import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.toResponse
-import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.event.FullConversationRoom
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -120,7 +120,7 @@ class HomeModel(
     }
 
     /** flow of current requests */
-    val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
+    val conversationRooms: Flow<PagingData<FullConversationRoom>> = repository.getConversationRoomPager(
         PagingConfig(
             pageSize = 20,
             enablePlaceholders = true,
@@ -132,7 +132,7 @@ class HomeModel(
         .combine(_categories) { pagingData, categories ->
             withContext(Dispatchers.Default) {
                 pagingData.filter { data ->
-                    categories.any { it.range.contains(data.proximity ?: 1f) }
+                    categories.any { it.range.contains(data.data.proximity ?: 1f) }
                 }
             }
         }
@@ -171,16 +171,16 @@ class HomeModel(
         }
     }
 
-    fun selectUser(room: ConversationRoomIO?) {
+    fun selectUser(room: FullConversationRoom?) {
         viewModelScope.launch {
             withContext(Dispatchers.Default) {
-                if (room == null || room.summary?.isDirect == false) {
+                if (room == null || room.data.summary?.isDirect == false) {
                     _selectedUserId.value = null
                     return@withContext
                 }
 
-                _selectedUserId.value = room.summary?.heroes?.firstOrNull()?.full
-                    ?: room.summary?.members?.firstOrNull()?.userId
+                _selectedUserId.value = room.data.summary?.heroes?.firstOrNull()?.full
+                    ?: room.members.firstOrNull()?.userId
                             ?: repository.getUsersByRoom(room.id).firstOrNull()?.userId
             }
         }

@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_room_join
 import components.UserProfileImage
-import data.io.social.network.conversation.message.MessageWithReactions
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.user.UserIO.Companion.generateUserTag
 import net.folivo.trixnity.core.model.UserId
 import org.jetbrains.compose.resources.stringResource
@@ -17,7 +17,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun SystemMessage(
     modifier: Modifier = Modifier,
-    data: MessageWithReactions?
+    data: FullConversationMessage?
 ) {
     InfoBox(
         modifier = modifier,

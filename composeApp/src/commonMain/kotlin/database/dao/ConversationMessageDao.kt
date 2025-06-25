@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MessageState
-import data.io.social.network.conversation.message.MessageWithReactions
 import database.AppRoomDatabase
 
 /** Interface for communication with local Room database */
@@ -26,7 +26,7 @@ interface ConversationMessageDao {
         conversationId: String?,
         limit: Int,
         offset: Int
-    ): List<MessageWithReactions>
+    ): List<FullConversationMessage>
 
     /** Returns anchored items related to a single message */
     @Transaction
@@ -43,14 +43,14 @@ interface ConversationMessageDao {
         anchorMessageId: String?,
         limit: Int,
         offset: Int
-    ): List<MessageWithReactions>
+    ): List<FullConversationMessage>
 
     /** Retrieves a single item */
     @Transaction
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE id = :messageId " +
             "LIMIT 1")
-    suspend fun get(messageId: String?): MessageWithReactions?
+    suspend fun get(messageId: String?): FullConversationMessage?
 
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} 

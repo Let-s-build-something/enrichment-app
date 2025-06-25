@@ -186,7 +186,7 @@ fun ConversationSettingsScreen(conversationId: String?) {
             conversationId = conversationId,
             model = model,
             additionalContent = {
-                if (conversation.value?.summary?.isDirect == false) {
+                if (conversation.value?.data?.summary?.isDirect == false) {
                     item {
                         val ongoingChange = model.ongoingChange.collectAsState()
                         val isLoading = ongoingChange.value is ConversationSettingsModel.ChangeType.Leave
@@ -241,7 +241,7 @@ fun ConversationSettingsContent(
     val detail = model.conversation.collectAsState(null)
     val ongoingChange = model.ongoingChange.collectAsState()
     val selectedUserToInvite = model.selectedInvitedUser.collectAsState()
-    val directUser = detail.value?.summary?.members?.firstOrNull()?.toNetworkItem()
+    val directUser = detail.value?.members?.firstOrNull()?.toNetworkItem()
     val members = model.members.collectAsLazyPagingItems()
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
@@ -356,9 +356,9 @@ fun ConversationSettingsContent(
             Box(modifier = Modifier.padding(top = 6.dp)) {
                 UserProfileImage(
                     modifier = Modifier.fillMaxWidth(.5f),
-                    media = detail.value?.summary?.roomAvatar ?: directUser?.avatar,
-                    tag = detail.value?.tag ?: directUser?.tag,
-                    name = detail.value?.summary?.roomName ?: directUser?.displayName ?: directUser?.userId
+                    media = detail.value?.avatar ?: directUser?.avatar,
+                    tag = detail.value?.data?.tag ?: directUser?.tag,
+                    name = detail.value?.name ?: directUser?.displayName
                 )
                 AnimatedVisibility(
                     modifier = Modifier.align(Alignment.BottomEnd),
@@ -378,10 +378,10 @@ fun ConversationSettingsContent(
         item {
             RoomNameContent(
                 model = model,
-                roomName = detail.value?.summary?.roomName ?: directUser?.displayName ?: directUser?.userId
+                roomName = detail.value?.name ?: directUser?.displayName
             )
         }
-        if(detail.value?.summary?.isDirect != true) {
+        if(detail.value?.data?.summary?.isDirect != true) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -532,7 +532,8 @@ fun ConversationSettingsContent(
                         },
                         text = stringResource(
                             Res.string.items_see_more,
-                            detail.value?.summary?.joinedMemberCount?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
+                            (detail.value?.data?.summary?.joinedMemberCount
+                                ?: detail.value?.members?.size)?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
                         ),
                         style = LocalTheme.current.styles.category.copy(
                             color = LocalTheme.current.colors.secondary

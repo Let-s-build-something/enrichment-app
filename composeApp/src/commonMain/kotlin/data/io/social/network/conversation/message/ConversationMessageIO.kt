@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import data.io.matrix.room.event.ConversationRoomMember
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
@@ -48,20 +47,13 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("show_preview")
     val showPreview: Boolean? = true,
 
-    /**
-     * Content of message this message is anchored to.
-     * It doesn't contain any [anchorMessage] itself.
-     */
-    @ColumnInfo("anchor_message")
-    val anchorMessage: ConversationAnchorMessageIO? = null,
-
     val gravityData: GravityData? = null,
 
     @ColumnInfo("anchor_message_id")
-    val anchorMessageId: String? = anchorMessage?.id,
+    val anchorMessageId: String? = null,
 
     @ColumnInfo("parent_anchor_message_id")
-    val parentAnchorMessageId: String? = anchorMessage?.anchorMessageId,
+    val parentAnchorMessageId: String? = null,
 
     /** Time of message being sent in ISO format */
     @ColumnInfo(name = "sent_at")
@@ -83,9 +75,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     val verification: VerificationRequestInfo? = null,
 
-    val edited: Boolean = false,
-
-    val user: ConversationRoomMember? = null
+    val edited: Boolean = false
 ) {
 
     @Serializable
@@ -95,16 +85,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         val to: String
     )
 
-    /** Converts this message to an anchor message */
-    @Ignore
-    fun toAnchorMessage() = ConversationAnchorMessageIO(
-        id = id,
-        content = content,
-        mediaUrls = media,
-        authorPublicId = authorPublicId,
-        anchorMessageId = anchorMessageId
-    )
-
     @Ignore
     fun update(other: ConversationMessageIO): ConversationMessageIO {
         return this.copy(
@@ -112,7 +92,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
             media = other.media ?: media,
             authorPublicId = other.authorPublicId ?: authorPublicId,
             showPreview = other.showPreview ?: showPreview,
-            anchorMessage = other.anchorMessage ?: anchorMessage,
             anchorMessageId = other.anchorMessageId ?: anchorMessageId,
             parentAnchorMessageId = other.parentAnchorMessageId ?: parentAnchorMessageId,
             sentAt = other.sentAt ?: sentAt,

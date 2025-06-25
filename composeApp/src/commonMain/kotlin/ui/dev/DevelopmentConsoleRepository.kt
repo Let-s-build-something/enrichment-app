@@ -6,6 +6,7 @@ import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.GravityDao
 import database.dao.MatrixPagingMetaDao
+import database.dao.MessageReactionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.dao.PresenceEventDao
@@ -48,6 +49,7 @@ class DevelopmentConsoleRepository {
             get<MatrixPagingMetaDao>().removeAll()
             get<GravityDao>().removeAll()
             get<RoomMemberDao>().removeAll()
+            get<MessageReactionDao>().removeAll()
         }
         //secureSettings.clear(force = true)
     }

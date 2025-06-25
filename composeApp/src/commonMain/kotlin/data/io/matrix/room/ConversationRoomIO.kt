@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import data.io.user.NetworkItemIO
 import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
@@ -85,7 +84,10 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val algorithm: EncryptionAlgorithm? = null,
 
     /** Type of the room */
-    val type: RoomType
+    val type: RoomType,
+
+    @ColumnInfo("is_direct")
+    val isDirect: Boolean? = summary?.isDirect
 ) {
     @Ignore
     @Transient
@@ -126,15 +128,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val tag: String?
         @Ignore
         get() = UserId(id).generateUserTag()
-
-    /** Converts this item to a network item representation */
-    fun toNetworkItem() = NetworkItemIO(
-        publicId = id,
-        userId = id,
-        displayName = summary?.roomName,
-        avatar = summary?.avatar,
-        lastMessage = summary?.lastMessage?.content
-    )
 
     override fun toString(): String {
         return "{" +

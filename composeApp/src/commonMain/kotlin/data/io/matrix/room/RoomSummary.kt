@@ -4,7 +4,6 @@ import androidx.room.Ignore
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import data.io.user.UserIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -65,26 +64,7 @@ data class RoomSummary(
     @Ignore
     var members: List<ConversationRoomMember>? = null
 
-    /** Either [canonicalAlias] or a default based on [heroes] */
-    val roomName: String
-        get() = canonicalAlias ?: heroes?.joinToString(", ") ?: when {
-            !heroes.isNullOrEmpty() -> {
-                heroes.joinToString(", ") {
-                    UserIO.initialsOf(it.localpart)
-                }
-            }
-            !members.isNullOrEmpty() -> {
-                members?.joinToString(", ") {
-                    UserIO.initialsOf(UserId(it.userId).localpart)
-                } ?: ""
-            }
-            else -> "Room"
-        }
 
-    val roomAvatar: MediaIO?
-        get() = avatar ?: if (isDirect == true && !members.isNullOrEmpty()) {
-            members?.firstOrNull()?.content?.avatarUrl?.let { MediaIO(url = it) }
-        } else null
 
     override fun toString(): String {
         return "{" +

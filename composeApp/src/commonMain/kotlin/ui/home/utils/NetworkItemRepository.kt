@@ -4,6 +4,7 @@ import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomType
+import data.io.matrix.room.event.FullConversationRoom
 import data.io.social.network.conversation.InvitationResponse
 import data.io.social.network.conversation.RoomInvitationRequest
 import data.io.user.NetworkItemIO
@@ -129,11 +130,9 @@ class NetworkItemRepository(
     }
 
     /** Retrieves all open rooms */
-    suspend fun getOpenRooms(ownerPublicId: String?): List<ConversationRoomIO> {
+    suspend fun getOpenRooms(ownerPublicId: String?): List<FullConversationRoom> {
         return withContext(Dispatchers.IO) {
-            conversationRoomDao.getNonFiltered(ownerPublicId).filter {
-                it.type == RoomType.Joined && it.summary?.isDirect != true
-            }
+            conversationRoomDao.getOpenRooms(ownerPublicId)
         }
     }
 }

@@ -69,6 +69,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.prototype.PrototypeConversation
+import utils.SharedLogger
 
 /** Number of network items within one screen to be shimmered */
 private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
@@ -119,6 +120,7 @@ fun ConversationScreen(
     LaunchedEffect(Unit) {
         model.pingStream.collectLatest { stream ->
             stream.forEach {
+                SharedLogger.logger.debug { "Ping received: $it" }
                 if(conversationId != null
                     && it.type == AppPingType.Conversation
                     && it.identifier == conversationId
@@ -161,10 +163,10 @@ fun ConversationScreen(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .size(32.dp),
-                            media = conversationDetail.value?.summary?.roomAvatar,
-                            tag = conversationDetail.value?.tag,
+                            media = conversationDetail.value?.avatar,
+                            tag = conversationDetail.value?.data?.tag,
                             animate = true,
-                            name = conversationDetail.value?.summary?.roomName
+                            name = conversationDetail.value?.name
                         )
                         Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                     }
@@ -184,7 +186,7 @@ fun ConversationScreen(
                 )
             },
             clearFocus = false,
-            title = conversationDetail.value?.summary?.roomName ?: name
+            title = conversationDetail.value?.name ?: name
         ) {
             Row(
                 modifier = Modifier.fillMaxHeight(),

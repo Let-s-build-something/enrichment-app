@@ -12,15 +12,15 @@ import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.matrix.room.event.ConversationTypingIndicator
+import data.io.matrix.room.event.FullConversationRoom
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
-import data.io.social.network.conversation.message.MessageWithReactions
 import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
 import data.shared.sync.DataSyncHandler
@@ -50,7 +50,6 @@ import net.folivo.trixnity.client.roomEventEncryptionServices
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
-import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.m.ReactionEventContent
 import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
@@ -184,10 +183,10 @@ open class ConversationRepository(
             conversationRoomDao.getAll().let {
                 withContext(Dispatchers.Default) {
                     it.find {
-                        it.summary?.isDirect == true && roomMemberDao.getOfRoom(it.id).firstOrNull()?.userId == userId
-                    }?.id ?: it.find {
-                        roomMemberDao.getOfRoom(it.id).size == 1 && roomMemberDao.getOfRoom(it.id).firstOrNull()?.userId == userId
-                    }?.id
+                        it.data.summary?.isDirect == true && roomMemberDao.getOfRoom(it.data.id).firstOrNull()?.userId == userId
+                    }?.data?.id ?: it.find {
+                        roomMemberDao.getOfRoom(it.data.id).size == 1 && roomMemberDao.getOfRoom(it.data.id).firstOrNull()?.userId == userId
+                    }?.data?.id
 
                 }
             }
@@ -199,7 +198,7 @@ open class ConversationRepository(
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
-    ): Pager<Int, MessageWithReactions> {
+    ): Pager<Int, FullConversationMessage> {
         return Pager(
             config = config,
             pagingSourceFactory = {
@@ -213,7 +212,7 @@ open class ConversationRepository(
                         }
 
                         withContext(Dispatchers.IO) {
-                            val prevBatch = conversationRoomDao.get(conversationId)?.prevBatch
+                            val prevBatch = conversationRoomDao.get(conversationId)?.data?.prevBatch
 
                             conversationMessageDao.getPaginated(
                                 conversationId = conversationId,
@@ -273,29 +272,8 @@ open class ConversationRepository(
     suspend fun getConversationDetail(
         conversationId: String,
         owner: String?
-    ): ConversationRoomIO? = withContext(Dispatchers.IO) {
-        conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.let { room ->
-            val members = roomMemberDao.getOfRoom(conversationId).let { local ->
-                // if there are missing members, let's use API
-                if (local.size < (room.summary?.heroes?.size?.plus(1) ?: 1) || local.isEmpty()) {
-                    (sharedDataManager.matrixClient.value?.api?.room?.getMembers(
-                        roomId = RoomId(conversationId)
-                    )?.getOrNull()?.toList() as? List<ClientEvent<*>>)?.let { memberEvents ->
-                        dataSyncHandler.saveEvents(
-                            roomId = conversationId,
-                            prevBatch = null,
-                            events = memberEvents
-                        ).members
-                    }?.plus(local)?.distinctBy { it.userId } ?: local
-                } else local
-            }
-
-            room.copy(
-                summary = (room.summary ?: RoomSummary(heroes = members.map { UserId(it.userId) })).apply {
-                    this.members = members
-                }
-            )
-        }
+    ): FullConversationRoom? = withContext(Dispatchers.IO) {
+        conversationRoomDao.get(conversationId, ownerPublicId = owner)
     }
 
     /** Informs Matrix about typing progress */

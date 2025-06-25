@@ -116,8 +116,8 @@ import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
 import data.io.social.network.conversation.giphy.GifAsset
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
-import data.io.social.network.conversation.message.MessageWithReactions
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -143,9 +143,9 @@ import ui.conversation.components.message.ReplyIndication
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
     keyboardMode: MutableState<Int>,
-    overrideAnchorMessage: MessageWithReactions? = null,
-    replyToMessage: MutableState<MessageWithReactions?>,
-    scrollToMessage: (MessageWithReactions) -> Unit,
+    overrideAnchorMessage: FullConversationMessage? = null,
+    replyToMessage: MutableState<FullConversationMessage?>,
+    scrollToMessage: (FullConversationMessage) -> Unit,
     model: ConversationModel
 ) {
     val screenSize = LocalScreenSize.current
@@ -422,7 +422,7 @@ internal fun BoxScope.SendMessagePanel(
                     .padding(start = 12.dp)
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxWidth(),
-                data = originalMessage.message.toAnchorMessage(),
+                data = originalMessage.message,
                 onClick = {
                     scrollToMessage(originalMessage)
                 },

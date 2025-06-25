@@ -270,14 +270,7 @@ private fun NetworkItem(
                     newName = newName
                 )
             },
-            mapToNetworkItem = {
-                NetworkItemIO(
-                    displayName = it.summary?.roomName,
-                    proximity = it.proximity,
-                    publicId = it.id,
-                    avatar = it.summary?.roomAvatar
-                )
-            },
+            mapToNetworkItem = { it.toNetworkItem() },
             onDismissRequest = {
                 showAddMembers.value = false
             }

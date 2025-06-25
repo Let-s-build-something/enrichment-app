@@ -152,7 +152,7 @@ class DataSyncHandler: MessageProcessor() {
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
                     roomId = newItem.id
                 ).also { res ->
-                    if(res.messages.isNotEmpty()) {
+                    if (res.changeInMessages) {
                         dataService.appendPing(
                             AppPing(
                                 type = AppPingType.Conversation,
@@ -172,10 +172,10 @@ class DataSyncHandler: MessageProcessor() {
                         ) ?: RoomSummary(lastMessage = lastMessage?.message),
                         lastMessageTimestamp = lastMessage?.message?.sentAt
                     ).let { roomUpdate ->
-                        (conversationRoomDao.getItem(
+                        (conversationRoomDao.get(
                             id = room.id,
                             ownerPublicId = owner
-                        )?.update(roomUpdate) ?: roomUpdate).also { data ->
+                        )?.data?.update(roomUpdate) ?: roomUpdate).also { data ->
                             conversationRoomDao.insert(data)
                             rooms.add(data)
                         }

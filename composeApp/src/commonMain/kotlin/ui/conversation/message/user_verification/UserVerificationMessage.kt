@@ -44,8 +44,8 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.global.verification.EmojiEntity
 import components.UserProfileImage
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
-import data.io.social.network.conversation.message.MessageWithReactions
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -54,7 +54,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun UserVerificationMessage(
     modifier: Modifier = Modifier,
-    data: MessageWithReactions
+    data: FullConversationMessage
 ) {
     // each verification message has its own Model
     loadKoinModules(userVerificationModule)
@@ -91,14 +91,14 @@ fun UserVerificationMessage(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if(isMyRequest && data.message.user != null) {
+                if(isMyRequest && data.author != null) {
                     UserProfileImage(
                         modifier = Modifier
                             .align(Alignment.Top)
                             .size(48.dp),
-                        media = MediaIO(url = data.message.user.content.avatarUrl),
+                        media = MediaIO(url = data.author.content.avatarUrl),
                         tag = null,
-                        name = data.message.user.content.displayName ?: ""
+                        name = data.author.content.displayName ?: ""
                     )
                 }
                 Column(
@@ -119,7 +119,7 @@ fun UserVerificationMessage(
                         Text(
                             text = stringResource(
                                 Res.string.message_user_verification,
-                                data.message.user?.displayName ?: ""
+                                data.author?.displayName ?: ""
                             ),
                             style = LocalTheme.current.styles.category.copy(
                                 color = LocalTheme.current.colors.secondary

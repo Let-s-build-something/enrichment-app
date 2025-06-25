@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -84,8 +86,8 @@ import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.openLink
 import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.EmojiData
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MessageState
-import data.io.social.network.conversation.message.MessageWithReactions
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -116,7 +118,7 @@ interface MessageBubbleModel {
 @Composable
 fun MessageBubble(
     modifier: Modifier = Modifier,
-    data: MessageWithReactions?,
+    data: FullConversationMessage?,
     model: MessageBubbleModel,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
@@ -142,7 +144,7 @@ fun MessageBubble(
                 data = data,
                 model = model,
                 preferredEmojis = preferredEmojis,
-                currentUserPublicId = currentUserPublicId,
+                currentUserId = currentUserPublicId,
                 isReacting = isReacting,
                 isReplying = isReplying,
                 isMyLastMessage = isMyLastMessage,
@@ -155,14 +157,14 @@ fun MessageBubble(
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
-    data: MessageWithReactions,
+    data: FullConversationMessage,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
     hasNext: Boolean,
     model: MessageBubbleModel,
     isReplying: Boolean,
-    currentUserPublicId: String,
+    currentUserId: String,
     isReacting: Boolean,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
@@ -175,7 +177,7 @@ private fun ContentLayout(
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
     val coroutineScope = rememberCoroutineScope()
     val dragCoroutineScope = rememberCoroutineScope()
-    val isCurrentUser = data.message.authorPublicId == currentUserPublicId
+    val isCurrentUser = data.message.authorPublicId == currentUserId
 
     val replyBounds = remember {
         with(density) {
@@ -379,7 +381,7 @@ private fun ContentLayout(
                         modifier = Modifier
                             .weight(1f, fill = false)
                             .then(
-                                (if (isReacting || data.message.anchorMessage != null) {
+                                (if (isReacting || data.anchorMessage != null) {
                                     Modifier.background(
                                         color = LocalTheme.current.colors.backgroundDark,
                                         shape = LocalTheme.current.shapes.componentShape
@@ -470,7 +472,8 @@ private fun ContentLayout(
                                     textContent = textContent,
                                     isCurrentUser = isCurrentUser,
                                     showOptions = showOptions,
-                                    hasAttachment = hasAttachment
+                                    hasAttachment = hasAttachment,
+                                    currentUserId = currentUserId
                                 )
                             }
 
@@ -543,11 +546,12 @@ private fun ContentLayout(
 @Composable
 private fun MessageContent(
     modifier: Modifier = Modifier,
-    data: MessageWithReactions,
+    data: FullConversationMessage,
     model: MessageBubbleModel,
     textContent: AnnotatedString,
     shape: Shape,
     isCurrentUser: Boolean,
+    currentUserId: String,
     showOptions: Boolean,
     hasAttachment: Boolean,
 ) {
@@ -570,10 +574,12 @@ private fun MessageContent(
         )
     }
 
-    Box(modifier = modifier.animateContentSize(
-        alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh)
-    )) {
+    Box(
+        modifier = modifier.animateContentSize(
+            alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+            animationSpec = spring(stiffness = Spring.StiffnessHigh)
+        )
+    ) {
         if(!data.message.content.isNullOrEmpty()) {
             val showReadMore = remember(data.id) {
                 mutableStateOf(false)
@@ -601,7 +607,8 @@ private fun MessageContent(
                         .padding(
                             vertical = 10.dp,
                             horizontal = 14.dp
-                        )
+                        ),
+                    horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     Text(
                         modifier = Modifier
@@ -646,50 +653,54 @@ private fun MessageContent(
                 .zIndex(2f),
             visible = data.reactions.isNotEmpty()
         ) {
-            Row(
+            LazyRow(
                 modifier = Modifier
                     .padding(
                         start = if (isCurrentUser) 0.dp else 12.dp,
                         end = if (isCurrentUser) 12.dp else 0.dp
                     )
-                    .then(
-                        if (data.reactions.size > 1) {
-                            Modifier.offset(x = if (isCurrentUser) (-8).dp else 8.dp)
-                        } else Modifier
-                    )
                     .offset(
                         x = 0.dp,
                         y = with(density) {
-                            -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
+                            -LocalTheme.current.styles.category.fontSize.toDp() + 14.dp
                         }
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                data.reactions.take(MaximumReactions).forEach { reaction ->
+                items(
+                    items = data.reactions.take(MaximumReactions),
+                    key = { reaction -> "${reaction.eventId}_${reaction.content}" }
+                ) { reaction ->
                     Row(
                         Modifier
-                            .scalingClickable {
-                                if (data.reactions.size > 1) {
+                            .scalingClickable(
+                                onTap = {
+                                    reaction.content?.let { model.onReactionChange(it) }
+                                },
+                                onDoubleTap = {
+                                    showDetailDialogOf.value = data.message.content to reaction.content
+                                },
+                                onLongPress = {
                                     showDetailDialogOf.value = data.message.content to reaction.content
                                 }
-                            }
+                            )
                             .width(IntrinsicSize.Min)
                             .background(
                                 color = LocalTheme.current.colors.disabledComponent,
                                 shape = LocalTheme.current.shapes.componentShape
                             )
-                            .padding(4.dp),
+                            .padding(4.dp)
+                            .animateItem(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                modifier = Modifier.padding(end = 2.dp),
                                 text = reaction.content ?: "",
                                 style = LocalTheme.current.styles.category.copy(
                                     textAlign = TextAlign.Center
                                 )
                             )
-                            if (isCurrentUser) {
+                            if (reaction.authorPublicId == currentUserId) {
                                 Box(
                                     modifier = Modifier
                                         .height(2.dp)
@@ -806,6 +817,6 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 }
 
 // maximum visible reactions within message bubble
-const val MaximumReactions = 4
+const val MaximumReactions = 8
 private const val MaximumTextLines = 8
 private const val DragCancelDelayMillis = 100L

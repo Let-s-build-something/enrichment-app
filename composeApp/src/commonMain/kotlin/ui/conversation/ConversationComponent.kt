@@ -53,7 +53,7 @@ import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
 import components.EmptyLayout
-import data.io.social.network.conversation.message.MessageWithReactions
+import data.io.social.network.conversation.message.FullConversationMessage
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.launch
@@ -82,9 +82,9 @@ fun ConversationComponent(
     model: ConversationModel,
     shimmerItemCount: Int = 20,
     verticalArrangement: Arrangement.Vertical,
-    messages: LazyPagingItems<MessageWithReactions>,
+    messages: LazyPagingItems<FullConversationMessage>,
     conversationId: String?,
-    thread: MessageWithReactions? = null,
+    thread: FullConversationMessage? = null,
     lazyScope: LazyListScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
@@ -122,7 +122,7 @@ fun ConversationComponent(
         mutableStateOf<String?>(null)
     }
     val replyToMessage = remember {
-        mutableStateOf<MessageWithReactions?>(null)
+        mutableStateOf<FullConversationMessage?>(null)
     }
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
             || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
@@ -359,7 +359,7 @@ fun ConversationComponent(
                                                 conversationId = conversationId,
                                                 title = if(messageType == MessageType.CurrentUser) {
                                                     getString(Res.string.conversation_detail_you)
-                                                } else data?.message?.user?.content?.displayName
+                                                } else data?.author?.content?.displayName
                                             )
                                         )
                                     }
@@ -370,9 +370,9 @@ fun ConversationComponent(
 
                     ConversationMessageContent(
                         data = data?.copy(
+                            anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id },
                             message = data.message.copy(
                                 transcribed = data.message.transcribed == true || isTranscribed.value,
-                                anchorMessage = data.message.anchorMessage?.takeIf { it.id != thread?.id }
                             )
                         ),
                         isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,

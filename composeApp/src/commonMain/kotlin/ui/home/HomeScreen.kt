@@ -83,8 +83,8 @@ import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
 import data.io.base.AppPingType
 import data.io.base.BaseResponse
-import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
+import data.io.matrix.room.event.FullConversationRoom
 import data.io.user.NetworkItemIO
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
@@ -362,8 +362,8 @@ private fun ListContent(
                 room = room,
                 selectedItem = selectedItem.value,
                 requestProximityChange = { proximity ->
-                    val singleUser = if(room?.summary?.isDirect == true) {
-                        room.summary.members?.firstOrNull()
+                    val singleUser = if(room?.data?.summary?.isDirect == true) {
+                        room.members.firstOrNull()
                     }else null
 
                     model.requestProximityChange(
@@ -385,7 +385,7 @@ private fun ListContent(
                     }else navController?.navigate(
                         NavigationNode.Conversation(
                             conversationId = room?.id,
-                            name = room?.summary?.roomName
+                            name = room?.name
                         )
                     )
                 },
@@ -394,7 +394,7 @@ private fun ListContent(
                 },
                 onAvatarClick = {
                     SharedLogger.logger.debug { "clicked room: $room" }
-                    if(room?.summary?.isDirect == true) {
+                    if(room?.data?.summary?.isDirect == true) {
                         model.selectUser(room)
                     }else {
                         selectedRoomId.value = room?.id
@@ -425,7 +425,7 @@ private fun ConversationRoomItem(
     modifier: Modifier = Modifier,
     model: HomeModel,
     selectedItem: String?,
-    room: ConversationRoomIO?,
+    room: FullConversationRoom?,
     customColors: Map<NetworkProximityCategory, Color>,
     requestProximityChange: (proximity: Float) -> Unit,
     onAvatarClick: () -> Unit,
@@ -449,7 +449,7 @@ private fun ConversationRoomItem(
     }
 
     LaunchedEffect(Unit) {
-        if(room?.summary?.isDirect == true) {
+        if(room?.data?.summary?.isDirect == true) {
             model.requestOpenRooms()
         }
     }
@@ -470,7 +470,7 @@ private fun ConversationRoomItem(
             }
         }
 
-        if(room?.summary?.isDirect == true) {
+        if(room?.data?.summary?.isDirect == true) {
             val conversations = model.openConversations.collectAsState()
 
             AddToLauncher(
@@ -479,7 +479,7 @@ private fun ConversationRoomItem(
                 isLoading = isLoading.value,
                 heading = stringResource(
                     Res.string.invite_conversation_heading,
-                    room.summary.members?.firstOrNull()?.content?.displayName ?: "?"
+                    room.members.firstOrNull()?.content?.displayName ?: "?"
                 ),
                 newItemHint = stringResource(Res.string.invite_new_item_conversation),
                 items = conversations.value,
@@ -487,7 +487,7 @@ private fun ConversationRoomItem(
                 onInvite = { checkedItems, message, newName ->
                     model.inviteToConversation(
                         conversationId = if(newName != null) null else checkedItems.firstOrNull()?.id,
-                        userPublicIds = room.summary.members?.firstOrNull()?.userId?.let { listOf(it) },
+                        userPublicIds = room.members.firstOrNull()?.userId?.let { listOf(it) },
                         message = message,
                         newName = newName
                     )
@@ -501,7 +501,7 @@ private fun ConversationRoomItem(
 
             AddToLauncher(
                 key = room?.id,
-                defaultMessage = room?.summary?.invitationMessage,
+                defaultMessage = room?.data?.summary?.invitationMessage,
                 multiSelect = true,
                 isLoading = isLoading.value,
                 heading = stringResource(Res.string.invite_network_items_heading),
@@ -522,13 +522,13 @@ private fun ConversationRoomItem(
     }
 
     val indicatorColor = NetworkProximityCategory.entries.firstOrNull {
-        it.range.contains(room?.proximity ?: 1f)
+        it.range.contains(room?.data?.proximity ?: 1f)
     }.let {
         customColors[it] ?: it?.color
     }
     val itemModifier = Modifier
         .scalingClickable(
-            enabled = room?.type != RoomType.Invited,
+            enabled = room?.data?.type != RoomType.Invited,
             hoverEnabled = selectedItem != room?.id,
             scaleInto = .9f,
             onTap = {
@@ -555,7 +555,7 @@ private fun ConversationRoomItem(
         )
 
     Column(modifier = modifier) {
-        Crossfade(room?.type) { roomType ->
+        Crossfade(room?.data?.type) { roomType ->
             when(roomType) {
                 RoomType.Invited -> {
                     NetworkItemRow(
@@ -593,10 +593,10 @@ private fun ConversationRoomItem(
                                     showAddMembers.value = true
                                 },
                                 newItem = NetworkItemIO(
-                                    displayName = room?.summary?.roomName,
-                                    avatar = room?.summary?.roomAvatar,
+                                    displayName = room?.name,
+                                    avatar = room?.avatar,
                                     publicId = room?.id ?: "-",
-                                    proximity = room?.proximity
+                                    proximity = room?.data?.proximity
                                 )
                             )
                         }

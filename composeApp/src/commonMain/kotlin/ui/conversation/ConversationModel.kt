@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import androidx.paging.map
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
@@ -19,9 +18,9 @@ import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
-import data.io.social.network.conversation.message.MessageWithReactions
 import database.file.FileAccess
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.extension
@@ -151,7 +150,7 @@ open class ConversationModel(
             indicators.second[conversationId]?.userIds?.mapNotNull { userId ->
                 if(userId.full != matrixUserId) {
                     ConversationTypingIndicator().apply {
-                        user = dataManager.conversations.value.second[conversationId]?.summary?.members?.find { user ->
+                        user = dataManager.conversations.value.second[conversationId]?.members?.find { user ->
                             user.userId == userId.full
                         }
                     }
@@ -165,7 +164,7 @@ open class ConversationModel(
 
     /** flow of current messages */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val conversationMessages: Flow<PagingData<MessageWithReactions>> = if (enableMessages) {
+    val conversationMessages: Flow<PagingData<FullConversationMessage>> = if (enableMessages) {
         conversationId.flatMapLatest { conversationId ->
             repository.getMessagesListFlow(
                 config = PagingConfig(
@@ -175,20 +174,7 @@ open class ConversationModel(
                 ),
                 homeserver = { homeserver },
                 conversationId = conversationId
-            ).flow
-                .cachedIn(viewModelScope)
-                .combine(conversation) { messages, detail ->
-                    messages.map { message ->
-                        message.copy(
-                            message = message.message.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
-                                anchorMessage = message.message.anchorMessage?.copy(
-                                    user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
-                                )
-                            )
-                        )
-                    }
-                }
+            ).flow.cachedIn(viewModelScope)
         }
     }else flow { PagingData.empty<ConversationMessageIO>() }
 
@@ -415,7 +401,8 @@ open class ConversationModel(
                         values = gravityValues.map { it.copy(conversationId = null) },
                         tickMs = TICK_MILLIS
                     ),
-                    anchorMessage = anchorMessage?.toAnchorMessage(),
+                    anchorMessageId = anchorMessage?.id,
+                    parentAnchorMessageId = anchorMessage?.anchorMessageId,
                     media = mediaUrls.mapNotNull { url ->
                         MediaIO(
                             url = url,
