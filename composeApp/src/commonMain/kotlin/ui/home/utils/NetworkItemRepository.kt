@@ -9,7 +9,7 @@ import data.io.social.network.conversation.RoomInvitationRequest
 import data.io.user.NetworkItemIO
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.patch
 import io.ktor.client.request.post

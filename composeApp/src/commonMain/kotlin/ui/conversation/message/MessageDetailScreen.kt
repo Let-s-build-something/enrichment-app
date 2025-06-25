@@ -120,7 +120,7 @@ fun MessageDetailScreen(
     BrandBaseScreen(
         navIconType = NavIconType.CLOSE,
         title = title,
-        subtitle = message.value?.sentAt?.formatAsRelative()
+        subtitle = message.value?.message?.sentAt?.formatAsRelative()
     ) {
         ConversationComponent(
             modifier = Modifier.fillMaxSize(),
@@ -150,7 +150,7 @@ fun MessageDetailScreen(
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        val isCurrentUser = viewModel.matrixUserId == message.value?.authorPublicId
+                        val isCurrentUser = viewModel.matrixUserId == message.value?.message?.authorPublicId
 
                         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
                         if(!isCurrentUser) {
@@ -164,18 +164,18 @@ fun MessageDetailScreen(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),
-                                        media = MediaIO(url = message.value?.user?.content?.avatarUrl),
+                                        media = MediaIO(url = message.value?.message?.user?.content?.avatarUrl),
                                         tag = null,//message.value?.user?.tag,
                                         animate = true,
-                                        name = message.value?.user?.content?.displayName
+                                        name = message.value?.message?.user?.content?.displayName
                                     )
                                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                                     Text(
-                                        text = message.value?.user?.content?.displayName ?: "",
+                                        text = message.value?.message?.user?.content?.displayName ?: "",
                                         style = LocalTheme.current.styles.title
                                     )
                                 }
-                                if(!message.value?.timings.isNullOrEmpty()) {
+                                if(!message.value?.message?.timings.isNullOrEmpty()) {
                                     Crossfade(
                                         modifier = Modifier.padding(start = 8.dp),
                                         targetState = transcribing.value
@@ -207,14 +207,14 @@ fun MessageDetailScreen(
                                 text = buildTempoString(
                                     enabled = transcribing.value,
                                     text = buildAnnotatedLinkString(
-                                        text = message.value?.content ?: "",
+                                        text = message.value?.message?.content ?: "",
                                         onLinkClicked = { openLink(it) }
                                     ),
                                     style = LocalTheme.current.styles.title.copy(
                                         color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
                                         fontFamily = FontFamily(fontQuicksandMedium)
                                     ).toSpanStyle(),
-                                    timings = message.value?.timings.orEmpty(),
+                                    timings = message.value?.message?.timings.orEmpty(),
                                     onFinish = {
                                         transcribing.value = false
                                     }
@@ -246,7 +246,7 @@ fun MessageDetailScreen(
                                             Modifier
                                                 .scalingClickable {
                                                     if ((message.value?.reactions?.size ?: 0) > 1) {
-                                                        showDetailDialogOf.value = message.value?.content to reaction.content
+                                                        showDetailDialogOf.value = message.value?.message?.content to reaction.content
                                                     }
                                                 }
                                                 .width(IntrinsicSize.Min)
@@ -308,12 +308,12 @@ fun MessageDetailScreen(
                             if(isCurrentUser) {
                                 reactionsRow()
                             }
-                            message.value?.state?.imageVector?.let { imgVector ->
+                            message.value?.message?.state?.imageVector?.let { imgVector ->
                                 Icon(
                                     modifier = Modifier.size(16.dp),
                                     imageVector = imgVector,
-                                    contentDescription = message.value?.state?.description,
-                                    tint = if (message.value?.state == MessageState.Failed) {
+                                    contentDescription = message.value?.message?.state?.description,
+                                    tint = if (message.value?.message?.state == MessageState.Failed) {
                                         SharedColors.RED_ERROR
                                     } else LocalTheme.current.colors.disabled
                                 )
@@ -325,7 +325,7 @@ fun MessageDetailScreen(
                             )
                             Text(
                                 modifier = Modifier.padding(start = 6.dp),
-                                text = "${message.value?.state?.description ?: ""} ${message.value?.sentAt?.formatAsRelative()}",
+                                text = "${message.value?.message?.state?.description ?: ""} ${message.value?.message?.sentAt?.formatAsRelative()}",
                                 style = LocalTheme.current.styles.regular
                             )
                             if(!isCurrentUser) {

@@ -21,6 +21,7 @@ import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageState
+import data.io.social.network.conversation.message.MessageWithReactions
 import database.file.FileAccess
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.extension
@@ -71,7 +72,7 @@ internal val conversationModule = module {
 
     factory { ConversationDataManager() }
     single { ConversationDataManager() }
-    factory { ConversationRepository(get(), get(), get(), get(), get(), get<FileAccess>()) }
+    factory { ConversationRepository(get(), get(), get(), get(), get(), get(), get<FileAccess>()) }
 
     factory { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
         ConversationModel(
@@ -164,7 +165,7 @@ open class ConversationModel(
 
     /** flow of current messages */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val conversationMessages: Flow<PagingData<ConversationMessageIO>> = if (enableMessages) {
+    val conversationMessages: Flow<PagingData<MessageWithReactions>> = if (enableMessages) {
         conversationId.flatMapLatest { conversationId ->
             repository.getMessagesListFlow(
                 config = PagingConfig(
@@ -179,15 +180,12 @@ open class ConversationModel(
                 .combine(conversation) { messages, detail ->
                     messages.map { message ->
                         message.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
-                            anchorMessage = message.anchorMessage?.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
-                            ),
-                            reactions = message.reactions?.map { reaction ->
-                                reaction.copy(
-                                    user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                            message = message.message.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
+                                anchorMessage = message.message.anchorMessage?.copy(
+                                    user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
                                 )
-                            }?.toList().orEmpty()
+                            )
                         )
                     }
                 }

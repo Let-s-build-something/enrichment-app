@@ -20,13 +20,15 @@ import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.MessageReactionDao
+import database.dao.RoomMemberDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.PlatformFile
 import io.ktor.client.HttpClient
@@ -49,6 +51,8 @@ import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.ClientEvent
+import net.folivo.trixnity.core.model.events.m.ReactionEventContent
+import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
 import net.folivo.trixnity.core.model.events.m.room.FileInfo
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
@@ -64,6 +68,7 @@ import utils.SharedLogger
 open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
+    private val messageReactionDao: MessageReactionDao,
     internal val conversationRoomDao: ConversationRoomDao,
     private val roomMemberDao: RoomMemberDao,
     mediaDataManager: MediaProcessorDataManager,
@@ -194,7 +199,7 @@ open class ConversationRepository(
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
-    ): Pager<Int, ConversationMessageIO> {
+    ): Pager<Int, MessageWithReactions> {
         return Pager(
             config = config,
             pagingSourceFactory = {
@@ -397,32 +402,57 @@ open class ConversationRepository(
         conversationId: String,
         reaction: MessageReactionRequest
     ): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.Default) {
+            val self = sharedDataManager.currentUser.value?.matrixUserId
+            val data = MessageReactionIO(
+                content = reaction.content,
+                authorPublicId = self,
+                messageId = reaction.messageId
+            )
             conversationMessageDao.get(reaction.messageId)?.let { message ->
-                val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
+                val existingReaction = message.reactions.find {
+                    it.authorPublicId == self && it.content == reaction.content
+                }
 
-                conversationMessageDao.insertReplace(message.copy(
-                    reactions = message.reactions.orEmpty().toMutableList().apply {
-                        add(
-                            MessageReactionIO(
-                                content = reaction.content,
-                                authorPublicId = dataManager.currentUser.value?.matrixUserId
+                // add new reaction
+                if (existingReaction == null) {
+                    messageReactionDao.insertReplace(data) // placeholder local reaction
+                    invalidateLocalSource()
+
+                    sharedDataManager.matrixClient.value?.api?.room?.sendMessageEvent(
+                        roomId = RoomId(conversationId),
+                        eventContent = ReactionEventContent(
+                            relatesTo = RelatesTo.Annotation(
+                                eventId = EventId(reaction.messageId),
+                                key = reaction.content
                             )
                         )
-                    }
-                ))
-            }
-            invalidateLocalSource()
+                    )?.getOrNull().let { eventId ->
+                        messageReactionDao.remove(data.eventId)
 
-            httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/conversation/react",
-                    block = {
-                        parameter("conversationId", conversationId)
-                        setBody(reaction)
+                        (if (eventId != null) { // replace placeholder with real event
+                            messageReactionDao.insertReplace(data.copy(eventId = eventId.full))
+                            BaseResponse.Success(eventId)
+                        }else BaseResponse.Error()).also {
+                            invalidateLocalSource()
+                        }
                     }
-                )
-            }
+                } else {    // remove existing reaction
+                    messageReactionDao.remove(existingReaction.eventId)
+                    invalidateLocalSource()
+
+                    sharedDataManager.matrixClient.value?.api?.room?.redactEvent(
+                        roomId = RoomId(conversationId),
+                        eventId = EventId(existingReaction.eventId)
+                    )?.getOrNull().let { eventId ->
+                        if (eventId == null) {
+                            messageReactionDao.insertReplace(existingReaction)
+                            invalidateLocalSource()
+                            BaseResponse.Error()
+                        } else BaseResponse.Success(eventId)
+                    }
+                }
+            } ?: BaseResponse.Error()
         }
     }
 

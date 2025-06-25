@@ -4,11 +4,11 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
 import androidx.paging.PagingState
 import coil3.network.HttpException
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import kotlinx.io.IOException
 
 data class GetMessagesResponse(
-    val data: List<ConversationMessageIO> = listOf(),
+    val data: List<MessageWithReactions> = listOf(),
     val hasNext: Boolean = false
 )
 
@@ -17,16 +17,16 @@ class ConversationRoomSource(
     private val size: Int,
     private val getCount: suspend () -> Int,
     private val getMessages: suspend (page: Int) -> GetMessagesResponse?
-): PagingSource<Int, ConversationMessageIO>() {
+): PagingSource<Int, MessageWithReactions>() {
 
-    override fun getRefreshKey(state: PagingState<Int, ConversationMessageIO>): Int? {
+    override fun getRefreshKey(state: PagingState<Int, MessageWithReactions>): Int? {
         return state.anchorPosition?.let {
             state.closestPageToPosition(it)?.prevKey?.plus(1)
                 ?: state.closestPageToPosition(it)?.nextKey?.minus(1)
         }
     }
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationMessageIO> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, MessageWithReactions> {
         return try {
             val paramsKey = params.key ?: 0
             val response = getMessages(paramsKey)

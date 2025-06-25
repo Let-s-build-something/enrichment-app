@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
 import androidx.paging.map
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import database.file.FileAccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,7 +23,7 @@ import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
-    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get()) }
+    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get(), get()) }
     factory {
         MessageDetailModel(
             get<String>(),
@@ -62,22 +62,19 @@ class MessageDetailModel(
     dataManager = dataManager
 ) {
 
-    private val _message = MutableStateFlow<ConversationMessageIO?>(null)
+    private val _message = MutableStateFlow<MessageWithReactions?>(null)
 
     /** Locally retrieved information */
     val message = _message
         .combine(conversation) { message, detail ->
             withContext(Dispatchers.Default) {
                 message?.copy(
-                    user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
-                    anchorMessage = message.anchorMessage?.copy(
-                        user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
-                    ),
-                    reactions = message.reactions?.map { reaction ->
-                        reaction.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                    message = message.message.copy(
+                        user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
+                        anchorMessage = message.message.anchorMessage?.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
                         )
-                    }?.toList().orEmpty()
+                    )
                 )
             }
         }
@@ -98,15 +95,12 @@ class MessageDetailModel(
                 withContext(Dispatchers.Default) {
                     messages.map { message ->
                         message.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
-                            anchorMessage = message.anchorMessage?.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
-                            ),
-                            reactions = message.reactions?.map { reaction ->
-                                reaction.copy(
-                                    user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                            message = message.message.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
+                                anchorMessage = message.message.anchorMessage?.copy(
+                                    user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
                                 )
-                            }?.toList().orEmpty()
+                            )
                         )
                     }
                 }

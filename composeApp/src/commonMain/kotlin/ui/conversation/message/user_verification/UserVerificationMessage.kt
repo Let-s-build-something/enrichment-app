@@ -44,8 +44,8 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.global.verification.EmojiEntity
 import components.UserProfileImage
-import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
@@ -54,20 +54,20 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun UserVerificationMessage(
     modifier: Modifier = Modifier,
-    data: ConversationMessageIO
+    data: MessageWithReactions
 ) {
     // each verification message has its own Model
     loadKoinModules(userVerificationModule)
     val model: UserVerificationModel = koinViewModel(
         key = data.id,
         parameters = {
-            parametersOf(data.conversationId ?: "")
+            parametersOf(data.message.conversationId ?: "")
         }
     )
 
     val verificationState = model.verificationState.collectAsState()
     val isLoading = model.isLoading.collectAsState()
-    val isMyRequest = data.authorPublicId == model.matrixUserId
+    val isMyRequest = data.message.authorPublicId == model.matrixUserId
 
     LaunchedEffect(data.id) {
         model.getUserVerification(eventId = data.id)
@@ -91,14 +91,14 @@ fun UserVerificationMessage(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if(isMyRequest && data.user != null) {
+                if(isMyRequest && data.message.user != null) {
                     UserProfileImage(
                         modifier = Modifier
                             .align(Alignment.Top)
                             .size(48.dp),
-                        media = MediaIO(url = data.user?.content?.avatarUrl),
+                        media = MediaIO(url = data.message.user.content.avatarUrl),
                         tag = null,
-                        name = data.user?.content?.displayName ?: ""
+                        name = data.message.user.content.displayName ?: ""
                     )
                 }
                 Column(
@@ -119,7 +119,7 @@ fun UserVerificationMessage(
                         Text(
                             text = stringResource(
                                 Res.string.message_user_verification,
-                                data.user?.displayName ?: ""
+                                data.message.user?.displayName ?: ""
                             ),
                             style = LocalTheme.current.styles.category.copy(
                                 color = LocalTheme.current.colors.secondary

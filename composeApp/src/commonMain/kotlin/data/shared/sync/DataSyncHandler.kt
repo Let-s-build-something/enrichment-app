@@ -162,15 +162,15 @@ class DataSyncHandler: MessageProcessor() {
                     }
 
                     val lastMessage = res.messages.sortedByDescending {
-                        it.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
-                    }.firstOrNull { !it.content.isNullOrBlank() }
+                        it.message.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
+                    }.firstOrNull { !it.message.content.isNullOrBlank() }
 
                     // either update existing one, or insert new one
                     newItem.copy(
                         summary = newItem.summary?.copy(
-                            lastMessage = lastMessage ?: newItem.summary.lastMessage
-                        ) ?: RoomSummary(lastMessage = lastMessage),
-                        lastMessageTimestamp = lastMessage?.sentAt
+                            lastMessage = lastMessage?.message ?: newItem.summary.lastMessage
+                        ) ?: RoomSummary(lastMessage = lastMessage?.message),
+                        lastMessageTimestamp = lastMessage?.message?.sentAt
                     ).let { roomUpdate ->
                         (conversationRoomDao.getItem(
                             id = room.id,

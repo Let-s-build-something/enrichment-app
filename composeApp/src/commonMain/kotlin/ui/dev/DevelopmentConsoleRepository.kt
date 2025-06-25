@@ -5,11 +5,11 @@ import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.GravityDao
+import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
-import database.dao.matrix.MatrixPagingMetaDao
-import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody

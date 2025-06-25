@@ -116,8 +116,8 @@ import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
 import data.io.social.network.conversation.giphy.GifAsset
-import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -143,9 +143,9 @@ import ui.conversation.components.message.ReplyIndication
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
     keyboardMode: MutableState<Int>,
-    overrideAnchorMessage: ConversationMessageIO? = null,
-    replyToMessage: MutableState<ConversationMessageIO?>,
-    scrollToMessage: (ConversationMessageIO) -> Unit,
+    overrideAnchorMessage: MessageWithReactions? = null,
+    replyToMessage: MutableState<MessageWithReactions?>,
+    scrollToMessage: (MessageWithReactions) -> Unit,
     model: ConversationModel
 ) {
     val screenSize = LocalScreenSize.current
@@ -278,7 +278,7 @@ internal fun BoxScope.SendMessagePanel(
             model.sendMessage(
                 content = messageState.text.toString(),
                 mediaFiles = mediaAttached.toList(),
-                anchorMessage = replyToMessage.value ?: overrideAnchorMessage,
+                anchorMessage = replyToMessage.value?.message ?: overrideAnchorMessage?.message,
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
                 showPreview = showPreview.value,
@@ -422,14 +422,14 @@ internal fun BoxScope.SendMessagePanel(
                     .padding(start = 12.dp)
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxWidth(),
-                data = originalMessage.toAnchorMessage(),
+                data = originalMessage.message.toAnchorMessage(),
                 onClick = {
                     scrollToMessage(originalMessage)
                 },
                 onRemoveRequest = {
                     replyToMessage.value = null
                 },
-                isCurrentUser = originalMessage.authorPublicId == model.currentUser.value?.matrixUserId,
+                isCurrentUser = originalMessage.message.authorPublicId == model.currentUser.value?.matrixUserId,
                 removable = true
             )
         }

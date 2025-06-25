@@ -1,12 +1,8 @@
 package data.shared.sync
 
-import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
 import data.io.social.UserVisibility
 import data.shared.SharedDataManager
-import database.dao.ConversationMessageDao
-import database.dao.ConversationRoomDao
-import database.dao.matrix.MatrixPagingMetaDao
 import korlibs.io.async.onCancel
 import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -40,13 +36,9 @@ class DataSyncService {
 
     companion object {
         const val SYNC_INTERVAL = 60_000L
-        private const val START_ANEW = false // for debug use
     }
 
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
-    private val matrixPagingMetaDao: MatrixPagingMetaDao by KoinPlatform.getKoin().inject()
-    private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
-    private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
     private val json: Json by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -70,12 +62,6 @@ class DataSyncService {
                 }
 
                 synMutex.withLock {
-                    if(START_ANEW && BuildKonfig.isDevelopment) {
-                        matrixPagingMetaDao.removeAll()
-                        conversationRoomDao.removeAll()
-                        conversationMessageDao.removeAll()
-                    }
-
                     sharedDataManager.matrixClient.value?.let { client ->
                         delay?.let { delay(it) }
                         if(sharedDataManager.currentUser.value?.isFullyValid == true) {

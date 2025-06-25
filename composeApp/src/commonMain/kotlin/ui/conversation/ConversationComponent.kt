@@ -53,7 +53,7 @@ import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
 import components.EmptyLayout
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.launch
@@ -82,9 +82,9 @@ fun ConversationComponent(
     model: ConversationModel,
     shimmerItemCount: Int = 20,
     verticalArrangement: Arrangement.Vertical,
-    messages: LazyPagingItems<ConversationMessageIO>,
+    messages: LazyPagingItems<MessageWithReactions>,
     conversationId: String?,
-    thread: ConversationMessageIO? = null,
+    thread: MessageWithReactions? = null,
     lazyScope: LazyListScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
@@ -122,7 +122,7 @@ fun ConversationComponent(
         mutableStateOf<String?>(null)
     }
     val replyToMessage = remember {
-        mutableStateOf<ConversationMessageIO?>(null)
+        mutableStateOf<MessageWithReactions?>(null)
     }
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
             || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
@@ -260,8 +260,8 @@ fun ConversationComponent(
                 val data = messages.getOrNull(index)
 
                 val messageType = when {
-                    data?.authorPublicId == model.matrixUserId -> MessageType.CurrentUser
-                    data?.authorPublicId == AUTHOR_SYSTEM -> MessageType.System
+                    data?.message?.authorPublicId == model.matrixUserId -> MessageType.CurrentUser
+                    data?.message?.authorPublicId == AUTHOR_SYSTEM -> MessageType.System
                     data == null -> if((0..1).random() == 0) MessageType.CurrentUser else MessageType.OtherUser
                     else -> MessageType.OtherUser
                 }
@@ -271,16 +271,16 @@ fun ConversationComponent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        if(data?.verification != null) {
+                        if(data?.message?.verification != null) {
                             UserVerificationMessage(data = data)
                         }else {
                             SystemMessage(data = data)
                         }
                     }
                 }else {
-                    val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.authorPublicId == data?.authorPublicId
+                    val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.message?.authorPublicId == data?.message?.authorPublicId
                     val nextItem = messages.getOrNull(index - 1)
-                    val isNextMessageSameAuthor = nextItem?.authorPublicId == data?.authorPublicId
+                    val isNextMessageSameAuthor = nextItem?.message?.authorPublicId == data?.message?.authorPublicId
 
                     LaunchedEffect(Unit) {
                         if(messageType == MessageType.CurrentUser
@@ -290,11 +290,11 @@ fun ConversationComponent(
                             lastCurrentUserMessage.value = index
                         }
                     }
-                    val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.transcribed == true) }
+                    val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.message?.transcribed == true) }
 
-                    if(data?.id != null && messageType == MessageType.OtherUser && !data.content.isNullOrBlank()) {
+                    if(data?.id != null && messageType == MessageType.OtherUser && !data.message.content.isNullOrBlank()) {
                         LaunchedEffect(Unit) {
-                            if(data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
+                            if(data.message.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
                                 transcribedItem.value = index to data.id
                             }else if ((transcribedItem.value?.first ?: -1) == index
                                 && data.id != transcribedItem.value?.second
@@ -302,7 +302,7 @@ fun ConversationComponent(
                                 transcribedItem.value = null
                             }
 
-                            if(data.transcribed == true && transcribedItem.value?.second == data.id) {
+                            if(data.message.transcribed == true && transcribedItem.value?.second == data.id) {
                                 transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
                             }
                         }
@@ -359,7 +359,7 @@ fun ConversationComponent(
                                                 conversationId = conversationId,
                                                 title = if(messageType == MessageType.CurrentUser) {
                                                     getString(Res.string.conversation_detail_you)
-                                                } else data?.user?.content?.displayName
+                                                } else data?.message?.user?.content?.displayName
                                             )
                                         )
                                     }
@@ -370,8 +370,10 @@ fun ConversationComponent(
 
                     ConversationMessageContent(
                         data = data?.copy(
-                            transcribed = data.transcribed == true || isTranscribed.value,
-                            anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id }
+                            message = data.message.copy(
+                                transcribed = data.message.transcribed == true || isTranscribed.value,
+                                anchorMessage = data.message.anchorMessage?.takeIf { it.id != thread?.id }
+                            )
                         ),
                         isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
                         isNextMessageSameAuthor = isNextMessageSameAuthor,

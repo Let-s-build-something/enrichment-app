@@ -3,6 +3,7 @@ package data.io.social.network.conversation.message
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import data.io.matrix.room.event.ConversationRoomMember
 import database.AppRoomDatabase
@@ -17,7 +18,15 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Conversation entity representing a singular message within a conversation */
-@Entity(tableName = AppRoomDatabase.TABLE_CONVERSATION_MESSAGE)
+@Entity(
+    tableName = AppRoomDatabase.TABLE_CONVERSATION_MESSAGE,
+    indices = [
+        Index(value = ["conversation_id"]),
+        Index(value = ["sent_at"]),
+        Index(value = ["anchor_message_id"]),
+        Index(value = ["parent_anchor_message_id"])
+    ]
+)
 @Serializable
 data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
@@ -34,9 +43,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Public id of the author of this message */
     @ColumnInfo("author_public_id")
     val authorPublicId: String? = null,
-
-    /** List of reactions to this message */
-    val reactions: List<MessageReactionIO>? = null,
 
     /** Whether preview should be shown for this message */
     @ColumnInfo("show_preview")
@@ -105,7 +111,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
             content = other.content ?: content,
             media = other.media ?: media,
             authorPublicId = other.authorPublicId ?: authorPublicId,
-            reactions = other.reactions ?: reactions,
             showPreview = other.showPreview ?: showPreview,
             anchorMessage = other.anchorMessage ?: anchorMessage,
             anchorMessageId = other.anchorMessageId ?: anchorMessageId,

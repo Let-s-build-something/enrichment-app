@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_room_join
 import components.UserProfileImage
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import data.io.user.UserIO.Companion.generateUserTag
 import net.folivo.trixnity.core.model.UserId
 import org.jetbrains.compose.resources.stringResource
@@ -17,18 +17,18 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun SystemMessage(
     modifier: Modifier = Modifier,
-    data: ConversationMessageIO?
+    data: MessageWithReactions?
 ) {
     InfoBox(
         modifier = modifier,
-        message = data?.content ?: "",
+        message = data?.message?.content ?: "",
         paddingValues = PaddingValues(
-            vertical = if (data?.media.isNullOrEmpty()) 18.dp else 8.dp,
+            vertical = if (data?.message?.media.isNullOrEmpty()) 18.dp else 8.dp,
             horizontal = 12.dp
         )
     ) {
-        data?.media?.forEach { media ->
-            if (data.content?.contains(stringResource(Res.string.message_room_join)) == true) {
+        data?.message?.media?.forEach { media ->
+            if (data.message.content?.contains(stringResource(Res.string.message_room_join)) == true) {
                 UserProfileImage(
                     modifier = Modifier
                         .size(42.dp)

@@ -17,7 +17,7 @@ data class ProcessedEvents(
     val redactions: List<RedactionEventContent>,
     val presenceData: List<PresenceData>,
     val replacements: HashMap<String, ConversationMessageIO?>,
-    val reactions: HashMap<String, MutableSet<MessageReactionIO>>,
+    val reactions: MutableSet<MessageReactionIO>,
 
     /** Message id to the encrypted event */
     val encryptedEvents: List<Pair<String, RoomEvent.MessageEvent<*>>>

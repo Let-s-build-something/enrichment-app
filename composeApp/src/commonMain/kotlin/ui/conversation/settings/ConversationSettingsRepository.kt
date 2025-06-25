@@ -13,10 +13,10 @@ import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
+import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
-import database.dao.matrix.MatrixPagingMetaDao
-import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import database.file.FileAccess
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get

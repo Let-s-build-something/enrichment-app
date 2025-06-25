@@ -9,7 +9,7 @@ import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.ConversationListResponse
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext

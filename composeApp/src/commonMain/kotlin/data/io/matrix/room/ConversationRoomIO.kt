@@ -3,6 +3,7 @@ package data.io.matrix.room
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import data.io.user.NetworkItemIO
 import data.io.user.UserIO.Companion.generateUserTag
@@ -24,7 +25,17 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Matrix conversation room object */
-@Entity(tableName = AppRoomDatabase.TABLE_CONVERSATION_ROOM)
+@Entity(
+    tableName = AppRoomDatabase.TABLE_CONVERSATION_ROOM,
+    indices = [
+        Index(value = ["owner_public_id"]),
+        Index(value = ["type"]),
+        Index(value = ["proximity"]),
+        Index(value = ["last_message_timestamp"]),
+        Index(value = ["owner_public_id", "type"]),
+        Index(value = ["owner_public_id", "id"])
+    ]
+)
 @Serializable
 data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Unique identifier of this room, in the format of "!opaque_id:domain" */

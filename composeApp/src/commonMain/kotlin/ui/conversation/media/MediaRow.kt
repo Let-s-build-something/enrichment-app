@@ -43,8 +43,8 @@ import base.navigation.NavigationNode
 import base.theme.Colors
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getMediaType
-import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,7 +60,7 @@ fun MediaRow(
     modifier: Modifier = Modifier,
     mediaProcessorModel: MediaProcessorModel = koinViewModel(),
     scrollState: ScrollState,
-    data: ConversationMessageIO?,
+    data: MessageWithReactions?,
     media: List<MediaIO>,
     temporaryFiles: Map<String, PlatformFile?>,
     isCurrentUser: Boolean,
@@ -78,7 +78,7 @@ fun MediaRow(
         val showSpacers = remember(data.id) {
             mutableStateOf(false)
         }
-        val date = data.sentAt?.formatAsRelative() ?: ""
+        val date = data.message.sentAt?.formatAsRelative() ?: ""
         val hoverInteractionSource = remember { MutableInteractionSource() }
         val cachedMedia = mediaProcessorModel.cachedFiles.collectAsState()
         val isHovered = hoverInteractionSource.collectIsHoveredAsState()
@@ -110,7 +110,7 @@ fun MediaRow(
                     Spacer(Modifier.width((LocalScreenSize.current.width * .3f).dp))
                 }
             }
-            data.media?.forEachIndexed { index, media ->
+            data.message.media?.forEachIndexed { index, media ->
                 val temporaryMedia = temporaryFiles[media.url]
                 val canBeVisualized = getMediaType(media.mimetype ?: "").isVisual
 
@@ -118,11 +118,11 @@ fun MediaRow(
                     coroutineScope.launch {
                         navController?.navigate(
                             NavigationNode.MediaDetail(
-                                media = data.media.map { cachedMedia.value[it.url] ?.success?.data?: it },
+                                media = data.message.media.map { cachedMedia.value[it.url] ?.success?.data?: it },
                                 selectedIndex = index,
                                 title = if(isCurrentUser) {
                                     getString(Res.string.conversation_detail_you)
-                                } else data.user?.content?.displayName,
+                                } else data.message.user?.content?.displayName,
                                 subtitle = date
                             )
                         )
@@ -130,7 +130,7 @@ fun MediaRow(
                 }
 
                 MediaElement(
-                    modifier = (if((data.state?.ordinal ?: 0) > 0 && canBeVisualized) {
+                    modifier = (if((data.message.state?.ordinal ?: 0) > 0 && canBeVisualized) {
                         modifier.pointerInput(data.id) {
                             if(isMouseUser) {
                                 detectTapGestures(
@@ -155,10 +155,10 @@ fun MediaRow(
                             RoundedCornerShape(
                                 topStart = LocalTheme.current.shapes.componentCornerRadius,
                                 topEnd = LocalTheme.current.shapes.componentCornerRadius,
-                                bottomStart = if(data.content.isNullOrBlank()) {
+                                bottomStart = if(data.message.content.isNullOrBlank()) {
                                     LocalTheme.current.shapes.componentCornerRadius
                                 }else 0.dp,
-                                bottomEnd = if(data.content.isNullOrBlank()) {
+                                bottomEnd = if(data.message.content.isNullOrBlank()) {
                                     LocalTheme.current.shapes.componentCornerRadius
                                 }else 0.dp
                             )

@@ -69,15 +69,12 @@ class PrototypeConversationModel(
             withContext(Dispatchers.Default) {
                 messages.map { message ->
                     message.copy(
-                        user = detail?.summary?.members?.find { user -> user.userId == message.authorPublicId },
-                        anchorMessage = message.anchorMessage?.copy(
-                            user = detail?.summary?.members?.find { user -> user.userId == message.anchorMessage.authorPublicId }
-                        ),
-                        reactions = message.reactions?.map { reaction ->
-                            reaction.copy(
-                                user = detail?.summary?.members?.find { user -> user.userId == reaction.authorPublicId }
+                        message = message.message.copy(
+                            user = detail?.summary?.members?.find { user -> user.userId == message.message.authorPublicId },
+                            anchorMessage = message.message.anchorMessage?.copy(
+                                user = detail?.summary?.members?.find { user -> user.userId == message.message.anchorMessage.authorPublicId }
                             )
-                        }?.toList().orEmpty()
+                        )
                     )
                 }
             }

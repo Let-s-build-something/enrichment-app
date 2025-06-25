@@ -35,8 +35,8 @@ import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
-import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageWithReactions
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.delay
 import ui.conversation.components.link.LinkPreview
@@ -59,7 +59,7 @@ enum class MessageType {
  */
 @Composable
 fun LazyItemScope.ConversationMessageContent(
-    data: ConversationMessageIO?,
+    data: MessageWithReactions?,
     temporaryFiles: Map<String, PlatformFile?>,
     currentUserPublicId: String?,
     isPreviousMessageSameAuthor: Boolean,
@@ -68,7 +68,7 @@ fun LazyItemScope.ConversationMessageContent(
     isMyLastMessage: Boolean,
     model: MessageBubbleModel,
     reactingToMessageId: MutableState<String?>,
-    replyToMessage: MutableState<ConversationMessageIO?>,
+    replyToMessage: MutableState<MessageWithReactions?>,
     preferredEmojis: List<EmojiData>,
     scrollToMessage: (String?, Int?) -> Unit
 ) {
@@ -119,9 +119,9 @@ fun LazyItemScope.ConversationMessageContent(
                             )
                             .zIndex(4f)
                             .size(profileImageSize),
-                        media = MediaIO(url = data?.user?.content?.avatarUrl),
+                        media = MediaIO(url = data?.message?.user?.content?.avatarUrl),
                         tag = null,//data?.user?.tag,
-                        name = data?.user?.content?.displayName
+                        name = data?.message?.user?.content?.displayName
                     )
                 }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
                     Spacer(Modifier.width(profileImageSize + 22.dp))
@@ -142,7 +142,7 @@ fun LazyItemScope.ConversationMessageContent(
                     val rememberedHeight = rememberSaveable(data?.id) {
                         mutableStateOf(0f)
                     }
-                    val shape = if(data?.content.isNullOrBlank()) {
+                    val shape = if(data?.message?.content.isNullOrBlank()) {
                         LocalTheme.current.shapes.rectangularActionShape
                     }else RoundedCornerShape(
                         topStart = LocalTheme.current.shapes.rectangularActionRadius,
@@ -170,7 +170,7 @@ fun LazyItemScope.ConversationMessageContent(
                             .align(horizontalAlignment),
                         horizontalAlignment = horizontalAlignment
                     ) {
-                        data?.anchorMessage?.let { anchorData ->
+                        data?.message?.anchorMessage?.let { anchorData ->
                             ReplyIndication(
                                 modifier = Modifier
                                     .wrapContentWidth()
@@ -186,7 +186,7 @@ fun LazyItemScope.ConversationMessageContent(
                         MediaRow(
                             modifier = heightModifier,
                             data = data,
-                            media = data?.media.orEmpty(),
+                            media = data?.message?.media.orEmpty(),
                             scrollState = mediaRowState,
                             temporaryFiles = temporaryFiles,
                             isCurrentUser = messageType == MessageType.CurrentUser,
@@ -197,7 +197,7 @@ fun LazyItemScope.ConversationMessageContent(
                             }
                         )
 
-                        if (data?.showPreview == true && data.content?.isNotBlank() == true) {
+                        if (data?.message?.showPreview == true && data.message.content?.isNotBlank() == true) {
                             messageContent.getLinkAnnotations(0, messageContent.length)
                                 .firstOrNull()?.let { link ->
                                 LinkPreview(
