@@ -28,8 +28,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,9 +86,11 @@ import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MessageState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
@@ -653,8 +653,9 @@ private fun MessageContent(
                 .zIndex(2f),
             visible = data.reactions.isNotEmpty()
         ) {
-            LazyRow(
+            Row(
                 modifier = Modifier
+                    .animateContentSize()
                     .padding(
                         start = if (isCurrentUser) 0.dp else 12.dp,
                         end = if (isCurrentUser) 12.dp else 0.dp
@@ -667,21 +668,38 @@ private fun MessageContent(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                items(
-                    items = data.reactions.take(MaximumReactions),
-                    key = { reaction -> "${reaction.eventId}_${reaction.content}" }
-                ) { reaction ->
+                val reactions = remember(data.id) {
+                    mutableStateOf(mapOf<String, Pair<Int, Boolean>>())
+                }
+
+                LaunchedEffect(data.reactions) {
+                    withContext(Dispatchers.Default) {
+                        val newMap = hashMapOf<String, Pair<Int, Boolean>>()
+                        data.reactions.forEach {
+                            if (it.content != null) {
+                                newMap[it.content] = (newMap[it.content]?.first?.plus(1) ?: 1) to
+                                        (it.authorPublicId == currentUserId || newMap[it.content]?.second == true)
+                            }
+                        }
+                        reactions.value = newMap.toList()
+                            .sortedByDescending { it.second.first }
+                            .take(4)
+                            .toMap()
+                    }
+                }
+
+                reactions.value.forEach { reaction ->
                     Row(
                         Modifier
                             .scalingClickable(
                                 onTap = {
-                                    reaction.content?.let { model.onReactionChange(it) }
+                                    model.onReactionChange(reaction.key)
                                 },
                                 onDoubleTap = {
-                                    showDetailDialogOf.value = data.message.content to reaction.content
+                                    showDetailDialogOf.value = data.message.content to reaction.key
                                 },
                                 onLongPress = {
-                                    showDetailDialogOf.value = data.message.content to reaction.content
+                                    showDetailDialogOf.value = data.message.content to reaction.key
                                 }
                             )
                             .width(IntrinsicSize.Min)
@@ -689,18 +707,17 @@ private fun MessageContent(
                                 color = LocalTheme.current.colors.disabledComponent,
                                 shape = LocalTheme.current.shapes.componentShape
                             )
-                            .padding(4.dp)
-                            .animateItem(),
+                            .padding(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = reaction.content ?: "",
+                                text = reaction.key,
                                 style = LocalTheme.current.styles.category.copy(
                                     textAlign = TextAlign.Center
                                 )
                             )
-                            if (reaction.authorPublicId == currentUserId) {
+                            if (reaction.value.second) {
                                 Box(
                                     modifier = Modifier
                                         .height(2.dp)
@@ -712,18 +729,9 @@ private fun MessageContent(
                                 )
                             }
                         }
-                        val count = remember(data.id) {
-                            mutableStateOf(1)
-                        }
-                        LaunchedEffect(data.reactions) {
-                            count.value = data.reactions.count {
-                                it.content == reaction.content
-                            }
-                        }
-
-                        count.value.takeIf { it > 1 }?.let {
+                        reaction.value.first.takeIf { it > 1 }?.toString()?.let { count ->
                             Text(
-                                text = it.toString(),
+                                text = count,
                                 style = LocalTheme.current.styles.regular
                             )
                         }
@@ -777,20 +785,20 @@ private fun Options(
             }
             Icon(
                 modifier = Modifier
-                    .scalingClickable { onReplyRequest() }
-                    .size(buttonSize)
-                    .padding(2.dp),
-                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                tint = LocalTheme.current.colors.secondary
-            )
-            Icon(
-                modifier = Modifier
                     .scalingClickable { onReactionRequest(true) }
                     .size(buttonSize)
                     .padding(2.dp),
                 imageVector = Icons.Outlined.Mood,
                 contentDescription = stringResource(Res.string.accessibility_action_message_react),
+                tint = LocalTheme.current.colors.secondary
+            )
+            Icon(
+                modifier = Modifier
+                    .scalingClickable { onReplyRequest() }
+                    .size(buttonSize)
+                    .padding(2.dp),
+                imageVector = Icons.AutoMirrored.Outlined.Reply,
+                contentDescription = stringResource(Res.string.accessibility_message_reply),
                 tint = LocalTheme.current.colors.secondary
             )
         }
