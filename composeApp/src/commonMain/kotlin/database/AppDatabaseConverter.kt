@@ -4,7 +4,6 @@ import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.event.ConversationRoomMember
-import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
@@ -20,6 +19,7 @@ import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.experimental.gravity.GravityData
+import utils.SharedLogger
 
 /** Factory converter for Room database */
 @ProvidedTypeConverter
@@ -74,7 +74,8 @@ class AppDatabaseConverter {
 
     @TypeConverter
     fun toConversationRoomMember(value: String): ConversationRoomMember {
-        return json.decodeFromString(value)
+        SharedLogger.logger.debug { "converter, toConversationRoomMember: $value" }
+        return json.decodeFromString<ConversationRoomMember>(value)
     }
 
     @TypeConverter
@@ -185,13 +186,4 @@ class AppDatabaseConverter {
     fun toLocalDateTime(value: String): LocalDateTime {
         return LocalDateTime.parse(value, LocalDateTime.Formats.ISO)
     }
-    
-    @TypeConverter
-    fun fromConversationAnchorMessageIO(value: ConversationAnchorMessageIO): String {
-        return json.encodeToString(value)
-    }
-    
-    @TypeConverter
-    fun toConversationAnchorMessageIO(value: String): ConversationAnchorMessageIO? {
-        return json.decodeFromString(value)
-    }}
+}

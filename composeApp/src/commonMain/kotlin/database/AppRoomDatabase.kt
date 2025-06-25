@@ -11,17 +11,19 @@ import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.user.NetworkItemIO
 import data.io.user.PresenceData
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.GravityDao
+import database.dao.MatrixPagingMetaDao
+import database.dao.MessageReactionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
-import database.dao.matrix.MatrixPagingMetaDao
-import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import ui.conversation.components.experimental.gravity.GravityValue
 
@@ -35,9 +37,10 @@ import ui.conversation.components.experimental.gravity.GravityValue
         PresenceData::class,
         ConversationRoomMember::class,
         GravityValue::class,
+        MessageReactionIO::class,
         ConversationRoomIO::class
     ],
-    version = 64,
+    version = 68,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
@@ -53,6 +56,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun presenceEventDao(): PresenceEventDao
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
     abstract fun roomMemberDao(): RoomMemberDao
+    abstract fun messageReactionDao(): MessageReactionDao
     abstract fun gravityDao(): GravityDao
 
     companion object {
@@ -67,6 +71,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [ConversationMessageIO] */
         const val TABLE_CONVERSATION_MESSAGE = "room_conversation_message_table"
+        const val TABLE_MESSAGE_REACTION = "room_message_reaction_table"
 
         /** Identification of table for [EmojiSelection] */
         const val TABLE_EMOJI_SELECTION = "room_emoji_selection"

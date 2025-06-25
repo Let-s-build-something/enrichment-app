@@ -4,7 +4,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MessageState
 import database.AppRoomDatabase
 
@@ -12,6 +14,7 @@ import database.AppRoomDatabase
 @Dao
 interface ConversationMessageDao {
 
+    @Transaction
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
             WHERE conversation_id = :conversationId
@@ -23,9 +26,10 @@ interface ConversationMessageDao {
         conversationId: String?,
         limit: Int,
         offset: Int
-    ): List<ConversationMessageIO>
+    ): List<FullConversationMessage>
 
     /** Returns anchored items related to a single message */
+    @Transaction
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
             WHERE conversation_id = :conversationId
@@ -39,7 +43,22 @@ interface ConversationMessageDao {
         anchorMessageId: String?,
         limit: Int,
         offset: Int
-    ): List<ConversationMessageIO>
+    ): List<FullConversationMessage>
+
+    /** Retrieves a single item */
+    @Transaction
+    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
+            "WHERE id = :messageId " +
+            "LIMIT 1")
+    suspend fun get(messageId: String?): FullConversationMessage?
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} 
+        WHERE author_public_id = :senderUserId 
+        AND verification IS NOT NULL
+        ORDER BY sent_at DESC
+    """)
+    suspend fun getPendingVerifications(senderUserId: String?): List<ConversationMessageIO>
 
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
@@ -49,20 +68,6 @@ interface ConversationMessageDao {
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationMessageIO>)
-
-    /** Retrieves a single item */
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
-            "WHERE id = :messageId " +
-            "LIMIT 1")
-    suspend fun get(messageId: String?): ConversationMessageIO?
-
-    @Query("""
-        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} 
-        WHERE author_public_id = :senderUserId 
-        AND verification IS NOT NULL
-        ORDER BY sent_at DESC
-    """)
-    suspend fun getPendingVerifications(senderUserId: String?): List<ConversationMessageIO>
 
     /** marks a message as transcribed */
     @Query("UPDATE ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +

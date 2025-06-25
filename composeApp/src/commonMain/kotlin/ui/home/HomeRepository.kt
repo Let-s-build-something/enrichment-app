@@ -5,11 +5,11 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import data.io.base.BaseResponse
 import data.io.base.paging.PaginationInfo
-import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomType
+import data.io.matrix.room.event.FullConversationRoom
 import data.io.social.network.conversation.ConversationListResponse
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -32,7 +32,7 @@ class HomeRepository(
     fun getConversationRoomPager(
         config: PagingConfig,
         ownerPublic: () -> String?
-    ): Pager<Int, ConversationRoomIO> {
+    ): Pager<Int, FullConversationRoom> {
         return Pager(
             config = config,
             pagingSourceFactory = {

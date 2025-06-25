@@ -2,9 +2,11 @@ package data.io.matrix.room.event
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
+import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase.Companion.TABLE_ROOM_MEMBER
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -14,7 +16,6 @@ import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 @Serializable
 data class ConversationRoomMember(
 
-    @ColumnInfo("user_id")
     val userId: String,
 
     val content: MemberEventContent,
@@ -32,6 +33,10 @@ data class ConversationRoomMember(
     @PrimaryKey
     val id: String = "${roomId}_$userId"
 ) {
+    val tag: String?
+        @Ignore
+        get() = UserId(userId).generateUserTag()
+
     fun toNetworkItem() = NetworkItemIO(
         publicId = id,
         userId = userId,

@@ -3,8 +3,8 @@ package data.io.social.network.conversation.message
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import data.io.matrix.room.event.ConversationRoomMember
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
@@ -17,7 +17,15 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Conversation entity representing a singular message within a conversation */
-@Entity(tableName = AppRoomDatabase.TABLE_CONVERSATION_MESSAGE)
+@Entity(
+    tableName = AppRoomDatabase.TABLE_CONVERSATION_MESSAGE,
+    indices = [
+        Index(value = ["conversation_id"]),
+        Index(value = ["sent_at"]),
+        Index(value = ["anchor_message_id"]),
+        Index(value = ["parent_anchor_message_id"])
+    ]
+)
 @Serializable
 data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
@@ -35,27 +43,17 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("author_public_id")
     val authorPublicId: String? = null,
 
-    /** List of reactions to this message */
-    val reactions: List<MessageReactionIO>? = null,
-
     /** Whether preview should be shown for this message */
     @ColumnInfo("show_preview")
     val showPreview: Boolean? = true,
 
-    /**
-     * Content of message this message is anchored to.
-     * It doesn't contain any [anchorMessage] itself.
-     */
-    @ColumnInfo("anchor_message")
-    val anchorMessage: ConversationAnchorMessageIO? = null,
-
     val gravityData: GravityData? = null,
 
     @ColumnInfo("anchor_message_id")
-    val anchorMessageId: String? = anchorMessage?.id,
+    val anchorMessageId: String? = null,
 
     @ColumnInfo("parent_anchor_message_id")
-    val parentAnchorMessageId: String? = anchorMessage?.anchorMessageId,
+    val parentAnchorMessageId: String? = null,
 
     /** Time of message being sent in ISO format */
     @ColumnInfo(name = "sent_at")
@@ -77,9 +75,7 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     val verification: VerificationRequestInfo? = null,
 
-    val edited: Boolean = false,
-
-    val user: ConversationRoomMember? = null
+    val edited: Boolean = false
 ) {
 
     @Serializable
@@ -89,25 +85,13 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
         val to: String
     )
 
-    /** Converts this message to an anchor message */
-    @Ignore
-    fun toAnchorMessage() = ConversationAnchorMessageIO(
-        id = id,
-        content = content,
-        mediaUrls = media,
-        authorPublicId = authorPublicId,
-        anchorMessageId = anchorMessageId
-    )
-
     @Ignore
     fun update(other: ConversationMessageIO): ConversationMessageIO {
         return this.copy(
             content = other.content ?: content,
             media = other.media ?: media,
             authorPublicId = other.authorPublicId ?: authorPublicId,
-            reactions = other.reactions ?: reactions,
             showPreview = other.showPreview ?: showPreview,
-            anchorMessage = other.anchorMessage ?: anchorMessage,
             anchorMessageId = other.anchorMessageId ?: anchorMessageId,
             parentAnchorMessageId = other.parentAnchorMessageId ?: parentAnchorMessageId,
             sentAt = other.sentAt ?: sentAt,

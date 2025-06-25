@@ -35,7 +35,7 @@ import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import components.UserProfileImage
 import data.io.social.network.conversation.EmojiData
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.delay
@@ -59,7 +59,7 @@ enum class MessageType {
  */
 @Composable
 fun LazyItemScope.ConversationMessageContent(
-    data: ConversationMessageIO?,
+    data: FullConversationMessage?,
     temporaryFiles: Map<String, PlatformFile?>,
     currentUserPublicId: String?,
     isPreviousMessageSameAuthor: Boolean,
@@ -68,7 +68,7 @@ fun LazyItemScope.ConversationMessageContent(
     isMyLastMessage: Boolean,
     model: MessageBubbleModel,
     reactingToMessageId: MutableState<String?>,
-    replyToMessage: MutableState<ConversationMessageIO?>,
+    replyToMessage: MutableState<FullConversationMessage?>,
     preferredEmojis: List<EmojiData>,
     scrollToMessage: (String?, Int?) -> Unit
 ) {
@@ -102,104 +102,104 @@ fun LazyItemScope.ConversationMessageContent(
         },
         verticalAlignment = Alignment.Bottom
     ) {
+        val profileImageSize = with(density) { 38.sp.toDp() }
 
-            val profileImageSize = with(density) { 38.sp.toDp() }
-
-            if(messageType == MessageType.OtherUser) {
-                if(!isNextMessageSameAuthor) {
-                    UserProfileImage(
-                        modifier = Modifier
-                            .padding(
-                                start = 12.dp,
-                                end = 10.dp,
-                                // offset if there are reactions (because those offset the message content)
-                                bottom = if(!data?.reactions.isNullOrEmpty()) {
-                                    with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
-                                }else 0.dp
-                            )
-                            .zIndex(4f)
-                            .size(profileImageSize),
-                        media = MediaIO(url = data?.user?.content?.avatarUrl),
-                        tag = null,//data?.user?.tag,
-                        name = data?.user?.content?.displayName
-                    )
-                }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
-                    Spacer(Modifier.width(profileImageSize + 22.dp))
-                }
+        if(messageType == MessageType.OtherUser) {
+            if(!isNextMessageSameAuthor) {
+                UserProfileImage(
+                    modifier = Modifier
+                        .padding(
+                            start = 12.dp,
+                            end = 10.dp,
+                            // offset if there are reactions (because those offset the message content)
+                            bottom = if(!data?.reactions.isNullOrEmpty()) {
+                                with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
+                            }else 0.dp
+                        )
+                        .zIndex(4f)
+                        .size(profileImageSize),
+                    media = MediaIO(url = data?.author?.content?.avatarUrl),
+                    tag = data?.author?.tag,
+                    name = data?.author?.content?.displayName
+                )
+            }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
+                Spacer(Modifier.width(profileImageSize + 22.dp))
             }
+        }
 
-            MessageBubble(
-                data = data,
-                isReacting = reactingToMessageId.value == data?.id,
-                currentUserPublicId = currentUserPublicId ?: "",
-                hasPrevious = isPreviousMessageSameAuthor,
-                hasNext = isNextMessageSameAuthor,
-                isReplying = replyToMessage.value?.id == data?.id,
-                isMyLastMessage = isMyLastMessage,
-                preferredEmojis = preferredEmojis,
-                model = model,
-                additionalContent = { onDragChange, onDrag, messageContent ->
-                    val rememberedHeight = rememberSaveable(data?.id) {
-                        mutableStateOf(0f)
-                    }
-                    val shape = if(data?.content.isNullOrBlank()) {
-                        LocalTheme.current.shapes.rectangularActionShape
-                    }else RoundedCornerShape(
-                        topStart = LocalTheme.current.shapes.rectangularActionRadius,
-                        topEnd = LocalTheme.current.shapes.rectangularActionRadius
-                    )
-                    val heightModifier = Modifier
-                        .heightIn(max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp)
-                        .clip(shape)
+        MessageBubble(
+            data = data,
+            isReacting = reactingToMessageId.value == data?.id,
+            currentUserPublicId = currentUserPublicId ?: "",
+            hasPrevious = isPreviousMessageSameAuthor,
+            hasNext = isNextMessageSameAuthor,
+            isReplying = replyToMessage.value?.id == data?.id,
+            isMyLastMessage = isMyLastMessage,
+            preferredEmojis = preferredEmojis,
+            model = model,
+            additionalContent = { onDragChange, onDrag, messageContent ->
+                val rememberedHeight = rememberSaveable(data?.id) {
+                    mutableStateOf(0f)
+                }
+                val shape = if(data?.message?.content.isNullOrBlank()) {
+                    LocalTheme.current.shapes.rectangularActionShape
+                }else RoundedCornerShape(
+                    topStart = LocalTheme.current.shapes.rectangularActionRadius,
+                    topEnd = LocalTheme.current.shapes.rectangularActionRadius
+                )
+                val heightModifier = Modifier
+                    .heightIn(max = (screenSize.height.coerceAtMost(screenSize.width) * .7f).dp)
+                    .clip(shape)
 
-                    val horizontalAlignment = when(messageType) {
-                        MessageType.CurrentUser -> Alignment.End
-                        MessageType.OtherUser -> Alignment.Start
-                        else -> Alignment.CenterHorizontally
-                    }
-                    Column(
-                        modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
-                            .wrapContentHeight()
-                            .onSizeChanged {
-                                if(it.height != 0) {
-                                    with(density) {
-                                        rememberedHeight.value = it.height.toDp().value
-                                    }
+                val horizontalAlignment = when(messageType) {
+                    MessageType.CurrentUser -> Alignment.End
+                    MessageType.OtherUser -> Alignment.Start
+                    else -> Alignment.CenterHorizontally
+                }
+                Column(
+                    modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                        .wrapContentHeight()
+                        .onSizeChanged {
+                            if(it.height != 0) {
+                                with(density) {
+                                    rememberedHeight.value = it.height.toDp().value
                                 }
                             }
-                            .align(horizontalAlignment),
-                        horizontalAlignment = horizontalAlignment
-                    ) {
-                        data?.anchorMessage?.let { anchorData ->
-                            ReplyIndication(
-                                modifier = Modifier
-                                    .wrapContentWidth()
-                                    .padding(start = 12.dp),
-                                data = anchorData,
-                                onClick = {
-                                    scrollToMessage(anchorData.id, anchorData.index)
-                                },
-                                isCurrentUser = anchorData.authorPublicId == currentUserPublicId
-                            )
                         }
-
-                        MediaRow(
-                            modifier = heightModifier,
-                            data = data,
-                            media = data?.media.orEmpty(),
-                            scrollState = mediaRowState,
-                            temporaryFiles = temporaryFiles,
-                            isCurrentUser = messageType == MessageType.CurrentUser,
-                            onDragChange = onDragChange,
-                            onDrag = onDrag,
-                            onLongPress = {
-                                reactingToMessageId.value = data?.id
-                            }
+                        .align(horizontalAlignment),
+                    horizontalAlignment = horizontalAlignment
+                ) {
+                    data?.anchorMessage?.let { anchorData ->
+                        ReplyIndication(
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .padding(start = 12.dp),
+                            data = anchorData,
+                            onClick = {
+                                // TODO jump scroll to anchor 86c45m6v8
+                                //scrollToMessage(anchorData.id, anchorData.index)
+                            },
+                            isCurrentUser = anchorData.authorPublicId == currentUserPublicId
                         )
+                    }
 
-                        if (data?.showPreview == true && data.content?.isNotBlank() == true) {
-                            messageContent.getLinkAnnotations(0, messageContent.length)
-                                .firstOrNull()?.let { link ->
+                    MediaRow(
+                        modifier = heightModifier,
+                        data = data,
+                        media = data?.message?.media.orEmpty(),
+                        scrollState = mediaRowState,
+                        temporaryFiles = temporaryFiles,
+                        isCurrentUser = messageType == MessageType.CurrentUser,
+                        onDragChange = onDragChange,
+                        onDrag = onDrag,
+                        onLongPress = {
+                            reactingToMessageId.value = data?.id
+                        }
+                    )
+
+                    if (data?.message?.showPreview == true && data.message.content?.isNotBlank() == true) {
+                        messageContent.getLinkAnnotations(0, messageContent.length)
+                            .firstOrNull()?.let { link ->
                                 LinkPreview(
                                     modifier = Modifier
                                         .pointerInput(data.id) {
@@ -217,10 +217,10 @@ fun LazyItemScope.ConversationMessageContent(
                                     alignment = Alignment.CenterHorizontally
                                 )
                             }
-                        }
                     }
                 }
-            )
+            }
+        )
 
     }
 }

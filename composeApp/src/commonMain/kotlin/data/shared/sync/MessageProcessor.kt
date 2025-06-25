@@ -10,6 +10,7 @@ import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
@@ -18,8 +19,9 @@ import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.MessageReactionDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import korlibs.io.util.getOrNullLoggingError
 import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +75,7 @@ abstract class MessageProcessor {
     protected val dataService: DataService by KoinPlatform.getKoin().inject()
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val messageReactionDao: MessageReactionDao by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
@@ -81,7 +84,7 @@ abstract class MessageProcessor {
     private val logger = Logger(name = "MessageProcessor")
 
     data class SaveEventsResult(
-        val messages: List<ConversationMessageIO>,
+        val messages: List<FullConversationMessage>,
         val changeInMessages: Boolean,
         val events: Int,
         val members: List<ConversationRoomMember>,
@@ -111,11 +114,13 @@ abstract class MessageProcessor {
                 }
             }
 
+            messageReactionDao.insertAll(result.reactions.toList())
+
             val messages = result.messages.plus(decryptedMessages).mapNotNull {
                 if (conversationMessageDao.insertIgnore(it) == -1L) {
                     conversationMessageDao.insertReplace(it)
                     null
-                } else it
+                } else FullConversationMessage(message = it, reactions = messageReactionDao.getAll(it.id))
             }
 
             result.receipts.forEach { receipt ->
@@ -147,6 +152,7 @@ abstract class MessageProcessor {
                         redaction.reason ?: ""
                     )
                 )
+                messageReactionDao.remove(redaction.redacts.full)
             }
 
             result.replacements.forEach { replacement ->
@@ -154,27 +160,6 @@ abstract class MessageProcessor {
                     id = replacement.key,
                     message = replacement.value?.content ?: ""
                 )
-            }
-
-            result.reactions.forEach { reaction ->
-                conversationMessageDao.insertReplace(
-                    (conversationMessageDao.get(reaction.key)
-                        ?: ConversationMessageIO(id = reaction.key)).let { message ->
-                            message.copy(reactions = message.reactions.orEmpty().plus(reaction.value))
-                    }
-                )
-            }
-
-            if (result.messages.isNotEmpty()) {
-                // add the anchor messages
-                val updates = withContext(Dispatchers.Default) {
-                    result.messages.filter { it.anchorMessageId != null }.map {
-                        it.copy(anchorMessage = withContext(Dispatchers.IO) {
-                            conversationMessageDao.get(it.anchorMessageId)?.toAnchorMessage()
-                        })
-                    }
-                }
-                conversationMessageDao.insertAll(updates)
             }
 
             SaveEventsResult(
@@ -199,7 +184,7 @@ abstract class MessageProcessor {
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
         val redactions = mutableListOf<RedactionEventContent>()
         val replacements = hashMapOf<String, ConversationMessageIO?>()
-        val reactions = hashMapOf<String, MutableSet<MessageReactionIO>>()
+        val reactions = mutableSetOf<MessageReactionIO>()
         val presenceData = mutableListOf<PresenceData>()
 
         events.forEach { event ->
@@ -274,14 +259,14 @@ abstract class MessageProcessor {
                 }
                 is ReactionEventContent -> {
                     content.relatesTo?.eventId?.full?.let { eventId ->
-                        reactions[eventId] = reactions[eventId].orEmpty().toMutableSet().apply {
-                            add(
-                                MessageReactionIO(
-                                    content = content.relatesTo?.key,
-                                    authorPublicId = event.senderOrNull?.full
-                                )
+                        reactions.add(
+                            MessageReactionIO(
+                                eventId = event.idOrNull?.full ?: Uuid.random().toString(),
+                                messageId = eventId,
+                                content = content.relatesTo?.key,
+                                authorPublicId = event.senderOrNull?.full
                             )
-                        }
+                        )
                     }
                     null
                 }
@@ -361,7 +346,7 @@ abstract class MessageProcessor {
                         event = event,
                         messageId = messageId
                     )?.let { update ->
-                        val message = conversationMessageDao.get(messageId)?.update(update) ?: update
+                        val message = conversationMessageDao.get(messageId)?.message?.update(update) ?: update
 
                         message.copy(
                             state = if (message.authorPublicId == sharedDataManager.currentUser.value?.matrixUserId) {
@@ -370,14 +355,14 @@ abstract class MessageProcessor {
                         ).also { decryptedMessage ->
                             if(save) {
                                 conversationMessageDao.insertReplace(decryptedMessage)
-                                conversationRoomDao.getItem(
+                                conversationRoomDao.get(
                                     id = decryptedMessage.conversationId,
                                     ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
                                 ).also { data ->
-                                    if (data?.summary?.lastMessage?.id == decryptedMessage.id) {
+                                    if (data?.data?.summary?.lastMessage?.id == decryptedMessage.id) {
                                         conversationRoomDao.insert(
-                                            data.copy(
-                                                summary = data.summary.copy(lastMessage = decryptedMessage)
+                                            data.data.copy(
+                                                summary = data.data.summary.copy(lastMessage = decryptedMessage)
                                             )
                                         )
                                     }

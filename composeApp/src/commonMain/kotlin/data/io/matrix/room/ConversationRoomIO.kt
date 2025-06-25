@@ -3,8 +3,8 @@ package data.io.matrix.room
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import data.io.user.NetworkItemIO
 import data.io.user.UserIO.Companion.generateUserTag
 import database.AppRoomDatabase
 import kotlinx.datetime.LocalDateTime
@@ -24,7 +24,17 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /** Matrix conversation room object */
-@Entity(tableName = AppRoomDatabase.TABLE_CONVERSATION_ROOM)
+@Entity(
+    tableName = AppRoomDatabase.TABLE_CONVERSATION_ROOM,
+    indices = [
+        Index(value = ["owner_public_id"]),
+        Index(value = ["type"]),
+        Index(value = ["proximity"]),
+        Index(value = ["last_message_timestamp"]),
+        Index(value = ["owner_public_id", "type"]),
+        Index(value = ["owner_public_id", "id"])
+    ]
+)
 @Serializable
 data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** Unique identifier of this room, in the format of "!opaque_id:domain" */
@@ -74,7 +84,10 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val algorithm: EncryptionAlgorithm? = null,
 
     /** Type of the room */
-    val type: RoomType
+    val type: RoomType,
+
+    @ColumnInfo("is_direct")
+    val isDirect: Boolean? = summary?.isDirect
 ) {
     @Ignore
     @Transient
@@ -115,15 +128,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     val tag: String?
         @Ignore
         get() = UserId(id).generateUserTag()
-
-    /** Converts this item to a network item representation */
-    fun toNetworkItem() = NetworkItemIO(
-        publicId = id,
-        userId = id,
-        displayName = summary?.roomName,
-        avatar = summary?.avatar,
-        lastMessage = summary?.lastMessage?.content
-    )
 
     override fun toString(): String {
         return "{" +

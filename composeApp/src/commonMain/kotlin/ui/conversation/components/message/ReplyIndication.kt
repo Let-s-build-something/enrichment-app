@@ -21,13 +21,12 @@ import augmy.composeapp.generated.resources.conversation_reply_heading
 import augmy.composeapp.generated.resources.conversation_reply_prefix_self
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
-import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.ConversationMessageIO
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * Indication of a message that a user is replying to.
- * @param data data relevant to the original message - [ConversationMessageIO.anchorMessage]
+ * @param data data relevant to the original message
  * @param onClick on message click - the UI should scroll to the original message
  * @param onRemoveRequest whenever user attempts to remove the reply indication
  * @param removable
@@ -35,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ReplyIndication(
     modifier: Modifier = Modifier,
-    data: ConversationAnchorMessageIO,
+    data: ConversationMessageIO,
     isCurrentUser: Boolean,
     onClick: () -> Unit,
     onRemoveRequest: () -> Unit = {},
@@ -69,7 +68,7 @@ fun ReplyIndication(
                 Text(
                     text = if(isCurrentUser) {
                         stringResource(Res.string.conversation_reply_prefix_self)
-                    }else data.user?.content?.displayName?.plus(":") ?: "",
+                    }else data.authorPublicId ?: "", // TODO 86c45m6v8 ?.content?.displayName?.plus(":") ?: "",
                     style = LocalTheme.current.styles.title.copy(fontSize = 14.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

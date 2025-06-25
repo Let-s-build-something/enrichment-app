@@ -9,7 +9,7 @@ import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.user.NetworkItemIO
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import koin.secureSettings

@@ -24,5 +24,6 @@ internal val databaseModule = module {
     factory { get<AppRoomDatabase>().presenceEventDao() }
     factory { get<AppRoomDatabase>().matrixPagingMetaDao() }
     factory { get<AppRoomDatabase>().roomMemberDao() }
+    factory { get<AppRoomDatabase>().messageReactionDao() }
     factory { get<AppRoomDatabase>().gravityDao() }
 }

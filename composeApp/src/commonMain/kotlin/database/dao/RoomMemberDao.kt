@@ -1,4 +1,4 @@
-package database.dao.matrix
+package database.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -14,11 +14,11 @@ interface RoomMemberDao {
     suspend fun getAll(): List<ConversationRoomMember>
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE user_id IN (:userIds) ")
+            "WHERE userId IN (:userIds) ")
     suspend fun get(userIds: List<String>): List<ConversationRoomMember>
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE user_id = :userId ")
+            "WHERE userId = :userId ")
     suspend fun get(userId: String): ConversationRoomMember?
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
@@ -28,7 +28,7 @@ interface RoomMemberDao {
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
             WHERE room_id = :roomId
-            AND user_id != :ignoreUserId
+            AND userId != :ignoreUserId
             ORDER BY timestamp DESC 
             LIMIT :limit
             OFFSET :offset
@@ -43,7 +43,7 @@ interface RoomMemberDao {
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
             WHERE display_name like '%' || :prompt || '%'
-            OR user_id  like '%' || :prompt || '%'
+            OR userId  like '%' || :prompt || '%'
             """)
     suspend fun searchByPrompt(prompt: String): List<ConversationRoomMember>
 
@@ -65,7 +65,7 @@ interface RoomMemberDao {
 
     @Query("""
         DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
-        WHERE user_id = :userId
+        WHERE userId = :userId
     """)
     suspend fun remove(userId: String)
 

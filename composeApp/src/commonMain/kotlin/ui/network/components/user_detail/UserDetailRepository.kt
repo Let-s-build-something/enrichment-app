@@ -1,8 +1,8 @@
 package ui.network.components.user_detail
 
 import data.io.user.NetworkItemIO
-import database.dao.matrix.PresenceEventDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers

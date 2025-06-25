@@ -152,7 +152,7 @@ class DataSyncHandler: MessageProcessor() {
                     prevBatch = newItem.prevBatch?.takeIf { room.timeline?.limited == true },
                     roomId = newItem.id
                 ).also { res ->
-                    if(res.messages.isNotEmpty()) {
+                    if (res.changeInMessages) {
                         dataService.appendPing(
                             AppPing(
                                 type = AppPingType.Conversation,
@@ -162,20 +162,20 @@ class DataSyncHandler: MessageProcessor() {
                     }
 
                     val lastMessage = res.messages.sortedByDescending {
-                        it.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
-                    }.firstOrNull { !it.content.isNullOrBlank() }
+                        it.message.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
+                    }.firstOrNull { !it.message.content.isNullOrBlank() }
 
                     // either update existing one, or insert new one
                     newItem.copy(
                         summary = newItem.summary?.copy(
-                            lastMessage = lastMessage ?: newItem.summary.lastMessage
-                        ) ?: RoomSummary(lastMessage = lastMessage),
-                        lastMessageTimestamp = lastMessage?.sentAt
+                            lastMessage = lastMessage?.message ?: newItem.summary.lastMessage
+                        ) ?: RoomSummary(lastMessage = lastMessage?.message),
+                        lastMessageTimestamp = lastMessage?.message?.sentAt
                     ).let { roomUpdate ->
-                        (conversationRoomDao.getItem(
+                        (conversationRoomDao.get(
                             id = room.id,
                             ownerPublicId = owner
-                        )?.update(roomUpdate) ?: roomUpdate).also { data ->
+                        )?.data?.update(roomUpdate) ?: roomUpdate).also { data ->
                             conversationRoomDao.insert(data)
                             rooms.add(data)
                         }

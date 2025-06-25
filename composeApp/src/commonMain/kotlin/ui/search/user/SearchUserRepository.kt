@@ -4,7 +4,7 @@ import data.io.matrix.user.SearchUserRequest
 import data.io.matrix.user.SearchUserResponse
 import data.io.user.NetworkItemIO
 import database.dao.NetworkItemDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody

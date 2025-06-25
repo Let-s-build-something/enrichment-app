@@ -149,11 +149,14 @@ class ConversationSettingsModel(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.copy(
-                                    summary = this[conversationId]?.summary?.copy(canonicalAlias = roomName.toString())
+                                val conversation = this[conversationId]
+                                conversation?.copy(
+                                    data = conversation.data.copy(
+                                        summary = conversation.data.summary?.copy(canonicalAlias = roomName.toString())
+                                    )
                                 )?.let {
                                     set(conversationId, it)
-                                    repository.updateRoom(it)
+                                    repository.updateRoom(it.data)
                                 }
                             }
                         }
@@ -303,11 +306,14 @@ class ConversationSettingsModel(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.copy(
-                                    summary = this[conversationId]?.summary?.copy(avatar = media)
+                                val conversation = this[conversationId]
+                                conversation?.copy(
+                                    data = conversation.data.copy(
+                                        summary = conversation.data.summary?.copy(avatar = media)
+                                    )
                                 )?.let {
                                     set(conversationId, it)
-                                    repository.updateRoom(it)
+                                    repository.updateRoom(it.data)
                                 }
                             }
                         }

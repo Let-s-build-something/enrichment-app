@@ -383,3 +383,46 @@ tasks.register("printVersionName") {
         println(vName)
     }
 }
+
+// hotfix to faulty room dao generation for Jvm
+tasks.register("sanitizeDaoImpls") {
+    doLast {
+        val baseDir = "build/generated/ksp/jvm/jvmMain/kotlin/database/dao"
+        val fileNames = listOf(
+            "ConversationMessageDao_Impl.kt",
+            "ConversationRoomDao_Impl.kt"
+            // Add more DAO impls as needed
+        )
+
+        fileNames.forEach { fileName ->
+            val file = file("$baseDir/$fileName")
+
+            if (!file.exists()) {
+                println("No DAO impl found at $file (skipping)")
+                return@forEach
+            }
+
+            val original = file.readText()
+
+            // Remove unwanted import
+            val noImport = original.replace(
+                Regex("""import\s+androidx\.room\.util\.recursiveFetchArrayMap\s*\n"""),
+                ""
+            )
+
+            // Remove the "if (_map.size > 999)" block
+            val patched = noImport.replace(
+                Regex("""(?s)(if\s*\(\s*_map\.size\s*>\s*999\s*\)\s*\{\n.*?return\s*\n\s*\})"""),
+                ""
+            )
+
+            file.writeText(patched)
+            println("Patched $fileName — removed recursiveFetchArrayMap logic")
+        }
+    }
+}
+
+// Run after KSP code generation
+afterEvaluate {
+    tasks.findByName("kspKotlinJvm")?.finalizedBy("sanitizeDaoImpls")
+}
