@@ -17,7 +17,7 @@ import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.toResponse
-import data.io.matrix.room.event.FullConversationRoom
+import data.io.matrix.room.FullConversationRoom
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO

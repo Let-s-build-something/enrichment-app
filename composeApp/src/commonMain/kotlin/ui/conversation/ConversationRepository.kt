@@ -12,9 +12,9 @@ import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.matrix.room.event.ConversationTypingIndicator
-import data.io.matrix.room.event.FullConversationRoom
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse

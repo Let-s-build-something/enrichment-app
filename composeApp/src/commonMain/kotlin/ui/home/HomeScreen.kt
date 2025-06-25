@@ -83,8 +83,8 @@ import components.pull_refresh.RefreshableScreen
 import data.NetworkProximityCategory
 import data.io.base.AppPingType
 import data.io.base.BaseResponse
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomType
-import data.io.matrix.room.event.FullConversationRoom
 import data.io.user.NetworkItemIO
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec

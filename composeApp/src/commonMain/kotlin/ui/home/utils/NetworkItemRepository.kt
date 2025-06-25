@@ -2,9 +2,9 @@ package ui.home.utils
 
 import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomType
-import data.io.matrix.room.event.FullConversationRoom
 import data.io.social.network.conversation.InvitationResponse
 import data.io.social.network.conversation.RoomInvitationRequest
 import data.io.user.NetworkItemIO
@@ -102,19 +102,15 @@ class NetworkItemRepository(
             }.let { response ->
                 if(newName != null) {
                     response.success?.data?.conversationId?.let { newId ->
-                        conversationRoomDao.insertAll(
-                            listOf(
-                                ConversationRoomIO(
-                                    id = newId,
-                                    summary = RoomSummary(
-                                        canonicalAlias = newName,
-                                        isDirect = false
-                                    ).apply {
-                                        members = roomMemberDao.get(userIds = userPublicIds.orEmpty())
-                                    },
-                                    ownerPublicId = ownerPublicId,
-                                    type = RoomType.Joined
-                                )
+                        conversationRoomDao.insert(
+                            ConversationRoomIO(
+                                id = newId,
+                                summary = RoomSummary(
+                                    canonicalAlias = newName,
+                                    isDirect = false
+                                ),
+                                ownerPublicId = ownerPublicId,
+                                type = RoomType.Joined
                             )
                         )
                         BaseResponse.Success(
