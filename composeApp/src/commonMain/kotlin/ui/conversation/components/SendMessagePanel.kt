@@ -6,6 +6,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -30,9 +31,13 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
@@ -45,6 +50,7 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mood
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -115,6 +121,7 @@ import base.utils.MediaType
 import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
+import components.UserProfileImage
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
@@ -129,6 +136,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationModel
@@ -138,7 +146,10 @@ import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageMediaPanel
 import ui.conversation.components.message.ReplyIndication
 
+private const val MENTION_REGEX = """@[^.]*$"""
+
 /** Horizontal panel for sending and managing a message, and attaching media to it */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun BoxScope.SendMessagePanel(
     modifier: Modifier = Modifier,
@@ -161,6 +172,7 @@ internal fun BoxScope.SendMessagePanel(
     val focusRequester = remember { FocusRequester() }
     val isDefaultMode = keyboardMode.value == ConversationKeyboardMode.Default.ordinal
 
+    val conversation = model.conversation.collectAsState(initial = null)
     val keyboardHeight = model.keyboardHeight.collectAsState()
     val savedMessage = model.savedMessage.collectAsState()
     val repositoryConfig = model.repositoryConfig.collectAsState()
@@ -359,6 +371,15 @@ internal fun BoxScope.SendMessagePanel(
                 model.updateTypingStatus(content = messageState.text)
                 typedUrl.value = LinkUtils.urlRegex.findAll(messageState.text).firstOrNull()?.value
             }
+        }
+    }
+
+    LaunchedEffect(messageState.selection, messageState.text) {
+        withContext(Dispatchers.Default) {
+            val untilSelection = messageState.text.subSequence(0, messageState.selection.end)
+            val matches = MENTION_REGEX.toRegex().findAll(untilSelection)
+
+            model.recommendMentions(matches.firstOrNull()?.value)
         }
     }
 
@@ -586,6 +607,26 @@ internal fun BoxScope.SendMessagePanel(
                     imeAction = ImeAction.Send,
                     showKeyboardOnFocus = true
                 ),
+                additionalContent = if (conversation.value?.data?.summary?.isDirect == false) {
+                    {
+                        MentionRecommendationsBox(model, messageState)
+                    }
+                } else null,
+                outputTransformation = object: OutputTransformation {
+                    override fun TextFieldBuffer.transformOutput() {
+                        val mentionRegex = """<a href=".*(@[^"]+)">([^<]+)<\/a>""".toRegex()
+
+                        // Start from the end to preserve correct indexing while replacing
+                        mentionRegex.findAll(originalText).toList().asReversed().forEach { match ->
+                            val start = match.range.first
+                            val end = match.range.last + 1
+                            val label = match.groupValues[2]
+
+                            // Replace the matched tag with a readable label
+                            replace(start, end, "@[$label]")
+                        }
+                    }
+                },
                 focusRequester = focusRequester,
                 state = messageState,
                 onKeyboardAction = {
@@ -796,6 +837,77 @@ internal fun BoxScope.SendMessagePanel(
                 model.sendAudioMessage(byteArray)
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun MentionRecommendationsBox(
+    model: ConversationModel,
+    messageState: TextFieldState
+) {
+    val recommendations = model.mentionRecommendations.collectAsState()
+
+    LaunchedEffect(recommendations.value) {
+        if (recommendations.value?.isEmpty() == true) {
+            model.recommendMentions(null)
+        }
+    }
+
+    if (recommendations.value?.isEmpty() == false) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 8.dp)
+        ) {
+            items(
+                items = recommendations.value.orEmpty(),
+                key = { it.id }
+            ) { recommendation ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scalingClickable(scaleInto = .95f) {
+                            val untilSelection = messageState.text.subSequence(0, messageState.selection.end)
+
+                            val start = untilSelection.indexOfLast { it == '@' }
+                            messageState.edit {
+                                val toReplace = "<a href=\"https://matrix.to/#/" +
+                                        "${recommendation.userId}\">${recommendation.displayName ?: recommendation.userId}</a>"
+
+                                replace(
+                                    start,
+                                    untilSelection.length,
+                                    toReplace
+                                )
+                                placeCursorAfterCharAt(start + toReplace.length - 1)
+                            }
+                            model.recommendMentions(null)
+                        }
+                        .padding(vertical = 4.dp, horizontal = 8.dp)
+                        .animateItem(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val name = recommendation.displayName ?: recommendation.userId
+
+                    recommendation.content.avatarUrl?.let { avatar ->
+                        UserProfileImage(
+                            modifier = Modifier.size(32.dp),
+                            name = name,
+                            tag = recommendation.tag,
+                            media = MediaIO(url = avatar)
+                        )
+                    }
+                    Text(
+                        text = name,
+                        style = LocalTheme.current.styles.category.copy(
+                            color = LocalTheme.current.colors.secondary
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 

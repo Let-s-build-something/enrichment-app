@@ -103,6 +103,9 @@ fun LazyItemScope.ConversationMessageContent(
         verticalAlignment = Alignment.Bottom
     ) {
         val profileImageSize = with(density) { 38.sp.toDp() }
+        val hasAttachment = rememberSaveable(data?.id) {
+            mutableStateOf(false)
+        }
 
         if(messageType == MessageType.OtherUser) {
             if(!isNextMessageSameAuthor) {
@@ -133,6 +136,7 @@ fun LazyItemScope.ConversationMessageContent(
             currentUserPublicId = currentUserPublicId ?: "",
             hasPrevious = isPreviousMessageSameAuthor,
             hasNext = isNextMessageSameAuthor,
+            hasAttachment = hasAttachment.value,
             isReplying = replyToMessage.value?.id == data?.id,
             isMyLastMessage = isMyLastMessage,
             preferredEmojis = preferredEmojis,
@@ -214,7 +218,10 @@ fun LazyItemScope.ConversationMessageContent(
                                     shape = shape,
                                     url = messageContent.subSequence(link.start, link.end)
                                         .toString(),
-                                    alignment = Alignment.CenterHorizontally
+                                    alignment = Alignment.CenterHorizontally,
+                                    onLayout = { isVisible ->
+                                        hasAttachment.value = isVisible
+                                    }
                                 )
                             }
                     }

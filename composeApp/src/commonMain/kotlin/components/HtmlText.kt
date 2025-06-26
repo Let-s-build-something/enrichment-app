@@ -28,80 +28,115 @@ fun buildAnnotatedLinkString(
     matchUrl: Boolean = true,
     onLinkClicked: (link: String) -> Unit
 )= buildAnnotatedString {
-    // first, we replace all matches with according href link
-    val annotatedText = text.run {
-        var replaced = this
-        if(matchEmail) {
-            replaced = replaced.replace(emailRegex, transform = { res ->
-                "<a href=\"mailto:${res.value}\">${res.value}<a/>"
-            })
-        }
-        if(matchUrl) {
-            replaced = replaced.replace(urlRegex, transform = { res ->
-                "<a href=\"${res.value}\">${res.value}<a/>"
-            })
-        }
-        if(matchPhone) {
-            replaced = replaced.replace(phoneNumberRegex, transform = { res ->
-                "<a href=\"tel:${res.value}\">${res.value}<a/>"
-            })
-        }
-        replaced
+    val anchorRegex = Regex("""<a\s+href="([^"]+)">([^<]+)<\/a>""")
+    val protectedRanges = mutableListOf<IntRange>()
+    val matches = anchorRegex.findAll(text).toList()
+    var lastIndex = 0
+
+    // Step 1: Identify <a> tag ranges to protect
+    anchorRegex.findAll(text).forEach { match ->
+        protectedRanges.add(match.range)
     }
 
-    var appendableText = ""
-    var tagIteration = false
+    // Step 2: Replace raw emails/phones/URLs only if outside <a> tags
+    val safeBuilder = StringBuilder()
 
-    annotatedText.forEach { c ->
-        // may be a beginning of a tag, let's clear backstack to simplify conditions
-        if(!tagIteration && c == '<') {
-            append(appendableText)
-            appendableText = ""
+    for (match in matches) {
+        // Step 1: Raw chunk before the <a> block
+        if (lastIndex < match.range.first) {
+            val rawChunk = text.substring(lastIndex, match.range.first)
+
+            val processedChunk = rawChunk
+                .let {
+                    var replaced = it
+                    if (matchEmail) {
+                        replaced = replaced.replace(emailRegex) { m ->
+                            "<a href=\"mailto:${m.value}\">${m.value}</a>"
+                        }
+                    }
+                    if (matchPhone) {
+                        replaced = replaced.replace(phoneNumberRegex) { m ->
+                            "<a href=\"tel:${m.value}\">${m.value}</a>"
+                        }
+                    }
+                    if (matchUrl) {
+                        replaced = replaced.replace(urlRegex) { m ->
+                            "<a href=\"${m.value}\">${m.value}</a>"
+                        }
+                    }
+                    replaced
+                }
+
+            safeBuilder.append(processedChunk)
         }
 
-        // beginning of link tag
-        if(appendableText == "<a href=\"") {
-            // append text before the link
-            append(appendableText.removeSuffix("<a href=\""))
-            appendableText = ""
-            tagIteration = true
-        }
+        // Step 2: Keep the <a> block as-is
+        safeBuilder.append(match.value)
+        lastIndex = match.range.last + 1
+    }
 
-        // end of link tag, all we have at this point is very likely LINK">CONTENT<a/
-        if(tagIteration && c == '>' && appendableText.last() == '/') {
-            appendableText.let { localAppendedText ->
-                withLink(
-                    link = LinkAnnotation.Clickable(
-                        tag = "ACTION",
-                        styles = linkStyles,
-                        linkInteractionListener = {
-                            onLinkClicked(
-                                localAppendedText.substring(
-                                    startIndex = 0,
-                                    endIndex = localAppendedText.indexOfLast { it == '"' }
-                                )
-                            )
-                        },
-                    ),
-                ) {
-                    val range = localAppendedText.indexOf(">").plus(1) to localAppendedText.indexOf("<")
-                    if(range.first <= range.second) {
-                        append(
-                            localAppendedText.substring(
-                                startIndex = range.first,
-                                endIndex = range.second
-                            )
-                        )
+    // Step 3: Process the trailing raw text
+    if (lastIndex < text.length) {
+        val tail = text.substring(lastIndex)
+
+        val processedTail = tail
+            .let {
+                var replaced = it
+                if (matchEmail) {
+                    replaced = replaced.replace(emailRegex) { m ->
+                        "<a href=\"mailto:${m.value}\">${m.value}</a>"
                     }
                 }
+                if (matchPhone) {
+                    replaced = replaced.replace(phoneNumberRegex) { m ->
+                        "<a href=\"tel:${m.value}\">${m.value}</a>"
+                    }
+                }
+                if (matchUrl) {
+                    replaced = replaced.replace(urlRegex) { m ->
+                        "<a href=\"${m.value}\">${m.value}</a>"
+                    }
+                }
+                replaced
             }
-            appendableText = ""
-            tagIteration = false
-        }else {
-            appendableText += c
-        }
+
+        safeBuilder.append(processedTail)
     }
-    append(appendableText)
+
+    var lastPos = 0
+    val enrichedText = safeBuilder.toString()
+
+    anchorRegex.findAll(enrichedText).forEach { match ->
+        val range = match.range
+        val href = match.groupValues[1]
+        val label = match.groupValues[2]
+
+
+        // Add text before link
+        if (lastPos < range.first) {
+            append(enrichedText.substring(lastPos, range.first))
+        }
+
+        // Add the link
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "ACTION",
+                styles = linkStyles,
+                linkInteractionListener = {
+                    onLinkClicked(href)
+                }
+            )
+        ) {
+            append(label)
+        }
+
+        lastPos = range.last + 1
+    }
+
+    // Add the trailing text after the last link
+    if (lastPos < enrichedText.length) {
+        append(enrichedText.substring(lastPos))
+    }
 }
 
 /** Builds text with a single link represented by a text */

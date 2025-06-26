@@ -74,6 +74,7 @@ import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
+import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
@@ -124,6 +125,7 @@ fun MessageBubble(
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     hasNext: Boolean,
+    hasAttachment: Boolean,
     isMyLastMessage: Boolean,
     isReplying: Boolean,
     currentUserPublicId: String,
@@ -141,6 +143,7 @@ fun MessageBubble(
                 modifier = modifier,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
+                hasAttachment = hasAttachment,
                 data = data,
                 model = model,
                 preferredEmojis = preferredEmojis,
@@ -162,6 +165,7 @@ private fun ContentLayout(
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
     hasNext: Boolean,
+    hasAttachment: Boolean,
     model: MessageBubbleModel,
     isReplying: Boolean,
     currentUserId: String,
@@ -174,6 +178,7 @@ private fun ContentLayout(
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
+    val linkHandler = LocalLinkHandler.current
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
     val coroutineScope = rememberCoroutineScope()
     val dragCoroutineScope = rememberCoroutineScope()
@@ -206,7 +211,9 @@ private fun ContentLayout(
             timings = data.message.timings.orEmpty(),
             text = buildAnnotatedLinkString(
                 text = data.message.content,
-                onLinkClicked = { openLink(it) }
+                onLinkClicked = { href ->
+                    linkHandler?.invoke(href) ?: openLink(href)
+                }
             ),
             onFinish = { model.onTranscribed() },
             enabled = model.transcribe.value,
@@ -219,9 +226,6 @@ private fun ContentLayout(
             ).toSpanStyle()
         )
     }else AnnotatedString("")
-    val hasAttachment = remember(data.id) {
-        data.message.media?.isEmpty() == false || textContent.hasLinkAnnotations(0, textContent.length)
-    }
 
 
     val isDragged = remember(data.id) {
@@ -601,9 +605,7 @@ private fun MessageContent(
                             } else LocalTheme.current.colors.backgroundContrast,
                             shape = shape
                         )
-                        .then(
-                            if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                        )
+                        .then(if(hasAttachment) Modifier.fillMaxWidth() else Modifier.widthIn(min = 50.dp))
                         .padding(
                             vertical = 10.dp,
                             horizontal = 14.dp
@@ -611,9 +613,7 @@ private fun MessageContent(
                     horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     Text(
-                        modifier = Modifier
-                            .widthIn(max = (screenSize.width * .8f).dp)
-                            .then(if(model.transcribe.value) Modifier else Modifier),
+                        modifier = Modifier.widthIn(max = (screenSize.width * .8f).dp),
                         text = if(data.message.state == MessageState.Decrypting) {
                             AnnotatedString(stringResource(Res.string.message_decrypting))
                         }else textContent,
@@ -677,8 +677,9 @@ private fun MessageContent(
                         val newMap = hashMapOf<String, Pair<Int, Boolean>>()
                         data.reactions.forEach {
                             if (it.content != null) {
-                                newMap[it.content] = (newMap[it.content]?.first?.plus(1) ?: 1) to
-                                        (it.authorPublicId == currentUserId || newMap[it.content]?.second == true)
+                                val content = it.content.replace("\uFE0F", "").trim()
+                                newMap[content] = (newMap[content]?.first?.plus(1) ?: 1) to
+                                        (it.authorPublicId == currentUserId || newMap[content]?.second == true)
                             }
                         }
                         reactions.value = newMap.toList()
@@ -688,18 +689,20 @@ private fun MessageContent(
                     }
                 }
 
-                reactions.value.forEach { reaction ->
+                reactions.value.keys.forEachIndexed { index, reaction ->
+                    val value = reactions.value[reaction]
+
                     Row(
                         Modifier
                             .scalingClickable(
                                 onTap = {
-                                    model.onReactionChange(reaction.key)
+                                    model.onReactionChange(reaction)
                                 },
                                 onDoubleTap = {
-                                    showDetailDialogOf.value = data.message.content to reaction.key
+                                    showDetailDialogOf.value = data.message.content to reaction
                                 },
                                 onLongPress = {
-                                    showDetailDialogOf.value = data.message.content to reaction.key
+                                    showDetailDialogOf.value = data.message.content to reaction
                                 }
                             )
                             .width(IntrinsicSize.Min)
@@ -712,12 +715,12 @@ private fun MessageContent(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = reaction.key,
+                                text = reaction,
                                 style = LocalTheme.current.styles.category.copy(
                                     textAlign = TextAlign.Center
                                 )
                             )
-                            if (reaction.value.second) {
+                            if (value?.second == true) {
                                 Box(
                                     modifier = Modifier
                                         .height(2.dp)
@@ -729,7 +732,7 @@ private fun MessageContent(
                                 )
                             }
                         }
-                        reaction.value.first.takeIf { it > 1 }?.toString()?.let { count ->
+                        value?.first?.takeIf { it > 1 }?.toString()?.let { count ->
                             Text(
                                 text = count,
                                 style = LocalTheme.current.styles.regular

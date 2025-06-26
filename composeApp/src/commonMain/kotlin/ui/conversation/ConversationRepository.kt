@@ -50,6 +50,7 @@ import net.folivo.trixnity.client.roomEventEncryptionServices
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.m.Mentions
 import net.folivo.trixnity.core.model.events.m.ReactionEventContent
 import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
@@ -79,6 +80,11 @@ open class ConversationRepository(
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
     protected var certainMessageCount: Int? = null
+
+    companion object {
+        const val MENTION_REGEX_USER_ID = """.*\/#\/(@[^"]+)"""
+        private const val MENTION_REGEX = """<a href="$MENTION_REGEX_USER_ID">([^<]+)<\/a>"""
+    }
 
     /** Attempts to invalidate local PagingSource with conversation messages */
     fun invalidateLocalSource() {
@@ -297,44 +303,53 @@ open class ConversationRepository(
         message: ConversationMessageIO
     ): Result<EventId>? = withContext(Dispatchers.IO) {
         val roomId = RoomId(conversationId)
+        val mentions = Mentions(
+            users = MENTION_REGEX.toRegex().findAll(message.content ?: "").map { UserId(it.groupValues[1]) }.toSet(),
+            room = false // TODO ability to mention rooms 86c46m1bq
+        )
+        val content = message.content?.replace(MENTION_REGEX.toRegex()) { it.groupValues[2] } ?: ""
+
         val eventContent = when {
             message.media?.size == 1 -> {
                 val media = message.media.firstOrNull()
                 when(getMediaType(media?.mimetype ?: "")) {
                     MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
-                        body = message.content ?: "",
+                        body = content,
                         url = media?.url,
                         fileName = media?.name,
                         info = AudioInfo(
                             mimeType = media?.mimetype,
                             size = media?.size
                         ),
+                        mentions = mentions,
                         relatesTo = message.relatesTo()
                     )
                     MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
-                        body = message.content ?: "",
+                        body = content,
                         url = media?.url,
                         fileName = media?.name,
                         info = ImageInfo(
                             mimeType = media?.mimetype,
                             size = media?.size
                         ),
+                        mentions = mentions,
                         relatesTo = message.relatesTo()
                     )
                     else -> RoomMessageEventContent.FileBased.File(
-                        body = message.content ?: "",
+                        body = content,
                         url = media?.url,
                         fileName = media?.name,
                         info = FileInfo(
                             mimeType = media?.mimetype,
                             size = media?.size
                         ),
+                        mentions = mentions,
                         relatesTo = message.relatesTo()
                     )
                 }
             }
             (message.media?.size ?: 0) > 1 -> FileList(
-                body = message.content ?: "",
+                body = content,
                 urls = message.media?.mapNotNull { it.url },
                 fileName = message.media?.firstOrNull()?.name,
                 infos = message.media?.map { media ->
@@ -343,10 +358,14 @@ open class ConversationRepository(
                         size = media.size
                     )
                 },
+                mentions = mentions,
                 relatesTo = message.relatesTo()
             )
             else -> RoomMessageEventContent.TextBased.Text(
-                body = message.content ?: "",
+                body = content,
+                formattedBody = message.content ?: "",
+                format = "org.matrix.custom.html",
+                mentions = mentions,
                 relatesTo = message.relatesTo()
             )
         }
@@ -355,7 +374,7 @@ open class ConversationRepository(
             roomId = roomId,
             eventContent = client.roomEventEncryptionServices.encrypt(
                 content = eventContent,
-                roomId = roomId
+                roomId = roomId,
             )?.getOrNull() ?: eventContent
         )
     }

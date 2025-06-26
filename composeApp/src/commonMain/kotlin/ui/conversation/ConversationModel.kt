@@ -14,6 +14,7 @@ import data.io.app.SettingsKeys
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomType
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.giphy.GifAsset
@@ -266,6 +267,26 @@ open class ConversationModel(
         if(timingSensor.value.isRunning) {
             timingSensor.value.pause()
             gravityUseCase.kill()
+        }
+    }
+
+    private val _mentionRecommendations = MutableStateFlow<List<ConversationRoomMember>?>(null)
+    val mentionRecommendations = _mentionRecommendations.asStateFlow()
+
+    fun recommendMentions(input: CharSequence?) {
+        viewModelScope.launch(Dispatchers.Default) {
+            if (input == null) {
+                _mentionRecommendations.value = null
+                return@launch
+            } else {
+                val strippedInput = input.toString().lowercase().removePrefix("@")
+
+                _mentionRecommendations.value = dataManager.conversations.value.second[conversationId.value]?.members?.filter { member ->
+                    strippedInput.isEmpty() // no filter yet
+                            || member.displayName?.lowercase()?.startsWith(strippedInput) == true
+                            || member.userId.lowercase().startsWith(strippedInput) == true
+                }?.take(4).orEmpty()
+            }
         }
     }
 
@@ -573,12 +594,16 @@ open class ConversationModel(
             repository.reactToMessage(
                 conversationId = conversationId.value,
                 reaction = MessageReactionRequest(
-                    content = content,
+                    content = forceEmojiPresentation(content),
                     messageId = messageId
                 )
             )
         }
     }
+
+    private fun forceEmojiPresentation(
+        emoji: String
+    ) = if (!emoji.contains('\uFE0F')) emoji + '\uFE0F' else emoji
 
     /** Makes a request to send a conversation audio message */
     fun sendAudioMessage(byteArray: ByteArray) {
