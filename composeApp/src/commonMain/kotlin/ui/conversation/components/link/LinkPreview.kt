@@ -42,6 +42,7 @@ fun LinkPreview(
     shape: Shape = RectangleShape,
     alignment: Alignment.Horizontal,
     imageSize: IntSize = IntSize(height = 160, width = 0),
+    onLayout: (isVisible: Boolean) -> Unit = {},
     textBackground: Color = LocalTheme.current.colors.backgroundDark
 ) {
     val density = LocalDensity.current
@@ -55,7 +56,9 @@ fun LinkPreview(
         }
     }
 
-    if(graphProtocol.value != null) {
+    onLayout(graphProtocol.value?.isEmpty == false)
+
+    AnimatedVisibility(graphProtocol.value?.isEmpty == false) {
         Column(
             modifier = modifier
                 .width(IntrinsicSize.Min)
@@ -99,29 +102,23 @@ fun LinkPreview(
                     }
                 }
 
-                if(graphProtocol.value?.isEmpty != true) {
-                    Column(
-                        modifier = Modifier.padding(end = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        AnimatedVisibility(graphProtocol.value?.title != null) {
-                            Text(
-                                text = graphProtocol.value?.title ?: "",
-                                style = LocalTheme.current.styles.title,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        AnimatedVisibility(graphProtocol.value?.description != null) {
-                            Text(
-                                text = graphProtocol.value?.description ?: "",
-                                style = LocalTheme.current.styles.regular,
-                                maxLines = 5,
-                                minLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+                Column(
+                    modifier = Modifier.padding(end = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = graphProtocol.value?.title ?: "",
+                        style = LocalTheme.current.styles.title,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = graphProtocol.value?.description ?: "",
+                        style = LocalTheme.current.styles.regular,
+                        maxLines = 5,
+                        minLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

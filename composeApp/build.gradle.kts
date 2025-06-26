@@ -384,7 +384,7 @@ tasks.register("printVersionName") {
     }
 }
 
-// hotfix to faulty room dao generation for Jvm
+// hotfix to faulty room dao generation for Jvm     https://issuetracker.google.com/issues/352482325?pli=1
 tasks.register("sanitizeDaoImpls") {
     doLast {
         val baseDir = "build/generated/ksp/jvm/jvmMain/kotlin/database/dao"

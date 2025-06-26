@@ -435,11 +435,11 @@ abstract class MessageProcessor {
             }
             else -> {
                 val file = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }
-                val body = (this as? RoomMessageEventContent)?.body?.takeIf {
-                    it != file?.body
+                val formattedBody = (this as? RoomMessageEventContent)?.formattedBody?.takeIf {
+                    body != file?.body
                 }
                 ConversationMessageIO(
-                    content = body,
+                    content = formattedBody,
                     media = file?.let {
                         listOf(
                             MediaIO(

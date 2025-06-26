@@ -421,5 +421,8 @@ val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
 /** Default page size based on current device tye */
 val LocalNavController = staticCompositionLocalOf<NavHostController?> { null }
 
+/** Localized parent handling of links within child composables */
+val LocalLinkHandler = staticCompositionLocalOf<((href: String) -> Unit)?> { null }
+
 /** Custom on back pressed provided by parent */
 val LocalBackPressDispatcher = staticCompositionLocalOf<BackPressDispatcher?> { null }

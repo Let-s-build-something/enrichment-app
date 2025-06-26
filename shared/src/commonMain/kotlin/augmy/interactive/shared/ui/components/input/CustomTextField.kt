@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
@@ -45,8 +46,10 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.components.MinimalisticIcon
@@ -80,10 +83,13 @@ fun CustomTextField(
     onKeyboardAction: KeyboardActionHandler? = null,
     textObfuscationMode: TextObfuscationMode? = null,
     inputTransformation: InputTransformation? = null,
+    outputTransformation: OutputTransformation? = null,
     prefixIcon: ImageVector? = null,
     maxCharacters: Int = -1,
     focusRequester: FocusRequester = remember(state) { FocusRequester() },
     trailingIcon: @Composable (() -> Unit)? = null,
+    additionalContent: @Composable (() -> Unit)? = null,
+    onTextLayout: (Density.(getResult: () -> TextLayoutResult?) -> Unit)? = null,
     lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
@@ -110,6 +116,7 @@ fun CustomTextField(
     }else null
 
     Column(modifier = modifier.animateContentSize()) {
+        additionalContent?.invoke()
         Row(
             Modifier
                 .heightIn(min = 44.dp)
@@ -164,6 +171,7 @@ fun CustomTextField(
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
                         textObfuscationMode = textObfuscationMode ?: TextObfuscationMode.RevealLastTyped,
                         textStyle = textStyle,
+                        onTextLayout = onTextLayout,
                         keyboardOptions = keyboardOptions,
                         onKeyboardAction = onKeyboardAction
                     )
@@ -171,7 +179,9 @@ fun CustomTextField(
                     BasicTextField(
                         modifier = finalModifier,
                         inputTransformation = inputTransformation,
+                        outputTransformation = outputTransformation,
                         state = state,
+                        onTextLayout = onTextLayout,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
                         textStyle = textStyle,
                         lineLimits = lineLimits,
@@ -227,7 +237,7 @@ fun CustomTextField(
                     end = 8.dp,
                     bottom = 4.dp
                 ),
-                text = suggestText ?: "",
+                text = suggestText,
                 style = LocalTheme.current.styles.regular
             )
         }
@@ -240,7 +250,7 @@ fun CustomTextField(
                         end = 8.dp,
                         bottom = 4.dp
                     ),
-                text = errorText ?: "",
+                text = errorText,
                 style = LocalTheme.current.styles.regular.copy(
                     color = SharedColors.RED_ERROR,
                     fontSize = 14.sp

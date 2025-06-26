@@ -80,6 +80,7 @@ fun UserDetailDialog(
 ) {
     loadKoinModules(userDetailModule)
     val model: UserDetailModel = koinViewModel(
+        key = userId,
         parameters = {
             parametersOf(userId ?: member?.userId, networkItem)
         }
