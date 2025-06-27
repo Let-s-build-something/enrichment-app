@@ -128,7 +128,8 @@ open class ConversationModel(
         Idle,
         IdleNoRoom,
         InternalError,
-        CreatingRoom
+        CreatingRoom,
+        CreateRoomNoMembers
     }
 
     override val isRefreshing = MutableStateFlow(false)
@@ -136,6 +137,9 @@ open class ConversationModel(
 
     private val _uploadProgress = MutableStateFlow<List<MediaHttpProgress>>(emptyList())
     private val _uiMode = MutableStateFlow<UiMode>(UiMode.Idle)
+    private val _mentionRecommendations = MutableStateFlow<List<ConversationRoomMember>?>(null)
+    private val _recommendedUsersToInvite = MutableStateFlow(listOf<ConversationRoomMember>())
+    private val _membersToInvite = MutableStateFlow(mutableSetOf<ConversationRoomMember>())
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
     var persistentPositionData: PersistentListData? = null
@@ -182,7 +186,14 @@ open class ConversationModel(
     /** Current configuration of media repository */
     val repositoryConfig = dataManager.repositoryConfig.asStateFlow()
 
+    /** List of mentions based on the typed text */
+    val mentionRecommendations = _mentionRecommendations.asStateFlow()
+
+    val recommendedUsersToInvite = _recommendedUsersToInvite.asStateFlow()
+    val membersToInvite = _membersToInvite.asStateFlow()
+
     val uiMode = _uiMode.asStateFlow()
+
     /** Progress of the current upload */
     val uploadProgress = _uploadProgress.asStateFlow()
 
@@ -207,7 +218,7 @@ open class ConversationModel(
                     }.ifNull {
                         _uiMode.value = UiMode.IdleNoRoom
                     }
-                }else _uiMode.value = UiMode.InternalError
+                }else _uiMode.value = UiMode.CreateRoomNoMembers
             }
 
             onDataRequest(isSpecial = false, isPullRefresh = false)
@@ -270,9 +281,6 @@ open class ConversationModel(
         }
     }
 
-    private val _mentionRecommendations = MutableStateFlow<List<ConversationRoomMember>?>(null)
-    val mentionRecommendations = _mentionRecommendations.asStateFlow()
-
     fun recommendMentions(input: CharSequence?) {
         viewModelScope.launch(Dispatchers.Default) {
             if (input == null) {
@@ -282,20 +290,58 @@ open class ConversationModel(
                 val strippedInput = input.toString().lowercase().removePrefix("@")
 
                 _mentionRecommendations.value = dataManager.conversations.value.second[conversationId.value]?.members?.filter { member ->
-                    strippedInput.isEmpty() // no filter yet
-                            || member.displayName?.lowercase()?.startsWith(strippedInput) == true
-                            || member.userId.lowercase().startsWith(strippedInput) == true
+                    (strippedInput.isEmpty() // no filter yet
+                            || member.displayName?.lowercase()?.startsWith(strippedInput) == true)
+                            || member.userId.lowercase().startsWith(strippedInput)
                 }?.take(4).orEmpty()
+            }
+        }
+    }
+
+    /** Either calls for most relevant recommendations or queries all users */
+    fun recommendUsersToInvite(query: CharSequence? = null) {
+        viewModelScope.launch(Dispatchers.Default) {
+            val limit = 10
+
+            _recommendedUsersToInvite.value = (if (query.isNullOrBlank()) {
+                repository.recommendUsersToInvite(
+                    limit = limit,
+                    excludeMembers = _membersToInvite.value.map { it.id }
+                )
+            } else {
+                repository.queryUsersToInvite(
+                    query = query.toString(),
+                    excludeMembers = _membersToInvite.value.map { it.id },
+                    limit = limit
+                )
+            }).distinctBy { it.userId }.filter {
+                it.userId != matrixUserId
+                        && membersToInvite.value.none { member -> member.userId == it.userId  }
+            }
+        }
+    }
+
+    fun selectInvitedMember(
+        member: ConversationRoomMember,
+        add: Boolean = true
+    ) {
+        _membersToInvite.update { prev ->
+            prev.apply {
+                removeAll { it.userId == member.userId }
+
+                if(add) add(member) else remove(member)
             }
         }
     }
 
     fun updateTypingStatus(content: CharSequence) {
         viewModelScope.launch {
-            repository.updateTypingIndicator(
-                conversationId = conversationId.value,
-                indicator = ConversationTypingIndicator(content = content.toString())
-            )
+            if (content.isNotBlank()) {
+                repository.updateTypingIndicator(
+                    conversationId = conversationId.value,
+                    indicator = ConversationTypingIndicator(content = content.toString())
+                )
+            }
         }
     }
 
@@ -364,8 +410,25 @@ open class ConversationModel(
     ) {
         CoroutineScope(Job()).launch {
             // no conversation room yet, let's create it
-            if (userId != null && conversationId.value.isBlank() && _uiMode.value != UiMode.CreatingRoom) {
+            if ((userId != null || _membersToInvite.value.isNotEmpty())
+                && conversationId.value.isBlank()
+                && _uiMode.value != UiMode.CreatingRoom
+            ) {
+                if (_membersToInvite.value.size == 1) {
+                    _membersToInvite.value.firstOrNull()?.userId?.let {
+                        repository.getRoomIdByUser(it)?.let { userId ->
+                            conversationId.value = userId
+                            _uiMode.value = UiMode.Idle
+                            onDataRequest(isSpecial = false, isPullRefresh = false)
+                            if (conversationId.value.isNotBlank()) return@launch
+                        }
+                    }
+                }
+
                 _uiMode.value = UiMode.CreatingRoom
+                val users = _membersToInvite.value.map { UserId(it.userId) }.toMutableSet().apply {
+                    userId?.let { add(UserId(it)) }
+                }
 
                 matrixClient?.api?.room?.createRoom(
                     visibility = DirectoryVisibility.PRIVATE,
@@ -375,17 +438,17 @@ open class ConversationModel(
                         InitialStateEvent(EncryptionEventContent(algorithm = EncryptionAlgorithm.Megolm), "")
                     ),
                     roomVersion = "11",
-                    isDirect = true,
+                    isDirect = userId != null,
                     preset = CreateRoom.Request.Preset.TRUSTED_PRIVATE,
-                    invite = setOf(UserId(userId)),
+                    invite = users,
                 )?.getOrNull()?.full?.let { newConversationId ->
                     _uiMode.value = UiMode.Idle
                     repository.insertConversation(
                         ConversationRoomIO(
                             id = newConversationId,
                             summary = RoomSummary(
-                                heroes = listOf(UserId(userId)),
-                                isDirect = true
+                                heroes = users.toList(),
+                                isDirect = userId != null
                             ),
                             ownerPublicId = matrixUserId,
                             historyVisibility = HistoryVisibility.INVITED,
@@ -393,11 +456,13 @@ open class ConversationModel(
                             type = RoomType.Joined
                         )
                     )
-                    repository.insertMemberByUserId(
-                        conversationId = newConversationId,
-                        userId = userId,
-                        homeserver = homeserver
-                    )
+                    userId?.let {
+                        repository.insertMemberByUserId(
+                            conversationId = newConversationId,
+                            userId = it,
+                            homeserver = homeserver
+                        )
+                    }
                     conversationId.value = newConversationId
                 }
             }

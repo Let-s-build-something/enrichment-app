@@ -96,9 +96,9 @@ fun UserVerificationMessage(
                         modifier = Modifier
                             .align(Alignment.Top)
                             .size(48.dp),
-                        media = MediaIO(url = data.author.content.avatarUrl),
+                        media = MediaIO(url = data.author.avatarUrl),
                         tag = null,
-                        name = data.author.content.displayName ?: ""
+                        name = data.author.displayName ?: ""
                     )
                 }
                 Column(

@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.paging.LoadState
+import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.onMouseScroll
 import augmy.interactive.shared.ext.scalingClickable
@@ -56,9 +58,10 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
+import base.utils.getOrNull
 import components.UserProfileImage
 import data.NetworkProximityCategory
-import data.io.user.NetworkItemIO
+import data.io.matrix.room.FullConversationRoom
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
@@ -70,14 +73,14 @@ import kotlin.math.sin
 @Composable
 fun SocialCircleContent(
     modifier: Modifier = Modifier,
-    viewModel: HomeModel
+    model: HomeModel
 ) {
     val density = LocalDensity.current
     val navController = LocalNavController.current
 
-    val networkItems = viewModel.networkItems.collectAsState(null)
-    val categories = viewModel.categories.collectAsState(initial = listOf())
-    val customColors = viewModel.customColors.collectAsState(initial = mapOf())
+    val rooms = model.conversationRooms.collectAsLazyPagingItems()
+    val categories = model.categories.collectAsState(initial = listOf())
+    val customColors = model.customColors.collectAsState(initial = mapOf())
 
     val itemPaddingPx = with(density) { 2.dp.toPx() }
     var contentSize by remember {
@@ -89,6 +92,9 @@ fun SocialCircleContent(
     val smallerDimension = (if(isVertical) contentSize.width else contentSize.height).toFloat()
     val maxZoom = if(LocalDeviceType.current == WindowWidthSizeClass.Expanded) 5f else 3.5f
     val coroutineScope = rememberCoroutineScope()
+
+    val isLoadingInitialPage = rooms.loadState.refresh is LoadState.Loading
+            || (rooms.itemCount == 0 && !rooms.loadState.append.endOfPaginationReached)
 
     val offset = remember {
         mutableStateOf(Offset(0f, 0f))
@@ -125,7 +131,7 @@ fun SocialCircleContent(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.onDataRequest(true)
+        model.onDataRequest(true)
     }
 
     Box(
@@ -213,14 +219,16 @@ fun SocialCircleContent(
                     val shares = category.share + additionalShares + previousShares
 
                     val zIndex = categories.value.size - categories.value.indexOf(category) + 1f
-                    val endIndex = if(networkItems.value == null) NETWORK_SHIMMER_ITEM_COUNT else (networkItems.value?.size ?: 0)
+                    val endIndex = if(rooms.itemCount == 0 && isLoadingInitialPage) {
+                        NETWORK_SHIMMER_ITEM_COUNT
+                    }else rooms.itemCount
 
-                    val items = mutableListOf<NetworkItemIO?>()
+                    val items = mutableListOf<FullConversationRoom?>()
                     var finished = false
                     for(index in startingIndex until endIndex) {
                         if(!finished) {
-                            networkItems.value?.getOrNull(index).let { data ->
-                                if(data == null || category.range.contains(data.proximity ?: -1f)) {
+                            rooms.getOrNull(index).let { data ->
+                                if(data == null || category.range.contains(data.data.proximity ?: -1f)) {
                                     items.add(data)
                                 }else {
                                     startingIndex = index
@@ -263,18 +271,18 @@ fun SocialCircleContent(
                             .size((largerDimension * shares).dp),
                         content = {
                             items.forEach { data ->
-                                NetworkItemCompact(
+                                ItemCompact(
                                     modifier = Modifier
                                         .align(Alignment.Center)
                                         .animateContentSize()
                                         .zIndex(zIndex),
                                     data = data,
                                     onClick = {
-                                        data?.userPublicId?.let { userPublicId ->
+                                        data?.data?.id?.let { conversationId ->
                                             navController?.navigate(
                                                 NavigationNode.Conversation(
-                                                    conversationId = userPublicId,
-                                                    name = data.displayName
+                                                    conversationId = conversationId,
+                                                    name = data.name
                                                 )
                                             )
                                         }
@@ -297,7 +305,7 @@ fun SocialCircleContent(
                                 var verticalDistance = (indexLayer / mappedItems.size) * circleSize
                                 val radiusOverride = radius - (indexLayer * circleSize) - circleSize / 2
 
-                                for(index in items.indices) {
+                                items.indices.forEach { index ->
                                     val x = centerX + (radiusOverride * cos(verticalDistance / radiusOverride))
                                     val y = centerY + (radiusOverride * sin(verticalDistance / radiusOverride))
 
@@ -318,11 +326,11 @@ fun SocialCircleContent(
 }
 
 @Composable
-private fun NetworkItemCompact(
+private fun ItemCompact(
     modifier: Modifier = Modifier,
     size: Dp,
     onClick: () -> Unit,
-    data: NetworkItemIO?
+    data: FullConversationRoom?
 ) {
     val density = LocalDensity.current
 
@@ -364,14 +372,14 @@ private fun NetworkItemCompact(
                             onClick()
                         },
                     media = data.avatar,
-                    tag = data.tag,
-                    name = data.displayName
+                    tag = data.data.tag,
+                    name = data.name
                 )
                 Text(
                     modifier = Modifier
                         .fillMaxWidth(.8f)
                         .align(Alignment.CenterHorizontally),
-                    text = data.displayName ?: "",
+                    text = data.name,
                     style = TextStyle(
                         fontFamily = FontFamily(fontQuicksandSemiBold),
                         fontSize = with(density) { (size / 6).toSp() },

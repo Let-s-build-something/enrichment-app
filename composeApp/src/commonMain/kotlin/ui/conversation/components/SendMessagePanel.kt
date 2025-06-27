@@ -891,7 +891,7 @@ private fun MentionRecommendationsBox(
                 ) {
                     val name = recommendation.displayName ?: recommendation.userId
 
-                    recommendation.content.avatarUrl?.let { avatar ->
+                    recommendation.avatarUrl?.let { avatar ->
                         UserProfileImage(
                             modifier = Modifier.size(32.dp),
                             name = name,

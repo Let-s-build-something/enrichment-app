@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 68,
-    "identityHash": "078cfd959e000648200eaab525c52ae6",
+    "version": 69,
+    "identityHash": "46cbd4b4aaca7edd52dbfe3ded399d80",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -368,17 +368,11 @@
       },
       {
         "tableName": "room_member_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` TEXT NOT NULL, `content` TEXT NOT NULL, `display_name` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `proximity` REAL, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` TEXT NOT NULL, `display_name` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `proximity` REAL, `avatarUrl` TEXT, `membership` TEXT NOT NULL, `is_direct` INTEGER, `joinAuthorisedViaUsersServer` TEXT, `thirdPartyInvite` TEXT, `reason` TEXT, `externalUrl` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "userId",
             "columnName": "userId",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "content",
-            "columnName": "content",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -407,6 +401,42 @@
             "fieldPath": "proximity",
             "columnName": "proximity",
             "affinity": "REAL"
+          },
+          {
+            "fieldPath": "avatarUrl",
+            "columnName": "avatarUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "membership",
+            "columnName": "membership",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDirect",
+            "columnName": "is_direct",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "joinAuthorisedViaUsersServer",
+            "columnName": "joinAuthorisedViaUsersServer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "thirdPartyInvite",
+            "columnName": "thirdPartyInvite",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "externalUrl",
+            "columnName": "externalUrl",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "id",
@@ -657,7 +687,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '078cfd959e000648200eaab525c52ae6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46cbd4b4aaca7edd52dbfe3ded399d80')"
     ]
   }
 }

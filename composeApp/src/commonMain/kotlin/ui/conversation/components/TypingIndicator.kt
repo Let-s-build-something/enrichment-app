@@ -56,9 +56,9 @@ fun TypingIndicator(
     ) {
         UserProfileImage(
             modifier = Modifier.size(userProfileSize),
-            media = MediaIO(url = data.user?.content?.avatarUrl),
+            media = MediaIO(url = data.user?.avatarUrl),
             tag = data.user?.sender?.generateUserTag(),
-            name = data.user?.content?.displayName
+            name = data.user?.displayName
         )
         LoadingMessageBubble(
             key = key,

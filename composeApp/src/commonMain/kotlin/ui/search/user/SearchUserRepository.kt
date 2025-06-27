@@ -27,7 +27,7 @@ class SearchUserRepository(
     ) = withContext(Dispatchers.IO) {
         val localSearch = withContext(Dispatchers.Default) {
             networkItemDao.searchByPrompt(prompt = prompt)
-                .plus(memberDao.searchByPrompt(prompt = prompt).map { it.toNetworkItem() })
+                .plus(memberDao.query(query = prompt).map { it.toNetworkItem() })
                 .distinctBy { it.userId }
         }
 

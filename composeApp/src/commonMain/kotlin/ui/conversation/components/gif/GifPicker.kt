@@ -158,7 +158,7 @@ fun GifPicker(
                             .height(44.dp)
                             .fillMaxWidth(.65f),
                         isFocused = isFilterFocused,
-                        shape = LocalTheme.current.shapes.circularActionShape,
+                        shape = LocalTheme.current.shapes.rectangularActionShape,
                         hint = stringResource(Res.string.action_search_gifs),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,

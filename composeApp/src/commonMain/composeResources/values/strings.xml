@@ -185,8 +185,13 @@
   <string name="hard_logout_action">Log-in</string>
 
 
-  <string name="conversation_creating_room">Creating room...</string>
-  <string name="conversation_no_room_title">This is where it all started...💭</string>
+  <string name="conversation_creating_room">Creating conversation...</string>
+  <string name="conversation_create_search_hint">Search for people</string>
+  <string name="conversation_create_helper">The conversation starts the moment you send a message.</string>
+  <string name="conversation_create_title">Create a new conversation</string>
+  <string name="conversation_new_room">New conversation</string>
+  <string name="conversation_selected_users">To be invited</string>
+  <string name="conversation_no_room_title">This is where it began...💭</string>
   <string name="conversation_no_room_message">Send a message to start this conversation.</string>
   <string name="conversation_attached">Attached media</string>
   <string name="conversation_action_send">Send</string>
@@ -269,6 +274,9 @@
   <string name="button_tune">Tune</string>
 
   <string name="action_settings">Options</string>
+  <string name="action_create_room">Create a room</string>
+  <string name="action_find_user">Find new user</string>
+  <string name="action_remove">Remove</string>
   <string name="action_download_all">Download all</string>
   <string name="action_share">Share</string>
   <string name="action_link_copied">Link successfully copied!</string>
@@ -299,6 +307,7 @@
   <string name="accessibility_change_avatar">Change avatar</string>
   <string name="accessibility_change_username">Change username</string>
   <string name="accessibility_save">Save</string>
+  <string name="accessibility_add_new">Add new</string>
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload image</string>

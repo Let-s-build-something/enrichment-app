@@ -20,11 +20,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -228,7 +228,7 @@ fun <T>AddToLauncher(
                 val onCheck = {
                     when {
                         checkedItems.contains(data) -> checkedItems.remove(data)
-                        checkedItems.size == 0 || multiSelect -> checkedItems.add(data)
+                        checkedItems.isEmpty() || multiSelect -> checkedItems.add(data)
                         else -> {
                             newItemState?.setTextAndPlaceCursorAtEnd("")
                             checkedItems.remove(data)

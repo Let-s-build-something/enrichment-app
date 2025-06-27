@@ -194,11 +194,18 @@ abstract class MessageProcessor {
                         ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
                             (content.membership == Membership.JOIN) to ConversationRoomMember(
-                                content = content,
                                 roomId = roomId,
                                 timestamp = event.originTimestampOrNull,
                                 sender = event.senderOrNull,
-                                userId = userId
+                                userId = userId,
+                                displayName = content.displayName,
+                                avatarUrl = content.avatarUrl,
+                                isDirect = content.isDirect,
+                                joinAuthorisedViaUsersServer = content.joinAuthorisedViaUsersServer,
+                                thirdPartyInvite = content.thirdPartyInvite,
+                                reason = content.reason,
+                                externalUrl = content.externalUrl,
+                                membership = content.membership
                             )
                         )
                     }

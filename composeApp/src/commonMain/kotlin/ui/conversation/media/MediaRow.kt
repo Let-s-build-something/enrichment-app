@@ -122,7 +122,7 @@ fun MediaRow(
                                 selectedIndex = index,
                                 title = if(isCurrentUser) {
                                     getString(Res.string.conversation_detail_you)
-                                } else data.author?.content?.displayName,
+                                } else data.author?.displayName,
                                 subtitle = date
                             )
                         )

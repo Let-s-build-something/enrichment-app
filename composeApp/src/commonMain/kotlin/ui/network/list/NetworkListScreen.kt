@@ -18,8 +18,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -197,7 +197,7 @@ fun NetworkListContent(
                         }
                     ) {
                         if(networkItems.itemCount - 1 != index) {
-                            Divider(
+                            HorizontalDivider(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = LocalTheme.current.colors.disabledComponent,
                                 thickness = .3.dp
@@ -315,9 +315,6 @@ private fun NetworkItem(
                     SocialItemActions(
                         key = data.userPublicId,
                         requestProximityChange = requestProximityChange,
-                        onInvite = {
-                            showAddMembers.value = true
-                        },
                         newItem = data
                     )
                 }

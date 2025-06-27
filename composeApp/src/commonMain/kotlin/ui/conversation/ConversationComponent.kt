@@ -89,6 +89,7 @@ fun ConversationComponent(
     model: ConversationModel,
     shimmerItemCount: Int = 20,
     verticalArrangement: Arrangement.Vertical,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     messages: LazyPagingItems<FullConversationMessage>,
     conversationId: String?,
     thread: FullConversationMessage? = null,
@@ -247,6 +248,7 @@ fun ConversationComponent(
                 modifier = listModifier.draggable(listState),
                 reverseLayout = true,
                 verticalArrangement = verticalArrangement,
+                horizontalAlignment = horizontalAlignment,
                 state = listState
             ) {
                 item(key = "navigationPadding") {
@@ -264,10 +266,12 @@ fun ConversationComponent(
                     ) { mode ->
                         when(mode) {
                             ConversationModel.UiMode.IdleNoRoom -> EmptyLayout(
+                                modifier = Modifier.padding(bottom = 32.dp),
                                 title = stringResource(Res.string.conversation_no_room_title),
                                 description = stringResource(Res.string.conversation_no_room_message)
                             )
                             ConversationModel.UiMode.CreatingRoom -> EmptyLayout(
+                                modifier = Modifier.padding(bottom = 32.dp),
                                 title = stringResource(Res.string.conversation_creating_room),
                                 animSpec = {
                                     LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
@@ -386,7 +390,7 @@ fun ConversationComponent(
                                                     conversationId = conversationId,
                                                     title = if(messageType == MessageType.CurrentUser) {
                                                         getString(Res.string.conversation_detail_you)
-                                                    } else data?.author?.content?.displayName
+                                                    } else data?.author?.displayName
                                                 )
                                             )
                                         }

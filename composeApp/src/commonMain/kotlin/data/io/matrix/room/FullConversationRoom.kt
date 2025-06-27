@@ -47,7 +47,7 @@ data class FullConversationRoom(
     @get:Ignore
     val avatar: MediaIO?
         get() = data.summary?.avatar ?: (if (data.summary?.isDirect == true && members.isNotEmpty()) {
-            members.firstOrNull()?.content?.avatarUrl?.let {
+            members.firstOrNull()?.avatarUrl?.let {
                 MediaIO(url = it)
             }
         } else null)
@@ -56,7 +56,9 @@ data class FullConversationRoom(
     @Ignore
     fun toNetworkItem() = NetworkItemIO(
         publicId = data.id,
-        userId = data.id,
+        userId = if (data.summary?.isDirect == true) {
+            members.firstOrNull()?.userId ?: data.id
+        } else data.id,
         displayName = name,
         avatar = avatar,
         lastMessage = data.summary?.lastMessage?.content
