@@ -14,16 +14,37 @@ interface RoomMemberDao {
     suspend fun getAll(): List<ConversationRoomMember>
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE userId IN (:userIds) ")
-    suspend fun get(userIds: List<String>): List<ConversationRoomMember>
-
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
             "WHERE userId = :userId ")
     suspend fun get(userId: String): ConversationRoomMember?
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
             "WHERE room_id = :roomId ")
     suspend fun getOfRoom(roomId: String): List<ConversationRoomMember>
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+            WHERE (display_name like '%' || :query || '%'
+            OR userId  like '%' || :query || '%')
+            AND id NOT IN (:excludeIds)
+            ORDER BY proximity DESC 
+            LIMIT :limit
+    """)
+    suspend fun query(
+        query: String,
+        excludeIds: List<String> = emptyList(),
+        limit: Int = 100
+    ): List<ConversationRoomMember>
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+            WHERE id NOT IN (:excludeIds)
+            ORDER BY proximity DESC 
+            LIMIT :limit
+    """)
+    suspend fun getSorted(
+        excludeIds: List<String> = emptyList(),
+        limit: Int
+    ): List<ConversationRoomMember>
 
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
@@ -35,17 +56,10 @@ interface RoomMemberDao {
             """)
     suspend fun getPaginated(
         roomId: String?,
-        limit: Int,
         offset: Int,
         ignoreUserId: String?,
+        limit: Int,
     ): List<ConversationRoomMember>
-
-    @Query("""
-        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
-            WHERE display_name like '%' || :prompt || '%'
-            OR userId  like '%' || :prompt || '%'
-            """)
-    suspend fun searchByPrompt(prompt: String): List<ConversationRoomMember>
 
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
             "WHERE room_id = :roomId ")

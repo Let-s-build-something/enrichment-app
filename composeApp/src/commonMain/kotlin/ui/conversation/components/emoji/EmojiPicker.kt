@@ -134,7 +134,7 @@ fun EmojiPicker(
                             .height(44.dp)
                             .fillMaxWidth(.65f),
                         isFocused = isFilterFocused,
-                        shape = LocalTheme.current.shapes.circularActionShape,
+                        shape = LocalTheme.current.shapes.rectangularActionShape,
                         hint = stringResource(Res.string.action_filter_emojis),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,

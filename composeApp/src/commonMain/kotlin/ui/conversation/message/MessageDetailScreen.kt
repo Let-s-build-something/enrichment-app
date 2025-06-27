@@ -164,14 +164,14 @@ fun MessageDetailScreen(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),
-                                        media = MediaIO(url = message.value?.author?.content?.avatarUrl),
+                                        media = MediaIO(url = message.value?.author?.avatarUrl),
                                         tag = null,//message.value?.user?.tag,
                                         animate = true,
-                                        name = message.value?.author?.content?.displayName
+                                        name = message.value?.author?.displayName
                                     )
                                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                                     Text(
-                                        text = message.value?.author?.content?.displayName ?: "",
+                                        text = message.value?.author?.displayName ?: "",
                                         style = LocalTheme.current.styles.title
                                     )
                                 }

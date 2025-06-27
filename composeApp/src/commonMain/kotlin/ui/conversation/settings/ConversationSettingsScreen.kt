@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.Logout
@@ -35,6 +34,7 @@ import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.material.icons.outlined.SensorOccupied
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -428,7 +428,7 @@ fun ConversationSettingsContent(
                     .animateItem()
                     .scalingClickable(
                         hoverEnabled = !isSelected,
-                        scaleInto = .9f,
+                        scaleInto = .95f,
                         onTap = {
                             model.checkVerificationState(userId = member?.id)
                             selectedMemberId.value = if(selectedMemberId.value == member?.id) null else member?.id

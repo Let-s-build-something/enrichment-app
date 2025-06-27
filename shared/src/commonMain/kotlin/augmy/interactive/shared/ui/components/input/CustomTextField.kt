@@ -86,7 +86,7 @@ fun CustomTextField(
     outputTransformation: OutputTransformation? = null,
     prefixIcon: ImageVector? = null,
     maxCharacters: Int = -1,
-    focusRequester: FocusRequester = remember(state) { FocusRequester() },
+    focusRequester: FocusRequester = remember { FocusRequester() },
     trailingIcon: @Composable (() -> Unit)? = null,
     additionalContent: @Composable (() -> Unit)? = null,
     onTextLayout: (Density.(getResult: () -> TextLayoutResult?) -> Unit)? = null,

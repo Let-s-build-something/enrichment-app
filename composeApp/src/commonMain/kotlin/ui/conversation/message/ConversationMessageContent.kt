@@ -121,9 +121,9 @@ fun LazyItemScope.ConversationMessageContent(
                         )
                         .zIndex(4f)
                         .size(profileImageSize),
-                    media = MediaIO(url = data?.author?.content?.avatarUrl),
+                    media = MediaIO(url = data?.author?.avatarUrl),
                     tag = data?.author?.tag,
-                    name = data?.author?.content?.displayName
+                    name = data?.author?.displayName
                 )
             }else if(isPreviousMessageSameAuthor || isNextMessageSameAuthor) {
                 Spacer(Modifier.width(profileImageSize + 22.dp))

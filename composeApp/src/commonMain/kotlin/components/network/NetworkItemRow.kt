@@ -58,8 +58,8 @@ fun NetworkItemRow(
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
     onAvatarClick: (() -> Unit)? = null,
-    content: @Composable RowScope.() -> Unit = {},
-    actions: @Composable () -> Unit = {}
+    actions: @Composable () -> Unit = {},
+    content: @Composable RowScope.() -> Unit = {}
 ) {
     Crossfade(
         modifier = modifier,

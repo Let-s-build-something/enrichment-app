@@ -56,7 +56,6 @@ import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
 import net.folivo.trixnity.core.model.events.m.room.FileInfo
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
-import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
@@ -159,12 +158,10 @@ open class ConversationRepository(
                         roomId = conversationId,
                         sender = UserId(userId),
                         timestamp = DateUtils.now.toEpochMilliseconds(),
-                        content = MemberEventContent(
-                            isDirect = true,
-                            membership = Membership.INVITE,
-                            avatarUrl = remoteInfo?.avatarUrl,
-                            displayName = remoteInfo?.displayName
-                        )
+                        isDirect = true,
+                        membership = Membership.INVITE,
+                        avatarUrl = remoteInfo?.avatarUrl,
+                        displayName = remoteInfo?.displayName
                     )
                 )
             }
@@ -186,16 +183,35 @@ open class ConversationRepository(
 
     suspend fun getRoomIdByUser(userId: String): String? {
         return withContext(Dispatchers.IO) {
-            conversationRoomDao.getAll().let {
+            conversationRoomDao.getAll().let { rooms ->
                 withContext(Dispatchers.Default) {
-                    it.find {
+                    rooms.find {
                         it.data.summary?.isDirect == true && roomMemberDao.getOfRoom(it.data.id).firstOrNull()?.userId == userId
-                    }?.data?.id ?: it.find {
+                    }?.data?.id ?: rooms.find {
                         roomMemberDao.getOfRoom(it.data.id).size == 1 && roomMemberDao.getOfRoom(it.data.id).firstOrNull()?.userId == userId
                     }?.data?.id
 
                 }
             }
+        }
+    }
+
+    suspend fun recommendUsersToInvite(
+        limit: Int,
+        excludeMembers: List<String>
+    ): List<ConversationRoomMember> {
+        return withContext(Dispatchers.IO) {
+            roomMemberDao.getSorted(excludeIds = excludeMembers, limit = limit)
+        }
+    }
+
+    suspend fun queryUsersToInvite(
+        query: String,
+        excludeMembers: List<String>,
+        limit: Int
+    ): List<ConversationRoomMember> {
+        return withContext(Dispatchers.IO) {
+            roomMemberDao.query(query, excludeIds = excludeMembers, limit = limit)
         }
     }
 

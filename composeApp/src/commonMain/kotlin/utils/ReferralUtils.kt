@@ -26,7 +26,6 @@ import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
 import net.folivo.trixnity.core.model.events.m.room.GuestAccessEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent.HistoryVisibility
-import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.mp.KoinPlatform
@@ -93,12 +92,10 @@ object ReferralUtils {
                             roomId = conversationId,
                             sender = UserId(userId),
                             timestamp = DateUtils.now.toEpochMilliseconds(),
-                            content = MemberEventContent(
-                                isDirect = true,
-                                membership = Membership.INVITE,
-                                avatarUrl = remoteInfo?.avatarUrl,
-                                displayName = remoteInfo?.displayName
-                            )
+                            isDirect = true,
+                            membership = Membership.INVITE,
+                            avatarUrl = remoteInfo?.avatarUrl,
+                            displayName = remoteInfo?.displayName
                         )
                     )
                 }

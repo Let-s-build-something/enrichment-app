@@ -108,16 +108,7 @@ class HomeModel(
     }
 
     val requestResponse = _requestResponse.asStateFlow()
-    val openConversations = networkItemUseCase.openConversations
     val isLoading = networkItemUseCase.isLoading
-    val invitationResponse = networkItemUseCase.invitationResponse
-    val networkItems = networkItemUseCase.networkItems.combine(_categories) { networkItems, categories ->
-        withContext(Dispatchers.Default) {
-            networkItems?.filter { item ->
-                categories.any { it.range.contains(item.proximity ?: 1f) }
-            }
-        }
-    }
 
     /** flow of current requests */
     val conversationRooms: Flow<PagingData<FullConversationRoom>> = repository.getConversationRoomPager(

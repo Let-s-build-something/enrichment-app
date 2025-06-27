@@ -1,6 +1,11 @@
 package ui.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
@@ -13,6 +18,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,28 +28,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.Divider
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -52,9 +69,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
-import augmy.composeapp.generated.resources.invite_conversation_heading
-import augmy.composeapp.generated.resources.invite_network_items_heading
-import augmy.composeapp.generated.resources.invite_new_item_conversation
+import augmy.composeapp.generated.resources.accessibility_add_new
+import augmy.composeapp.generated.resources.action_create_room
+import augmy.composeapp.generated.resources.action_find_user
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
@@ -94,7 +111,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.settings.ConversationDetailDialog
 import ui.network.add_new.NetworkAddNewLauncher
-import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
 import ui.network.components.user_detail.UserDetailDialog
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
@@ -112,7 +128,6 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
     val navController = LocalNavController.current
 
     val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
-    val categories = model.categories.collectAsState(initial = listOf())
     val uiMode = model.uiMode.collectAsState()
 
     val gridState = persistedLazyGridState(
@@ -122,9 +137,8 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         }
     )
     val showTuner = rememberSaveable { mutableStateOf(false) }
-    val selectedItem = rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
+    val selectedItem = rememberSaveable { mutableStateOf<String?>(null) }
+    val showHomeActions = rememberSaveable { mutableStateOf(false) }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if(model.persistentPositionData != null) {
@@ -142,17 +156,17 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         }
     }
 
-    if(showTuner.value) {
+    OnBackHandler(enabled = selectedItem.value != null) {
+        selectedItem.value = null
+    }
+
+    if (showTuner.value) {
         NetworkPreferencesLauncher(
             viewModel = model,
             onDismissRequest = {
                 showTuner.value = false
             }
         )
-    }
-
-    OnBackHandler(enabled = selectedItem.value != null) {
-        selectedItem.value = null
     }
 
     RefreshableScreen(
@@ -179,7 +193,17 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
             )
         }
     ) {
-        Column(modifier = Modifier.fillMaxHeight()) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        showHomeActions.value = false
+                    })
+                }
+        ) {
+            val categories = model.categories.collectAsState(initial = listOf())
+
             HorizontalScrollChoice(
                 modifier = Modifier
                     .zIndex(2f)
@@ -239,7 +263,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                         )
                         HomeModel.UiMode.Circle -> SocialCircleContent(
                             modifier = Modifier.fillMaxSize(),
-                            viewModel = model
+                            model = model
                         )
                         HomeModel.UiMode.Loading -> EmptyLayout(
                             modifier = Modifier.fillMaxSize(),
@@ -259,7 +283,110 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                     }
                 }
             }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
+                horizontalAlignment = Alignment.End
+            ) {
+                val rotation: Float by animateFloatAsState(
+                    targetValue = if (showHomeActions.value) 225f else 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+
+                Icon(
+                    modifier = Modifier
+                        .padding(end = 12.dp, bottom = 4.dp)
+                        .scalingClickable {
+                            showHomeActions.value = !showHomeActions.value
+                        }
+                        .size(48.dp)
+                        .background(
+                            color = LocalTheme.current.colors.appbarBackground,
+                            shape = LocalTheme.current.shapes.rectangularActionShape
+                        )
+                        .padding(8.dp)
+                        .rotate(rotation),
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = stringResource(Res.string.accessibility_add_new),
+                    tint = LocalTheme.current.colors.secondary
+                )
+
+                if (showHomeActions.value) {
+                    HomeActions(onDismissRequest = {
+                        showHomeActions.value = false
+                    })
+                } else Spacer(Modifier.height(20.dp))
+            }
         }
+    }
+}
+
+@Composable
+private fun HomeActions(onDismissRequest: () -> Unit) {
+    val navController = LocalNavController.current
+    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(if (isCompact) 1f else .5f)
+            .background(
+                color = LocalTheme.current.colors.backgroundDark,
+                shape = if (isCompact) RectangleShape else RoundedCornerShape(
+                    topStart = LocalTheme.current.shapes.rectangularActionRadius
+                )
+            )
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        RowAction(
+            message = stringResource(Res.string.action_create_room),
+            imageVector = Icons.Outlined.Tag,
+            onClick = {
+                onDismissRequest()
+                navController?.navigate(NavigationNode.Conversation())
+            }
+        )
+        RowAction(
+            message = stringResource(Res.string.action_find_user),
+            imageVector = Icons.Outlined.PersonSearch,
+            onClick = {
+                onDismissRequest()
+                // TODO user search 86c0anj42
+            }
+        )
+    }
+}
+
+@Composable
+private fun RowAction(
+    imageVector: ImageVector,
+    message: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .scalingClickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            modifier = Modifier.size(32.dp),
+            imageVector = imageVector,
+            contentDescription = null,
+            tint = LocalTheme.current.colors.secondary
+        )
+        Text(
+            text = message,
+            style = LocalTheme.current.styles.category.copy(
+                color = LocalTheme.current.colors.secondary
+            )
+        )
     }
 }
 
@@ -273,17 +400,17 @@ private fun ListContent(
     val navController = LocalNavController.current
     val coroutineScope = rememberCoroutineScope()
 
-    val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
+    val rooms = model.conversationRooms.collectAsLazyPagingItems()
     val customColors = model.customColors.collectAsState(initial = mapOf())
     val selectedUserId = model.selectedUserId.collectAsState()
 
-    val isLoadingInitialPage = conversationRooms.loadState.refresh is LoadState.Loading
-            || (conversationRooms.itemCount == 0 && !conversationRooms.loadState.append.endOfPaginationReached)
-    val isEmpty = conversationRooms.itemCount == 0 && conversationRooms.loadState.append.endOfPaginationReached
+    val isLoadingInitialPage = rooms.loadState.refresh is LoadState.Loading
+            || (rooms.itemCount == 0 && !rooms.loadState.append.endOfPaginationReached)
+    val isEmpty = rooms.itemCount == 0 && rooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
 
     val selectedRoomId = remember { mutableStateOf<String?>(null) }
-    val showAddNewModal = rememberSaveable { mutableStateOf(false) }
+    val showAddNewModal = remember { mutableStateOf(false) }
 
     if(showAddNewModal.value) {
         NetworkAddNewLauncher(
@@ -333,7 +460,7 @@ private fun ListContent(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {}
         item(span = { GridItemSpan(maxLineSpan) }) {
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 enter = expandVertically() + fadeIn(),
                 visible = isEmpty
             ) {
@@ -347,12 +474,12 @@ private fun ListContent(
             }
         }
         items(
-            count = if(conversationRooms.itemCount == 0 && isLoadingInitialPage) {
+            count = if(rooms.itemCount == 0 && isLoadingInitialPage) {
                 NETWORK_SHIMMER_ITEM_COUNT
-            }else conversationRooms.itemCount,
-            key = { index -> conversationRooms.getOrNull(index)?.id ?: Uuid.random().toString() }
+            }else rooms.itemCount,
+            key = { index -> rooms.getOrNull(index)?.id ?: Uuid.random().toString() }
         ) { index ->
-            val room = conversationRooms.getOrNull(index)
+            val room = rooms.getOrNull(index)
 
             ConversationRoomItem(
                 modifier = Modifier
@@ -374,7 +501,7 @@ private fun ListContent(
                             if(selectedItem.value == room?.id) {
                                 selectedItem.value = null
                             }
-                            conversationRooms.refresh()
+                            rooms.refresh()
                         }
                     )
                 },
@@ -401,8 +528,8 @@ private fun ListContent(
                     }
                 }
             ) {
-                if(index != conversationRooms.itemCount - 1) {
-                    Divider(
+                if(index != rooms.itemCount - 1) {
+                    HorizontalDivider(
                         modifier = Modifier.fillMaxWidth(),
                         color = LocalTheme.current.colors.disabledComponent,
                         thickness = .3.dp
@@ -433,14 +560,7 @@ private fun ConversationRoomItem(
     onLongPress: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val response = remember {
-        mutableStateOf<BaseResponse<Any>?>(null)
-    }
-
-    val navController = LocalNavController.current
-    val showAddMembers = remember(room?.id) {
-        mutableStateOf(false)
-    }
+    val response = remember { mutableStateOf<BaseResponse<Any>?>(null) }
 
     LaunchedEffect(Unit) {
         model.requestResponse.collectLatest { responses ->
@@ -454,89 +574,19 @@ private fun ConversationRoomItem(
         }
     }
 
-    if(showAddMembers.value) {
-        val isLoading = model.isLoading.collectAsState()
-
-        LaunchedEffect(Unit) {
-            model.invitationResponse.collectLatest {
-                if(!it?.conversationId.isNullOrBlank()) {
-                    navController?.navigate(
-                        NavigationNode.Conversation(
-                            conversationId = it.conversationId,
-                            name = it.alias
-                        )
-                    )
-                }
-            }
-        }
-
-        if(room?.data?.summary?.isDirect == true) {
-            val conversations = model.openConversations.collectAsState()
-
-            AddToLauncher(
-                key = room.id,
-                multiSelect = false,
-                isLoading = isLoading.value,
-                heading = stringResource(
-                    Res.string.invite_conversation_heading,
-                    room.members.firstOrNull()?.content?.displayName ?: "?"
-                ),
-                newItemHint = stringResource(Res.string.invite_new_item_conversation),
-                items = conversations.value,
-                mapToNetworkItem = { it.toNetworkItem() },
-                onInvite = { checkedItems, message, newName ->
-                    model.inviteToConversation(
-                        conversationId = if(newName != null) null else checkedItems.firstOrNull()?.id,
-                        userPublicIds = room.members.firstOrNull()?.userId?.let { listOf(it) },
-                        message = message,
-                        newName = newName
-                    )
-                },
-                onDismissRequest = {
-                    showAddMembers.value = false
-                }
-            )
-        }else {
-            val networkItems = model.networkItems.collectAsState(null)
-
-            AddToLauncher(
-                key = room?.id,
-                defaultMessage = room?.data?.summary?.invitationMessage,
-                multiSelect = true,
-                isLoading = isLoading.value,
-                heading = stringResource(Res.string.invite_network_items_heading),
-                items = networkItems.value,
-                mapToNetworkItem = { it },
-                onInvite = { checkedItems, message, _ ->
-                    model.inviteToConversation(
-                        conversationId = room?.id,
-                        userPublicIds = checkedItems.mapNotNull { it.userPublicId },
-                        message = message
-                    )
-                },
-                onDismissRequest = {
-                    showAddMembers.value = false
-                }
-            )
-        }
-    }
-
     val indicatorColor = NetworkProximityCategory.entries.firstOrNull {
         it.range.contains(room?.data?.proximity ?: 1f)
     }.let {
         customColors[it] ?: it?.color
     }
+
     val itemModifier = Modifier
         .scalingClickable(
             enabled = room?.data?.type != RoomType.Invited,
             hoverEnabled = selectedItem != room?.id,
-            scaleInto = .9f,
-            onTap = {
-                onTap()
-            },
-            onLongPress = {
-                onLongPress()
-            }
+            scaleInto = .95f,
+            onTap = { onTap() },
+            onLongPress = { onLongPress() }
         )
         .fillMaxWidth()
         .then(
@@ -589,9 +639,6 @@ private fun ConversationRoomItem(
                             SocialItemActions(
                                 key = room?.id,
                                 requestProximityChange = requestProximityChange,
-                                onInvite = {
-                                    showAddMembers.value = true
-                                },
                                 newItem = NetworkItemIO(
                                     displayName = room?.name,
                                     avatar = room?.avatar,

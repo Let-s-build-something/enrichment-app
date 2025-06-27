@@ -22,11 +22,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.WavingHand
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -167,7 +167,7 @@ fun DevelopmentConsoleContent(modifier: Modifier = Modifier) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         Text(
                             modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
-                            text = section.name.toString(),
+                            text = section.name,
                             style = LocalTheme.current.styles.heading
                         )
                         when(section) {

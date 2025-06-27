@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
-import ui.network.profile.UserProfileLauncher
+import ui.network.components.user_detail.UserDetailDialog
 import ui.search.user.SearchUserModel.Companion.ITEMS_COUNT
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -77,8 +77,8 @@ fun SearchUserScreen(
     }
 
     selectedUser.value?.let { user ->
-        UserProfileLauncher(
-            user = user,
+        UserDetailDialog(
+            userId = user.userId,
             onDismissRequest = {
                 selectedUser.value = null
             }
@@ -100,7 +100,7 @@ fun SearchUserScreen(
                         )
                         .padding(horizontal = 8.dp, vertical = 6.dp)
                         .fillMaxWidth(),
-                    shape = LocalTheme.current.shapes.circularActionShape,
+                    shape = LocalTheme.current.shapes.rectangularActionShape,
                     hint = stringResource(Res.string.action_search_users),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,

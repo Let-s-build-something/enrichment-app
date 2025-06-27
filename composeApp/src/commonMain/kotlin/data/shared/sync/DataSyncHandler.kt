@@ -26,6 +26,7 @@ import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
+import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import org.koin.mp.KoinPlatform
 
 class DataSyncHandler: MessageProcessor() {
@@ -78,6 +79,7 @@ class DataSyncHandler: MessageProcessor() {
                         addAll(room.inviteState?.events.orEmpty())
                         addAll(room.knockState?.events.orEmpty())
                     }
+                    .sortedBy { it.originTimestampOrNull }
                     .map { event ->
                         // preprocessing of the room and adding info for further processing
                         when(val content = event.content) {
@@ -126,8 +128,8 @@ class DataSyncHandler: MessageProcessor() {
                     }
 
                 val newItem = room.copy(
-                    summary = room.summary?.copy(
-                        avatar = avatar?.url?.let {
+                    summary = (room.summary ?: RoomSummary()).copy(
+                        avatar = avatar?.url?.takeIf { it.isNotBlank() }?.let {
                             MediaIO(
                                 url = it,
                                 mimetype = avatar.info?.mimeType,
@@ -136,8 +138,8 @@ class DataSyncHandler: MessageProcessor() {
                         },
                         canonicalAlias = alias
                             ?: name
-                            ?: room.summary.canonicalAlias
-                            ?: (if (isDirect) room.summary.heroes?.firstOrNull()?.full ?: members.first { it.first != false }.second else null),
+                            ?: room.summary?.canonicalAlias
+                            ?: (if (isDirect) room.summary?.heroes?.firstOrNull()?.full ?: members.first { it.first != false }.second else null),
                         isDirect = isDirect
                     ),
                     prevBatch = room.timeline?.previousBatch,
@@ -167,9 +169,9 @@ class DataSyncHandler: MessageProcessor() {
 
                     // either update existing one, or insert new one
                     newItem.copy(
-                        summary = newItem.summary?.copy(
-                            lastMessage = lastMessage?.message ?: newItem.summary.lastMessage
-                        ) ?: RoomSummary(lastMessage = lastMessage?.message),
+                        summary = (newItem.summary ?: RoomSummary()).copy(
+                            lastMessage = lastMessage?.message ?: newItem.summary?.lastMessage
+                        ),
                         lastMessageTimestamp = lastMessage?.message?.sentAt
                     ).let { roomUpdate ->
                         (conversationRoomDao.get(

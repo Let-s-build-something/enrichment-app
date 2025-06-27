@@ -13,7 +13,7 @@ import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.Joined
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.KnockedRoom.InviteState
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
-import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
+import net.folivo.trixnity.core.model.events.m.room.MemberEventContent.Invite
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.experimental.gravity.GravityData
@@ -80,11 +80,11 @@ class AppDatabaseConverter {
     }
     
     @TypeConverter
-    fun toMemberEventContent(value: String): MemberEventContent {
+    fun toInvite(value: String): Invite {
         return json.decodeFromString(value)
     }
     @TypeConverter
-    fun fromMemberEventContent(value: MemberEventContent): String {
+    fun fromInvite(value: Invite): String {
         return json.encodeToString(value)
     }
     
