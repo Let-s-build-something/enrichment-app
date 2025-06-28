@@ -69,7 +69,7 @@ sealed class NavigationNode {
         val excludeUsers: String = ""
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_search_user
-        override val deepLink: String = "users/search?awaitingResult=$awaitingResult"
+        override val deepLink: String = "users/search?awaitingResult=$awaitingResult&excludeUsers=$excludeUsers"
     }
 
     /** Conversation detail screen */

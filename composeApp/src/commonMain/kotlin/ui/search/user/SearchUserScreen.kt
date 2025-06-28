@@ -78,6 +78,7 @@ fun SearchUserScreen(
 
     selectedUser.value?.let { user ->
         UserDetailDialog(
+            networkItem = user,
             userId = user.userId,
             onDismissRequest = {
                 selectedUser.value = null
@@ -89,19 +90,21 @@ fun SearchUserScreen(
         title = stringResource(Res.string.screen_search_user),
         navIconType = NavIconType.CLOSE
     ) {
-        LazyColumn(modifier = Modifier.padding(top = 4.dp)) {
+        LazyColumn {
             stickyHeader {
                 CustomTextField(
                     modifier = Modifier
                         .zIndex(1f)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                         .background(
-                            color = LocalTheme.current.colors.backgroundLight,
+                            color = LocalTheme.current.colors.backgroundDark,
                             shape = LocalTheme.current.shapes.rectangularActionShape
                         )
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
                         .fillMaxWidth(),
                     shape = LocalTheme.current.shapes.rectangularActionShape,
                     hint = stringResource(Res.string.action_search_users),
+                    showBorders = false,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Search
@@ -115,12 +118,13 @@ fun SearchUserScreen(
                 items = users.value ?: arrayOfNulls<NetworkItemIO>(ITEMS_COUNT).toList().takeIf {
                     searchState.text.isNotBlank()
                 }.orEmpty(),
-                key = { it?.userId ?: Uuid.random().toString() }
+                key = { it?.primaryKey ?: Uuid.random().toString() }
             ) { user ->
                 NetworkItemRow(
                     modifier = Modifier
                         .animateItem()
-                        .scalingClickable(scaleInto = .9f) {
+                        .padding(horizontal = 16.dp)
+                        .scalingClickable(scaleInto = .95f) {
                             if(user != null) {
                                 if(awaitingResult == true) {
                                     model.saveUser(user) {

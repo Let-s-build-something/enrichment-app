@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import utils.SharedLogger
 
 internal val userDetailModule = module {
     factory { UserDetailRepository(get(), get(), get()) }
@@ -47,8 +48,10 @@ class UserDetailModel(
     }
 
     init {
+        SharedLogger.logger.debug { "UserDetailModel init, networkItem: $networkItem" }
         if (networkItem != null) _response.value = BaseResponse.Success(networkItem)
-        (userId ?: networkItem?.userId)?.let { getUser(it) }
+
+        userId?.let { getUser(it) }
     }
 
     private fun getUser(userId: String) {

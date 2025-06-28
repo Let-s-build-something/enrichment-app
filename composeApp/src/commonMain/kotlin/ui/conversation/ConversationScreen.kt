@@ -386,10 +386,10 @@ private fun LazyListScope.createRoomNoMembers(
             modifier = Modifier
                 .zIndex(1f)
                 .background(
-                    color = LocalTheme.current.colors.backgroundLight,
+                    color = LocalTheme.current.colors.backgroundDark,
                     shape = LocalTheme.current.shapes.rectangularActionShape
                 )
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .padding(horizontal = 4.dp, vertical = 2.dp)
                 .fillMaxWidth(if (LocalDeviceType.current == WindowWidthSizeClass.Compact) 1f else .5f),
             focusRequester = focusRequester,
             shape = LocalTheme.current.shapes.rectangularActionShape,
@@ -400,7 +400,8 @@ private fun LazyListScope.createRoomNoMembers(
             ),
             prefixIcon = Icons.Outlined.Search,
             state = searchState,
-            isClearable = true
+            isClearable = true,
+            showBorders = false
         )
     }
     items(

@@ -2,7 +2,6 @@ package ui.conversation
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,7 +48,6 @@ import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalNavController
-import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
@@ -427,13 +424,6 @@ fun ConversationComponent(
         SendMessagePanel(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    color = LocalTheme.current.colors.backgroundDark,
-                    shape = RoundedCornerShape(
-                        topStart = LocalTheme.current.shapes.componentCornerRadius,
-                        topEnd = LocalTheme.current.shapes.componentCornerRadius
-                    )
-                )
                 .onSizeChanged {
                     if(it.height != 0) {
                         with(density) {

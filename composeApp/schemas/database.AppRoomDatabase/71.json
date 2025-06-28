@@ -1,13 +1,18 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 69,
-    "identityHash": "46cbd4b4aaca7edd52dbfe3ded399d80",
+    "version": 71,
+    "identityHash": "e0438e5a42ebfe522ebc3586d64bc7ea",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`display_name` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `photo_media` TEXT, `avatar_url` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`copyDisplayName` TEXT, `display_name` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `photo_media` TEXT, `avatar_url` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
+          {
+            "fieldPath": "copyDisplayName",
+            "columnName": "copyDisplayName",
+            "affinity": "TEXT"
+          },
           {
             "fieldPath": "displayName",
             "columnName": "display_name",
@@ -687,7 +692,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46cbd4b4aaca7edd52dbfe3ded399d80')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e0438e5a42ebfe522ebc3586d64bc7ea')"
     ]
   }
 }
