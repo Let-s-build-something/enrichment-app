@@ -110,7 +110,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.settings.ConversationDetailDialog
-import ui.network.add_new.NetworkAddNewLauncher
 import ui.network.components.SocialItemActions
 import ui.network.components.user_detail.UserDetailDialog
 import ui.network.list.NETWORK_SHIMMER_ITEM_COUNT
@@ -355,7 +354,7 @@ private fun HomeActions(onDismissRequest: () -> Unit) {
             imageVector = Icons.Outlined.PersonSearch,
             onClick = {
                 onDismissRequest()
-                // TODO user search 86c0anj42
+                navController?.navigate(NavigationNode.SearchUser())
             }
         )
     }
@@ -370,7 +369,7 @@ private fun RowAction(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .scalingClickable { onClick() }
+            .scalingClickable(scaleInto = .95f) { onClick() }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -410,15 +409,8 @@ private fun ListContent(
             && !isLoadingInitialPage
 
     val selectedRoomId = remember { mutableStateOf<String?>(null) }
-    val showAddNewModal = remember { mutableStateOf(false) }
 
-    if(showAddNewModal.value) {
-        NetworkAddNewLauncher(
-            onDismissRequest = {
-                showAddNewModal.value = false
-            }
-        )
-    }
+
     selectedUserId.value?.let { userId ->
         UserDetailDialog(
             userId = userId,
@@ -468,7 +460,7 @@ private fun ListContent(
                     title = stringResource(Res.string.network_list_empty_title),
                     action = stringResource(Res.string.network_list_empty_action),
                     onClick = {
-                        showAddNewModal.value = true
+                        navController?.navigate(NavigationNode.SearchUser())
                     }
                 )
             }

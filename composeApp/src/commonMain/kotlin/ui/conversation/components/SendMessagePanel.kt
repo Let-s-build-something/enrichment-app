@@ -579,6 +579,10 @@ internal fun BoxScope.SendMessagePanel(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionOnScreen().y
                     },
@@ -602,6 +606,7 @@ internal fun BoxScope.SendMessagePanel(
                         }else model.stopTypingServices()
                     }
                     .fillMaxWidth(),
+                showBorders = false,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send,
