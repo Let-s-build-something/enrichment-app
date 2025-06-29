@@ -33,7 +33,7 @@ import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
@@ -109,7 +109,7 @@ fun LazyItemScope.ConversationMessageContent(
 
         if(messageType == MessageType.OtherUser) {
             if(!isNextMessageSameAuthor) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier
                         .padding(
                             start = 12.dp,

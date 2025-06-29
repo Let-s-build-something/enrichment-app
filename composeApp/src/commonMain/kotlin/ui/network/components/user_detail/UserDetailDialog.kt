@@ -56,7 +56,7 @@ import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.navigation.NavigationNode
-import components.UserProfileImage
+import components.AvatarImage
 import data.NetworkProximityCategory
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.user.NetworkItemIO
@@ -153,7 +153,7 @@ fun UserDetailDialog(
                 modifier = Modifier.padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier.sizeIn(
                         maxWidth = 125.dp,
                         maxHeight = 125.dp

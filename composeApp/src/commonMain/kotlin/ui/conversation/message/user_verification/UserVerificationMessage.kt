@@ -43,7 +43,7 @@ import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.global.verification.EmojiEntity
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import org.jetbrains.compose.resources.stringResource
@@ -92,7 +92,7 @@ fun UserVerificationMessage(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if(isMyRequest && data.author != null) {
-                    UserProfileImage(
+                    AvatarImage(
                         modifier = Modifier
                             .align(Alignment.Top)
                             .size(48.dp),

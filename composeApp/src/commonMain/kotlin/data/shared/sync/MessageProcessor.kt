@@ -141,7 +141,7 @@ abstract class MessageProcessor {
             result.members.forEach { member ->
                 if (member.first) {
                     roomMemberDao.insertReplace(member.second)
-                }else roomMemberDao.remove(member.second.userId)
+                }else roomMemberDao.remove(member.second.userId, roomId)
             }
 
             result.redactions.forEach { redaction ->

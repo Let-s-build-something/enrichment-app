@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.brandShimmerEffect
@@ -40,7 +41,7 @@ import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.highlightedText
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 
@@ -54,6 +55,7 @@ fun NetworkItemRow(
     modifier: Modifier = Modifier,
     isChecked: Boolean? = null,
     data: NetworkItemIO?,
+    avatarSize: Dp = 48.dp,
     highlight: String? = null,
     isSelected: Boolean = false,
     indicatorColor: Color? = null,
@@ -70,6 +72,7 @@ fun NetworkItemRow(
                 indicatorColor = indicatorColor,
                 isChecked = isChecked,
                 isSelected = isSelected,
+                avatarSize = avatarSize,
                 highlight = highlight,
                 actions = actions,
                 onAvatarClick = onAvatarClick,
@@ -88,6 +91,7 @@ private fun ContentLayout(
     isChecked: Boolean?,
     isSelected: Boolean = false,
     highlight: String? = null,
+    avatarSize: Dp = 48.dp,
     data: NetworkItemIO,
     onAvatarClick: (() -> Unit)? = null,
     content: @Composable RowScope.() -> Unit = {},
@@ -99,9 +103,7 @@ private fun ContentLayout(
                 .animateContentSize()
                 .padding(top = 8.dp, bottom = 8.dp, end = 4.dp)
                 .height(IntrinsicSize.Min),
-            verticalAlignment = if(data.lastMessage.isNullOrBlank()) {
-                Alignment.CenterVertically
-            }else Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             indicatorColor?.let { color ->
@@ -120,13 +122,13 @@ private fun ContentLayout(
                         )
                 )
             }
-            UserProfileImage(
+            AvatarImage(
                 modifier = Modifier
                     .scalingClickable(enabled = onAvatarClick != null) {
                         onAvatarClick?.invoke()
                     }
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
-                    .size(48.dp),
+                    .size(avatarSize),
                 media = data.avatar ?: data.avatarUrl?.let { MediaIO(url = it) },
                 tag = data.tag,
                 name = data.displayName
@@ -149,20 +151,13 @@ private fun ContentLayout(
                 )
                 if(data.lastMessage != null) {
                     Text(
-                        text = data.lastMessage,
+                        text = highlightedText(
+                            highlight = highlight,
+                            text = data.lastMessage
+                        ),
                         style = LocalTheme.current.styles.regular,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
-                    )
-                }else if(data.userId != null) {
-                    Text(
-                        text = highlightedText(
-                            highlight = highlight,
-                            text = data.userId
-                        ),
-                        style = LocalTheme.current.styles.regular
-                            .copy(color = LocalTheme.current.colors.disabled),
-                        maxLines = 1
                     )
                 }
             }

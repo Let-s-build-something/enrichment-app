@@ -25,7 +25,7 @@ import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material3.Icon
@@ -223,7 +223,7 @@ fun CustomTextField(
                                 imageVector = Icons.Outlined.Clear,
                                 tint = LocalTheme.current.colors.secondary
                             ) {
-                                state.setTextAndPlaceCursorAtEnd("")
+                                state.clearText()
                             }
                         }
                     }

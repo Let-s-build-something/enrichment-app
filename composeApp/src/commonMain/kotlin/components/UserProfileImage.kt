@@ -42,7 +42,7 @@ import data.io.user.UserIO
 import ui.conversation.components.MediaElement
 
 @Composable
-fun UserProfileImage(
+fun AvatarImage(
     modifier: Modifier = Modifier,
     media: MediaIO?,
     name: String?,

@@ -121,7 +121,7 @@ import base.utils.MediaType
 import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
@@ -897,7 +897,7 @@ private fun MentionRecommendationsBox(
                     val name = recommendation.displayName ?: recommendation.userId
 
                     recommendation.avatarUrl?.let { avatar ->
-                        UserProfileImage(
+                        AvatarImage(
                             modifier = Modifier.size(32.dp),
                             name = name,
                             tag = recommendation.tag,

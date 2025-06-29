@@ -84,7 +84,7 @@ import base.navigation.NavigationNode
 import base.utils.shareLink
 import base.utils.withPlainText
 import components.RowSetting
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.app.ThemeChoice
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
@@ -306,7 +306,7 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
     }
 
     Box {
-        UserProfileImage(
+        AvatarImage(
             modifier = Modifier
                 .zIndex(5f)
                 .fillMaxWidth(.4f)

@@ -132,11 +132,11 @@ class HomeModel(
     ) { rooms, collapsedRooms, query, categories ->
         withContext(Dispatchers.Default) {
             rooms.map { room ->
-                room.copy(
+                room.apply {
                     messages = if (!collapsedRooms.contains(room.id)) {
                         queryMessagesOfRoom(query, room)
                     } else listOf()
-                )
+                }
             }.filter { data ->
                 (query.isBlank() || data.messages.isNotEmpty())
                         && categories.any { it.range.contains(data.data.proximity ?: 1f) }

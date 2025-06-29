@@ -49,7 +49,7 @@ import base.navigation.NavIconType
 import base.theme.Colors
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.utils.openLink
-import components.UserProfileImage
+import components.AvatarImage
 import components.buildAnnotatedLinkString
 import data.io.base.AppPingType
 import data.io.social.network.conversation.message.MediaIO
@@ -160,7 +160,7 @@ fun MessageDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    UserProfileImage(
+                                    AvatarImage(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),

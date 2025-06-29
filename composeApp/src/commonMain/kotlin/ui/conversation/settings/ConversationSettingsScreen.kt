@@ -99,7 +99,7 @@ import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.getOrNull
 import collectResult
-import components.UserProfileImage
+import components.AvatarImage
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
 import data.io.base.BaseResponse
@@ -354,10 +354,10 @@ fun ConversationSettingsContent(
     ) {
         item {
             Box(modifier = Modifier.padding(top = 6.dp)) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier.fillMaxWidth(.5f),
                     media = detail.value?.avatar ?: directUser?.avatar,
-                    tag = detail.value?.data?.tag ?: directUser?.tag,
+                    tag = detail.value?.tag ?: directUser?.tag,
                     name = detail.value?.name ?: directUser?.displayName
                 )
                 AnimatedVisibility(

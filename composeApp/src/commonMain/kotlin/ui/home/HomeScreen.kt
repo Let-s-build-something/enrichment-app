@@ -62,6 +62,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
@@ -94,7 +95,6 @@ import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
-import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
@@ -116,8 +116,6 @@ import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -204,7 +202,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                     text = if(isExpanded) stringResource(Res.string.screen_search_network) else null,
                     imageVector = if (activated) Icons.Outlined.SearchOff else Icons.Outlined.Search,
                     onClick = {
-                        searchActivated.value = true
+                        searchActivated.value = !searchActivated.value
                     }
                 )
             }
@@ -365,18 +363,14 @@ private fun SearchField(
     isCompact: Boolean
 ) {
     val focusRequester = remember { FocusRequester() }
-    val cancellableScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
     LaunchedEffect(searchFieldState.text) {
-        cancellableScope.coroutineContext.cancelChildren()
-        cancellableScope.launch {
-            delay(DELAY_BETWEEN_TYPING_SHORT)
-            model.searchForMessages(searchFieldState.text)
-        }
+        searchFieldState
+        model.searchForMessages(searchFieldState.text)
     }
 
     CustomTextField(
@@ -395,13 +389,11 @@ private fun SearchField(
             keyboardType = KeyboardType.Text,
             imeAction = ImeAction.Search
         ),
+        isClearable = true,
         focusRequester = focusRequester,
         hint = stringResource(Res.string.button_search),
         state = searchFieldState,
         showBorders = false,
-        onKeyboardAction = {
-
-        },
         lineLimits = TextFieldLineLimits.SingleLine,
         shape = LocalTheme.current.shapes.rectangularActionShape
     )
@@ -640,6 +632,7 @@ private fun ConversationRoomItem(
     onLongPress: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val collapsedRooms = model.collapsedRooms.collectAsState()
     val response = remember { mutableStateOf<BaseResponse<Any>?>(null) }
 
     LaunchedEffect(Unit) {
@@ -684,14 +677,19 @@ private fun ConversationRoomItem(
             }else Modifier)
         )
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.animateContentSize()) {
+        val isSearched = !highlight.isNullOrBlank()
+
         NetworkItemRow(
-            modifier = itemModifier,
-            data = room?.toNetworkItem(),
+            modifier = itemModifier.then(
+                if (isSearched) Modifier.alpha(.6f) else Modifier
+            ),
+            data = room?.toNetworkItem().let {
+                it?.copy(lastMessage = if (isSearched) null else it.lastMessage)
+            },
             isSelected = selectedItem == room?.id,
             indicatorColor = indicatorColor,
             onAvatarClick = onAvatarClick,
-            highlight = highlight,
             content = {
                 if (room?.data?.type == RoomType.Invited) {
                     NetworkRequestActions(
@@ -709,19 +707,61 @@ private fun ConversationRoomItem(
             },
             actions = {
                 if (room?.data?.type != RoomType.Invited) {
-                    SocialItemActions(
-                        key = room?.id,
-                        requestProximityChange = requestProximityChange,
-                        newItem = NetworkItemIO(
-                            displayName = room?.name,
-                            avatar = room?.avatar,
-                            publicId = room?.id ?: "-",
-                            proximity = room?.data?.proximity
+                    room?.toNetworkItem()?.let { networkItem ->
+                        SocialItemActions(
+                            key = room.id,
+                            requestProximityChange = requestProximityChange,
+                            newItem = networkItem
                         )
-                    )
+                    }
                 }
             }
         )
+
+        if (isSearched && !collapsedRooms.value.contains(room?.id)) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth(.8f)
+                    .animateContentSize()
+            ) {
+                room?.messages?.forEach { message ->
+                    NetworkItemRow(
+                        avatarSize = 32.dp,
+                        data = NetworkItemIO(
+                            userId = message.author?.userId,
+                            displayName = message.author?.displayName,
+                            avatarUrl = message.author?.avatarUrl,
+                            lastMessage = if (highlight.isNotBlank()) {
+                                extractSnippetAroundHighlight(message.message.content, highlight)
+                            }else message.message.content
+                        ),
+                        highlight = highlight
+                    )
+                }
+            }
+        }
         content()
     }
+}
+
+private fun extractSnippetAroundHighlight(
+    message: String?,
+    highlight: String,
+    maxChars: Int = 30
+): String {
+    if (message.isNullOrBlank()) return ""
+    val index = message.indexOf(highlight, ignoreCase = true)
+    if (index == -1) message
+
+    val startLimit = (index - maxChars).coerceAtLeast(0)
+    val endLimit = (index + highlight.length + maxChars).coerceAtMost(message.length)
+
+    val safeStart = message.lastIndexOf(' ', index).takeIf { it >= startLimit } ?: startLimit
+    val safeEnd = message.indexOf(' ', index + highlight.length).takeIf { it != -1 && it <= endLimit } ?: endLimit
+
+    val prefix = if (safeStart > 0) "..." else ""
+    val suffix = if (safeEnd < message.length) "..." else ""
+
+    return prefix + message.substring(safeStart, safeEnd).trim() + suffix
 }

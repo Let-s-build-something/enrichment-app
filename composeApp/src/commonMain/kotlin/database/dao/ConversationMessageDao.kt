@@ -51,6 +51,7 @@ interface ConversationMessageDao {
         SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
             WHERE conversation_id = :conversationId
             AND content like '%' || :query || '%'
+            AND author_public_id != "SYSTEM"
             ORDER BY sent_at DESC 
             LIMIT :limit
             OFFSET :offset

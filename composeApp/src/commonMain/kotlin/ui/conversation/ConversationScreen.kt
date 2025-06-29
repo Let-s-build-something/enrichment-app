@@ -85,7 +85,7 @@ import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.navigation.NestedNavigationBar
 import collectResult
-import components.UserProfileImage
+import components.AvatarImage
 import components.network.NetworkItemRow
 import components.pull_refresh.LocalRefreshCallback
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
@@ -193,12 +193,12 @@ fun ConversationScreen(
             headerPrefix = {
                 AnimatedVisibility(conversationDetail.value != null) {
                     Row {
-                        UserProfileImage(
+                        AvatarImage(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .size(32.dp),
                             media = conversationDetail.value?.avatar,
-                            tag = conversationDetail.value?.data?.tag,
+                            tag = conversationDetail.value?.tag,
                             animate = true,
                             name = conversationDetail.value?.name
                         )

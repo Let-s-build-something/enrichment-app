@@ -36,7 +36,7 @@ import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import components.LoadingIndicator
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.base.BaseResponse
 import data.io.social.network.request.CirclingRequest
 import org.jetbrains.compose.resources.stringResource
@@ -78,7 +78,7 @@ private fun ContentLayout(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            UserProfileImage(
+            AvatarImage(
                 modifier = Modifier.size(48.dp),
                 media = data.avatar,
                 tag = data.tag,

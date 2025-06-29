@@ -43,7 +43,7 @@ import augmy.interactive.shared.ui.components.ContrastHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.base.BaseResponse
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.CoroutineScope
@@ -256,7 +256,7 @@ private fun DataContent(
             modifier = Modifier.height(pictureSize * 1.15f),
             contentAlignment = Alignment.Center
         ) {
-            UserProfileImage(
+            AvatarImage(
                 modifier = Modifier
                     .size(pictureSize)
                     .zIndex(1f),

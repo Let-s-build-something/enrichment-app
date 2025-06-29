@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_room_join
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.user.UserIO.Companion.generateUserTag
 import net.folivo.trixnity.core.model.UserId
@@ -29,7 +29,7 @@ fun SystemMessage(
     ) {
         data?.message?.media?.forEach { media ->
             if (data.message.content?.contains(stringResource(Res.string.message_room_join)) == true) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier
                         .size(42.dp)
                         .padding(horizontal = 4.dp),

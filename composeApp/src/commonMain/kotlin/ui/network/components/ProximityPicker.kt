@@ -29,7 +29,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.network_inclusion_proximity_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.UserProfileImage
+import components.AvatarImage
 import data.NetworkProximityCategory
 import data.io.user.NetworkItemIO
 import org.jetbrains.compose.resources.stringResource
@@ -127,7 +127,7 @@ fun ProximityPicker(
                                 horizontalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                UserProfileImage(
+                                AvatarImage(
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .size(42.dp),
