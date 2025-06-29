@@ -45,6 +45,23 @@ interface ConversationMessageDao {
         offset: Int
     ): List<FullConversationMessage>
 
+    /** Returns anchored items related to a single message */
+    @Transaction
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+            WHERE conversation_id = :conversationId
+            AND content like '%' || :query || '%'
+            ORDER BY sent_at DESC 
+            LIMIT :limit
+            OFFSET :offset
+            """)
+    suspend fun queryPaginated(
+        conversationId: String,
+        query: String,
+        limit: Int,
+        offset: Int
+    ): List<FullConversationMessage>
+
     /** Retrieves a single item */
     @Transaction
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +

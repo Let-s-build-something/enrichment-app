@@ -365,7 +365,7 @@ private fun LazyListScope.createRoomNoMembers(
                     model.selectInvitedMember(member)
                     model.recommendUsersToInvite(query = searchState.text)
                 },
-            highlight = searchState.text.toString(),
+            highlight = searchState.text.toString().lowercase(),
             data = member.toNetworkItem(),
             onAvatarClick = {
                 linkHandler?.invoke("/#/${member.userId}")
@@ -390,7 +390,7 @@ private fun LazyListScope.createRoomNoMembers(
                     shape = LocalTheme.current.shapes.rectangularActionShape
                 )
                 .padding(horizontal = 4.dp, vertical = 2.dp)
-                .fillMaxWidth(if (LocalDeviceType.current == WindowWidthSizeClass.Compact) 1f else .5f),
+                .fillMaxWidth(if (LocalDeviceType.current == WindowWidthSizeClass.Compact) .85f else .5f),
             focusRequester = focusRequester,
             shape = LocalTheme.current.shapes.rectangularActionShape,
             hint = stringResource(Res.string.conversation_create_search_hint),

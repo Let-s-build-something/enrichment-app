@@ -1,0 +1,693 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 70,
+    "identityHash": "46cbd4b4aaca7edd52dbfe3ded399d80",
+    "entities": [
+      {
+        "tableName": "room_network_item_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`display_name` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `photo_media` TEXT, `avatar_url` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "fields": [
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "publicId",
+            "columnName": "public_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userPublicId",
+            "columnName": "user_public_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "avatar",
+            "columnName": "photo_media",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "avatarUrl",
+            "columnName": "avatar_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isMutual",
+            "columnName": "is_mutual",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastMessage",
+            "columnName": "last_message",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isPublic",
+            "columnName": "is_public",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "proximity",
+            "columnName": "proximity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ownerUserId",
+            "columnName": "owner_user_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "presence",
+            "columnName": "presence",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "primaryKey",
+            "columnName": "primary_key",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "primary_key"
+          ]
+        }
+      },
+      {
+        "tableName": "room_emoji_selection",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `conversation_id` TEXT, `content` TEXT, `count` INTEGER NOT NULL, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "count",
+            "columnName": "count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "room_paging_meta_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `current_page` INTEGER, `next_page` INTEGER, `created_at` INTEGER NOT NULL, `previous_page` INTEGER, PRIMARY KEY(`entity_id`))",
+        "fields": [
+          {
+            "fieldPath": "entityId",
+            "columnName": "entity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entity_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentPage",
+            "columnName": "current_page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nextPage",
+            "columnName": "next_page",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "previousPage",
+            "columnName": "previous_page",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "entity_id"
+          ]
+        }
+      },
+      {
+        "tableName": "room_matrix_paging_meta_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entity_id` TEXT NOT NULL, `entity_type` TEXT, `next_batch` TEXT, `current_batch` TEXT, `prev_batch` TEXT, `created_at` INTEGER NOT NULL, PRIMARY KEY(`entity_id`))",
+        "fields": [
+          {
+            "fieldPath": "entityId",
+            "columnName": "entity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entity_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nextBatch",
+            "columnName": "next_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentBatch",
+            "columnName": "current_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "prevBatch",
+            "columnName": "prev_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "entity_id"
+          ]
+        }
+      },
+      {
+        "tableName": "room_conversation_message_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `show_preview` INTEGER, `gravityData` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `verification` TEXT, `edited` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "media",
+            "columnName": "media",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "authorPublicId",
+            "columnName": "author_public_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "showPreview",
+            "columnName": "show_preview",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "gravityData",
+            "columnName": "gravityData",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "anchorMessageId",
+            "columnName": "anchor_message_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "parentAnchorMessageId",
+            "columnName": "parent_anchor_message_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sentAt",
+            "columnName": "sent_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timings",
+            "columnName": "timings",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "transcribed",
+            "columnName": "transcribed",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "verification",
+            "columnName": "verification",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "edited",
+            "columnName": "edited",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_room_conversation_message_table_conversation_id",
+            "unique": false,
+            "columnNames": [
+              "conversation_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_message_table_conversation_id` ON `${TABLE_NAME}` (`conversation_id`)"
+          },
+          {
+            "name": "index_room_conversation_message_table_sent_at",
+            "unique": false,
+            "columnNames": [
+              "sent_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_message_table_sent_at` ON `${TABLE_NAME}` (`sent_at`)"
+          },
+          {
+            "name": "index_room_conversation_message_table_anchor_message_id",
+            "unique": false,
+            "columnNames": [
+              "anchor_message_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_message_table_anchor_message_id` ON `${TABLE_NAME}` (`anchor_message_id`)"
+          },
+          {
+            "name": "index_room_conversation_message_table_parent_anchor_message_id",
+            "unique": false,
+            "columnNames": [
+              "parent_anchor_message_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_message_table_parent_anchor_message_id` ON `${TABLE_NAME}` (`parent_anchor_message_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "presence_event_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id_full` TEXT NOT NULL, `content` TEXT, PRIMARY KEY(`user_id_full`))",
+        "fields": [
+          {
+            "fieldPath": "userIdFull",
+            "columnName": "user_id_full",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "user_id_full"
+          ]
+        }
+      },
+      {
+        "tableName": "room_member_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` TEXT NOT NULL, `display_name` TEXT, `room_id` TEXT NOT NULL, `timestamp` INTEGER, `sender` TEXT, `proximity` REAL, `avatarUrl` TEXT, `membership` TEXT NOT NULL, `is_direct` INTEGER, `joinAuthorisedViaUsersServer` TEXT, `thirdPartyInvite` TEXT, `reason` TEXT, `externalUrl` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "roomId",
+            "columnName": "room_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sender",
+            "columnName": "sender",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proximity",
+            "columnName": "proximity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "avatarUrl",
+            "columnName": "avatarUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "membership",
+            "columnName": "membership",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDirect",
+            "columnName": "is_direct",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "joinAuthorisedViaUsersServer",
+            "columnName": "joinAuthorisedViaUsersServer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "thirdPartyInvite",
+            "columnName": "thirdPartyInvite",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "externalUrl",
+            "columnName": "externalUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "room_gravity_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversation_id` TEXT, `fraction` REAL NOT NULL, `offset` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fraction",
+            "columnName": "fraction",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offset",
+            "columnName": "offset",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "room_message_reaction_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`event_id` TEXT NOT NULL, `content` TEXT, `message_id` TEXT NOT NULL, `author_public_id` TEXT, PRIMARY KEY(`event_id`))",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "messageId",
+            "columnName": "message_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authorPublicId",
+            "columnName": "author_public_id",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "event_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_room_message_reaction_table_message_id",
+            "unique": false,
+            "columnNames": [
+              "message_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_message_reaction_table_message_id` ON `${TABLE_NAME}` (`message_id`)"
+          },
+          {
+            "name": "index_room_message_reaction_table_event_id",
+            "unique": true,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_room_message_reaction_table_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "room_conversation_room_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `summary` TEXT, `proximity` REAL, `unread_notifications` TEXT, `invite_state` TEXT, `knock_state` TEXT, `owner_public_id` TEXT, `primary_key` TEXT NOT NULL, `prev_batch` TEXT, `last_message_timestamp` TEXT, `history_visibility` TEXT, `algorithm` TEXT, `type` TEXT NOT NULL, `is_direct` INTEGER, PRIMARY KEY(`primary_key`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "summary",
+            "columnName": "summary",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "proximity",
+            "columnName": "proximity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "unreadNotifications",
+            "columnName": "unread_notifications",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "inviteState",
+            "columnName": "invite_state",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "knockState",
+            "columnName": "knock_state",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ownerPublicId",
+            "columnName": "owner_public_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "primaryKey",
+            "columnName": "primary_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prevBatch",
+            "columnName": "prev_batch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastMessageTimestamp",
+            "columnName": "last_message_timestamp",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "historyVisibility",
+            "columnName": "history_visibility",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "algorithm",
+            "columnName": "algorithm",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDirect",
+            "columnName": "is_direct",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "primary_key"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_room_conversation_room_table_owner_public_id",
+            "unique": false,
+            "columnNames": [
+              "owner_public_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_room_table_owner_public_id` ON `${TABLE_NAME}` (`owner_public_id`)"
+          },
+          {
+            "name": "index_room_conversation_room_table_type",
+            "unique": false,
+            "columnNames": [
+              "type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_room_table_type` ON `${TABLE_NAME}` (`type`)"
+          },
+          {
+            "name": "index_room_conversation_room_table_proximity",
+            "unique": false,
+            "columnNames": [
+              "proximity"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_room_table_proximity` ON `${TABLE_NAME}` (`proximity`)"
+          },
+          {
+            "name": "index_room_conversation_room_table_last_message_timestamp",
+            "unique": false,
+            "columnNames": [
+              "last_message_timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_room_table_last_message_timestamp` ON `${TABLE_NAME}` (`last_message_timestamp`)"
+          },
+          {
+            "name": "index_room_conversation_room_table_owner_public_id_type",
+            "unique": false,
+            "columnNames": [
+              "owner_public_id",
+              "type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_room_table_owner_public_id_type` ON `${TABLE_NAME}` (`owner_public_id`, `type`)"
+          },
+          {
+            "name": "index_room_conversation_room_table_owner_public_id_id",
+            "unique": false,
+            "columnNames": [
+              "owner_public_id",
+              "id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_room_table_owner_public_id_id` ON `${TABLE_NAME}` (`owner_public_id`, `id`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46cbd4b4aaca7edd52dbfe3ded399d80')"
+    ]
+  }
+}

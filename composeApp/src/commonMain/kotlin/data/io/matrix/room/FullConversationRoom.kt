@@ -4,6 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Ignore
 import androidx.room.Relation
 import data.io.matrix.room.event.ConversationRoomMember
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.NetworkItemIO
 import data.io.user.UserIO.Companion.initialsOf
@@ -18,6 +19,8 @@ data class FullConversationRoom(
         entity = ConversationRoomMember::class
     )
     val members: List<ConversationRoomMember> = emptyList(),
+
+    val messages: List<FullConversationMessage> = emptyList()
 ) {
 
     @Ignore

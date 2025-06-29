@@ -82,10 +82,13 @@ sealed class NavigationNode {
         val userId: String? = null,
 
         /** Name of the conversation */
-        val name: String? = null
+        val name: String? = null,
+
+        /** Item to which the scroll should be set to when the screen is opened */
+        val scrollTo: String? = null,
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
-        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId"
+        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo"
     }
 
     @Serializable
