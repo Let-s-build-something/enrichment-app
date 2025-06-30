@@ -201,15 +201,15 @@ private fun ContentElement(
 
             Box(
                 modifier = modifier
-                    .aspectRatio(1f)
+                    .aspectRatio(1f, true)
                     .background(
                         color = backgroundColor,
                         shape = CircleShape
-                    ),
+                    )
+                    .padding(6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 AutoResizeText(
-                    modifier = Modifier.padding(vertical = 6.dp),
                     text = UserIO.initialsOf(name),
                     style = LocalTheme.current.styles.subheading.copy(color = textColor),
                     fontSizeRange = FontSizeRange(

@@ -9,6 +9,7 @@
   <string name="screen_network_management">Your social network</string>
   <string name="screen_search_network">Search</string>
   <string name="screen_conversation">Conversation</string>
+  <string name="screen_conversation_search">A manhunt</string>
   <string name="screen_conversation_detail">Thread</string>
   <string name="screen_media_detail">Cheese!</string>
   <string name="screen_conversation_info">For the curious</string>
@@ -294,6 +295,8 @@
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
+  <string name="accessibility_search_up">Move to previous search match</string>
+  <string name="accessibility_search_down">Move to next search match</string>
   <string name="accessibility_info_box">Help info box</string>
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>

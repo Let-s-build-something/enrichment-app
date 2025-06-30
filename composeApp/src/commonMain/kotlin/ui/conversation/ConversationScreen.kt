@@ -111,7 +111,8 @@ private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
 fun ConversationScreen(
     conversationId: String? = null,
     userId: String? = null,
-    name: String? = null
+    name: String? = null,
+    scrollTo: String? = null
 ) {
     loadKoinModules(conversationModule)
     val model: ConversationModel = koinViewModel(

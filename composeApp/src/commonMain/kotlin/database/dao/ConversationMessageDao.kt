@@ -83,6 +83,18 @@ interface ConversationMessageDao {
             "WHERE conversation_id = :conversationId ")
     suspend fun getCount(conversationId: String?): Int
 
+    /** Counts the number of items */
+    @Query("""
+        SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+            WHERE conversation_id = :conversationId 
+            AND content like '%' || :query || '%'
+            AND author_public_id != "SYSTEM"
+            """)
+    suspend fun getQueryCount(
+        query: String,
+        conversationId: String?
+    ): Int
+
     /** Inserts or updates a set of item objects */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ConversationMessageIO>)

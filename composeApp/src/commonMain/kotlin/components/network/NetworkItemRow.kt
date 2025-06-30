@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -58,6 +59,7 @@ fun NetworkItemRow(
     avatarSize: Dp = 48.dp,
     highlight: String? = null,
     isSelected: Boolean = false,
+    highlightTitle: Boolean = true,
     indicatorColor: Color? = null,
     onAvatarClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
@@ -74,6 +76,7 @@ fun NetworkItemRow(
                 isSelected = isSelected,
                 avatarSize = avatarSize,
                 highlight = highlight,
+                matchTitle = highlightTitle,
                 actions = actions,
                 onAvatarClick = onAvatarClick,
                 data = data,
@@ -90,6 +93,7 @@ private fun ContentLayout(
     indicatorColor: Color?,
     isChecked: Boolean?,
     isSelected: Boolean = false,
+    matchTitle: Boolean = true,
     highlight: String? = null,
     avatarSize: Dp = 48.dp,
     data: NetworkItemIO,
@@ -141,11 +145,17 @@ private fun ContentLayout(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = highlightedText(
-                        highlight = highlight,
-                        text = data.displayName ?: ""
-                    ),
-                    style = LocalTheme.current.styles.category,
+                    text = if (matchTitle) {
+                        highlightedText(
+                            highlight = highlight,
+                            text = data.displayName ?: ""
+                        )
+                    } else AnnotatedString(data.displayName ?: ""),
+                    style = LocalTheme.current.styles.category.let {
+                        if (!matchTitle && highlight != null) {
+                            it.copy(color = it.color.copy(alpha = 0.4f))
+                        } else it
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

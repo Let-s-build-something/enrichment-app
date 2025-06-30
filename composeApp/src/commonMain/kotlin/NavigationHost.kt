@@ -27,6 +27,7 @@ import ui.conversation.ConversationScreen
 import ui.conversation.media.MediaDetailScreen
 import ui.conversation.message.MessageDetailScreen
 import ui.conversation.message.messageDetailModule
+import ui.conversation.search.ConversationSearchScreen
 import ui.conversation.settings.ConversationSettingsScreen
 import ui.home.HomeScreen
 import ui.login.LoginScreen
@@ -114,7 +115,13 @@ fun NavigationHost(
                 ConversationScreen(
                     conversationId = it.arguments?.getString("conversationId"),
                     userId = it.arguments?.getString("userId"),
-                    name = it.arguments?.getString("name")
+                    name = it.arguments?.getString("name"),
+                    scrollTo = it.arguments?.getString("scrollTo"),
+                )
+            }
+            composable<NavigationNode.ConversationSearch> {
+                ConversationSearchScreen(
+                    conversationId = it.arguments?.getString("conversationId")
                 )
             }
             composable<NavigationNode.ConversationSettings> {

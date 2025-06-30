@@ -5,6 +5,7 @@ import augmy.composeapp.generated.resources.screen_account_title
 import augmy.composeapp.generated.resources.screen_conversation
 import augmy.composeapp.generated.resources.screen_conversation_detail
 import augmy.composeapp.generated.resources.screen_conversation_info
+import augmy.composeapp.generated.resources.screen_conversation_search
 import augmy.composeapp.generated.resources.screen_conversation_settings
 import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_login
@@ -89,6 +90,16 @@ sealed class NavigationNode {
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
         override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo"
+    }
+
+    /** Conversation detail screen */
+    @Serializable
+    data class ConversationSearch(
+        /** unique identifier of the conversation */
+        val conversationId: String? = null
+    ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_conversation_search
+        override val deepLink: String = "messages/search?conversation=$conversationId"
     }
 
     @Serializable
@@ -182,6 +193,7 @@ sealed class NavigationNode {
             Login(),
             Water,
             Conversation(),
+            ConversationSearch(),
             AccountDashboard,
             NetworkManagement(),
             ConversationSettings(),

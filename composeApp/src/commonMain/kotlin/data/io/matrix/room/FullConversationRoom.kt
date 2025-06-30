@@ -11,6 +11,7 @@ import data.io.user.UserIO.Companion.generateUserTag
 import data.io.user.UserIO.Companion.initialsOf
 import kotlinx.serialization.Transient
 import net.folivo.trixnity.core.model.UserId
+import ui.conversation.message.AUTHOR_SYSTEM
 
 data class FullConversationRoom(
     @Embedded val data: ConversationRoomIO,
@@ -85,7 +86,7 @@ data class FullConversationRoom(
         displayName = name,
         avatar = avatar,
         lastMessage = data.summary?.lastMessage?.let {
-            if (!isDirect) "${it.authorPublicId}: ${it.content}" else it.content
+            if (!isDirect && it.authorPublicId != AUTHOR_SYSTEM) "${it.authorPublicId}: ${it.content}" else it.content
         }
     )
 }

@@ -174,7 +174,7 @@ abstract class MessageProcessor {
 
     @OptIn(ExperimentalUuidApi::class)
     @Suppress("UNCHECKED_CAST")
-    private suspend fun processEvents(
+    suspend fun processEvents(
         events: List<ClientEvent<*>>,
         roomId: String
     ): ProcessedEvents = withContext(Dispatchers.Default) {
