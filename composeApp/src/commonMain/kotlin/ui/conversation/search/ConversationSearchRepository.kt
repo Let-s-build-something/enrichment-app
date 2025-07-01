@@ -3,6 +3,7 @@ package ui.conversation.search
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
+import base.utils.MediaType
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
@@ -32,6 +33,7 @@ class ConversationSearchRepository(
 
     fun searchForMessages(
         query: () -> String,
+        selectedMediaTypes: () -> List<MediaType>,
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
@@ -54,7 +56,8 @@ class ConversationSearchRepository(
                                 query = query(),
                                 conversationId = conversationId,
                                 limit = config.pageSize,
-                                offset = page * config.pageSize
+                                offset = page * config.pageSize,
+                                mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
                             ).let { res ->
                                 if(res.isNotEmpty()) {
                                     GetMessagesResponse(

@@ -58,6 +58,7 @@ interface ConversationMessageDao {
             """)
     suspend fun queryPaginated(
         conversationId: String,
+        mimeTypes: List<String>,
         query: String,
         limit: Int,
         offset: Int
