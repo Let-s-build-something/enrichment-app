@@ -5,7 +5,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.unit.Constraints
 
 @Composable
 fun CustomIntrinsicWidthLayout(
@@ -48,7 +47,7 @@ fun CustomIntrinsicWidthLayout(
             var maxChildWidth = 0
             for (measurable in measurables) {
                 val placeable = measurable.measure(
-                    constraints.copy(minWidth = 0, maxWidth = Constraints.Infinity)
+                    constraints.copy(minWidth = 0, maxWidth = constraints.maxWidth)
                 )
                 placeables.add(placeable)
                 maxChildWidth = maxOf(maxChildWidth, placeable.width)

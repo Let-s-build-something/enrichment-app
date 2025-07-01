@@ -120,7 +120,7 @@ abstract class MessageProcessor {
                 if (conversationMessageDao.insertIgnore(it) == -1L) {
                     conversationMessageDao.insertReplace(it)
                     null
-                } else FullConversationMessage(message = it, reactions = messageReactionDao.getAll(it.id))
+                } else FullConversationMessage(data = it, reactions = messageReactionDao.getAll(it.id))
             }
 
             result.receipts.forEach { receipt ->
@@ -353,7 +353,7 @@ abstract class MessageProcessor {
                         event = event,
                         messageId = messageId
                     )?.let { update ->
-                        val message = conversationMessageDao.get(messageId)?.message?.update(update) ?: update
+                        val message = conversationMessageDao.get(messageId)?.data?.update(update) ?: update
 
                         message.copy(
                             state = if (message.authorPublicId == sharedDataManager.currentUser.value?.matrixUserId) {

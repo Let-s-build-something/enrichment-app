@@ -87,19 +87,23 @@ sealed class NavigationNode {
 
         /** Item to which the scroll should be set to when the screen is opened */
         val scrollTo: String? = null,
+
+        /** Specific to larger screens as the search query will be open in split screen under this conversation */
+        val searchQuery: String? = null,
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
-        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo"
+        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo&searchQuery=$searchQuery"
     }
 
     /** Conversation detail screen */
     @Serializable
     data class ConversationSearch(
         /** unique identifier of the conversation */
-        val conversationId: String? = null
+        val conversationId: String? = null,
+        val searchQuery: String? = null
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation_search
-        override val deepLink: String = "messages/search?conversation=$conversationId"
+        override val deepLink: String = "messages/search?conversation=$conversationId&searchQuery=$searchQuery"
     }
 
     @Serializable

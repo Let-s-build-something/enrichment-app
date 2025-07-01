@@ -61,13 +61,13 @@ fun UserVerificationMessage(
     val model: UserVerificationModel = koinViewModel(
         key = data.id,
         parameters = {
-            parametersOf(data.message.conversationId ?: "")
+            parametersOf(data.data.conversationId ?: "")
         }
     )
 
     val verificationState = model.verificationState.collectAsState()
     val isLoading = model.isLoading.collectAsState()
-    val isMyRequest = data.message.authorPublicId == model.matrixUserId
+    val isMyRequest = data.data.authorPublicId == model.matrixUserId
 
     LaunchedEffect(data.id) {
         model.getUserVerification(eventId = data.id)

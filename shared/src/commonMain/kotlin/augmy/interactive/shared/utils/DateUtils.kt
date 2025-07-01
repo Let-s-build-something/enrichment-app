@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import augmy.shared.generated.resources.Res
 import augmy.shared.generated.resources.date_minutes_ago
 import augmy.shared.generated.resources.date_seconds_ago
+import augmy.shared.generated.resources.date_today
 import augmy.shared.generated.resources.date_yesterday
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -57,7 +58,7 @@ object DateUtils {
         return when {
             dayDifference > 365 -> this.formatAs("dd. MM. yyyy")
             dayDifference == 1 -> {
-                stringResource(Res.string.date_yesterday) + " " + this.formatAs("HH:mm")
+                stringResource(Res.string.date_yesterday) + ", " + this.formatAs("HH:mm")
             }
             localNow.hour - this.hour < 1 && localNow.minute - this.minute < 1 && dayDifference == 0 -> {
                 "${localNow.second - this.second} ${stringResource(Res.string.date_seconds_ago)}"
@@ -65,7 +66,9 @@ object DateUtils {
             localNow.hour - this.hour < 1 && dayDifference == 0 -> {
                 "${localNow.minute - this.minute} ${stringResource(Res.string.date_minutes_ago)}"
             }
-            dayDifference == 0 -> this.formatAs("HH:MM")
+            dayDifference == 0 -> {
+                stringResource(Res.string.date_today) + ", " + this.formatAs("HH:MM")
+            }
             else -> this.formatAs("dd. MM.")
         }
     }

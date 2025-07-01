@@ -74,11 +74,12 @@ internal val conversationModule = module {
     single { ConversationDataManager() }
     factory { ConversationRepository(get(), get(), get(), get(), get(), get(), get<FileAccess>()) }
 
-    factory { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
+    factory { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?) ->
         ConversationModel(
             MutableStateFlow(conversationId ?: ""),
             userId,
             enableMessages,
+            scrollTo,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -88,11 +89,12 @@ internal val conversationModule = module {
             get<GravityUseCase>(),
         )
     }
-    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
+    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?) ->
         ConversationModel(
             MutableStateFlow(conversationId ?: ""),
             userId,
             enableMessages,
+            scrollTo,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -109,6 +111,7 @@ open class ConversationModel(
     protected var conversationId: MutableStateFlow<String>,
     private val userId: String? = null,
     enableMessages: Boolean = true,
+    scrollTo: String? = null, // TODO 86c45m6v8
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,

@@ -391,6 +391,7 @@ private fun SearchField(
             keyboardType = KeyboardType.Text,
             imeAction = ImeAction.Search
         ),
+        prefixIcon = Icons.Outlined.Search,
         isClearable = true,
         focusRequester = focusRequester,
         hint = stringResource(Res.string.button_search),
@@ -586,7 +587,17 @@ private fun ListContent(
                     customColors = customColors.value,
                     onTap = {
                         if (searchFieldState.text.isNotBlank()) {
-                            navController?.navigate(NavigationNode.ConversationSearch(room?.id))
+                            navController?.navigate(
+                                if (isCompact) {
+                                    NavigationNode.ConversationSearch(
+                                        conversationId = room?.id,
+                                        searchQuery = searchFieldState.text.toString()
+                                    )
+                                } else NavigationNode.Conversation(
+                                    conversationId = room?.id,
+                                    searchQuery = searchFieldState.text.toString()
+                                )
+                            )
                         } else {
                             if(selectedItem.value == room?.id) {
                                 selectedItem.value = null
@@ -742,7 +753,9 @@ private fun ConversationRoomItem(
                 room?.messages?.forEach { message ->
                     NetworkItemRow(
                         modifier = Modifier.scalingClickable(scaleInto = .95f) {
-                            navController?.navigate(NavigationNode.Conversation(scrollTo = message.id))
+                            navController?.navigate(
+                                NavigationNode.Conversation(conversationId = room.id, scrollTo = message.id)
+                            )
                         },
                         highlightTitle = false,
                         data = NetworkItemIO(
@@ -750,8 +763,8 @@ private fun ConversationRoomItem(
                             displayName = message.author?.displayName,
                             avatarUrl = message.author?.avatarUrl,
                             lastMessage = if (highlight.isNotBlank()) {
-                                extractSnippetAroundHighlight(message.message.content, highlight)
-                            }else message.message.content
+                                extractSnippetAroundHighlight(message.data.content, highlight)
+                            }else message.data.content
                         ),
                         highlight = highlight
                     )

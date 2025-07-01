@@ -141,7 +141,8 @@ private fun ContentLayout(
                 modifier = Modifier
                     .width(IntrinsicSize.Max)
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 4.dp)
+                    .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(

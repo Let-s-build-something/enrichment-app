@@ -290,7 +290,7 @@ internal fun BoxScope.SendMessagePanel(
             model.sendMessage(
                 content = messageState.text.toString(),
                 mediaFiles = mediaAttached.toList(),
-                anchorMessage = replyToMessage.value?.message ?: overrideAnchorMessage?.message,
+                anchorMessage = replyToMessage.value?.data ?: overrideAnchorMessage?.data,
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
                 showPreview = showPreview.value,
@@ -443,14 +443,14 @@ internal fun BoxScope.SendMessagePanel(
                     .padding(start = 12.dp)
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxWidth(),
-                data = originalMessage.message,
+                data = originalMessage.data,
                 onClick = {
                     scrollToMessage(originalMessage)
                 },
                 onRemoveRequest = {
                     replyToMessage.value = null
                 },
-                isCurrentUser = originalMessage.message.authorPublicId == model.currentUser.value?.matrixUserId,
+                isCurrentUser = originalMessage.data.authorPublicId == model.currentUser.value?.matrixUserId,
                 removable = true
             )
         }

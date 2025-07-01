@@ -5,7 +5,6 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -117,11 +116,13 @@ fun NavigationHost(
                     userId = it.arguments?.getString("userId"),
                     name = it.arguments?.getString("name"),
                     scrollTo = it.arguments?.getString("scrollTo"),
+                    searchQuery = it.arguments?.getString("searchQuery"),
                 )
             }
             composable<NavigationNode.ConversationSearch> {
                 ConversationSearchScreen(
-                    conversationId = it.arguments?.getString("conversationId")
+                    conversationId = it.arguments?.getString("conversationId"),
+                    searchQuery = it.arguments?.getString("searchQuery"),
                 )
             }
             composable<NavigationNode.ConversationSettings> {
@@ -146,26 +147,13 @@ fun NavigationHost(
 }
 
 @Composable
-private fun CombinedComposable(
-    contentOne: (@Composable () -> Unit)? = null,
-    contentTwo: @Composable () -> Unit
-) {
-    if(contentOne != null) {
-        Column {
-            contentOne()
-            contentTwo()
-        }
-    }else contentTwo()
-}
-
-@Composable
-fun <T> NavController?.collectResult(
+fun <T> NavController?.CollectResult(
     key: String,
     defaultValue: T,
     listener: (T) -> Unit
 ) {
     LaunchedEffect(Unit) {
-        this@collectResult?.currentBackStackEntry
+        this@CollectResult?.currentBackStackEntry
             ?.savedStateHandle
             ?.run {
                 getStateFlow(key, defaultValue).collectLatest {

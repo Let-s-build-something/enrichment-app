@@ -1,5 +1,6 @@
 package ui.conversation.settings
 
+import CollectResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
@@ -98,7 +99,6 @@ import base.navigation.NavIconType
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.getOrNull
-import collectResult
 import components.AvatarImage
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
@@ -254,7 +254,7 @@ fun ConversationSettingsContent(
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
 
 
-    navController?.collectResult<String?>(
+    navController?.CollectResult<String?>(
         key = NavigationArguments.SEARCH_USER_ID,
         defaultValue = null,
         listener = { userId ->

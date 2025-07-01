@@ -45,7 +45,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.getOrNull
-import collectResult
+import CollectResult
 import components.EmptyLayout
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
@@ -97,7 +97,7 @@ fun NetworkListContent(
         }
     }
 
-    navController?.collectResult(
+    navController?.CollectResult(
         key = NavigationArguments.NETWORK_NEW_SUCCESS,
         defaultValue = false,
         listener = { isSuccess ->

@@ -21,14 +21,14 @@ fun SystemMessage(
 ) {
     InfoBox(
         modifier = modifier,
-        message = data?.message?.content ?: "",
+        message = data?.data?.content ?: "",
         paddingValues = PaddingValues(
-            vertical = if (data?.message?.media.isNullOrEmpty()) 18.dp else 8.dp,
+            vertical = if (data?.data?.media.isNullOrEmpty()) 18.dp else 8.dp,
             horizontal = 12.dp
         )
     ) {
-        data?.message?.media?.forEach { media ->
-            if (data.message.content?.contains(stringResource(Res.string.message_room_join)) == true) {
+        data?.data?.media?.forEach { media ->
+            if (data.data.content?.contains(stringResource(Res.string.message_room_join)) == true) {
                 AvatarImage(
                     modifier = Modifier
                         .size(42.dp)

@@ -145,7 +145,7 @@ fun LazyItemScope.ConversationMessageContent(
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
                 }
-                val shape = if(data?.message?.content.isNullOrBlank()) {
+                val shape = if(data?.data?.content.isNullOrBlank()) {
                     LocalTheme.current.shapes.rectangularActionShape
                 }else RoundedCornerShape(
                     topStart = LocalTheme.current.shapes.rectangularActionRadius,
@@ -190,7 +190,7 @@ fun LazyItemScope.ConversationMessageContent(
                     MediaRow(
                         modifier = heightModifier,
                         data = data,
-                        media = data?.message?.media.orEmpty(),
+                        media = data?.data?.media.orEmpty(),
                         scrollState = mediaRowState,
                         temporaryFiles = temporaryFiles,
                         isCurrentUser = messageType == MessageType.CurrentUser,
@@ -201,7 +201,7 @@ fun LazyItemScope.ConversationMessageContent(
                         }
                     )
 
-                    if (data?.message?.showPreview == true && data.message.content?.isNotBlank() == true) {
+                    if (data?.data?.showPreview == true && data.data.content?.isNotBlank() == true) {
                         messageContent.getLinkAnnotations(0, messageContent.length)
                             .firstOrNull()?.let { link ->
                                 LinkPreview(
