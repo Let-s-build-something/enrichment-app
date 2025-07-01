@@ -1,32 +1,41 @@
 package ui.conversation.search
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_more_options
 import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.message_media_file
 import augmy.composeapp.generated.resources.screen_conversation_search
@@ -73,10 +82,6 @@ fun ConversationSearchScreen(
     val highlight = searchFieldState.text.toString().lowercase()
 
 
-    LaunchedEffect(searchFieldState.text) {
-        model.querySearch(searchFieldState.text)
-    }
-
     selectedUser.value?.let { user ->
         UserDetailDialog(
             networkItem = user,
@@ -92,7 +97,7 @@ fun ConversationSearchScreen(
     ) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             stickyHeader(key = "searchHeader") {
-                SearchBar(searchFieldState)
+                SearchBar(model, searchFieldState)
             }
             items(
                 count = messages.itemCount,
@@ -164,34 +169,86 @@ fun ConversationSearchScreen(
 }
 
 @Composable
-private fun SearchBar(searchFieldState: TextFieldState) {
+private fun SearchBar(
+    model: ConversationSearchModel,
+    searchFieldState: TextFieldState
+) {
     val focusRequester = remember { FocusRequester() }
+    val isExpanded = remember { mutableStateOf(false) }
 
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
 
-    CustomTextField(
+    LaunchedEffect(searchFieldState.text) {
+        isExpanded.value = false
+        model.querySearch(searchFieldState.text)
+    }
+
+    Row(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .background(
-                LocalTheme.current.colors.backgroundDark,
-                shape = LocalTheme.current.shapes.rectangularActionShape
+            .animateContentSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        CustomTextField(
+            modifier = Modifier
+                .background(
+                    LocalTheme.current.colors.backgroundDark,
+                    shape = LocalTheme.current.shapes.rectangularActionShape
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .weight(1f),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Search
+            ),
+            prefixIcon = Icons.Outlined.Search,
+            isClearable = true,
+            focusRequester = focusRequester,
+            hint = stringResource(Res.string.button_search),
+            state = searchFieldState,
+            showBorders = false,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            shape = LocalTheme.current.shapes.rectangularActionShape
+        )
+
+        Row(
+            modifier = Modifier
+                .animateContentSize()
+                .background(
+                    color = LocalTheme.current.colors.backgroundDark,
+                    shape = LocalTheme.current.shapes.rectangularActionShape
+                )
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val rotation: Float by animateFloatAsState(
+                targetValue = if (isExpanded.value) 225f else 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
             )
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Search
-        ),
-        prefixIcon = Icons.Outlined.Search,
-        isClearable = true,
-        focusRequester = focusRequester,
-        hint = stringResource(Res.string.button_search),
-        state = searchFieldState,
-        showBorders = false,
-        lineLimits = TextFieldLineLimits.SingleLine,
-        shape = LocalTheme.current.shapes.rectangularActionShape
-    )
+
+            Icon(
+                modifier = Modifier
+                    .size(32.dp)
+                    .rotate(rotation)
+                    .scalingClickable {
+                        isExpanded.value = !isExpanded.value
+                    }
+                    .padding(2.dp),
+                imageVector = Icons.Outlined.Add,
+                contentDescription = stringResource(Res.string.accessibility_more_options),
+                tint = LocalTheme.current.colors.secondary
+            )
+
+            if (isExpanded.value) {
+                // TODO major mimetypes filter options
+            }
+        }
+    }
 }

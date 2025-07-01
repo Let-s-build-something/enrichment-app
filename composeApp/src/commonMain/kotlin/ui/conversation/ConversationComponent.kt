@@ -86,24 +86,25 @@ fun ConversationComponent(
     listModifier: Modifier = Modifier,
     model: ConversationModel,
     shimmerItemCount: Int = 20,
+    listState: LazyListState = persistedLazyListState(
+        persistentData = model.persistentPositionData ?: PersistentListData(),
+        onDispose = { lastInfo ->
+            model.persistentPositionData = lastInfo
+        }
+    ),
     verticalArrangement: Arrangement.Vertical,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     messages: LazyPagingItems<FullConversationMessage>,
     conversationId: String?,
+    highlight: String? = null,
     thread: FullConversationMessage? = null,
-    lazyScope: LazyListScope.(LazyListState) -> Unit,
+    lazyScope: LazyListScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
     val density = LocalDensity.current
     val navController = LocalNavController.current
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
-    val listState = persistedLazyListState(
-        persistentData = model.persistentPositionData ?: PersistentListData(),
-        onDispose = { lastInfo ->
-            model.persistentPositionData = lastInfo
-        }
-    )
 
     val preferredEmojis = model.preferredEmojis.collectAsState()
     val keyboardMode = rememberSaveable {
@@ -409,6 +410,7 @@ fun ConversationComponent(
                             currentUserPublicId = model.matrixUserId ?: "",
                             reactingToMessageId = reactingToMessageId,
                             model = bubbleModel,
+                            highlight = highlight,
                             replyToMessage = replyToMessage,
                             scrollToMessage = scrollToMessage,
                             preferredEmojis = preferredEmojis.value,
@@ -418,7 +420,7 @@ fun ConversationComponent(
                         )
                     }
                 }
-                lazyScope(listState)
+                lazyScope()
             }
         }
 

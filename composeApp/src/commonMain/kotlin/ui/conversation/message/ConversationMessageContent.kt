@@ -62,6 +62,7 @@ fun LazyItemScope.ConversationMessageContent(
     data: FullConversationMessage?,
     temporaryFiles: Map<String, PlatformFile?>,
     currentUserPublicId: String?,
+    highlight: String? = null,
     isPreviousMessageSameAuthor: Boolean,
     isNextMessageSameAuthor: Boolean,
     messageType: MessageType,
@@ -141,6 +142,7 @@ fun LazyItemScope.ConversationMessageContent(
             isMyLastMessage = isMyLastMessage,
             preferredEmojis = preferredEmojis,
             model = model,
+            highlight = highlight,
             additionalContent = { onDragChange, onDrag, messageContent ->
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)

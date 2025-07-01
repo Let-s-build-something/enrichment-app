@@ -149,7 +149,7 @@ private fun ContentLayout(
                     text = if (matchTitle) {
                         highlightedText(
                             highlight = highlight,
-                            text = data.displayName ?: ""
+                            annotatedString = AnnotatedString(data.displayName ?: "")
                         )
                     } else AnnotatedString(data.displayName ?: ""),
                     style = LocalTheme.current.styles.category.let {
@@ -164,7 +164,7 @@ private fun ContentLayout(
                     Text(
                         text = highlightedText(
                             highlight = highlight,
-                            text = data.lastMessage
+                            annotatedString = AnnotatedString(data.lastMessage)
                         ),
                         style = LocalTheme.current.styles.regular,
                         maxLines = 2,

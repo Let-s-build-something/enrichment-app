@@ -6,7 +6,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -77,12 +78,14 @@ import augmy.composeapp.generated.resources.conversation_mode_experimental
 import augmy.composeapp.generated.resources.conversation_new_room
 import augmy.composeapp.generated.resources.conversation_selected_users
 import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ext.listenToCtrlF
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.base.ZIndexFab
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
@@ -90,6 +93,8 @@ import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.interactive.shared.utils.PersistentListData
+import augmy.interactive.shared.utils.persistedLazyListState
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationArguments
@@ -105,8 +110,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -149,6 +152,15 @@ fun ConversationScreen(
     val showSettings = rememberSaveable(model) {
         mutableStateOf(searchQuery != null)
     }
+    val isSearchVisible = rememberSaveable(model) { mutableStateOf(false) }
+    val initialNestedDestination = rememberSaveable(model) {
+        mutableStateOf(
+            if (searchQuery != null) {
+                NavigationNode.ConversationSearch(conversationId, searchQuery)
+            } else NavigationNode.ConversationSettings(conversationId)
+        )
+    }
+    val searchFieldState = remember(model) { TextFieldState() }
     val modeSwitchState = rememberMultiChoiceState(
         items = mutableListOf(
             stringResource(Res.string.conversation_mode_default),
@@ -204,6 +216,14 @@ fun ConversationScreen(
         }
     ) {
         BrandBaseScreen(
+            modifier = Modifier.listenToCtrlF {
+                if (isCompact) {
+                    isSearchVisible.value = true
+                } else {
+                    initialNestedDestination.value = NavigationNode.ConversationSearch(conversationId)
+                    showSettings.value = true
+                }
+            },
             navIconType = NavIconType.BACK,
             headerPrefix = {
                 AnimatedVisibility(conversationDetail.value != null) {
@@ -243,92 +263,95 @@ fun ConversationScreen(
                 modifier = Modifier.fillMaxHeight(),
                 verticalAlignment = Alignment.Bottom
             ) {
-                Crossfade(
-                    modifier = Modifier.weight(1f),
-                    targetState = modeSwitchState.selectedTabIndex.value
-                ) { selectedIndex ->
-                    if(selectedIndex == 1) {
-                        PrototypeConversation(conversationId = conversationId)
-                    }else {
-                        val scopeItems: LazyListScope.(LazyListState) -> Unit = if (uiMode.value == ConversationModel.UiMode.CreateRoomNoMembers) {
-                            val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
-                            val membersToInvite = model.membersToInvite.collectAsState()
-                            val searchState = remember(model) { TextFieldState() }
-                            val focusRequester = remember(model) { FocusRequester() }
-                            val cancellableScope = rememberCoroutineScope()
+                Box(modifier = Modifier.weight(1f)) {
+                    val listState = persistedLazyListState(
+                        persistentData = model.persistentPositionData ?: PersistentListData(),
+                        onDispose = { lastInfo ->
+                            model.persistentPositionData = lastInfo
+                        }
+                    )
 
-                            LaunchedEffect(Unit) {
-                                model.recommendUsersToInvite()
-                            }
+                    Crossfade(targetState = modeSwitchState.selectedTabIndex.value) { selectedIndex ->
+                        if(selectedIndex == 1) {
+                            PrototypeConversation(conversationId = conversationId)
+                        }else {
+                            val scopeItems: LazyListScope.() -> Unit = if (uiMode.value == ConversationModel.UiMode.CreateRoomNoMembers) {
+                                val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
+                                val membersToInvite = model.membersToInvite.collectAsState()
+                                val searchState = remember(model) { TextFieldState() }
+                                val focusRequester = remember(model) { FocusRequester() }
+                                val cancellableScope = rememberCoroutineScope()
 
-                            LaunchedEffect(searchState.text) {
-                                cancellableScope.coroutineContext.cancelChildren()
-                                cancellableScope.launch {
-                                    delay(DELAY_BETWEEN_TYPING_SHORT)
-                                    model.recommendUsersToInvite(query = searchState.text)
+                                LaunchedEffect(Unit) {
+                                    model.recommendUsersToInvite()
                                 }
-                            };
 
-                            { scope: LazyListScope, state: LazyListState ->
-                                scope.createRoomNoMembers(
-                                    model = model,
-                                    recommendedUserToInvite = recommendedUsersToInvite,
-                                    membersToInvite = membersToInvite,
-                                    searchState = searchState,
-                                    focusRequester = focusRequester
-                                )
-                            }
-                        }else { scope: LazyListScope, state: LazyListState ->
-                            if (isCompact) {
-                                scope.stickyHeader(key = "historySearchBar") {
-                                    val isVisible = remember(model) { mutableStateOf(false) }
-                                    val searchFieldState = remember(model) { TextFieldState() }
-
-                                    LaunchedEffect(state) {
-                                        snapshotFlow { state.firstVisibleItemIndex to state.firstVisibleItemScrollOffset }
-                                            .map { (index, offset) ->
-                                                // TODO this is wrong, it should calculate the scrolled offset - acummulative
-                                                val viewportHeight = state.layoutInfo.viewportSize.height
-                                                val scrolledPixels = state.layoutInfo.visibleItemsInfo
-                                                    .take(index)
-                                                    .sumOf { it.size } + offset
-
-                                                scrolledPixels > viewportHeight
-                                            }
-                                            .distinctUntilChanged()
-                                            .collectLatest { isVisible.value = it }
+                                LaunchedEffect(searchState.text) {
+                                    cancellableScope.coroutineContext.cancelChildren()
+                                    cancellableScope.launch {
+                                        delay(DELAY_BETWEEN_TYPING_SHORT)
+                                        model.recommendUsersToInvite(query = searchState.text)
                                     }
+                                };
 
-                                    AnimatedVisibility(visible = isVisible.value) {
-                                        //TODO highlight and scrollTo when changing indexes
-                                        SearchBar(
-                                            searchFieldState = searchFieldState,
-                                            itemCount = messages.itemCount
-                                        )
-                                    }
+                                { scope: LazyListScope ->
+                                    scope.createRoomNoMembers(
+                                        model = model,
+                                        recommendedUserToInvite = recommendedUsersToInvite,
+                                        membersToInvite = membersToInvite,
+                                        searchState = searchState,
+                                        focusRequester = focusRequester
+                                    )
+                                }
+                            }else { scope: LazyListScope ->
+                                scope.item(key = "topPadding") {
+                                    Spacer(Modifier.height(120.dp))
                                 }
                             }
-                            scope.item(key = "topPadding") {
-                                Spacer(Modifier.height(42.dp))
+
+                            ConversationComponent(
+                                listModifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight(),
+                                listState = listState,
+                                verticalArrangement = Arrangement.Bottom,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                highlight = searchFieldState.text.toString().lowercase().takeIf { it.isNotBlank() },
+                                lazyScope = {
+                                    this.scopeItems()
+                                },
+                                messages = messages,
+                                conversationId = conversationId,
+                                shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
+                                model = model
+                            )
+                        }
+                    }
+
+                    if (isCompact) {
+                        LaunchedEffect(listState) {
+                            snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
+                                isSearchVisible.value = searchFieldState.text.isNotBlank() || it > 20
                             }
                         }
 
-                        ConversationComponent(
-                            listModifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight(),
-                            verticalArrangement = Arrangement.Bottom,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            lazyScope = { state ->
-                                scopeItems(this, state)
-                            },
-                            messages = messages,
-                            conversationId = conversationId,
-                            shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-                            model = model
-                        )
+                        androidx.compose.animation.AnimatedVisibility(
+                            modifier = Modifier
+                                .zIndex(ZIndexFab)
+                                .align(Alignment.TopCenter),
+                            visible = isSearchVisible.value,
+                            enter = slideInVertically { (-it * 1.5f).toInt() },
+                            exit = slideOutVertically { (-it * 1.5f).toInt() }
+                        ) {
+                            SearchBar(
+                                model = model,
+                                searchFieldState = searchFieldState,
+                                itemCount = messages.itemCount
+                            )
+                        }
                     }
                 }
+
                 Box(
                     modifier = Modifier
                         .animateContentSize(alignment = Alignment.TopEnd)
@@ -355,9 +378,7 @@ fun ConversationScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(color = LocalTheme.current.colors.backgroundLight),
-                                startDestination = if (searchQuery != null) {
-                                    NavigationNode.ConversationSearch(conversationId, searchQuery)
-                                } else NavigationNode.ConversationSettings(conversationId),
+                                startDestination = initialNestedDestination.value,
                                 navController = nestedNavController,
                                 enterTransition = {
                                     slideInHorizontally { -it * 2 }
@@ -380,7 +401,6 @@ fun ConversationScreen(
                             key = NavigationArguments.CONVERSATION_SCROLL_TO,
                             defaultValue = null,
                             listener = { scrollTo ->
-                                SharedLogger.logger.debug { "attempt to scroll to: $scrollTo" }
                                 // TODO 86c45m6v8 if (scrollTo != null) model.scrollTo(scrollTo)
                             }
                         )
@@ -520,13 +540,12 @@ private fun LazyListScope.createRoomNoMembers(
 
 @Composable
 private fun SearchBar(
+    model: ConversationModel,
     searchFieldState: TextFieldState,
     itemCount: Int,
 ) {
     val density = LocalDensity.current
     val focusRequester = remember { FocusRequester() }
-
-    //val scrollPosition = model.scrollPosition.collectAsState()
 
 
     LaunchedEffect(Unit) {
@@ -582,7 +601,7 @@ private fun SearchBar(
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
                         .scalingClickable {
-                            //model.scrollInMeta(addition = 1, itemCount = itemCount)
+                            // TODO 86c45m6v8 model.scrollInMeta(addition = 1, itemCount = itemCount)
                         }
                         .padding(2.dp),
                     imageVector = Icons.Outlined.KeyboardArrowUp,
@@ -593,7 +612,7 @@ private fun SearchBar(
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
                         .scalingClickable {
-                            //model.scrollInMeta(addition = -1, itemCount = itemCount)
+                            //  TODO 86c45m6v8 model.scrollInMeta(addition = -1, itemCount = itemCount)
                         }
                         .padding(2.dp),
                     imageVector = Icons.Outlined.KeyboardArrowDown,

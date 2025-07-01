@@ -57,6 +57,7 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -76,6 +77,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.components.highlightedText
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.interactive.shared.utils.DateUtils.formatAsRelative
@@ -129,6 +131,7 @@ fun MessageBubble(
     isMyLastMessage: Boolean,
     isReplying: Boolean,
     currentUserPublicId: String,
+    highlight: String? = null,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
         onDrag: (Boolean) -> Unit,
@@ -143,6 +146,7 @@ fun MessageBubble(
                 modifier = modifier,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
+                highlight = highlight,
                 hasAttachment = hasAttachment,
                 data = data,
                 model = model,
@@ -169,6 +173,7 @@ private fun ContentLayout(
     model: MessageBubbleModel,
     isReplying: Boolean,
     currentUserId: String,
+    highlight: String?,
     isReacting: Boolean,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
@@ -205,25 +210,30 @@ private fun ContentLayout(
             && data.data.transcribed != true
             && !data.data.timings.isNullOrEmpty()
 
-    val textContent = if(!data.data.content.isNullOrBlank()) {
-        buildTempoString(
-            key = data.id,
-            timings = data.data.timings.orEmpty(),
-            text = buildAnnotatedLinkString(
-                text = data.data.content,
-                onLinkClicked = { href ->
-                    linkHandler?.invoke(href) ?: openLink(href)
-                }
+
+    val textStyle = LocalTheme.current.styles.title.copy(
+        color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+            .copy(
+                alpha = if(awaitingTranscription) .4f else 1f
             ),
-            onFinish = { model.onTranscribed() },
-            enabled = model.transcribe.value,
-            style = LocalTheme.current.styles.title.copy(
-                color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
-                    .copy(
-                        alpha = if(awaitingTranscription) .4f else 1f
-                    ),
-                fontFamily = FontFamily(fontQuicksandMedium)
-            ).toSpanStyle()
+        fontFamily = FontFamily(fontQuicksandMedium)
+    )
+    val textContent = if(!data.data.content.isNullOrBlank()) {
+        highlightedText(
+            highlight = highlight,
+            annotatedString = buildTempoString(
+                key = data.id,
+                timings = data.data.timings.orEmpty(),
+                text = buildAnnotatedLinkString(
+                    text = data.data.content,
+                    onLinkClicked = { href ->
+                        linkHandler?.invoke(href) ?: openLink(href)
+                    }
+                ),
+                onFinish = { model.onTranscribed() },
+                enabled = model.transcribe.value,
+                spanStyle = textStyle.toSpanStyle()
+            )
         )
     }else AnnotatedString("")
 
@@ -474,6 +484,7 @@ private fun ContentLayout(
                                     data = data,
                                     model = model,
                                     textContent = textContent,
+                                    textStyle = textStyle,
                                     isCurrentUser = isCurrentUser,
                                     showOptions = showOptions,
                                     hasAttachment = hasAttachment,
@@ -553,6 +564,7 @@ private fun MessageContent(
     data: FullConversationMessage,
     model: MessageBubbleModel,
     textContent: AnnotatedString,
+    textStyle: TextStyle,
     shape: Shape,
     isCurrentUser: Boolean,
     currentUserId: String,
@@ -619,6 +631,7 @@ private fun MessageContent(
                         }else textContent,
                         maxLines = MaximumTextLines,
                         overflow = TextOverflow.Ellipsis,
+                        style = textStyle,
                         onTextLayout = {
                             showReadMore.value = it.didOverflowHeight
                         }

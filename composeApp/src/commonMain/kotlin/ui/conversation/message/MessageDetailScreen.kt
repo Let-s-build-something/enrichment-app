@@ -210,7 +210,7 @@ fun MessageDetailScreen(
                                         text = message.value?.data?.content ?: "",
                                         onLinkClicked = { openLink(it) }
                                     ),
-                                    style = LocalTheme.current.styles.title.copy(
+                                    spanStyle = LocalTheme.current.styles.title.copy(
                                         color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
                                         fontFamily = FontFamily(fontQuicksandMedium)
                                     ).toSpanStyle(),
