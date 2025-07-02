@@ -78,7 +78,8 @@ import augmy.composeapp.generated.resources.conversation_mode_experimental
 import augmy.composeapp.generated.resources.conversation_new_room
 import augmy.composeapp.generated.resources.conversation_selected_users
 import augmy.interactive.com.BuildKonfig
-import augmy.interactive.shared.ext.listenToCtrlF
+import augmy.interactive.shared.ext.onCtrlF
+import augmy.interactive.shared.ext.onEscape
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalLinkHandler
@@ -100,6 +101,7 @@ import base.navigation.NavIconType
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.navigation.NestedNavigationBar
+import base.utils.getOrNull
 import components.AvatarImage
 import components.network.NetworkItemRow
 import components.pull_refresh.LocalRefreshCallback
@@ -116,6 +118,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.prototype.PrototypeConversation
+import ui.conversation.search.ConversationSearchModel
+import ui.conversation.search.conversationSearchModule
 import utils.SharedLogger
 
 /** Number of network items within one screen to be shimmered */
@@ -216,14 +220,20 @@ fun ConversationScreen(
         }
     ) {
         BrandBaseScreen(
-            modifier = Modifier.listenToCtrlF {
-                if (isCompact) {
-                    isSearchVisible.value = true
-                } else {
-                    initialNestedDestination.value = NavigationNode.ConversationSearch(conversationId)
-                    showSettings.value = true
+            modifier = Modifier
+                .onCtrlF {
+                    if (isCompact) {
+                        isSearchVisible.value = true
+                    } else {
+                        initialNestedDestination.value = NavigationNode.ConversationSearch(conversationId)
+                        showSettings.value = true
+                    }
                 }
-            },
+                .onEscape {
+                    isSearchVisible.value = false
+                    showSettings.value = false
+                    initialNestedDestination.value = NavigationNode.ConversationSettings(conversationId)
+                },
             navIconType = NavIconType.BACK,
             headerPrefix = {
                 AnimatedVisibility(conversationDetail.value != null) {
@@ -344,9 +354,8 @@ fun ConversationScreen(
                             exit = slideOutVertically { (-it * 1.5f).toInt() }
                         ) {
                             SearchBar(
-                                model = model,
                                 searchFieldState = searchFieldState,
-                                itemCount = messages.itemCount
+                                conversationId = conversationId
                             )
                         }
                     }
@@ -540,16 +549,39 @@ private fun LazyListScope.createRoomNoMembers(
 
 @Composable
 private fun SearchBar(
-    model: ConversationModel,
     searchFieldState: TextFieldState,
-    itemCount: Int,
+    conversationId: String?
 ) {
+    loadKoinModules(conversationSearchModule)
+    val model: ConversationSearchModel = koinViewModel(
+        key = conversationId,
+        parameters = {
+            parametersOf(conversationId)
+        }
+    )
+
     val density = LocalDensity.current
+
+    val messages = model.messages.collectAsLazyPagingItems()
+
     val focusRequester = remember { FocusRequester() }
+    val index = rememberSaveable(model) { mutableStateOf(0) }
+
+    val upEnabled = index.value < messages.itemCount - 1
+    val downEnabled = index.value > 0
+
 
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    LaunchedEffect(searchFieldState.text) {
+        model.querySearch(searchFieldState.text)
+    }
+
+    LaunchedEffect(messages.itemCount) {
+        // TODO 86c45m6v8 model.scrollTo(messages.getOrNull(0))
     }
 
     Row(
@@ -581,7 +613,7 @@ private fun SearchBar(
             shape = LocalTheme.current.shapes.rectangularActionShape
         )
 
-        AnimatedVisibility(itemCount > 0 && searchFieldState.text.isNotBlank()) {
+        AnimatedVisibility(messages.itemCount > 0 && searchFieldState.text.isNotBlank()) {
             Row(
                 modifier = Modifier
                     .animateContentSize()
@@ -593,31 +625,46 @@ private fun SearchBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    text = "",//"${scrollPosition.value}/${itemCount}",
+                    modifier = Modifier
+                        .animateContentSize()
+                        .padding(horizontal = 8.dp),
+                    text = "${index.value + 1}/${messages.itemCount}",
                     style = LocalTheme.current.styles.regular
                 )
+
                 Icon(   // move up
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
-                        .scalingClickable {
-                            // TODO 86c45m6v8 model.scrollInMeta(addition = 1, itemCount = itemCount)
+                        .scalingClickable(key = upEnabled) {
+                            if (upEnabled) index.value += 1
+
+                            messages.getOrNull(index.value)?.data?.id?.let {
+                                // TODO 86c45m6v8 model.scrollTo(it)
+                            }
                         }
                         .padding(2.dp),
                     imageVector = Icons.Outlined.KeyboardArrowUp,
                     contentDescription = stringResource(Res.string.accessibility_search_up),
-                    tint = LocalTheme.current.colors.secondary
+                    tint = if (upEnabled) {
+                        LocalTheme.current.colors.secondary
+                    } else LocalTheme.current.colors.disabled
                 )
                 Icon(   // move down
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
-                        .scalingClickable {
-                            //  TODO 86c45m6v8 model.scrollInMeta(addition = -1, itemCount = itemCount)
+                        .scalingClickable(key = downEnabled) {
+                            if (downEnabled) index.value -= 1
+
+                            messages.getOrNull(index.value)?.data?.id?.let {
+                                // TODO 86c45m6v8 model.scrollTo(it)
+                            }
                         }
                         .padding(2.dp),
                     imageVector = Icons.Outlined.KeyboardArrowDown,
                     contentDescription = stringResource(Res.string.accessibility_search_down),
-                    tint = LocalTheme.current.colors.secondary
+                    tint = if (downEnabled) {
+                        LocalTheme.current.colors.secondary
+                    } else LocalTheme.current.colors.disabled
                 )
             }
         }

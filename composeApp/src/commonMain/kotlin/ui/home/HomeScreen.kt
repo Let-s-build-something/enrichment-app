@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -89,6 +90,8 @@ import augmy.composeapp.generated.resources.screen_home_initial_sync
 import augmy.composeapp.generated.resources.screen_home_no_client_action
 import augmy.composeapp.generated.resources.screen_home_no_client_title
 import augmy.composeapp.generated.resources.screen_search_network
+import augmy.interactive.shared.ext.onCtrlF
+import augmy.interactive.shared.ext.onEscape
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -153,6 +156,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
     val showHomeActions = rememberSaveable { mutableStateOf(false) }
     val searchActivated = rememberSaveable { mutableStateOf(false) }
     val searchFieldState = remember { TextFieldState() }
+    val focusRequester = remember { FocusRequester() }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if(model.persistentPositionData != null) {
@@ -170,6 +174,10 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     OnBackHandler(enabled = selectedItem.value != null) {
         selectedItem.value = null
     }
@@ -184,6 +192,16 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
     }
 
     RefreshableScreen(
+        modifier = Modifier
+            .focusRequester(focusRequester)
+            .onCtrlF {
+                searchActivated.value = true
+            }
+            .onEscape {
+                searchActivated.value = false
+                showHomeActions.value = false
+                showTuner.value = false
+            },
         title = stringResource(Res.string.screen_home),
         navIconType = NavIconType.TUNE,
         onNavigationIconClick = {
