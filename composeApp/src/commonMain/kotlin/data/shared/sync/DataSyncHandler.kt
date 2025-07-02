@@ -133,7 +133,8 @@ class DataSyncHandler: MessageProcessor() {
                             MediaIO(
                                 url = it,
                                 mimetype = avatar.info?.mimeType,
-                                size = avatar.info?.size
+                                size = avatar.info?.size,
+                                messageId = room.id
                             )
                         },
                         canonicalAlias = alias

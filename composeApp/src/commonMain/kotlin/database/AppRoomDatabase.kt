@@ -11,6 +11,7 @@ import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.EmojiSelection
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.user.NetworkItemIO
 import data.io.user.PresenceData
@@ -19,6 +20,7 @@ import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.GravityDao
 import database.dao.MatrixPagingMetaDao
+import database.dao.MediaDao
 import database.dao.MessageReactionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
@@ -38,6 +40,7 @@ import ui.conversation.components.experimental.gravity.GravityValue
         ConversationRoomMember::class,
         GravityValue::class,
         MessageReactionIO::class,
+        MediaIO::class,
         ConversationRoomIO::class
     ],
     version = 71,
@@ -57,6 +60,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun matrixPagingMetaDao(): MatrixPagingMetaDao
     abstract fun roomMemberDao(): RoomMemberDao
     abstract fun messageReactionDao(): MessageReactionDao
+    abstract fun mediaDao(): MediaDao
     abstract fun gravityDao(): GravityDao
 
     companion object {
@@ -68,6 +72,7 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [ConversationRoomIO] */
         const val TABLE_CONVERSATION_ROOM = "room_conversation_room_table"
+        const val TABLE_MEDIA = "table_media"
 
         /** Identification of table for [ConversationMessageIO] */
         const val TABLE_CONVERSATION_MESSAGE = "room_conversation_message_table"

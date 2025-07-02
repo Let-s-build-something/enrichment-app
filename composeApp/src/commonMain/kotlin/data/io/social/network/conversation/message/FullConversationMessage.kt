@@ -27,7 +27,13 @@ data class FullConversationMessage(
         parentColumn = "id",
         entityColumn = "message_id"
     )
-    val reactions: List<MessageReactionIO>
+    val reactions: List<MessageReactionIO>,
+
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "message_id"
+    )
+    val media: List<MediaIO>
 ) {
 
     @Transient
