@@ -17,12 +17,23 @@ import utils.SharedLogger
 class ConversationSearchRepository(
     private val conversationMessageDao: ConversationMessageDao
 ) {
-    private val messageCount = hashMapOf<String, Int>()
+    private val messageCount = hashMapOf<Pair<String, List<MediaType>>, Int>()
     private var currentPagingSource: PagingSource<*, *>? = null
 
-    private suspend fun getQueryCount(query: String, conversationId: String?): Int {
-        return messageCount[query] ?: conversationMessageDao.getQueryCount(query, conversationId).also {
-            messageCount[query] = it
+    private suspend fun getQueryCount(
+        query: String,
+        selectedMediaTypes: List<MediaType>,
+        conversationId: String?
+    ): Int {
+        return messageCount[query to selectedMediaTypes] ?: conversationMessageDao.countQueryPaginatedMimeType(
+            conversationMessageDao.buildQueryPaginatedWithMimeTypes(
+                query = query,
+                conversationId = conversationId ?: "",
+                mimeTypes = selectedMediaTypes.map { it.name.lowercase() },
+                countOnly = true
+            )
+        ).also {
+            messageCount[query to selectedMediaTypes] = it
         }
     }
 
@@ -46,18 +57,20 @@ class ConversationSearchRepository(
                         if(conversationId.isNullOrBlank()) {
                             SharedLogger.logger.debug { "conversation id is null, can't load messages" }
                             return@ConversationRoomSource GetMessagesResponse()
-                        } else if (query().isBlank()) {
+                        } else if (query().isBlank() && selectedMediaTypes().isEmpty()) {
                             return@ConversationRoomSource GetMessagesResponse()
                         }
-                        val totalItems = getQueryCount(query(), conversationId)
+                        val totalItems = getQueryCount(query(), selectedMediaTypes(), conversationId)
 
                         withContext(Dispatchers.IO) {
-                            conversationMessageDao.queryPaginated(
-                                query = query(),
-                                conversationId = conversationId,
-                                limit = config.pageSize,
-                                offset = page * config.pageSize,
-                                // TODO mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
+                            conversationMessageDao.queryPaginatedMimeType(
+                                conversationMessageDao.buildQueryPaginatedWithMimeTypes(
+                                    query = query(),
+                                    conversationId = conversationId,
+                                    limit = config.pageSize,
+                                    offset = page * config.pageSize,
+                                    mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
+                                )
                             ).let { res ->
                                 if(res.isNotEmpty()) {
                                     GetMessagesResponse(
@@ -74,11 +87,11 @@ class ConversationSearchRepository(
                                     data = res.messages,
                                     hasNext = true // TODO implement stop to remote querying
                                 )
-                            }
+                            } ?: GetMessagesResponse()
                         }
                     },
                     getCount = {
-                        getQueryCount(query(), conversationId)
+                        getQueryCount(query(), selectedMediaTypes(), conversationId)
                     },
                     size = config.pageSize
                 ).also { pagingSource ->

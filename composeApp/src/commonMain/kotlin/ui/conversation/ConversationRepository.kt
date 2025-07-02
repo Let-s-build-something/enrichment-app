@@ -394,15 +394,11 @@ open class ConversationRepository(
                 content = eventContent,
                 roomId = roomId,
             )?.getOrNull() ?: eventContent
-        )?.also { res ->
-            res.getOrNull()?.full?.let { messageId ->
-
-            }
-        }
+        )
     }
 
-    suspend fun saveMedia(media: List<MediaIO>) = withContext(Dispatchers.IO) {
-        mediaDao.insertAll(media)
+    suspend fun saveMedia(media: MediaIO) = withContext(Dispatchers.IO) {
+        mediaDao.insertReplace(media)
     }
 
     suspend fun removeAllMediaOf(messageId: String) = withContext(Dispatchers.IO) {

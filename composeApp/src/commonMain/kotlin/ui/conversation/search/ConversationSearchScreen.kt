@@ -70,6 +70,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.network.components.user_detail.UserDetailDialog
+import utils.SharedLogger
 
 
 @Composable
@@ -117,6 +118,7 @@ fun ConversationSearchScreen(
                 key = { index -> messages.getOrNull(index)?.id ?: index }
             ) { index ->
                 val message = messages.getOrNull(index)
+                SharedLogger.logger.debug { "itemCount: ${messages.itemCount}, message: ${message?.data?.content}, ${message?.data?.id}" }
 
                 NetworkItemRow(
                     modifier = Modifier
@@ -308,10 +310,10 @@ private fun SearchBar(
                             model.selectMediaType(mediaType)
                         }
                         .background(
-                            color = LocalTheme.current.colors.brandMain,
-                            shape = LocalTheme.current.shapes.circularActionShape
+                            color = LocalTheme.current.colors.brandMainDark,
+                            shape = LocalTheme.current.shapes.rectangularActionShape
                         )
-                        .padding(start = 8.dp, top = 4.dp, bottom = 4.dp, end = 6.dp)
+                        .padding(start = 10.dp, top = 3.dp, bottom = 3.dp, end = 6.dp)
                         .animateItem(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)

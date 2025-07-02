@@ -6,6 +6,7 @@ import database.dao.ConversationRoomDao
 import database.dao.EmojiSelectionDao
 import database.dao.GravityDao
 import database.dao.MatrixPagingMetaDao
+import database.dao.MediaDao
 import database.dao.MessageReactionDao
 import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
@@ -44,6 +45,7 @@ class DevelopmentConsoleRepository {
             get<ConversationMessageDao>().removeAll()
             get<EmojiSelectionDao>().removeAll()
             get<PagingMetaDao>().removeAll()
+            get<MediaDao>().removeAll()
             get<ConversationRoomDao>().removeAll()
             get<PresenceEventDao>().removeAll()
             get<MatrixPagingMetaDao>().removeAll()

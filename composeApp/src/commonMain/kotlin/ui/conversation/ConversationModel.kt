@@ -546,7 +546,7 @@ open class ConversationModel(
             }.toMutableList().apply {
                 addAll(mediaIn)
                 if(audioByteArray != null) {
-                    add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
+                    add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER, messageId = msgId))
                 }
                 add(
                     MediaIO(
@@ -568,7 +568,7 @@ open class ConversationModel(
             state = MessageState.Pending
         )
         repository.cacheMessage(msg)
-        repository.saveMedia(media)
+        media.forEach { repository.saveMedia(it) }
         repository.invalidateLocalSource()
 
         // real message
@@ -611,15 +611,15 @@ open class ConversationModel(
                             fileAccess.saveFileToCache(
                                 data = audioByteArray,
                                 fileName = audioUrl.toSha256()
-                            )?.let {
-                                remove(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
+                            )?.let { res ->
+                                removeAll { it.url == MESSAGE_AUDIO_URL_PLACEHOLDER }
                                 add(
                                     MediaIO(
                                         url = audioUrl,
                                         size = size,
                                         name = fileName,
                                         mimetype = mimetype,
-                                        path = it.toString(),
+                                        path = res.toString(),
                                         messageId = msgId
                                     )
                                 )
@@ -652,7 +652,7 @@ open class ConversationModel(
             )?.let { result ->
                 // we don't need the local data anymore
                 repository.removeMessage(msg.id)
-                repository.removeAllMediaOf(msg.id)
+                repository.removeAllMediaOf(msgId)
                 if(result.isSuccess) {
                     repository.cachedFiles.update { prev ->
                         prev.apply {
@@ -672,7 +672,9 @@ open class ConversationModel(
                             state = if(result.isSuccess) MessageState.Sent else MessageState.Failed
                         )
                     )
-                    repository.saveMedia(media.map { it.copy(messageId = messageId) })
+                    media.distinctBy { it.url }.forEach {
+                        repository.saveMedia(it.copy(messageId = messageId, conversationId = conversationId))
+                    }
                 }
             }
         }else repository.cacheMessage(msg)

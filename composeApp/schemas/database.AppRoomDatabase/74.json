@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 71,
-    "identityHash": "786ef3023b6a0552a206351bc9beb9a3",
+    "version": 74,
+    "identityHash": "e902f577e58aa560facc15a6725b35f2",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -543,7 +543,7 @@
       },
       {
         "tableName": "table_media",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT PRIMARY KEY AUTOINCREMENT NOT NULL, `url` TEXT, `mimetype` TEXT, `name` TEXT, `size` INTEGER, `message_id` TEXT NOT NULL, `conversation_id` TEXT, `path` TEXT, FOREIGN KEY(`message_id`) REFERENCES `room_conversation_message_table`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `url` TEXT, `mimetype` TEXT, `name` TEXT, `size` INTEGER, `message_id` TEXT, `conversation_id` TEXT, `path` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -574,8 +574,7 @@
           {
             "fieldPath": "messageId",
             "columnName": "message_id",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "conversationId",
@@ -589,7 +588,7 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
             "id"
           ]
@@ -606,25 +605,12 @@
           },
           {
             "name": "index_table_media_url",
-            "unique": true,
+            "unique": false,
             "columnNames": [
               "url"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_table_media_url` ON `${TABLE_NAME}` (`url`)"
-          }
-        ],
-        "foreignKeys": [
-          {
-            "table": "room_conversation_message_table",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "message_id"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_table_media_url` ON `${TABLE_NAME}` (`url`)"
           }
         ]
       },
@@ -774,7 +760,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '786ef3023b6a0552a206351bc9beb9a3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e902f577e58aa560facc15a6725b35f2')"
     ]
   }
 }

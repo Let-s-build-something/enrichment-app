@@ -18,20 +18,6 @@ interface MediaDao {
 
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_MEDIA}
-        WHERE url = :url
-        LIMIT 1
-        """)
-    suspend fun getByUrl(url: String): MediaIO?
-
-    @Query("""
-        SELECT * FROM ${AppRoomDatabase.TABLE_MEDIA}
-        WHERE id = :id
-        LIMIT 1
-        """)
-    suspend fun get(id: Long): MediaIO?
-
-    @Query("""
-        SELECT * FROM ${AppRoomDatabase.TABLE_MEDIA}
         WHERE message_id = :messageId
         """)
     suspend fun getAllByMessageId(messageId: String): List<MediaIO>
@@ -47,4 +33,7 @@ interface MediaDao {
         WHERE id IN (:idList)
         """)
     suspend fun getAllById(idList: List<String>): List<MediaIO>
+
+    @Query("DELETE FROM ${AppRoomDatabase.TABLE_MEDIA}")
+    suspend fun removeAll()
 }
