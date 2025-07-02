@@ -57,7 +57,7 @@ class ConversationSearchRepository(
                                 conversationId = conversationId,
                                 limit = config.pageSize,
                                 offset = page * config.pageSize,
-                                mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
+                                // TODO mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
                             ).let { res ->
                                 if(res.isNotEmpty()) {
                                     GetMessagesResponse(

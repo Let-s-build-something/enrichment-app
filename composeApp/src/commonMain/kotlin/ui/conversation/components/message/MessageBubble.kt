@@ -201,7 +201,7 @@ private fun ContentLayout(
     )
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
     val hoverInteractionSource = remember(data.data.id) { MutableInteractionSource() }
-    val processor = if(data.data.media?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
+    val processor = if(!data.media.isEmpty()) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
@@ -259,7 +259,7 @@ private fun ContentLayout(
     )
     val onDownloadRequest: () -> Unit = {
         processor?.downloadFiles(
-            *data.data.media.orEmpty().toTypedArray()
+            *data.media.toTypedArray()
         )
     }
     val onDrag: (Boolean) -> Unit = { dragged ->
@@ -383,7 +383,7 @@ private fun ContentLayout(
                                 .padding(contentPadding)
                                 .padding(end = 8.dp),
                             visible = !showOptions && isFocused.value,
-                            hasMedia = data.data.media?.isEmpty() == false,
+                            hasMedia = !data.media.isEmpty(),
                             onDownloadRequest = onDownloadRequest,
                             onReplyRequest = { model.onReplyRequest() },
                             onReactionRequest = { model.onReactionRequest(it) }
@@ -450,14 +450,14 @@ private fun ContentLayout(
                             val messageShape = if (isCurrentUser) {
                                 RoundedCornerShape(
                                     topStart = if(hasAttachment) 1.dp else 24.dp,
-                                    topEnd = if(hasPrevious || !data.data.media.isNullOrEmpty() || hasAttachment) 1.dp else 24.dp,
+                                    topEnd = if(hasPrevious || data.media.isNotEmpty() || hasAttachment) 1.dp else 24.dp,
                                     bottomStart = 24.dp,
                                     bottomEnd = if (hasNext) 1.dp else 24.dp
                                 )
                             } else {
                                 RoundedCornerShape(
                                     topEnd = if(hasAttachment) 1.dp else 24.dp,
-                                    topStart = if(hasPrevious || !data.data.media.isNullOrEmpty() || hasAttachment) 1.dp else 24.dp,
+                                    topStart = if(hasPrevious || data.media.isNotEmpty() || hasAttachment) 1.dp else 24.dp,
                                     bottomEnd = 24.dp,
                                     bottomStart = if (hasNext) 1.dp else 24.dp
                                 )
@@ -497,7 +497,7 @@ private fun ContentLayout(
                                     .align(Alignment.End)
                                     .padding(end = if (isCurrentUser) 16.dp else 0.dp),
                                 visible = showOptions,
-                                hasMedia = data.data.media?.isEmpty() == false,
+                                hasMedia = !data.media.isEmpty(),
                                 onDownloadRequest = onDownloadRequest,
                                 onReplyRequest = { model.onReplyRequest() },
                                 onReactionRequest = { model.onReactionRequest(it) }
@@ -517,7 +517,7 @@ private fun ContentLayout(
                                 .padding(contentPadding)
                                 .padding(start = 8.dp),
                             visible = !showOptions && isFocused.value,
-                            hasMedia = data.data.media?.isEmpty() == false,
+                            hasMedia = !data.media.isEmpty(),
                             onDownloadRequest = onDownloadRequest,
                             onReplyRequest = { model.onReplyRequest() },
                             onReactionRequest = { model.onReactionRequest(it) }

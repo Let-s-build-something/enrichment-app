@@ -43,7 +43,7 @@ import ui.conversation.components.experimental.gravity.GravityValue
         MediaIO::class,
         ConversationRoomIO::class
     ],
-    version = 71,
+    version = 73,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)

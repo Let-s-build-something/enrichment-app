@@ -5,7 +5,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import augmy.interactive.shared.utils.DateUtils
 import base.utils.MediaType
-import base.utils.getMediaType
 import base.utils.toSha256
 import data.io.base.BaseResponse
 import data.io.matrix.media.FileList
@@ -27,6 +26,7 @@ import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
+import database.dao.MediaDao
 import database.dao.MessageReactionDao
 import database.dao.RoomMemberDao
 import database.file.FileAccess
@@ -67,14 +67,15 @@ import utils.SharedLogger
 open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
-    private val messageReactionDao: MessageReactionDao,
     internal val conversationRoomDao: ConversationRoomDao,
-    private val roomMemberDao: RoomMemberDao,
     mediaDataManager: MediaProcessorDataManager,
     fileAccess: FileAccess
 ): MediaRepository(httpClient, mediaDataManager, fileAccess) {
     private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
     private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
+    private val mediaDao by lazy { KoinPlatform.getKoin().get<MediaDao>() }
+    private val roomMemberDao by lazy { KoinPlatform.getKoin().get<RoomMemberDao>() }
+    private val messageReactionDao by lazy { KoinPlatform.getKoin().get<MessageReactionDao>() }
 
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
@@ -316,7 +317,8 @@ open class ConversationRepository(
     suspend fun sendMessage(
         client: MatrixClient?,
         conversationId: String,
-        message: ConversationMessageIO
+        message: ConversationMessageIO,
+        media: List<MediaIO>? = null
     ): Result<EventId>? = withContext(Dispatchers.IO) {
         val roomId = RoomId(conversationId)
         val mentions = Mentions(
@@ -326,9 +328,9 @@ open class ConversationRepository(
         val content = message.content?.replace(MENTION_REGEX.toRegex()) { it.groupValues[2] } ?: ""
 
         val eventContent = when {
-            message.media?.size == 1 -> {
-                val media = message.media.firstOrNull()
-                when(getMediaType(media?.mimetype ?: "")) {
+            media?.size == 1 -> {
+                val media = media.firstOrNull()
+                when(MediaType.fromMimeType(media?.mimetype ?: "")) {
                     MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
                         body = content,
                         url = media?.url,
@@ -364,11 +366,11 @@ open class ConversationRepository(
                     )
                 }
             }
-            (message.media?.size ?: 0) > 1 -> FileList(
+            (media?.size ?: 0) > 1 -> FileList(
                 body = content,
-                urls = message.media?.mapNotNull { it.url },
-                fileName = message.media?.firstOrNull()?.name,
-                infos = message.media?.map { media ->
+                urls = media?.mapNotNull { it.url },
+                fileName = media?.firstOrNull()?.name,
+                infos = media?.map { media ->
                     FileInfo(
                         mimeType = media.mimetype,
                         size = media.size
@@ -392,8 +394,21 @@ open class ConversationRepository(
                 content = eventContent,
                 roomId = roomId,
             )?.getOrNull() ?: eventContent
-        )
+        )?.also { res ->
+            res.getOrNull()?.full?.let { messageId ->
+
+            }
+        }
     }
+
+    suspend fun saveMedia(media: List<MediaIO>) = withContext(Dispatchers.IO) {
+        mediaDao.insertAll(media)
+    }
+
+    suspend fun removeAllMediaOf(messageId: String) = withContext(Dispatchers.IO) {
+        mediaDao.removeAllOf(messageId)
+    }
+
 
     suspend fun cacheMessage(message: ConversationMessageIO) = withContext(Dispatchers.IO) {
         conversationMessageDao.insertReplace(message)

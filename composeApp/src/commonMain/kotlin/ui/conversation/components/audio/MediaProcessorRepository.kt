@@ -4,7 +4,9 @@ import base.utils.LinkUtils.urlRegex
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.getExtensionFromMimeType
 import base.utils.toSha256
+import data.io.social.network.conversation.message.MediaIO
 import data.shared.SharedDataManager
+import database.dao.MediaDao
 import database.file.FileAccess
 import database.file.FileAccess.Companion.EXPIRATION_MILLIS
 import io.ktor.client.HttpClient
@@ -23,7 +25,8 @@ import okio.Path
 class MediaProcessorRepository(
     private val fileAccess: FileAccess,
     private val httpClient: HttpClient,
-    private val sharedDataManager: SharedDataManager
+    private val sharedDataManager: SharedDataManager,
+    private val mediaDao: MediaDao
 ) {
 
     class FileResult(
@@ -88,6 +91,12 @@ class MediaProcessorRepository(
             }catch (_: Exception) {
                 null
             }
+        }
+    }
+
+    suspend fun retrieveMedia(idList: List<String>): List<MediaIO> {
+        return withContext(Dispatchers.IO) {
+            mediaDao.getAllById(idList)
         }
     }
 }

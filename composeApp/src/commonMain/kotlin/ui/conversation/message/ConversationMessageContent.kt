@@ -192,7 +192,7 @@ fun LazyItemScope.ConversationMessageContent(
                     MediaRow(
                         modifier = heightModifier,
                         data = data,
-                        media = data?.data?.media.orEmpty(),
+                        media = data?.media.orEmpty(),
                         scrollState = mediaRowState,
                         temporaryFiles = temporaryFiles,
                         isCurrentUser = messageType == MessageType.CurrentUser,

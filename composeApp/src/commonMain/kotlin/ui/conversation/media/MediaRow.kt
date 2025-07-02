@@ -42,7 +42,7 @@ import augmy.interactive.shared.utils.DateUtils.formatAsRelative
 import base.navigation.NavigationNode
 import base.theme.Colors
 import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
-import base.utils.getMediaType
+import base.utils.MediaType
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.PlatformFile
@@ -110,15 +110,15 @@ fun MediaRow(
                     Spacer(Modifier.width((LocalScreenSize.current.width * .3f).dp))
                 }
             }
-            data.data.media?.forEachIndexed { index, media ->
+            data.media.forEachIndexed { index, media ->
                 val temporaryMedia = temporaryFiles[media.url]
-                val canBeVisualized = getMediaType(media.mimetype ?: "").isVisual
+                val canBeVisualized = MediaType.fromMimeType(media.mimetype ?: "").isVisual
 
                 val onTap: (Offset) -> Unit = {
                     coroutineScope.launch {
                         navController?.navigate(
                             NavigationNode.MediaDetail(
-                                media = data.data.media.map { cachedMedia.value[it.url] ?.success?.data?: it },
+                                media = data.media.map { cachedMedia.value[it.url] ?.success?.data?: it },
                                 selectedIndex = index,
                                 title = if(isCurrentUser) {
                                     getString(Res.string.conversation_detail_you)

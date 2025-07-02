@@ -119,7 +119,6 @@ import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
-import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
 import components.AvatarImage
@@ -590,7 +589,8 @@ internal fun BoxScope.SendMessagePanel(
                         }else false
                     }
                     .contentReceiver { uri ->
-                        when(getMediaType(uri)) {
+                        // TODO untested
+                        when(MediaType.fromMimeType(MimeType.getByExtension(getUrlExtension(uri)).mime)) {
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
                             else -> urlsAttached.add(uri)
                         }

@@ -117,9 +117,6 @@ abstract class MessageProcessor {
                 }
             }
 
-            mediaDao.insertAll(result.media)
-            messageReactionDao.insertAll(result.reactions.toList())
-
             val messages = result.messages.plus(decryptedMessages).mapNotNull {
                 if (conversationMessageDao.insertIgnore(it) == -1L) {
                     conversationMessageDao.insertReplace(it)
@@ -130,6 +127,8 @@ abstract class MessageProcessor {
                     media = mediaDao.getAllByMessageId(it.id)
                 )
             }
+            messageReactionDao.insertAll(result.reactions.toList())
+            mediaDao.insertAll(result.media)
 
             result.receipts.forEach { receipt ->
                 receipt.content.events.forEach { event ->

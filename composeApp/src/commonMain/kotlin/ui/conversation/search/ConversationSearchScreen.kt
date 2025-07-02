@@ -162,7 +162,7 @@ fun ConversationSearchScreen(
                                 text = message?.data?.sentAt.formatAsRelative(),
                                 style = LocalTheme.current.styles.regular
                             )
-                            message?.data?.media?.firstOrNull()?.let { media ->
+                            message?.media?.firstOrNull()?.let { media ->
                                 Text(
                                     modifier = Modifier
                                         .background(

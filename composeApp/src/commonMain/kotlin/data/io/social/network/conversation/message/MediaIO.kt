@@ -9,9 +9,14 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-/** Information about a single media */
+/**
+ * Information about a single media
+ *
+ * MUST be saved AFTER the message has been, otherwise the app can crash.
+ */
 @Entity(
     tableName = AppRoomDatabase.TABLE_MEDIA,
     foreignKeys = [
@@ -22,12 +27,12 @@ import kotlinx.serialization.Transient
             onDelete = CASCADE
         )
     ],
-    indices = [Index(value = ["message_id"]), Index(value = ["url"], unique = true)]
+    indices = [Index(value = ["message_id"]), Index(value = ["url"])]
 )
 @Serializable
-data class MediaIO(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0L,
+data class MediaIO @OptIn(ExperimentalUuidApi::class) constructor(
+    @PrimaryKey()
+    val id: String = Uuid.random().toString(),
 
     /** Access url for the media. Can be encrypted. */
     val url: String? = null,
@@ -43,14 +48,12 @@ data class MediaIO(
 
     /** Message this media belongs to */
     @ColumnInfo("message_id")
-    val messageId: String,
+    val messageId: String? = null,
 
     @ColumnInfo("conversation_id")
     val conversationId: String? = null,
 
     /** Local file path */
-    @Ignore
-    @Transient
     val path: String? = null
 ) {
     @get:Ignore

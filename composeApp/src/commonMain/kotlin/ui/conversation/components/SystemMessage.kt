@@ -23,11 +23,11 @@ fun SystemMessage(
         modifier = modifier,
         message = data?.data?.content ?: "",
         paddingValues = PaddingValues(
-            vertical = if (data?.data?.media.isNullOrEmpty()) 18.dp else 8.dp,
+            vertical = if (data?.media.isNullOrEmpty()) 18.dp else 8.dp,
             horizontal = 12.dp
         )
     ) {
-        data?.data?.media?.forEach { media ->
+        data?.media?.forEach { media ->
             if (data.data.content?.contains(stringResource(Res.string.message_room_join)) == true) {
                 AvatarImage(
                     modifier = Modifier

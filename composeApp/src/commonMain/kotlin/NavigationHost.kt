@@ -16,7 +16,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import augmy.interactive.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
-import data.io.social.network.conversation.message.MediaIO
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.core.context.loadKoinModules
 import ui.account.AccountDashboardScreen
@@ -95,16 +94,7 @@ fun NavigationHost(
             }
             composable<NavigationNode.MediaDetail> { args ->
                 MediaDetailScreen(
-                    media = args.arguments?.getStringArray("encodedMedia").orEmpty().mapNotNull { media ->
-                        media?.split("|||").let {
-                            MediaIO(
-                                name = it?.get(0),
-                                mimetype = it?.get(1),
-                                url = it?.get(2),
-                                path = it?.get(3)
-                            )
-                        }
-                    }.toTypedArray(),
+                    idList = args.arguments?.getStringArray("idList").orEmpty(),
                     selectedIndex = args.arguments?.getInt("selectedIndex") ?: 0,
                     title = args.arguments?.getString("title") ?: "",
                     subtitle = args.arguments?.getString("subtitle") ?: ""
