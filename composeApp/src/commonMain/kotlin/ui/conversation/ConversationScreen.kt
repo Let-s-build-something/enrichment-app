@@ -583,6 +583,7 @@ private fun SearchBar(
     }
 
     LaunchedEffect(messages.itemCount) {
+        index.value = 0
         conversationModel.scrollTo(messages.getOrNull(0)?.id)
     }
 
@@ -638,9 +639,10 @@ private fun SearchBar(
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
                         .scalingClickable(key = upEnabled) {
-                            if (upEnabled) index.value += 1
+                            if (upEnabled) index.value = (index.value + 1).coerceAtMost(messages.itemCount)
 
-                            messages.getOrNull(index.value)?.data?.id?.let {
+                            SharedLogger.logger.debug { "index: ${index.value}, messageId: ${messages.getOrNull(index.value)?.id}" }
+                            messages.getOrNull(index.value)?.id?.let {
                                 conversationModel.scrollTo(it)
                             }
                         }
@@ -655,9 +657,10 @@ private fun SearchBar(
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
                         .scalingClickable(key = downEnabled) {
-                            if (downEnabled) index.value -= 1
+                            if (downEnabled) index.value = (index.value - 1).coerceAtLeast(0)
 
-                            messages.getOrNull(index.value)?.data?.id?.let {
+                            SharedLogger.logger.debug { "index: ${index.value}, messageId: ${messages.getOrNull(index.value)?.id}" }
+                            messages.getOrNull(index.value)?.id?.let {
                                 conversationModel.scrollTo(it)
                             }
                         }

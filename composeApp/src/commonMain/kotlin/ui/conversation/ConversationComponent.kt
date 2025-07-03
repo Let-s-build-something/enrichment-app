@@ -59,6 +59,7 @@ import data.io.social.network.conversation.message.FullConversationMessage
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -135,6 +136,13 @@ fun ConversationComponent(
 
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
             || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
+
+
+    LaunchedEffect(Unit) {
+        model.scrollToIndex.collectLatest { index ->
+            listState.animateScrollToItem(index)
+        }
+    }
 
     showEmojiPreferencesId.value?.let { messageId ->
         EmojiPreferencePicker(

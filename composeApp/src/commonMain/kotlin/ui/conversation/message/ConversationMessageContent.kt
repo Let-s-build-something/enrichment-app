@@ -1,6 +1,5 @@
 package ui.conversation.message
 
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,7 +35,6 @@ import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.PlatformFile
-import kotlinx.coroutines.delay
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageBubble
 import ui.conversation.components.message.MessageBubbleModel
@@ -75,18 +72,7 @@ fun LazyItemScope.ConversationMessageContent(
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
 
-    val scrollPosition = rememberSaveable(data?.id) {
-        mutableStateOf(0)
-    }
-    val mediaRowState = rememberScrollState(
-        initial = scrollPosition.value
-    )
-    if(scrollPosition.value != 0) {
-        LaunchedEffect(Unit) {
-            delay(400)
-            mediaRowState.animateScrollBy(scrollPosition.value.toFloat())
-        }
-    }
+    val mediaRowState = rememberScrollState(initial = 0)
 
     Row(
         modifier = Modifier

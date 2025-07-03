@@ -34,6 +34,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -41,6 +42,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.clientserverapi.model.rooms.CreateRoom
 import net.folivo.trixnity.clientserverapi.model.rooms.DirectoryVisibility
@@ -64,6 +67,7 @@ import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.experimental.pacing.PacingUseCase.Companion.WAVES_PER_PIXEL
 import ui.conversation.components.gif.GifUseCase
 import ui.conversation.components.keyboardModule
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -214,6 +218,7 @@ open class ConversationModel(
 
     /** Last saved message relevant to this conversation */
     val savedMessage = MutableStateFlow<String?>(null)
+    val scrollToIndex = MutableSharedFlow<Int>()
     val timingSensor = pacingUseCase.timingSensor
     val gravityValues = gravityUseCase.gravityValues.asStateFlow()
 
@@ -522,8 +527,21 @@ open class ConversationModel(
         }
     }
 
+    private val scrollMutex = Mutex()
     fun scrollTo(messageId: String?) {
-        // TODO 86c45m6v8
+        if (messageId == null) return
+        SharedLogger.logger.debug { "scrollTo, messageId: $messageId, conversation: ${conversationId.value}" }
+
+        CoroutineScope(Job()).launch {
+            scrollMutex.withLock {
+                repository.indexOfMessage(messageId, conversationId.value).also {
+                    SharedLogger.logger.debug { "scrollTo, messageId: $messageId, index: $it" }
+                    // messageId: $VbX838MXJO_4aLApBpmwRnVa1W1u_NOmPyBhc_r2brs, conversation: !KVYcKAMBaUKZEebhSQ:matrix.org
+                }?.let { index ->
+                    scrollToIndex.emit((index - 5).coerceAtLeast(0))
+                }
+            }
+        }
     }
 
     @OptIn(ExperimentalUuidApi::class)
