@@ -5,14 +5,14 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import base.utils.MediaType
 import data.io.base.BaseResponse
+import data.io.base.paging.MatrixPagingMetaIO
 import data.io.matrix.room.SearchRequest
-import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
+import database.dao.MatrixPagingMetaDao
 import io.ktor.client.HttpClient
-import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -20,21 +20,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.clientserverapi.model.server.Search
-import net.folivo.trixnity.clientserverapi.model.users.Filters
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import org.koin.mp.KoinPlatform
 import ui.conversation.ConversationRoomSource
 import ui.conversation.GetMessagesResponse
 import ui.login.safeRequest
 import utils.SharedLogger
-import kotlin.collections.orEmpty
-import kotlin.collections.plus
 
 class ConversationSearchRepository(
     private val conversationMessageDao: ConversationMessageDao
 ) {
     private val httpClient by lazy { KoinPlatform.getKoin().get<HttpClient>() }
     private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
+    private val matrixPagingMetaDao by lazy { KoinPlatform.getKoin().get<MatrixPagingMetaDao>() }
 
     private val messageCount = hashMapOf<Pair<String, List<MediaType>>, Int>()
     private var currentPagingSource: PagingSource<*, *>? = null
@@ -80,8 +78,11 @@ class ConversationSearchRepository(
                             return@ConversationRoomSource GetMessagesResponse()
                         }
                         val totalItems = getQueryCount(query(), selectedMediaTypes(), conversationId)
+                        val entityId = "search_${conversationId}_${query()}"
 
                         withContext(Dispatchers.IO) {
+                            val nextBatch = matrixPagingMetaDao.getByEntityId(entityId)?.nextBatch
+
                             conversationMessageDao.queryPaginatedMimeType(
                                 conversationMessageDao.buildQueryPaginatedWithMimeTypes(
                                     query = query(),
@@ -91,24 +92,52 @@ class ConversationSearchRepository(
                                     mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
                                 )
                             ).let { res ->
-                                if(res.isNotEmpty()) {
-                                    GetMessagesResponse(
+                                if (res.isNotEmpty()) {
+                                    return@withContext GetMessagesResponse(
                                         data = res,
                                         hasNext = (page * config.pageSize).plus(res.size) < totalItems
                                     )
-                                }else null
-                            } ?: queryRemoteEvents(
+                                }
+                            }
+
+                            // LOCAL EMPTY — call remote
+                            val remote = queryRemoteEvents(
                                 limit = config.pageSize,
                                 conversationId = conversationId,
                                 homeserver = homeserver(),
                                 query = query(),
-                                nextBatch =
-                            )?.let { res ->
-                                GetMessagesResponse(
-                                    data = res.messages,
-                                    hasNext = true // TODO implement stop to remote querying
+                                nextBatch = nextBatch
+                            )
+
+                            if (remote != null && remote.messages.isNotEmpty()) {
+                                matrixPagingMetaDao.insert(
+                                    MatrixPagingMetaIO(
+                                        entityId = entityId,
+                                        entityType = "search_messages",
+                                        nextBatch = remote.nextBatch,
+                                        prevBatch = remote.prevBatch,
+                                        currentBatch = nextBatch
+                                    )
                                 )
-                            } ?: GetMessagesResponse()
+
+                                // Re-query local DB
+                                val requery = conversationMessageDao.queryPaginatedMimeType(
+                                    conversationMessageDao.buildQueryPaginatedWithMimeTypes(
+                                        query = query(),
+                                        conversationId = conversationId,
+                                        limit = config.pageSize,
+                                        offset = page * config.pageSize,
+                                        mimeTypes = selectedMediaTypes().map { it.name.lowercase() }
+                                    )
+                                )
+
+                                if (requery.isNotEmpty()) {
+                                    GetMessagesResponse(
+                                        data = requery,
+                                        hasNext = (page * config.pageSize).plus(requery.size) < totalItems || remote.nextBatch != null
+                                    )
+                                }else GetMessagesResponse()
+                            } else GetMessagesResponse()
                         }
                     },
                     getCount = {
@@ -129,7 +158,7 @@ class ConversationSearchRepository(
         nextBatch: String?,
         conversationId: String
     ): MessageProcessor.SaveEventsResult? {
-        return getMessages(
+        return queryRemoteMessages(
             limit = limit,
             conversationId = conversationId,
             query = query,
@@ -154,7 +183,8 @@ class ConversationSearchRepository(
             }
             MessageProcessor.SaveEventsResult(
                 messages = results.orEmpty(),
-                prevBatch = data.nextBatch,
+                prevBatch = null,
+                nextBatch = nextBatch,
                 events = results?.size ?: 0,
                 members = listOf(),
                 changeInMessages = !results.isNullOrEmpty()
@@ -166,7 +196,7 @@ class ConversationSearchRepository(
      * returns a list of network list
      * @param nextBatch - The point to return events from. If given, this should be a next_batch result from a previous call to this endpoint.
      */
-    private suspend fun getMessages(
+    private suspend fun queryRemoteMessages(
         homeserver: String,
         query: String,
         nextBatch: String? = null,

@@ -1,5 +1,6 @@
 package data.io.matrix.room
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -31,7 +32,9 @@ data class SearchRequest(val searchCategories: Categories) {
 
             @Serializable
             enum class Ordering {
+                @SerialName("recent")
                 Recent,
+                @SerialName("rank")
                 Rank;
 
                 override fun toString() = this.name.lowercase()

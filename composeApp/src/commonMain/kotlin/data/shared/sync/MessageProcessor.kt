@@ -90,7 +90,8 @@ abstract class MessageProcessor {
         val changeInMessages: Boolean,
         val events: Int,
         val members: List<ConversationRoomMember>,
-        val prevBatch: String?
+        val prevBatch: String?,
+        val nextBatch: String? = null,
     )
 
     suspend fun saveEvents(
@@ -178,7 +179,8 @@ abstract class MessageProcessor {
                 members = result.members.map { it.second },
                 events = events.size,
                 prevBatch = prevBatch,
-                changeInMessages = !result.isEmpty
+                changeInMessages = !result.isEmpty,
+                nextBatch = nextBatch
             )
         }
     }
