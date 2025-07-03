@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -27,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +64,6 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.utils.shareMessage
-import data.io.social.network.conversation.message.MediaIO
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -74,7 +75,6 @@ import ui.conversation.components.audio.MediaProcessorModel
 
 /**
  * Screen for displaying a list of media
- * @param media list of remote urls to be displayed
  * @param selectedIndex initially selected index
  */
 @Composable
@@ -82,23 +82,26 @@ fun MediaDetailScreen(
     processor: MediaProcessorModel = koinViewModel(),
     title: String?,
     subtitle: String?,
-    media: Array<out MediaIO?>,
+    idList: Array<out String?>,
     selectedIndex: Int
 ) {
     val coroutineScope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(
         initialPage = selectedIndex,
-        pageCount = { media.size }
+        pageCount = { idList.size }
     )
-    val currentIndex = rememberSaveable(media, selectedIndex) {
+    val currentIndex = rememberSaveable(idList, selectedIndex) {
         mutableStateOf(selectedIndex)
     }
-    val showOptions = rememberSaveable(media, selectedIndex) {
+    val showOptions = rememberSaveable(idList, selectedIndex) {
         mutableStateOf(false)
     }
     val downloadState = rememberIndicationState(processor)
     val maxZoom = if(LocalDeviceType.current == WindowWidthSizeClass.Expanded) 5f else 3.5f
+
+    val media = processor.media.collectAsState()
+
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collectLatest {
@@ -106,8 +109,12 @@ fun MediaDetailScreen(
         }
     }
 
+    LaunchedEffect(idList) {
+        processor.retrieveMedia(idList.toList())
+    }
+
     BrandBaseScreen(
-        title = title + if(media.size > 1) " | ${currentIndex.value + 1}/${media.size}" else "",
+        title = title + if(idList.size > 1) " | ${currentIndex.value + 1}/${idList.size}" else "",
         subtitle = subtitle,
         navIconType = NavIconType.CLOSE,
         actionIcons = { isExpanded ->
@@ -142,7 +149,7 @@ fun MediaDetailScreen(
                         text = stringResource(Res.string.action_download_all),
                         imageVector = Icons.Outlined.Download,
                         onClick = {
-                            processor.downloadFiles(*media)
+                            processor.downloadFiles(*media.value.toTypedArray())
                         }
                     )
                     ActionBarIcon(
@@ -150,7 +157,7 @@ fun MediaDetailScreen(
                         imageVector = Icons.Outlined.Share,
                         onClick = {
                             // TODO create new downloadable links, do not re-use
-                            shareMessage(media = media.filterNotNull())
+                            shareMessage(media = media.value)
                         }
                     )
                     ActionBarIcon(
@@ -170,9 +177,9 @@ fun MediaDetailScreen(
                         currentIndex.value = ConversationKeyboardMode.entries[it].ordinal
                     },
                 state = pagerState,
-                beyondViewportPageCount = pagerState.pageCount // hotfix due to video player crashing otherwise
+                beyondViewportPageCount = 1
             ) { index ->
-                media.getOrNull(index)?.let { unit ->
+                media.value.getOrNull(index)?.let { unit ->
                     val offset = remember(index) {
                         mutableStateOf(Offset(0f, 0f))
                     }
@@ -199,10 +206,13 @@ fun MediaDetailScreen(
                         )
                     }
 
-                    Box {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         MediaElement(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxHeight()
                                 .onSizeChanged {
                                     contentSize = IntSize(it.width, it.height)
                                 }
@@ -270,7 +280,7 @@ fun MediaDetailScreen(
                                         }
                                     )
                                 },
-                            contentScale = ContentScale.FillWidth,
+                            contentScale = ContentScale.Inside,
                             media = unit,
                             videoPlayerEnabled = true
                         )

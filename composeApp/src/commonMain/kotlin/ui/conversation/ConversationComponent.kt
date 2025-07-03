@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -85,10 +86,17 @@ fun ConversationComponent(
     listModifier: Modifier = Modifier,
     model: ConversationModel,
     shimmerItemCount: Int = 20,
+    listState: LazyListState = persistedLazyListState(
+        persistentData = model.persistentPositionData ?: PersistentListData(),
+        onDispose = { lastInfo ->
+            model.persistentPositionData = lastInfo
+        }
+    ),
     verticalArrangement: Arrangement.Vertical,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     messages: LazyPagingItems<FullConversationMessage>,
     conversationId: String?,
+    highlight: String? = null,
     thread: FullConversationMessage? = null,
     lazyScope: LazyListScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit = {}
@@ -97,12 +105,6 @@ fun ConversationComponent(
     val navController = LocalNavController.current
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
-    val listState = persistedLazyListState(
-        persistentData = model.persistentPositionData ?: PersistentListData(),
-        onDispose = { lastInfo ->
-            model.persistentPositionData = lastInfo
-        }
-    )
 
     val preferredEmojis = model.preferredEmojis.collectAsState()
     val keyboardMode = rememberSaveable {
@@ -288,8 +290,8 @@ fun ConversationComponent(
                     val data = messages.getOrNull(index)
 
                     val messageType = when {
-                        data?.message?.authorPublicId == model.matrixUserId -> MessageType.CurrentUser
-                        data?.message?.authorPublicId == AUTHOR_SYSTEM -> MessageType.System
+                        data?.data?.authorPublicId == model.matrixUserId -> MessageType.CurrentUser
+                        data?.data?.authorPublicId == AUTHOR_SYSTEM -> MessageType.System
                         data == null -> if((0..1).random() == 0) MessageType.CurrentUser else MessageType.OtherUser
                         else -> MessageType.OtherUser
                     }
@@ -299,16 +301,16 @@ fun ConversationComponent(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            if(data?.message?.verification != null) {
+                            if(data?.data?.verification != null) {
                                 UserVerificationMessage(data = data)
                             }else {
                                 SystemMessage(data = data)
                             }
                         }
                     }else {
-                        val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.message?.authorPublicId == data?.message?.authorPublicId
+                        val isPreviousMessageSameAuthor = messages.getOrNull(index + 1)?.data?.authorPublicId == data?.data?.authorPublicId
                         val nextItem = messages.getOrNull(index - 1)
-                        val isNextMessageSameAuthor = nextItem?.message?.authorPublicId == data?.message?.authorPublicId
+                        val isNextMessageSameAuthor = nextItem?.data?.authorPublicId == data?.data?.authorPublicId
 
                         LaunchedEffect(Unit) {
                             if(messageType == MessageType.CurrentUser
@@ -318,11 +320,11 @@ fun ConversationComponent(
                                 lastCurrentUserMessage.value = index
                             }
                         }
-                        val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.message?.transcribed == true) }
+                        val isTranscribed = rememberSaveable(data?.id) { mutableStateOf(data?.data?.transcribed == true) }
 
-                        if(data?.id != null && messageType == MessageType.OtherUser && !data.message.content.isNullOrBlank()) {
+                        if(data?.id != null && messageType == MessageType.OtherUser && !data.data.content.isNullOrBlank()) {
                             LaunchedEffect(Unit) {
-                                if(data.message.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
+                                if(data.data.transcribed != true && (transcribedItem.value?.first ?: -1) < index) {
                                     transcribedItem.value = index to data.id
                                 }else if ((transcribedItem.value?.first ?: -1) == index
                                     && data.id != transcribedItem.value?.second
@@ -330,7 +332,7 @@ fun ConversationComponent(
                                     transcribedItem.value = null
                                 }
 
-                                if(data.message.transcribed == true && transcribedItem.value?.second == data.id) {
+                                if(data.data.transcribed == true && transcribedItem.value?.second == data.id) {
                                     transcribedItem.value = index + 1 to nextItem?.id.orEmpty()
                                 }
                             }
@@ -399,8 +401,8 @@ fun ConversationComponent(
                         ConversationMessageContent(
                             data = data?.copy(
                                 anchorMessage = data.anchorMessage?.takeIf { it.id != thread?.id },
-                                message = data.message.copy(
-                                    transcribed = data.message.transcribed == true || isTranscribed.value,
+                                data = data.data.copy(
+                                    transcribed = data.data.transcribed == true || isTranscribed.value,
                                 )
                             ),
                             isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
@@ -408,6 +410,7 @@ fun ConversationComponent(
                             currentUserPublicId = model.matrixUserId ?: "",
                             reactingToMessageId = reactingToMessageId,
                             model = bubbleModel,
+                            highlight = highlight,
                             replyToMessage = replyToMessage,
                             scrollToMessage = scrollToMessage,
                             preferredEmojis = preferredEmojis.value,

@@ -1,5 +1,6 @@
 package ui.conversation.settings
 
+import CollectResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
@@ -98,8 +99,7 @@ import base.navigation.NavIconType
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.getOrNull
-import collectResult
-import components.UserProfileImage
+import components.AvatarImage
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
 import data.io.base.BaseResponse
@@ -254,7 +254,7 @@ fun ConversationSettingsContent(
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
 
 
-    navController?.collectResult<String?>(
+    navController?.CollectResult<String?>(
         key = NavigationArguments.SEARCH_USER_ID,
         defaultValue = null,
         listener = { userId ->
@@ -354,10 +354,10 @@ fun ConversationSettingsContent(
     ) {
         item {
             Box(modifier = Modifier.padding(top = 6.dp)) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier.fillMaxWidth(.5f),
                     media = detail.value?.avatar ?: directUser?.avatar,
-                    tag = detail.value?.data?.tag ?: directUser?.tag,
+                    tag = detail.value?.tag ?: directUser?.tag,
                     name = detail.value?.name ?: directUser?.displayName
                 )
                 AnimatedVisibility(

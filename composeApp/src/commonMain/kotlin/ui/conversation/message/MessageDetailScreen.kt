@@ -49,7 +49,7 @@ import base.navigation.NavIconType
 import base.theme.Colors
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.utils.openLink
-import components.UserProfileImage
+import components.AvatarImage
 import components.buildAnnotatedLinkString
 import data.io.base.AppPingType
 import data.io.social.network.conversation.message.MediaIO
@@ -120,7 +120,7 @@ fun MessageDetailScreen(
     BrandBaseScreen(
         navIconType = NavIconType.CLOSE,
         title = title,
-        subtitle = message.value?.message?.sentAt?.formatAsRelative()
+        subtitle = message.value?.data?.sentAt?.formatAsRelative()
     ) {
         ConversationComponent(
             modifier = Modifier.fillMaxSize(),
@@ -150,7 +150,7 @@ fun MessageDetailScreen(
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        val isCurrentUser = viewModel.matrixUserId == message.value?.message?.authorPublicId
+                        val isCurrentUser = viewModel.matrixUserId == message.value?.data?.authorPublicId
 
                         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
                         if(!isCurrentUser) {
@@ -160,7 +160,7 @@ fun MessageDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    UserProfileImage(
+                                    AvatarImage(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),
@@ -175,7 +175,7 @@ fun MessageDetailScreen(
                                         style = LocalTheme.current.styles.title
                                     )
                                 }
-                                if(!message.value?.message?.timings.isNullOrEmpty()) {
+                                if(!message.value?.data?.timings.isNullOrEmpty()) {
                                     Crossfade(
                                         modifier = Modifier.padding(start = 8.dp),
                                         targetState = transcribing.value
@@ -207,14 +207,14 @@ fun MessageDetailScreen(
                                 text = buildTempoString(
                                     enabled = transcribing.value,
                                     text = buildAnnotatedLinkString(
-                                        text = message.value?.message?.content ?: "",
+                                        text = message.value?.data?.content ?: "",
                                         onLinkClicked = { openLink(it) }
                                     ),
-                                    style = LocalTheme.current.styles.title.copy(
+                                    spanStyle = LocalTheme.current.styles.title.copy(
                                         color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
                                         fontFamily = FontFamily(fontQuicksandMedium)
                                     ).toSpanStyle(),
-                                    timings = message.value?.message?.timings.orEmpty(),
+                                    timings = message.value?.data?.timings.orEmpty(),
                                     onFinish = {
                                         transcribing.value = false
                                     }
@@ -246,7 +246,7 @@ fun MessageDetailScreen(
                                             Modifier
                                                 .scalingClickable {
                                                     if ((message.value?.reactions?.size ?: 0) > 1) {
-                                                        showDetailDialogOf.value = message.value?.message?.content to reaction.content
+                                                        showDetailDialogOf.value = message.value?.data?.content to reaction.content
                                                     }
                                                 }
                                                 .width(IntrinsicSize.Min)
@@ -308,12 +308,12 @@ fun MessageDetailScreen(
                             if(isCurrentUser) {
                                 reactionsRow()
                             }
-                            message.value?.message?.state?.imageVector?.let { imgVector ->
+                            message.value?.data?.state?.imageVector?.let { imgVector ->
                                 Icon(
                                     modifier = Modifier.size(16.dp),
                                     imageVector = imgVector,
-                                    contentDescription = message.value?.message?.state?.description,
-                                    tint = if (message.value?.message?.state == MessageState.Failed) {
+                                    contentDescription = message.value?.data?.state?.description,
+                                    tint = if (message.value?.data?.state == MessageState.Failed) {
                                         SharedColors.RED_ERROR
                                     } else LocalTheme.current.colors.disabled
                                 )
@@ -325,7 +325,7 @@ fun MessageDetailScreen(
                             )
                             Text(
                                 modifier = Modifier.padding(start = 6.dp),
-                                text = "${message.value?.message?.state?.description ?: ""} ${message.value?.message?.sentAt?.formatAsRelative()}",
+                                text = "${message.value?.data?.state?.description ?: ""} ${message.value?.data?.sentAt?.formatAsRelative()}",
                                 style = LocalTheme.current.styles.regular
                             )
                             if(!isCurrentUser) {

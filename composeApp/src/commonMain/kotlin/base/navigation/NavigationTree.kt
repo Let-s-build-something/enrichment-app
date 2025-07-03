@@ -5,6 +5,7 @@ import augmy.composeapp.generated.resources.screen_account_title
 import augmy.composeapp.generated.resources.screen_conversation
 import augmy.composeapp.generated.resources.screen_conversation_detail
 import augmy.composeapp.generated.resources.screen_conversation_info
+import augmy.composeapp.generated.resources.screen_conversation_search
 import augmy.composeapp.generated.resources.screen_conversation_settings
 import augmy.composeapp.generated.resources.screen_home
 import augmy.composeapp.generated.resources.screen_login
@@ -82,10 +83,27 @@ sealed class NavigationNode {
         val userId: String? = null,
 
         /** Name of the conversation */
-        val name: String? = null
+        val name: String? = null,
+
+        /** Item to which the scroll should be set to when the screen is opened */
+        val scrollTo: String? = null,
+
+        /** Specific to larger screens as the search query will be open in split screen under this conversation */
+        val searchQuery: String? = null,
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
-        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId"
+        override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo&searchQuery=$searchQuery"
+    }
+
+    /** Conversation detail screen */
+    @Serializable
+    data class ConversationSearch(
+        /** unique identifier of the conversation */
+        val conversationId: String? = null,
+        val searchQuery: String? = null
+    ): NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_conversation_search
+        override val deepLink: String = "messages/search?conversation=$conversationId&searchQuery=$searchQuery"
     }
 
     @Serializable
@@ -168,7 +186,7 @@ sealed class NavigationNode {
         val title: String? = null,
         val subtitle: String? = null,
         val selectedIndex: Int = 0,
-        private val encodedMedia: List<String> = media.map { "${it.name}|||${it.mimetype}|||${it.url}|||${it.path}" }
+        private val idList: List<String> = media.map { it.id }
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_media_detail
         override val deepLink: String? = null
@@ -179,6 +197,7 @@ sealed class NavigationNode {
             Login(),
             Water,
             Conversation(),
+            ConversationSearch(),
             AccountDashboard,
             NetworkManagement(),
             ConversationSettings(),

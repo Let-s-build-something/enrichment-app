@@ -1,11 +1,14 @@
 package ui.conversation
 
+import CollectResult
 import NavigationHost
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,11 +27,14 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
@@ -43,12 +49,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -56,8 +65,11 @@ import androidx.navigation.compose.rememberNavController
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_add_new
+import augmy.composeapp.generated.resources.accessibility_search_down
+import augmy.composeapp.generated.resources.accessibility_search_up
 import augmy.composeapp.generated.resources.action_remove
 import augmy.composeapp.generated.resources.action_settings
+import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.conversation_create_helper
 import augmy.composeapp.generated.resources.conversation_create_search_hint
 import augmy.composeapp.generated.resources.conversation_create_title
@@ -66,12 +78,15 @@ import augmy.composeapp.generated.resources.conversation_mode_experimental
 import augmy.composeapp.generated.resources.conversation_new_room
 import augmy.composeapp.generated.resources.conversation_selected_users
 import augmy.interactive.com.BuildKonfig
+import augmy.interactive.shared.ext.onCtrlF
+import augmy.interactive.shared.ext.onEscape
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.base.OnBackHandler
+import augmy.interactive.shared.ui.base.ZIndexFab
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
@@ -79,13 +94,15 @@ import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import augmy.interactive.shared.utils.PersistentListData
+import augmy.interactive.shared.utils.persistedLazyListState
 import base.BrandBaseScreen
 import base.navigation.NavIconType
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.navigation.NestedNavigationBar
-import collectResult
-import components.UserProfileImage
+import base.utils.getOrNull
+import components.AvatarImage
 import components.network.NetworkItemRow
 import components.pull_refresh.LocalRefreshCallback
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
@@ -101,6 +118,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.conversation.prototype.PrototypeConversation
+import ui.conversation.search.ConversationSearchModel
+import ui.conversation.search.conversationSearchModule
 import utils.SharedLogger
 
 /** Number of network items within one screen to be shimmered */
@@ -111,13 +130,15 @@ private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
 fun ConversationScreen(
     conversationId: String? = null,
     userId: String? = null,
-    name: String? = null
+    name: String? = null,
+    scrollTo: String? = null,
+    searchQuery: String? = null,
 ) {
     loadKoinModules(conversationModule)
     val model: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
-            parametersOf(conversationId, userId, true)
+            parametersOf(conversationId, userId, true, scrollTo)
         }
     )
     val navController = LocalNavController.current
@@ -126,14 +147,24 @@ fun ConversationScreen(
     val messages = model.conversationMessages.collectAsLazyPagingItems()
     val conversationDetail = model.conversation.collectAsState(initial = null)
     val uiMode = model.uiMode.collectAsState()
+    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
     val coroutineScope = rememberCoroutineScope()
-    val reactingToMessageId = rememberSaveable {
+    val reactingToMessageId = rememberSaveable(model) {
         mutableStateOf<String?>(null)
     }
-    val showSettings = rememberSaveable {
-        mutableStateOf(false)
+    val showSettings = rememberSaveable(model) {
+        mutableStateOf(searchQuery != null)
     }
+    val isSearchVisible = rememberSaveable(model) { mutableStateOf(false) }
+    val initialNestedDestination = rememberSaveable(model) {
+        mutableStateOf(
+            if (searchQuery != null) {
+                NavigationNode.ConversationSearch(conversationId, searchQuery)
+            } else NavigationNode.ConversationSettings(conversationId)
+        )
+    }
+    val searchFieldState = remember(model) { TextFieldState() }
     val modeSwitchState = rememberMultiChoiceState(
         items = mutableListOf(
             stringResource(Res.string.conversation_mode_default),
@@ -166,7 +197,7 @@ fun ConversationScreen(
         }
     }
 
-    navController?.collectResult(
+    navController?.CollectResult(
         key = NavigationArguments.CONVERSATION_NEW_MESSAGE,
         defaultValue = false,
         listener = { newMessages ->
@@ -189,16 +220,30 @@ fun ConversationScreen(
         }
     ) {
         BrandBaseScreen(
+            modifier = Modifier
+                .onCtrlF {
+                    if (isCompact) {
+                        isSearchVisible.value = true
+                    } else {
+                        initialNestedDestination.value = NavigationNode.ConversationSearch(conversationId)
+                        showSettings.value = true
+                    }
+                }
+                .onEscape {
+                    isSearchVisible.value = false
+                    showSettings.value = false
+                    initialNestedDestination.value = NavigationNode.ConversationSettings(conversationId)
+                },
             navIconType = NavIconType.BACK,
             headerPrefix = {
                 AnimatedVisibility(conversationDetail.value != null) {
                     Row {
-                        UserProfileImage(
+                        AvatarImage(
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .size(32.dp),
                             media = conversationDetail.value?.avatar,
-                            tag = conversationDetail.value?.data?.tag,
+                            tag = conversationDetail.value?.tag,
                             animate = true,
                             name = conversationDetail.value?.name
                         )
@@ -208,7 +253,7 @@ fun ConversationScreen(
             },
             actionIcons = { isExpanded ->
                 ActionBarIcon(
-                    text = if(isExpanded && LocalDeviceType.current != WindowWidthSizeClass.Compact) {
+                    text = if(isExpanded && !isCompact) {
                         stringResource(Res.string.action_settings)
                     } else null,
                     imageVector = Icons.Outlined.MoreVert,
@@ -228,63 +273,94 @@ fun ConversationScreen(
                 modifier = Modifier.fillMaxHeight(),
                 verticalAlignment = Alignment.Bottom
             ) {
-                Crossfade(
-                    modifier = Modifier.weight(1f),
-                    targetState = modeSwitchState.selectedTabIndex.value
-                ) { selectedIndex ->
-                    if(selectedIndex == 1) {
-                        PrototypeConversation(conversationId = conversationId)
-                    }else {
-                        val scopeItems: LazyListScope.() -> Unit = if (uiMode.value == ConversationModel.UiMode.CreateRoomNoMembers) {
-                            val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
-                            val membersToInvite = model.membersToInvite.collectAsState()
-                            val searchState = remember(model) { TextFieldState() }
-                            val focusRequester = remember(model) { FocusRequester() }
-                            val cancellableScope = rememberCoroutineScope()
+                Box(modifier = Modifier.weight(1f)) {
+                    val listState = persistedLazyListState(
+                        persistentData = model.persistentPositionData ?: PersistentListData(),
+                        onDispose = { lastInfo ->
+                            model.persistentPositionData = lastInfo
+                        }
+                    )
 
-                            LaunchedEffect(Unit) {
-                                model.recommendUsersToInvite()
-                            }
+                    Crossfade(targetState = modeSwitchState.selectedTabIndex.value) { selectedIndex ->
+                        if(selectedIndex == 1) {
+                            PrototypeConversation(conversationId = conversationId)
+                        }else {
+                            val scopeItems: LazyListScope.() -> Unit = if (uiMode.value == ConversationModel.UiMode.CreateRoomNoMembers) {
+                                val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
+                                val membersToInvite = model.membersToInvite.collectAsState()
+                                val searchState = remember(model) { TextFieldState() }
+                                val focusRequester = remember(model) { FocusRequester() }
+                                val cancellableScope = rememberCoroutineScope()
 
-                            LaunchedEffect(searchState.text) {
-                                cancellableScope.coroutineContext.cancelChildren()
-                                cancellableScope.launch {
-                                    delay(DELAY_BETWEEN_TYPING_SHORT)
-                                    model.recommendUsersToInvite(query = searchState.text)
+                                LaunchedEffect(Unit) {
+                                    model.recommendUsersToInvite()
                                 }
-                            };
 
-                            { scope: LazyListScope ->
-                                scope.createRoomNoMembers(
-                                    model = model,
-                                    recommendedUserToInvite = recommendedUsersToInvite,
-                                    membersToInvite = membersToInvite,
-                                    searchState = searchState,
-                                    focusRequester = focusRequester
-                                )
+                                LaunchedEffect(searchState.text) {
+                                    cancellableScope.coroutineContext.cancelChildren()
+                                    cancellableScope.launch {
+                                        delay(DELAY_BETWEEN_TYPING_SHORT)
+                                        model.recommendUsersToInvite(query = searchState.text)
+                                    }
+                                };
+
+                                { scope: LazyListScope ->
+                                    scope.createRoomNoMembers(
+                                        model = model,
+                                        recommendedUserToInvite = recommendedUsersToInvite,
+                                        membersToInvite = membersToInvite,
+                                        searchState = searchState,
+                                        focusRequester = focusRequester
+                                    )
+                                }
+                            }else { scope: LazyListScope ->
+                                scope.item(key = "topPadding") {
+                                    Spacer(Modifier.height(120.dp))
+                                }
                             }
-                        }else { scope: LazyListScope ->
-                            scope.item(key = "topPadding") {
-                                Spacer(Modifier.height(42.dp))
+
+                            ConversationComponent(
+                                listModifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight(),
+                                listState = listState,
+                                verticalArrangement = Arrangement.Bottom,
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                highlight = searchFieldState.text.toString().lowercase().takeIf { it.isNotBlank() },
+                                lazyScope = {
+                                    this.scopeItems()
+                                },
+                                messages = messages,
+                                conversationId = conversationId,
+                                shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
+                                model = model
+                            )
+                        }
+                    }
+
+                    if (isCompact) {
+                        LaunchedEffect(listState) {
+                            snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
+                                isSearchVisible.value = searchFieldState.text.isNotBlank() || it > 20
                             }
                         }
 
-                        ConversationComponent(
-                            listModifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight(),
-                            verticalArrangement = Arrangement.Bottom,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            lazyScope = {
-                                scopeItems(this)
-                            },
-                            messages = messages,
-                            conversationId = conversationId,
-                            shimmerItemCount = MESSAGES_SHIMMER_ITEM_COUNT,
-                            model = model
-                        )
+                        androidx.compose.animation.AnimatedVisibility(
+                            modifier = Modifier
+                                .zIndex(ZIndexFab)
+                                .align(Alignment.TopCenter),
+                            visible = isSearchVisible.value,
+                            enter = slideInVertically { (-it * 1.5f).toInt() },
+                            exit = slideOutVertically { (-it * 1.5f).toInt() }
+                        ) {
+                            SearchBar(
+                                searchFieldState = searchFieldState,
+                                conversationId = conversationId
+                            )
+                        }
                     }
                 }
+
                 Box(
                     modifier = Modifier
                         .animateContentSize(alignment = Alignment.TopEnd)
@@ -311,7 +387,7 @@ fun ConversationScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(color = LocalTheme.current.colors.backgroundLight),
-                                startDestination = NavigationNode.ConversationSettings(conversationId),
+                                startDestination = initialNestedDestination.value,
                                 navController = nestedNavController,
                                 enterTransition = {
                                     slideInHorizontally { -it * 2 }
@@ -322,11 +398,19 @@ fun ConversationScreen(
                             )
                         }
 
-                        nestedNavController.collectResult(
+                        nestedNavController.CollectResult(
                             key = NavigationArguments.CONVERSATION_LEFT,
                             defaultValue = false,
                             listener = { left ->
                                 if(left) navController?.navigateUp()
+                            }
+                        )
+
+                        nestedNavController.CollectResult<String?>(
+                            key = NavigationArguments.CONVERSATION_SCROLL_TO,
+                            defaultValue = null,
+                            listener = { scrollTo ->
+                                // TODO 86c45m6v8 if (scrollTo != null) model.scrollTo(scrollTo)
                             }
                         )
                     }
@@ -365,7 +449,7 @@ private fun LazyListScope.createRoomNoMembers(
                     model.selectInvitedMember(member)
                     model.recommendUsersToInvite(query = searchState.text)
                 },
-            highlight = searchState.text.toString(),
+            highlight = searchState.text.toString().lowercase(),
             data = member.toNetworkItem(),
             onAvatarClick = {
                 linkHandler?.invoke("/#/${member.userId}")
@@ -390,7 +474,7 @@ private fun LazyListScope.createRoomNoMembers(
                     shape = LocalTheme.current.shapes.rectangularActionShape
                 )
                 .padding(horizontal = 4.dp, vertical = 2.dp)
-                .fillMaxWidth(if (LocalDeviceType.current == WindowWidthSizeClass.Compact) 1f else .5f),
+                .fillMaxWidth(if (LocalDeviceType.current == WindowWidthSizeClass.Compact) .85f else .5f),
             focusRequester = focusRequester,
             shape = LocalTheme.current.shapes.rectangularActionShape,
             hint = stringResource(Res.string.conversation_create_search_hint),
@@ -460,5 +544,129 @@ private fun LazyListScope.createRoomNoMembers(
             text = stringResource(Res.string.conversation_create_title),
             style = LocalTheme.current.styles.subheading
         )
+    }
+}
+
+@Composable
+private fun SearchBar(
+    searchFieldState: TextFieldState,
+    conversationId: String?
+) {
+    loadKoinModules(conversationSearchModule)
+    val model: ConversationSearchModel = koinViewModel(
+        key = conversationId,
+        parameters = {
+            parametersOf(conversationId)
+        }
+    )
+
+    val density = LocalDensity.current
+
+    val messages = model.messages.collectAsLazyPagingItems()
+
+    val focusRequester = remember { FocusRequester() }
+    val index = rememberSaveable(model) { mutableStateOf(0) }
+
+    val upEnabled = index.value < messages.itemCount - 1
+    val downEnabled = index.value > 0
+
+
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    LaunchedEffect(searchFieldState.text) {
+        model.querySearch(searchFieldState.text)
+    }
+
+    LaunchedEffect(messages.itemCount) {
+        // TODO 86c45m6v8 model.scrollTo(messages.getOrNull(0))
+    }
+
+    Row(
+        modifier = Modifier
+            .animateContentSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        CustomTextField(
+            modifier = Modifier
+                .background(
+                    LocalTheme.current.colors.backgroundDark,
+                    shape = LocalTheme.current.shapes.rectangularActionShape
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .weight(1f),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Search
+            ),
+            prefixIcon = Icons.Outlined.Search,
+            isClearable = true,
+            focusRequester = focusRequester,
+            hint = stringResource(Res.string.button_search),
+            state = searchFieldState,
+            showBorders = false,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            shape = LocalTheme.current.shapes.rectangularActionShape
+        )
+
+        AnimatedVisibility(messages.itemCount > 0 && searchFieldState.text.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .animateContentSize()
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
+                    )
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier
+                        .animateContentSize()
+                        .padding(horizontal = 8.dp),
+                    text = "${index.value + 1}/${messages.itemCount}",
+                    style = LocalTheme.current.styles.regular
+                )
+
+                Icon(   // move up
+                    modifier = Modifier
+                        .size(with(density) { 38.sp.toDp() })
+                        .scalingClickable(key = upEnabled) {
+                            if (upEnabled) index.value += 1
+
+                            messages.getOrNull(index.value)?.data?.id?.let {
+                                // TODO 86c45m6v8 model.scrollTo(it)
+                            }
+                        }
+                        .padding(2.dp),
+                    imageVector = Icons.Outlined.KeyboardArrowUp,
+                    contentDescription = stringResource(Res.string.accessibility_search_up),
+                    tint = if (upEnabled) {
+                        LocalTheme.current.colors.secondary
+                    } else LocalTheme.current.colors.disabled
+                )
+                Icon(   // move down
+                    modifier = Modifier
+                        .size(with(density) { 38.sp.toDp() })
+                        .scalingClickable(key = downEnabled) {
+                            if (downEnabled) index.value -= 1
+
+                            messages.getOrNull(index.value)?.data?.id?.let {
+                                // TODO 86c45m6v8 model.scrollTo(it)
+                            }
+                        }
+                        .padding(2.dp),
+                    imageVector = Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = stringResource(Res.string.accessibility_search_down),
+                    tint = if (downEnabled) {
+                        LocalTheme.current.colors.secondary
+                    } else LocalTheme.current.colors.disabled
+                )
+            }
+        }
     }
 }

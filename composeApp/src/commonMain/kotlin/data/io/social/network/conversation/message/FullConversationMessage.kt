@@ -7,7 +7,7 @@ import data.io.matrix.room.event.ConversationRoomMember
 import kotlin.jvm.Transient
 
 data class FullConversationMessage(
-    @Embedded val message: ConversationMessageIO,
+    @Embedded val data: ConversationMessageIO,
 
     @Relation(
         parentColumn = "author_public_id",
@@ -27,10 +27,16 @@ data class FullConversationMessage(
         parentColumn = "id",
         entityColumn = "message_id"
     )
-    val reactions: List<MessageReactionIO>
+    val reactions: List<MessageReactionIO>,
+
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "message_id"
+    )
+    val media: List<MediaIO>
 ) {
 
     @Transient
     @Ignore
-    val id = message.id
+    val id = data.id
 }

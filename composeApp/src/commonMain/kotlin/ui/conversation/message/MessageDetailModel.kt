@@ -20,7 +20,15 @@ import ui.conversation.components.experimental.pacing.PacingUseCase
 import ui.conversation.components.gif.GifUseCase
 
 internal val messageDetailModule = module {
-    factory { MessageDetailRepository(get(), get(), get(), get(), get(), get(), get()) }
+    factory {
+        MessageDetailRepository(
+            get(),
+            get(),
+            get(),
+            get(),
+            get()
+        )
+    }
     factory {
         MessageDetailModel(
             get<String>(),

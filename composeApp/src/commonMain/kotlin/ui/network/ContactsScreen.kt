@@ -59,7 +59,7 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -221,7 +221,7 @@ private fun SocialCircleTier(
                     .width(IntrinsicSize.Min),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()

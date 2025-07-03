@@ -21,22 +21,6 @@ fun tagToColor(tag: String?) = if(tag != null) Color(("ff$tag").toLong(16)) else
 /** Converts color to 6 hexadecimal numbers representing it without transparency */
 fun Color.asSimpleString() = this.value.toString(16).substring(2, 8)
 
-/** Returns a media type of a file */
-fun getMediaType(mimeType: String): MediaType {
-    return when {
-        mimeType.lowercase().contains("gif") -> MediaType.GIF
-        mimeType.lowercase().contains("image") -> MediaType.IMAGE
-        mimeType.lowercase().contains("video") -> MediaType.VIDEO
-        mimeType.lowercase().contains("audio") -> MediaType.AUDIO
-        mimeType.lowercase().contains("text") -> MediaType.TEXT
-        mimeType.lowercase().contains("pdf") -> MediaType.PDF
-        mimeType.lowercase().contains("powerpoint")
-                || mimeType.lowercase().contains("presentation")
-                || mimeType.lowercase().contains("slideshow") -> MediaType.PRESENTATION
-        else -> MediaType.UNKNOWN
-    }
-}
-
 /** Returns the extension of an url */
 fun getUrlExtension(url: String): String = (url.toUri().path ?: url).substringAfterLast(".").lowercase()
 
@@ -50,6 +34,24 @@ enum class MediaType {
     PDF,
     PRESENTATION,
     UNKNOWN;
+
+    companion object {
+        /** Returns a media type of a file */
+        fun fromMimeType(mimeType: String): MediaType {
+            return when {
+                mimeType.lowercase().contains("gif") -> GIF
+                mimeType.lowercase().contains("image") -> IMAGE
+                mimeType.lowercase().contains("video") -> VIDEO
+                mimeType.lowercase().contains("audio") -> AUDIO
+                mimeType.lowercase().contains("text") -> TEXT
+                mimeType.lowercase().contains("pdf") -> PDF
+                mimeType.lowercase().contains("powerpoint")
+                        || mimeType.lowercase().contains("presentation")
+                        || mimeType.lowercase().contains("slideshow") -> PRESENTATION
+                else -> UNKNOWN
+            }
+        }
+    }
 
     val isVisual: Boolean
         get() = this == IMAGE || this == VIDEO || this == GIF

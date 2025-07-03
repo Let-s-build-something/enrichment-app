@@ -36,9 +36,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** message content */
     val content: String? = null,
 
-    /** List of Urls of attached media to this message */
-    val media: List<MediaIO>? = null,
-
     /** Public id of the author of this message */
     @ColumnInfo("author_public_id")
     val authorPublicId: String? = null,
@@ -75,7 +72,10 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     val verification: VerificationRequestInfo? = null,
 
-    val edited: Boolean = false
+    val edited: Boolean = false,
+
+    val prevBatch: String? = null,
+    val nextBatch: String? = null
 ) {
 
     @Serializable
@@ -89,7 +89,6 @@ data class ConversationMessageIO @OptIn(ExperimentalUuidApi::class) constructor(
     fun update(other: ConversationMessageIO): ConversationMessageIO {
         return this.copy(
             content = other.content ?: content,
-            media = other.media ?: media,
             authorPublicId = other.authorPublicId ?: authorPublicId,
             showPreview = other.showPreview ?: showPreview,
             anchorMessageId = other.anchorMessageId ?: anchorMessageId,

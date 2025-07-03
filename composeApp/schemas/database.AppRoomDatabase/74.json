@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 71,
-    "identityHash": "e0438e5a42ebfe522ebc3586d64bc7ea",
+    "version": 74,
+    "identityHash": "ab8a476433f6c794b43780b949dedff3",
     "entities": [
       {
         "tableName": "room_network_item_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`copyDisplayName` TEXT, `display_name` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `photo_media` TEXT, `avatar_url` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`copyDisplayName` TEXT, `display_name` TEXT, `public_id` TEXT NOT NULL, `user_public_id` TEXT, `user_id` TEXT, `avatar_url` TEXT, `photo_media` TEXT, `is_mutual` INTEGER, `last_message` TEXT, `is_public` INTEGER, `proximity` REAL, `color` TEXT, `owner_user_id` TEXT, `presence` TEXT, `primary_key` TEXT NOT NULL, PRIMARY KEY(`primary_key`))",
         "fields": [
           {
             "fieldPath": "copyDisplayName",
@@ -35,13 +35,13 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "avatar",
-            "columnName": "photo_media",
+            "fieldPath": "avatarUrl",
+            "columnName": "avatar_url",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "avatarUrl",
-            "columnName": "avatar_url",
+            "fieldPath": "avatar",
+            "columnName": "photo_media",
             "affinity": "TEXT"
           },
           {
@@ -223,7 +223,7 @@
       },
       {
         "tableName": "room_conversation_message_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `media` TEXT, `author_public_id` TEXT, `show_preview` INTEGER, `gravityData` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `verification` TEXT, `edited` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `content` TEXT, `author_public_id` TEXT, `show_preview` INTEGER, `gravityData` TEXT, `anchor_message_id` TEXT, `parent_anchor_message_id` TEXT, `sent_at` TEXT, `state` TEXT, `timings` TEXT, `transcribed` INTEGER, `conversation_id` TEXT, `verification` TEXT, `edited` INTEGER NOT NULL, `prevBatch` TEXT, `nextBatch` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -234,11 +234,6 @@
           {
             "fieldPath": "content",
             "columnName": "content",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "media",
-            "columnName": "media",
             "affinity": "TEXT"
           },
           {
@@ -301,6 +296,16 @@
             "columnName": "edited",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "prevBatch",
+            "columnName": "prevBatch",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nextBatch",
+            "columnName": "nextBatch",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -547,6 +552,79 @@
         ]
       },
       {
+        "tableName": "table_media",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`url` TEXT, `mimetype` TEXT, `name` TEXT, `size` INTEGER, `message_id` TEXT, `conversation_id` TEXT, `path` TEXT, `id` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mimetype",
+            "columnName": "mimetype",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "size",
+            "columnName": "size",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "messageId",
+            "columnName": "message_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversation_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "path",
+            "columnName": "path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_table_media_message_id",
+            "unique": false,
+            "columnNames": [
+              "message_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_table_media_message_id` ON `${TABLE_NAME}` (`message_id`)"
+          },
+          {
+            "name": "index_table_media_url",
+            "unique": false,
+            "columnNames": [
+              "url"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_table_media_url` ON `${TABLE_NAME}` (`url`)"
+          }
+        ]
+      },
+      {
         "tableName": "room_conversation_room_table",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `summary` TEXT, `proximity` REAL, `unread_notifications` TEXT, `invite_state` TEXT, `knock_state` TEXT, `owner_public_id` TEXT, `primary_key` TEXT NOT NULL, `prev_batch` TEXT, `last_message_timestamp` TEXT, `history_visibility` TEXT, `algorithm` TEXT, `type` TEXT NOT NULL, `is_direct` INTEGER, PRIMARY KEY(`primary_key`))",
         "fields": [
@@ -692,7 +770,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e0438e5a42ebfe522ebc3586d64bc7ea')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ab8a476433f6c794b43780b949dedff3')"
     ]
   }
 }

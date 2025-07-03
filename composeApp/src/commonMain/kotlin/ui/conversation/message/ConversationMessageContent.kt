@@ -33,7 +33,7 @@ import androidx.compose.ui.zIndex
 import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ui.base.LocalScreenSize
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
@@ -62,6 +62,7 @@ fun LazyItemScope.ConversationMessageContent(
     data: FullConversationMessage?,
     temporaryFiles: Map<String, PlatformFile?>,
     currentUserPublicId: String?,
+    highlight: String? = null,
     isPreviousMessageSameAuthor: Boolean,
     isNextMessageSameAuthor: Boolean,
     messageType: MessageType,
@@ -109,7 +110,7 @@ fun LazyItemScope.ConversationMessageContent(
 
         if(messageType == MessageType.OtherUser) {
             if(!isNextMessageSameAuthor) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier
                         .padding(
                             start = 12.dp,
@@ -141,11 +142,12 @@ fun LazyItemScope.ConversationMessageContent(
             isMyLastMessage = isMyLastMessage,
             preferredEmojis = preferredEmojis,
             model = model,
+            highlight = highlight,
             additionalContent = { onDragChange, onDrag, messageContent ->
                 val rememberedHeight = rememberSaveable(data?.id) {
                     mutableStateOf(0f)
                 }
-                val shape = if(data?.message?.content.isNullOrBlank()) {
+                val shape = if(data?.data?.content.isNullOrBlank()) {
                     LocalTheme.current.shapes.rectangularActionShape
                 }else RoundedCornerShape(
                     topStart = LocalTheme.current.shapes.rectangularActionRadius,
@@ -190,7 +192,7 @@ fun LazyItemScope.ConversationMessageContent(
                     MediaRow(
                         modifier = heightModifier,
                         data = data,
-                        media = data?.message?.media.orEmpty(),
+                        media = data?.media.orEmpty(),
                         scrollState = mediaRowState,
                         temporaryFiles = temporaryFiles,
                         isCurrentUser = messageType == MessageType.CurrentUser,
@@ -201,7 +203,7 @@ fun LazyItemScope.ConversationMessageContent(
                         }
                     )
 
-                    if (data?.message?.showPreview == true && data.message.content?.isNotBlank() == true) {
+                    if (data?.data?.showPreview == true && data.data.content?.isNotBlank() == true) {
                         messageContent.getLinkAnnotations(0, messageContent.length)
                             .firstOrNull()?.let { link ->
                                 LinkPreview(

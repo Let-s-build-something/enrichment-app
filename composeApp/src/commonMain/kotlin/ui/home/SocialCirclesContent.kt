@@ -59,7 +59,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationNode
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.getOrNull
-import components.UserProfileImage
+import components.AvatarImage
 import data.NetworkProximityCategory
 import data.io.matrix.room.FullConversationRoom
 import kotlinx.coroutines.delay
@@ -364,7 +364,7 @@ private fun ItemCompact(
                     .width(IntrinsicSize.Min),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .weight(1f)
@@ -372,7 +372,7 @@ private fun ItemCompact(
                             onClick()
                         },
                     media = data.avatar,
-                    tag = data.data.tag,
+                    tag = data.tag,
                     name = data.name
                 )
                 Text(

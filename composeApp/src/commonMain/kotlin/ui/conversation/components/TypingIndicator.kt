@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.theme.LocalTheme
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.message.MediaIO
 import data.io.user.UserIO.Companion.generateUserTag
@@ -54,7 +54,7 @@ fun TypingIndicator(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        UserProfileImage(
+        AvatarImage(
             modifier = Modifier.size(userProfileSize),
             media = MediaIO(url = data.user?.avatarUrl),
             tag = data.user?.sender?.generateUserTag(),

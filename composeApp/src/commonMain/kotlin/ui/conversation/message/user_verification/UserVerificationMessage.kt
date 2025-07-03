@@ -43,7 +43,7 @@ import augmy.interactive.shared.ui.components.OutlinedButton
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.global.verification.EmojiEntity
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import org.jetbrains.compose.resources.stringResource
@@ -61,13 +61,13 @@ fun UserVerificationMessage(
     val model: UserVerificationModel = koinViewModel(
         key = data.id,
         parameters = {
-            parametersOf(data.message.conversationId ?: "")
+            parametersOf(data.data.conversationId ?: "")
         }
     )
 
     val verificationState = model.verificationState.collectAsState()
     val isLoading = model.isLoading.collectAsState()
-    val isMyRequest = data.message.authorPublicId == model.matrixUserId
+    val isMyRequest = data.data.authorPublicId == model.matrixUserId
 
     LaunchedEffect(data.id) {
         model.getUserVerification(eventId = data.id)
@@ -92,7 +92,7 @@ fun UserVerificationMessage(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if(isMyRequest && data.author != null) {
-                    UserProfileImage(
+                    AvatarImage(
                         modifier = Modifier
                             .align(Alignment.Top)
                             .size(48.dp),

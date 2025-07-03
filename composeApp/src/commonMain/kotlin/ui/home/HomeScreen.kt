@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -34,11 +35,15 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,11 +62,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
@@ -72,6 +82,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_add_new
 import augmy.composeapp.generated.resources.action_create_room
 import augmy.composeapp.generated.resources.action_find_user
+import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.composeapp.generated.resources.screen_home
@@ -79,17 +90,21 @@ import augmy.composeapp.generated.resources.screen_home_initial_sync
 import augmy.composeapp.generated.resources.screen_home_no_client_action
 import augmy.composeapp.generated.resources.screen_home_no_client_title
 import augmy.composeapp.generated.resources.screen_search_network
+import augmy.interactive.shared.ext.onCtrlF
+import augmy.interactive.shared.ext.onEscape
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyGridState
 import base.navigation.NavIconType
 import base.navigation.NavigationNode
+import base.utils.extractSnippetAroundHighlight
 import base.utils.getOrNull
 import components.EmptyLayout
 import components.HorizontalScrollChoice
@@ -125,6 +140,7 @@ import kotlin.uuid.Uuid
 fun HomeScreen(model: HomeModel = koinViewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val navController = LocalNavController.current
+    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
     val conversationRooms = model.conversationRooms.collectAsLazyPagingItems()
     val uiMode = model.uiMode.collectAsState()
@@ -138,6 +154,9 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
     val showTuner = rememberSaveable { mutableStateOf(false) }
     val selectedItem = rememberSaveable { mutableStateOf<String?>(null) }
     val showHomeActions = rememberSaveable { mutableStateOf(false) }
+    val searchActivated = rememberSaveable { mutableStateOf(false) }
+    val searchFieldState = remember { TextFieldState() }
+    val focusRequester = remember { FocusRequester() }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if(model.persistentPositionData != null) {
@@ -155,6 +174,10 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     OnBackHandler(enabled = selectedItem.value != null) {
         selectedItem.value = null
     }
@@ -169,6 +192,16 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
     }
 
     RefreshableScreen(
+        modifier = Modifier
+            .focusRequester(focusRequester)
+            .onCtrlF {
+                searchActivated.value = true
+            }
+            .onEscape {
+                searchActivated.value = false
+                showHomeActions.value = false
+                showTuner.value = false
+            },
         title = stringResource(Res.string.screen_home),
         navIconType = NavIconType.TUNE,
         onNavigationIconClick = {
@@ -183,13 +216,15 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         showDefaultActions = true,
         viewModel = model,
         actionIcons = { isExpanded ->
-            ActionBarIcon(
-                text = if(isExpanded) stringResource(Res.string.screen_search_network) else null,
-                imageVector = Icons.Outlined.Search,
-                onClick = {
-                    navController?.navigate(NavigationNode.SearchNetwork)
-                }
-            )
+            Crossfade(searchActivated.value) { activated ->
+                ActionBarIcon(
+                    text = if(isExpanded) stringResource(Res.string.screen_search_network) else null,
+                    imageVector = if (activated) Icons.Outlined.SearchOff else Icons.Outlined.Search,
+                    onClick = {
+                        searchActivated.value = !searchActivated.value
+                    }
+                )
+            }
         }
     ) {
         Column(
@@ -230,6 +265,17 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                 selectedItems = categories.value
             )
 
+            AnimatedVisibility(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                visible = searchActivated.value
+            ) {
+                SearchField(
+                    model = model,
+                    searchFieldState = searchFieldState,
+                    isCompact = isCompact
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -258,7 +304,8 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                         HomeModel.UiMode.List -> ListContent(
                             model = model,
                             gridState = gridState,
-                            selectedItem = selectedItem
+                            selectedItem = selectedItem,
+                            searchFieldState = searchFieldState
                         )
                         HomeModel.UiMode.Circle -> SocialCircleContent(
                             modifier = Modifier.fillMaxSize(),
@@ -283,52 +330,102 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                 }
             }
 
-            Column(
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomEnd)
+                .animateContentSize(),
+            horizontalAlignment = Alignment.End
+        ) {
+            val rotation: Float by animateFloatAsState(
+                targetValue = if (showHomeActions.value) 225f else 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+
+            Icon(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(),
-                horizontalAlignment = Alignment.End
-            ) {
-                val rotation: Float by animateFloatAsState(
-                    targetValue = if (showHomeActions.value) 225f else 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
+                    .padding(end = 12.dp, bottom = 4.dp)
+                    .scalingClickable {
+                        showHomeActions.value = !showHomeActions.value
+                    }
+                    .size(48.dp)
+                    .background(
+                        color = LocalTheme.current.colors.appbarBackground,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
                     )
-                )
+                    .padding(8.dp)
+                    .rotate(rotation),
+                imageVector = Icons.Outlined.Add,
+                contentDescription = stringResource(Res.string.accessibility_add_new),
+                tint = LocalTheme.current.colors.secondary
+            )
 
-                Icon(
-                    modifier = Modifier
-                        .padding(end = 12.dp, bottom = 4.dp)
-                        .scalingClickable {
-                            showHomeActions.value = !showHomeActions.value
-                        }
-                        .size(48.dp)
-                        .background(
-                            color = LocalTheme.current.colors.appbarBackground,
-                            shape = LocalTheme.current.shapes.rectangularActionShape
-                        )
-                        .padding(8.dp)
-                        .rotate(rotation),
-                    imageVector = Icons.Outlined.Add,
-                    contentDescription = stringResource(Res.string.accessibility_add_new),
-                    tint = LocalTheme.current.colors.secondary
-                )
-
-                if (showHomeActions.value) {
-                    HomeActions(onDismissRequest = {
+            if (showHomeActions.value) {
+                HomeActions(
+                    isCompact,
+                    onDismissRequest = {
                         showHomeActions.value = false
-                    })
-                } else Spacer(Modifier.height(20.dp))
-            }
+                    }
+                )
+            } else Spacer(Modifier.height(20.dp))
         }
     }
 }
 
 @Composable
-private fun HomeActions(onDismissRequest: () -> Unit) {
+private fun SearchField(
+    model: HomeModel,
+    searchFieldState: TextFieldState,
+    isCompact: Boolean
+) {
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    LaunchedEffect(searchFieldState.text) {
+        searchFieldState
+        model.searchForMessages(searchFieldState.text)
+    }
+
+    CustomTextField(
+        modifier = Modifier
+            .padding(top = 16.dp, start = 8.dp, end = 8.dp)
+            .background(
+                LocalTheme.current.colors.backgroundDark,
+                shape = LocalTheme.current.shapes.rectangularActionShape
+            )
+            .padding(
+                horizontal = 4.dp,
+                vertical = 2.dp
+            )
+            .fillMaxWidth(if (isCompact) 1f else .8f),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Text,
+            imeAction = ImeAction.Search
+        ),
+        prefixIcon = Icons.Outlined.Search,
+        isClearable = true,
+        focusRequester = focusRequester,
+        hint = stringResource(Res.string.button_search),
+        state = searchFieldState,
+        showBorders = false,
+        lineLimits = TextFieldLineLimits.SingleLine,
+        shape = LocalTheme.current.shapes.rectangularActionShape
+    )
+}
+
+@Composable
+private fun HomeActions(
+    isCompact: Boolean,
+    onDismissRequest: () -> Unit
+) {
     val navController = LocalNavController.current
-    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
     Column(
         modifier = Modifier
@@ -340,6 +437,7 @@ private fun HomeActions(onDismissRequest: () -> Unit) {
                 )
             )
             .padding(horizontal = 8.dp, vertical = 6.dp)
+            .navigationBarsPadding()
     ) {
         RowAction(
             message = stringResource(Res.string.action_create_room),
@@ -394,6 +492,7 @@ private fun RowAction(
 private fun ListContent(
     model: HomeModel,
     gridState: LazyGridState,
+    searchFieldState: TextFieldState,
     selectedItem: MutableState<String?>
 ) {
     val navController = LocalNavController.current
@@ -407,6 +506,7 @@ private fun ListContent(
             || (rooms.itemCount == 0 && !rooms.loadState.append.endOfPaginationReached)
     val isEmpty = rooms.itemCount == 0 && rooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
+    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
     val selectedRoomId = remember { mutableStateOf<String?>(null) }
 
@@ -445,12 +545,12 @@ private fun ListContent(
             )
             .fillMaxSize(),
         columns = GridCells.Fixed(
-            if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 1 else 2
+            if (isCompact || searchFieldState.text.isNotBlank()) 1 else 2
         ),
         state = gridState,
         verticalArrangement = Arrangement.spacedBy(LocalTheme.current.shapes.betweenItemsSpace)
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {}
+        item(span = { GridItemSpan(maxLineSpan) }) {} // spacer
         item(span = { GridItemSpan(maxLineSpan) }) {
             AnimatedVisibility(
                 enter = expandVertically() + fadeIn(),
@@ -473,59 +573,79 @@ private fun ListContent(
         ) { index ->
             val room = rooms.getOrNull(index)
 
-            ConversationRoomItem(
-                modifier = Modifier
-                    .animateItem()
-                    .fillMaxWidth(),
-                model = model,
-                room = room,
-                selectedItem = selectedItem.value,
-                requestProximityChange = { proximity ->
-                    val singleUser = if(room?.data?.summary?.isDirect == true) {
-                        room.members.firstOrNull()
-                    }else null
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                ConversationRoomItem(
+                    modifier = Modifier.fillMaxWidth(
+                        if (searchFieldState.text.isNotBlank() && !isCompact) .75f else 1f
+                    ).animateItem(),
+                    model = model,
+                    room = room,
+                    highlight = searchFieldState.text.toString().lowercase(),
+                    selectedItem = selectedItem.value,
+                    requestProximityChange = { proximity ->
+                        val singleUser = if(room?.data?.summary?.isDirect == true) {
+                            room.members.firstOrNull()
+                        }else null
 
-                    model.requestProximityChange(
-                        conversationId = room?.id,
-                        publicId = singleUser?.userId,
-                        proximity = proximity,
-                        onOperationDone = {
+                        model.requestProximityChange(
+                            conversationId = room?.id,
+                            publicId = singleUser?.userId,
+                            proximity = proximity,
+                            onOperationDone = {
+                                if(selectedItem.value == room?.id) {
+                                    selectedItem.value = null
+                                }
+                                rooms.refresh()
+                            }
+                        )
+                    },
+                    customColors = customColors.value,
+                    onTap = {
+                        if (searchFieldState.text.isNotBlank()) {
+                            navController?.navigate(
+                                if (isCompact) {
+                                    NavigationNode.ConversationSearch(
+                                        conversationId = room?.id,
+                                        searchQuery = searchFieldState.text.toString()
+                                    )
+                                } else NavigationNode.Conversation(
+                                    conversationId = room?.id,
+                                    searchQuery = searchFieldState.text.toString()
+                                )
+                            )
+                        } else {
                             if(selectedItem.value == room?.id) {
                                 selectedItem.value = null
-                            }
-                            rooms.refresh()
+                            }else navController?.navigate(
+                                NavigationNode.Conversation(
+                                    conversationId = room?.id,
+                                    name = room?.name
+                                )
+                            )
                         }
-                    )
-                },
-                customColors = customColors.value,
-                onTap = {
-                    if(selectedItem.value == room?.id) {
-                        selectedItem.value = null
-                    }else navController?.navigate(
-                        NavigationNode.Conversation(
-                            conversationId = room?.id,
-                            name = room?.name
-                        )
-                    )
-                },
-                onLongPress = {
-                    selectedItem.value = room?.id
-                },
-                onAvatarClick = {
-                    SharedLogger.logger.debug { "clicked room: $room" }
-                    if(room?.data?.summary?.isDirect == true) {
-                        model.selectUser(room)
-                    }else {
-                        selectedRoomId.value = room?.id
+                    },
+                    onLongPress = {
+                        selectedItem.value = room?.id
+                    },
+                    onAvatarClick = {
+                        SharedLogger.logger.debug { "clicked room: $room" }
+                        if(room?.data?.summary?.isDirect == true) {
+                            model.selectUser(room)
+                        }else {
+                            selectedRoomId.value = room?.id
+                        }
                     }
-                }
-            ) {
-                if(index != rooms.itemCount - 1) {
-                    HorizontalDivider(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = LocalTheme.current.colors.disabledComponent,
-                        thickness = .3.dp
-                    )
+                ) {
+                    if(index != rooms.itemCount - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = LocalTheme.current.colors.disabledComponent,
+                            thickness = .3.dp
+                        )
+                    }
                 }
             }
         }
@@ -548,10 +668,13 @@ private fun ConversationRoomItem(
     customColors: Map<NetworkProximityCategory, Color>,
     requestProximityChange: (proximity: Float) -> Unit,
     onAvatarClick: () -> Unit,
+    highlight: String? = null,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val navController = LocalNavController.current
+    val collapsedRooms = model.collapsedRooms.collectAsState()
     val response = remember { mutableStateOf<BaseResponse<Any>?>(null) }
 
     LaunchedEffect(Unit) {
@@ -596,49 +719,72 @@ private fun ConversationRoomItem(
             }else Modifier)
         )
 
-    Column(modifier = modifier) {
-        Crossfade(room?.data?.type) { roomType ->
-            when(roomType) {
-                RoomType.Invited -> {
-                    NetworkItemRow(
-                        modifier = itemModifier,
-                        data = room?.toNetworkItem(),
-                        indicatorColor = indicatorColor,
-                        onAvatarClick = onAvatarClick,
-                        content = {
-                            NetworkRequestActions(
-                                modifier = Modifier.align(Alignment.CenterVertically),
-                                key = room?.id,
-                                response = response.value,
-                                onResponse = { accept ->
-                                    model.respondToInvitation(
-                                        roomId = room?.id,
-                                        accept = accept
-                                    )
-                                }
+    Column(modifier = modifier.animateContentSize()) {
+        val isSearched = !highlight.isNullOrBlank()
+
+        NetworkItemRow(
+            avatarSize = if (isSearched) 32.dp else 48.dp,
+            modifier = itemModifier.then(
+                if (isSearched) Modifier.alpha(.6f) else Modifier
+            ),
+            data = room?.toNetworkItem().let {
+                it?.copy(lastMessage = if (isSearched) null else it.lastMessage)
+            },
+            isSelected = selectedItem == room?.id,
+            indicatorColor = indicatorColor,
+            onAvatarClick = onAvatarClick,
+            content = {
+                if (room?.data?.type == RoomType.Invited) {
+                    NetworkRequestActions(
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                        key = room.id,
+                        response = response.value,
+                        onResponse = { accept ->
+                            model.respondToInvitation(
+                                roomId = room.id,
+                                accept = accept
                             )
                         }
                     )
                 }
-                else -> {
+            },
+            actions = {
+                if (room?.data?.type != RoomType.Invited) {
+                    room?.toNetworkItem()?.let { networkItem ->
+                        SocialItemActions(
+                            key = room.id,
+                            requestProximityChange = requestProximityChange,
+                            newItem = networkItem
+                        )
+                    }
+                }
+            }
+        )
+
+        if (isSearched && !collapsedRooms.value.contains(room?.id)) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth(.9f)
+                    .animateContentSize()
+            ) {
+                room?.messages?.forEach { message ->
                     NetworkItemRow(
-                        modifier = itemModifier,
-                        data = room?.toNetworkItem(),
-                        isSelected = selectedItem == room?.id,
-                        indicatorColor = indicatorColor,
-                        onAvatarClick = onAvatarClick,
-                        actions = {
-                            SocialItemActions(
-                                key = room?.id,
-                                requestProximityChange = requestProximityChange,
-                                newItem = NetworkItemIO(
-                                    displayName = room?.name,
-                                    avatar = room?.avatar,
-                                    publicId = room?.id ?: "-",
-                                    proximity = room?.data?.proximity
-                                )
+                        modifier = Modifier.scalingClickable(scaleInto = .95f) {
+                            navController?.navigate(
+                                NavigationNode.Conversation(conversationId = room.id, scrollTo = message.id)
                             )
-                        }
+                        },
+                        highlightTitle = false,
+                        data = NetworkItemIO(
+                            userId = message.author?.userId,
+                            displayName = message.author?.displayName,
+                            avatarUrl = message.author?.avatarUrl,
+                            lastMessage = if (highlight.isNotBlank()) {
+                                extractSnippetAroundHighlight(message.data.content, highlight)
+                            }else message.data.content
+                        ),
+                        highlight = highlight
                     )
                 }
             }

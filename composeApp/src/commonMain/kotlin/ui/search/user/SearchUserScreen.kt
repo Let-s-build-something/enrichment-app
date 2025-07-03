@@ -141,7 +141,7 @@ fun SearchUserScreen(
                             }
                         }
                         .fillMaxWidth(),
-                    highlight = searchState.text.toString(),
+                    highlight = searchState.text.toString().lowercase(),
                     data = user,
                     onAvatarClick = {
                         selectedUser.value = user

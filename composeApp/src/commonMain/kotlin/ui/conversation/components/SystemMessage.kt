@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_room_join
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.user.UserIO.Companion.generateUserTag
 import net.folivo.trixnity.core.model.UserId
@@ -21,15 +21,15 @@ fun SystemMessage(
 ) {
     InfoBox(
         modifier = modifier,
-        message = data?.message?.content ?: "",
+        message = data?.data?.content ?: "",
         paddingValues = PaddingValues(
-            vertical = if (data?.message?.media.isNullOrEmpty()) 18.dp else 8.dp,
+            vertical = if (data?.media.isNullOrEmpty()) 18.dp else 8.dp,
             horizontal = 12.dp
         )
     ) {
-        data?.message?.media?.forEach { media ->
-            if (data.message.content?.contains(stringResource(Res.string.message_room_join)) == true) {
-                UserProfileImage(
+        data?.media?.forEach { media ->
+            if (data.data.content?.contains(stringResource(Res.string.message_room_join)) == true) {
+                AvatarImage(
                     modifier = Modifier
                         .size(42.dp)
                         .padding(horizontal = 4.dp),

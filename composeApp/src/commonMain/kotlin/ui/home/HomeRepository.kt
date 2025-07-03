@@ -8,8 +8,8 @@ import data.io.base.paging.PaginationInfo
 import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.ConversationListResponse
+import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.RoomMemberDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -19,7 +19,7 @@ import utils.SharedLogger
 
 class HomeRepository(
     private val conversationRoomDao: ConversationRoomDao,
-    private val roomMemberDao: RoomMemberDao
+    private val conversationMessageDao: ConversationMessageDao
 ) {
 
     private var currentPagingSource: PagingSource<*, *>? = null
@@ -92,7 +92,25 @@ class HomeRepository(
         }
     }
 
-    suspend fun getUsersByRoom(roomId: String) = withContext(Dispatchers.IO) {
-        roomMemberDao.getOfRoom(roomId)
+    suspend fun queryLocalMessagesOfRoom(
+        roomId: String,
+        query: String,
+        limit: Int
+    ) = withContext(Dispatchers.IO) {
+        conversationMessageDao.queryPaginated(
+            conversationId = roomId,
+            query = query,
+            limit = limit,
+            offset = 0
+        )
     }
+
+    /*suspend fun queryAndInsertMessages(
+        matrixClient: MatrixClient?,
+        query: String,
+        roomId: String,
+        limit: Int,
+    ) = withContext(Dispatchers.IO) {
+        matrixClient?.api?.server?.search()
+    }*/
 }

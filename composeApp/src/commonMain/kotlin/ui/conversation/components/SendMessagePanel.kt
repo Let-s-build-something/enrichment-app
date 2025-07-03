@@ -4,7 +4,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -109,7 +111,6 @@ import augmy.interactive.shared.ui.base.MaxModalWidthDp
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
-import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
@@ -118,10 +119,9 @@ import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.LinkUtils
 import base.utils.MediaType
-import base.utils.getMediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
@@ -222,11 +222,6 @@ internal fun BoxScope.SendMessagePanel(
         label = "bottomPadding",
         animationSpec = tween(durationMillis = 20, easing = LinearEasing)
     )
-    val showMoreIconRotation = animateFloatAsState(
-        targetValue = if(showMoreOptions.value) 0f else 135f,
-        label = "showMoreIconRotation",
-        animationSpec = tween(durationMillis = DEFAULT_ANIMATION_LENGTH_LONG)
-    )
     val launcherImageVideo = rememberFilePickerLauncher(
         type = FileKitType.ImageAndVideo,
         mode = FileKitMode.Multiple(maxItems = MAX_ITEMS_SELECTED),
@@ -290,7 +285,7 @@ internal fun BoxScope.SendMessagePanel(
             model.sendMessage(
                 content = messageState.text.toString(),
                 mediaFiles = mediaAttached.toList(),
-                anchorMessage = replyToMessage.value?.message ?: overrideAnchorMessage?.message,
+                anchorMessage = replyToMessage.value?.data ?: overrideAnchorMessage?.data,
                 gifAsset = gifAttached.value,
                 mediaUrls = urlsAttached,
                 showPreview = showPreview.value,
@@ -327,10 +322,10 @@ internal fun BoxScope.SendMessagePanel(
         }
     }
     LaunchedEffect(savedMessage.value) {
-        if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) {
-            focusRequester.requestFocus()
-            keyboardController?.show()
-        }else focusRequester.captureFocus()
+        focusRequester.requestFocus()
+
+        if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) keyboardController?.show()
+        else keyboardController?.hide()
     }
 
     if(missingKeyboardHeight) {
@@ -443,14 +438,14 @@ internal fun BoxScope.SendMessagePanel(
                     .padding(start = 12.dp)
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxWidth(),
-                data = originalMessage.message,
+                data = originalMessage.data,
                 onClick = {
                     scrollToMessage(originalMessage)
                 },
                 onRemoveRequest = {
                     replyToMessage.value = null
                 },
-                isCurrentUser = originalMessage.message.authorPublicId == model.currentUser.value?.matrixUserId,
+                isCurrentUser = originalMessage.data.authorPublicId == model.currentUser.value?.matrixUserId,
                 removable = true
             )
         }
@@ -570,7 +565,7 @@ internal fun BoxScope.SendMessagePanel(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(end = 16.dp)
+                .padding(end = 10.dp)
                 .padding(bottom = bottomPadding.value.dp)
                 .then(if(isDefaultMode) Modifier.imePadding() else Modifier),
             verticalAlignment = Alignment.CenterVertically
@@ -594,7 +589,8 @@ internal fun BoxScope.SendMessagePanel(
                         }else false
                     }
                     .contentReceiver { uri ->
-                        when(getMediaType(uri)) {
+                        // TODO untested
+                        when(MediaType.fromMimeType(MimeType.getByExtension(getUrlExtension(uri)).mime)) {
                             MediaType.GIF -> gifAttached.value = GifAsset(singleUrl = uri)
                             else -> urlsAttached.add(uri)
                         }
@@ -678,81 +674,102 @@ internal fun BoxScope.SendMessagePanel(
                 shape = LocalTheme.current.shapes.componentShape
             )
 
-            Icon(
-                modifier = Modifier
-                    .scalingClickable {
-                        showMoreOptions.value = !showMoreOptions.value
-                    }
-                    .size(38.dp)
-                    .padding(6.dp)
-                    .rotate(showMoreIconRotation.value),
-                imageVector = Icons.Outlined.Close,
-                contentDescription = stringResource(
-                    if(showMoreOptions.value) Res.string.accessibility_cancel
-                    else Res.string.accessibility_message_more_options
-                ),
-                tint = LocalTheme.current.colors.secondary
+            val showMoreIconRotation = animateFloatAsState(
+                label = "showMoreIconRotation",
+                targetValue = if (showMoreOptions.value) 0f else 135f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
             )
-            AnimatedVisibility(showMoreOptions.value) {
-                Row(
-                    modifier = Modifier.padding(start = spacing),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing)
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .scalingClickable {
-                                launcherFile.launch()
-                            }
-                            .size(38.dp)
-                            .background(
-                                color = LocalTheme.current.colors.brandMainDark,
-                                shape = LocalTheme.current.shapes.componentShape
-                            )
-                            .padding(6.dp),
-                        imageVector = Icons.Outlined.AttachFile,
-                        contentDescription = stringResource(Res.string.accessibility_message_action_file),
-                        tint = Color.White
+
+            Row(
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
                     )
+                    .padding(end = 8.dp, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .scalingClickable {
+                            showMoreOptions.value = !showMoreOptions.value
+                        }
+                        .size(38.dp)
+                        .padding(6.dp)
+                        .rotate(showMoreIconRotation.value),
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = stringResource(
+                        if(showMoreOptions.value) Res.string.accessibility_cancel
+                        else Res.string.accessibility_message_more_options
+                    ),
+                    tint = LocalTheme.current.colors.secondary
+                )
+
+                AnimatedVisibility(showMoreOptions.value) {
+                    Row(
+                        modifier = Modifier.padding(start = spacing),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .scalingClickable {
+                                    launcherFile.launch()
+                                }
+                                .size(38.dp)
+                                .background(
+                                    color = LocalTheme.current.colors.brandMainDark,
+                                    shape = LocalTheme.current.shapes.componentShape
+                                )
+                                .padding(6.dp),
+                            imageVector = Icons.Outlined.AttachFile,
+                            contentDescription = stringResource(Res.string.accessibility_message_action_file),
+                            tint = Color.White
+                        )
+                        Icon(
+                            modifier = Modifier
+                                .scalingClickable {
+                                    launcherImageVideo.launch()
+                                }
+                                .size(38.dp)
+                                .background(
+                                    color = LocalTheme.current.colors.brandMainDark,
+                                    shape = LocalTheme.current.shapes.componentShape
+                                )
+                                .padding(6.dp),
+                            imageVector = Icons.Outlined.Image,
+                            contentDescription = stringResource(Res.string.accessibility_message_action_image),
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // space for the microphone action
+                Crossfade(targetState = isContentEmpty) { isBlank ->
                     Icon(
                         modifier = Modifier
-                            .scalingClickable {
-                                launcherImageVideo.launch()
+                            .scalingClickable(enabled = !isBlank) {
+                                if(!isBlank) sendMessage()
                             }
+                            .padding(start = spacing)
                             .size(38.dp)
                             .background(
                                 color = LocalTheme.current.colors.brandMainDark,
                                 shape = LocalTheme.current.shapes.componentShape
                             )
                             .padding(6.dp),
-                        imageVector = Icons.Outlined.Image,
-                        contentDescription = stringResource(Res.string.accessibility_message_action_image),
+                        imageVector = if(isBlank) Icons.Outlined.Mic else Icons.AutoMirrored.Outlined.Send,
+                        contentDescription = stringResource(
+                            if(isBlank) Res.string.accessibility_message_action_audio
+                            else Res.string.accessibility_message_action_image
+                        ),
                         tint = Color.White
                     )
                 }
-            }
-
-            // space for the microphone action
-            Crossfade(targetState = isContentEmpty) { isBlank ->
-                Icon(
-                    modifier = Modifier
-                        .scalingClickable(enabled = !isBlank) {
-                            if(!isBlank) sendMessage()
-                        }
-                        .padding(start = spacing)
-                        .size(38.dp)
-                        .background(
-                            color = LocalTheme.current.colors.brandMainDark,
-                            shape = LocalTheme.current.shapes.componentShape
-                        )
-                        .padding(6.dp),
-                    imageVector = if(isBlank) Icons.Outlined.Mic else Icons.AutoMirrored.Outlined.Send,
-                    contentDescription = stringResource(
-                        if(isBlank) Res.string.accessibility_message_action_audio
-                        else Res.string.accessibility_message_action_image
-                    ),
-                    tint = Color.White
-                )
             }
         }
 
@@ -897,7 +914,7 @@ private fun MentionRecommendationsBox(
                     val name = recommendation.displayName ?: recommendation.userId
 
                     recommendation.avatarUrl?.let { avatar ->
-                        UserProfileImage(
+                        AvatarImage(
                             modifier = Modifier.size(32.dp),
                             name = name,
                             tag = recommendation.tag,

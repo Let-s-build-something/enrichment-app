@@ -32,6 +32,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -90,6 +96,7 @@ fun Modifier.brandShimmerEffect(
  */
 @Composable
 fun Modifier.scalingClickable(
+    key: Any? = null,
     enabled: Boolean = true,
     hoverEnabled: Boolean = true,
     onDoubleTap: ((Offset) -> Unit)? = null,
@@ -100,9 +107,9 @@ fun Modifier.scalingClickable(
     onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
     if(enabled) {
-        val hoverInteractionSource = remember { MutableInteractionSource() }
+        val hoverInteractionSource = remember(key) { MutableInteractionSource() }
         val isHovered = hoverInteractionSource.collectIsHoveredAsState()
-        val isPressed = remember { mutableStateOf(false) }
+        val isPressed = remember(key) { mutableStateOf(false) }
         val scale = animateFloatAsState(
             if ((isPressed.value || isHovered.value) && enabled) scaleInto else 1f,
             label = "scalingClickableAnimation"
@@ -114,7 +121,7 @@ fun Modifier.scalingClickable(
                 enabled = enabled && hoverEnabled,
                 interactionSource = hoverInteractionSource
             )
-            .pointerInput(Unit) {
+            .pointerInput(Unit, key) {
                 detectTapGestures(
                     onPress = {
                         if(enabled) onPress?.invoke(it, true)
@@ -129,6 +136,26 @@ fun Modifier.scalingClickable(
                 )
             }
     }else this
+}
+
+fun Modifier.onCtrlF(
+    enabled: Boolean = true,
+    onCtrlF: () -> Unit
+): Modifier = if (!enabled) this else this.onPreviewKeyEvent { event ->
+    if (event.type == KeyEventType.KeyDown && event.isCtrlPressed && event.key == Key.F) {
+        onCtrlF()
+        true
+    } else false
+}
+
+fun Modifier.onEscape(
+    enabled: Boolean = true,
+    onEscape: () -> Unit
+): Modifier = if (!enabled) this else this.onPreviewKeyEvent { event ->
+    if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+        onEscape()
+        true
+    } else false
 }
 
 /** Adds horizontal draggable modifier to a [HorizontalPager] to support mouse interactions */

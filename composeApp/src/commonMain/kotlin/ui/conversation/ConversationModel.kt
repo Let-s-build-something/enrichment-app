@@ -72,13 +72,22 @@ internal val conversationModule = module {
 
     factory { ConversationDataManager() }
     single { ConversationDataManager() }
-    factory { ConversationRepository(get(), get(), get(), get(), get(), get(), get<FileAccess>()) }
+    factory {
+        ConversationRepository(
+            get(),
+            get(),
+            get(),
+            get(),
+            get<FileAccess>()
+        )
+    }
 
-    factory { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
+    factory { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?) ->
         ConversationModel(
             MutableStateFlow(conversationId ?: ""),
             userId,
             enableMessages,
+            scrollTo,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -88,11 +97,12 @@ internal val conversationModule = module {
             get<GravityUseCase>(),
         )
     }
-    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean) ->
+    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?) ->
         ConversationModel(
             MutableStateFlow(conversationId ?: ""),
             userId,
             enableMessages,
+            scrollTo,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -109,6 +119,7 @@ open class ConversationModel(
     protected var conversationId: MutableStateFlow<String>,
     private val userId: String? = null,
     enableMessages: Boolean = true,
+    scrollTo: String? = null, // TODO 86c45m6v8
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,
@@ -468,6 +479,12 @@ open class ConversationModel(
             }
 
             var progressId = ""
+            val media = mediaUrls.mapNotNull { url ->
+                MediaIO(
+                    url = url,
+                    mimetype = MimeType.getByExtension(getUrlExtension(url)).mime,
+                ).takeIf { url.isNotBlank() }
+            }
             sendMessage(
                 conversationId = conversationId.value,
                 homeserver = homeserver,
@@ -489,15 +506,10 @@ open class ConversationModel(
                     ),
                     anchorMessageId = anchorMessage?.id,
                     parentAnchorMessageId = anchorMessage?.anchorMessageId,
-                    media = mediaUrls.mapNotNull { url ->
-                        MediaIO(
-                            url = url,
-                            mimetype = MimeType.getByExtension(getUrlExtension(url)).mime
-                        ).takeIf { url.isNotBlank() }
-                    },
                     showPreview = showPreview,
                     timings = timings
-                )
+                ),
+                mediaIn = media
             )
             _uploadProgress.update { previous ->
                 previous.toMutableList().apply {
@@ -512,6 +524,7 @@ open class ConversationModel(
         conversationId: String,
         homeserver: String,
         message: ConversationMessageIO,
+        mediaIn: List<MediaIO> = listOf(),
         audioByteArray: ByteArray? = null,
         gifAsset: GifAsset? = null,
         onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
@@ -519,6 +532,32 @@ open class ConversationModel(
     ) {
         val uuids = mutableListOf<String>()
         val msgId = "temporary_${Uuid.random()}"
+        var media = withContext(Dispatchers.Default) {
+            mediaFiles.map { media ->
+                MediaIO(
+                    url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
+                        repository.cachedFiles.update { prev ->
+                            prev.apply { this[uuid] = media }
+                        }
+                        uuids.add(uuid)
+                    },
+                    messageId = msgId
+                )
+            }.toMutableList().apply {
+                addAll(mediaIn)
+                if(audioByteArray != null) {
+                    add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER, messageId = msgId))
+                }
+                add(
+                    MediaIO(
+                        url = gifAsset?.original,
+                        mimetype = MimeType.IMAGE_GIF.mime,
+                        name = gifAsset?.description,
+                        messageId = msgId
+                    )
+                )
+            }.filter { !it.isEmpty }
+        }
 
         // placeholder/loading message preview
         var msg = message.copy(
@@ -526,101 +565,81 @@ open class ConversationModel(
             conversationId = conversationId,
             sentAt = localNow,
             authorPublicId = currentUser.value?.matrixUserId,
-            media = withContext(Dispatchers.Default) {
-                mediaFiles.map { media ->
-                    MediaIO(
-                        url = (Uuid.random().toString() + ".${media.extension.lowercase()}").also { uuid ->
-                            repository.cachedFiles.update { prev ->
-                                prev.apply { this[uuid] = media }
-                            }
-                            uuids.add(uuid)
-                        }
-                    )
-                }.toMutableList().apply {
-                    addAll(message.media.orEmpty())
-                    if(audioByteArray != null) {
-                        add(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
-                    }
-                    add(
-                        MediaIO(
-                            url = gifAsset?.original,
-                            mimetype = MimeType.IMAGE_GIF.mime,
-                            name = gifAsset?.description
-                        )
-                    )
-                }.filter { !it.isEmpty }
-            },
             state = MessageState.Pending
         )
         repository.cacheMessage(msg)
+        media.forEach { repository.saveMedia(it) }
         repository.invalidateLocalSource()
 
         // real message
-        msg = msg.copy(
-            media = withContext(Dispatchers.Default) {
-                mediaFiles.mapNotNull { file ->
-                    val bytes = file.readBytes()
-                    if(bytes.isNotEmpty()) {
-                        repository.uploadMedia(
-                            mediaByteArray = bytes,
-                            fileName = file.name,
-                            homeserver = homeserver,
+        media = withContext(Dispatchers.Default) {
+            mediaFiles.mapNotNull { file ->
+                val bytes = file.readBytes()
+                if(bytes.isNotEmpty()) {
+                    repository.uploadMedia(
+                        mediaByteArray = bytes,
+                        fileName = file.name,
+                        homeserver = homeserver,
+                        mimetype = MimeType.getByExtension(file.extension).mime
+                    )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
+                        MediaIO(
+                            url = url,
+                            messageId = msgId,
+                            size = bytes.size.toLong(),
+                            name = file.name,
                             mimetype = MimeType.getByExtension(file.extension).mime
-                        )?.success?.data?.contentUri.takeIf { !it.isNullOrBlank() }?.let { url ->
-                            MediaIO(
-                                url = url,
-                                size = bytes.size.toLong(),
-                                name = file.name,
-                                mimetype = MimeType.getByExtension(file.extension).mime
-                            )
-                        }
-                    }else null
-                }.toMutableList().apply {
-                    // existing media
-                    addAll(message.media.orEmpty().toMutableList().filter { !it.isEmpty })
+                        )
+                    }
+                }else null
+            }.toMutableList().apply {
+                // existing media
+                addAll(mediaIn.toMutableList().filter { !it.isEmpty })
 
-                    // audio file
-                    if(audioByteArray != null) {
-                        val size = audioByteArray.size.toLong()
-                        val fileName = "${Uuid.random()}.wav"
-                        val mimetype = MimeType.getByExtension("wav").mime
+                // audio file
+                if(audioByteArray != null) {
+                    val size = audioByteArray.size.toLong()
+                    val fileName = "${Uuid.random()}.wav"
+                    val mimetype = MimeType.getByExtension("wav").mime
 
-                        repository.uploadMedia(
-                            mediaByteArray = audioByteArray,
-                            fileName = fileName,
-                            homeserver = homeserver,
-                            mimetype = mimetype
-                        )?.success?.data?.contentUri.let { audioUrl ->
-                            if(!audioUrl.isNullOrBlank()) {
-                                fileAccess.saveFileToCache(
-                                    data = audioByteArray,
-                                    fileName = audioUrl.toSha256()
-                                )?.let {
-                                    remove(MediaIO(url = MESSAGE_AUDIO_URL_PLACEHOLDER))
-                                    add(
-                                        MediaIO(
-                                            url = audioUrl,
-                                            size = size,
-                                            name = fileName,
-                                            mimetype = mimetype,
-                                            path = it.toString()
-                                        )
+                    repository.uploadMedia(
+                        mediaByteArray = audioByteArray,
+                        fileName = fileName,
+                        homeserver = homeserver,
+                        mimetype = mimetype
+                    )?.success?.data?.contentUri.let { audioUrl ->
+                        if(!audioUrl.isNullOrBlank()) {
+                            fileAccess.saveFileToCache(
+                                data = audioByteArray,
+                                fileName = audioUrl.toSha256()
+                            )?.let { res ->
+                                removeAll { it.url == MESSAGE_AUDIO_URL_PLACEHOLDER }
+                                add(
+                                    MediaIO(
+                                        url = audioUrl,
+                                        size = size,
+                                        name = fileName,
+                                        mimetype = mimetype,
+                                        path = res.toString(),
+                                        messageId = msgId
                                     )
-                                }
+                                )
                             }
                         }
                     }
-
-                    // GIPHY asset
-                    if(!gifAsset?.original.isNullOrBlank()) {
-                        MediaIO(
-                            url = gifAsset.original,
-                            mimetype = MimeType.IMAGE_GIF.mime,
-                            name = gifAsset.description
-                        )
-                    }
                 }
-            },
+
+                // GIPHY asset
+                if(!gifAsset?.original.isNullOrBlank()) {
+                    MediaIO(
+                        url = gifAsset.original,
+                        mimetype = MimeType.IMAGE_GIF.mime,
+                        name = gifAsset.description,
+                        messageId = msgId
+                    )
+                }
+            }
+        }
+        msg = msg.copy(
             state = if(sharedDataManager.matrixClient.value != null) MessageState.Pending else MessageState.Failed
         )
 
@@ -628,28 +647,39 @@ open class ConversationModel(
             repository.sendMessage(
                 client = sharedDataManager.matrixClient.value,
                 conversationId = conversationId,
-                message = msg
+                message = msg,
+                media = media
             )?.let { result ->
-                repository.cacheMessage(
-                    msg.copy(
-                        id = result.getOrNull()?.full ?: "",
-                        state = if(result.isSuccess) MessageState.Sent else MessageState.Failed
-                    )
-                )
-                // we don't need the local message anymore
+                // we don't need the local data anymore
                 repository.removeMessage(msg.id)
+                repository.removeAllMediaOf(msgId)
                 if(result.isSuccess) {
                     repository.cachedFiles.update { prev ->
                         prev.apply {
                             uuids.forEachIndexed { index, s ->
-                                msg.media?.getOrNull(index)?.url?.let { remove(it) }
+                                media.getOrNull(index)?.url?.let { remove(it) }
                                 remove(s)
                             }
                         }
                     }
                 }
+
+                // save the actual version
+                result.getOrNull()?.full?.let { messageId ->
+                    repository.cacheMessage(
+                        msg.copy(
+                            id = messageId,
+                            state = if(result.isSuccess) MessageState.Sent else MessageState.Failed
+                        )
+                    )
+                    media.distinctBy { it.url }.forEach {
+                        repository.saveMedia(it.copy(messageId = messageId, conversationId = conversationId))
+                    }
+                }
             }
-        }
+        }else repository.cacheMessage(msg)
+
+        repository.invalidateLocalSource()
     }
 
     /** Makes a request to add or change reaction to a message */

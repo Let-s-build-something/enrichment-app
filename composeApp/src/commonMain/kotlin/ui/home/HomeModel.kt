@@ -6,6 +6,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
+import androidx.paging.map
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.asSimpleString
 import base.utils.tagToColor
@@ -18,6 +19,7 @@ import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.toResponse
 import data.io.matrix.room.FullConversationRoom
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -77,13 +79,15 @@ class HomeModel(
     )
     private val _selectedUserId = MutableStateFlow<String?>(null)
     private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
+    private val _searchQuery = MutableStateFlow("")
+    private val _collapsedRooms = MutableStateFlow(listOf<String>())
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
     )
-
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
     var persistentPositionData: PersistentListData? = null
 
+    val collapsedRooms = _collapsedRooms.asStateFlow()
     val uiMode = _uiMode.asStateFlow()
     val selectedUserId = _selectedUserId.asStateFlow()
 
@@ -110,24 +114,35 @@ class HomeModel(
     val requestResponse = _requestResponse.asStateFlow()
     val isLoading = networkItemUseCase.isLoading
 
-    /** flow of current requests */
-    val conversationRooms: Flow<PagingData<FullConversationRoom>> = repository.getConversationRoomPager(
+    private val roomsFlow = repository.getConversationRoomPager(
         PagingConfig(
             pageSize = 20,
             enablePlaceholders = true,
             initialLoadSize = 20
         ),
         ownerPublic = { matrixUserId }
-    ).flow
-        .cachedIn(viewModelScope)
-        .combine(_categories) { pagingData, categories ->
-            withContext(Dispatchers.Default) {
-                pagingData.filter { data ->
-                    categories.any { it.range.contains(data.data.proximity ?: 1f) }
+    ).flow.cachedIn(viewModelScope)
+
+    /** flow of current requests */
+    val conversationRooms: Flow<PagingData<FullConversationRoom>> = combine(
+        roomsFlow,
+        _collapsedRooms,
+        _searchQuery,
+        _categories
+    ) { rooms, collapsedRooms, query, categories ->
+        withContext(Dispatchers.Default) {
+            rooms.map { room ->
+                room.apply {
+                    messages = if (!collapsedRooms.contains(room.id)) {
+                        queryMessagesOfRoom(query, room)
+                    } else listOf()
                 }
+            }.filter { data ->
+                (query.isBlank() || data.messages.isNotEmpty())
+                        && categories.any { it.range.contains(data.data.proximity ?: 1f) }
             }
         }
-
+    }
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -172,7 +187,6 @@ class HomeModel(
 
                 _selectedUserId.value = room.data.summary?.heroes?.firstOrNull()?.full
                     ?: room.members.firstOrNull()?.userId
-                            ?: repository.getUsersByRoom(room.id).firstOrNull()?.userId
             }
         }
     }
@@ -185,6 +199,46 @@ class HomeModel(
                 KEY_NETWORK_CATEGORIES,
                 filter.joinToString(",")
             )
+        }
+    }
+
+    fun searchForMessages(query: CharSequence) {
+        _searchQuery.value = query.toString()
+    }
+
+    fun collapseRoom(roomId: String) {
+        _collapsedRooms.update {
+            if (it.contains(roomId)) it.minus(roomId) else it.plus(roomId)
+        }
+    }
+
+    private suspend fun queryMessagesOfRoom(
+        query: String,
+        room: FullConversationRoom
+    ): List<FullConversationMessage> {
+        return withContext(Dispatchers.Default) {
+            val limit = 10
+
+            repository.queryLocalMessagesOfRoom(
+                roomId = room.id,
+                query = query,
+                limit = limit
+            ).let { localMessages ->
+                if (localMessages.size < limit) {
+                    /* TODO repository.queryAndInsertMessages(
+                        matrixClient = matrixClient,
+                        query = query,
+                        roomId = room.id,
+                        limit = limit - localMessages.size
+                    )*/
+
+                    repository.queryLocalMessagesOfRoom(
+                        roomId = room.id,
+                        query = query,
+                        limit = limit
+                    )
+                }else localMessages
+            }
         }
     }
 

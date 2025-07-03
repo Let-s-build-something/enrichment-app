@@ -80,8 +80,12 @@ interface RoomMemberDao {
     @Query("""
         DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
         WHERE userId = :userId
+        AND room_id = :roomId
     """)
-    suspend fun remove(userId: String)
+    suspend fun remove(
+        userId: String,
+        roomId: String
+    )
 
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} WHERE room_id = :roomId")
     suspend fun removeAll(roomId: String)

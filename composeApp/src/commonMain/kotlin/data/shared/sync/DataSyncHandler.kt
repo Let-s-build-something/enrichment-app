@@ -133,7 +133,8 @@ class DataSyncHandler: MessageProcessor() {
                             MediaIO(
                                 url = it,
                                 mimetype = avatar.info?.mimeType,
-                                size = avatar.info?.size
+                                size = avatar.info?.size,
+                                messageId = room.id
                             )
                         },
                         canonicalAlias = alias
@@ -164,15 +165,15 @@ class DataSyncHandler: MessageProcessor() {
                     }
 
                     val lastMessage = res.messages.sortedByDescending {
-                        it.message.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
-                    }.firstOrNull { !it.message.content.isNullOrBlank() }
+                        it.data.sentAt?.toInstant(TimeZone.UTC)?.toEpochMilliseconds()
+                    }.firstOrNull { !it.data.content.isNullOrBlank() }
 
                     // either update existing one, or insert new one
                     newItem.copy(
                         summary = (newItem.summary ?: RoomSummary()).copy(
-                            lastMessage = lastMessage?.message ?: newItem.summary?.lastMessage
+                            lastMessage = lastMessage?.data ?: newItem.summary?.lastMessage
                         ),
-                        lastMessageTimestamp = lastMessage?.message?.sentAt
+                        lastMessageTimestamp = lastMessage?.data?.sentAt
                     ).let { roomUpdate ->
                         (conversationRoomDao.get(
                             id = room.id,
