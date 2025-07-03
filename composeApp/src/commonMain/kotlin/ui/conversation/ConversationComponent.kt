@@ -135,18 +135,6 @@ fun ConversationComponent(
 
     val isLoadingInitialPage = messages.loadState.refresh is LoadState.Loading
             || (messages.itemCount == 0 && !messages.loadState.append.endOfPaginationReached)
-    
-
-    val scrollToMessage: (String?, Int?) -> Unit = { id, fallBackIndex ->
-        val currentSnapshotList = messages.itemSnapshotList.toList()
-        val index = currentSnapshotList.indexOfFirst { it?.id == id } + 2
-
-        (index.takeIf { it != -1 } ?: fallBackIndex.takeIf { it != -1 })?.let { messageIndex ->
-            coroutineScope.launch {
-                listState.animateScrollToItem(messageIndex)
-            }
-        }
-    }
 
     showEmojiPreferencesId.value?.let { messageId ->
         EmojiPreferencePicker(
@@ -405,18 +393,20 @@ fun ConversationComponent(
                                     transcribed = data.data.transcribed == true || isTranscribed.value,
                                 )
                             ),
+                            temporaryFiles = model.temporaryFiles.value.toMap(),
+                            currentUserPublicId = model.matrixUserId ?: "",
+                            highlight = highlight,
                             isPreviousMessageSameAuthor = isPreviousMessageSameAuthor,
                             isNextMessageSameAuthor = isNextMessageSameAuthor,
-                            currentUserPublicId = model.matrixUserId ?: "",
-                            reactingToMessageId = reactingToMessageId,
-                            model = bubbleModel,
-                            highlight = highlight,
-                            replyToMessage = replyToMessage,
-                            scrollToMessage = scrollToMessage,
-                            preferredEmojis = preferredEmojis.value,
-                            temporaryFiles = model.temporaryFiles.value.toMap(),
+                            messageType = messageType,
                             isMyLastMessage = lastCurrentUserMessage.value == index,
-                            messageType = messageType
+                            model = bubbleModel,
+                            reactingToMessageId = reactingToMessageId,
+                            replyToMessage = replyToMessage,
+                            preferredEmojis = preferredEmojis.value,
+                            scrollToMessage = { messageId ->
+                                model.scrollTo(messageId)
+                            }
                         )
                     }
                 }
@@ -439,7 +429,7 @@ fun ConversationComponent(
             model = model,
             replyToMessage = replyToMessage,
             scrollToMessage = {
-                scrollToMessage(it.id, -1)
+                model.scrollTo(it.id)
             }
         )
     }

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -71,7 +70,7 @@ fun LazyItemScope.ConversationMessageContent(
     reactingToMessageId: MutableState<String?>,
     replyToMessage: MutableState<FullConversationMessage?>,
     preferredEmojis: List<EmojiData>,
-    scrollToMessage: (String?, Int?) -> Unit
+    scrollToMessage: (String?) -> Unit
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
@@ -163,7 +162,7 @@ fun LazyItemScope.ConversationMessageContent(
                     else -> Alignment.CenterHorizontally
                 }
                 Column(
-                    modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                    modifier = (if(rememberedHeight.value > 0f) Modifier.heightIn(min = rememberedHeight.value.dp) else Modifier)
                         .wrapContentHeight()
                         .onSizeChanged {
                             if(it.height != 0) {
@@ -180,11 +179,8 @@ fun LazyItemScope.ConversationMessageContent(
                             modifier = Modifier
                                 .wrapContentWidth()
                                 .padding(start = 12.dp),
-                            data = anchorData,
-                            onClick = {
-                                // TODO jump scroll to anchor 86c45m6v8
-                                //scrollToMessage(anchorData.id, anchorData.index)
-                            },
+                            data = FullConversationMessage(anchorData),
+                            onClick = { scrollToMessage(anchorData.id) },
                             isCurrentUser = anchorData.authorPublicId == currentUserPublicId
                         )
                     }

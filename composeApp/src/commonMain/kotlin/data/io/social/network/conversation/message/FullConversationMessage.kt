@@ -27,13 +27,13 @@ data class FullConversationMessage(
         parentColumn = "id",
         entityColumn = "message_id"
     )
-    val reactions: List<MessageReactionIO>,
+    val reactions: List<MessageReactionIO> = listOf(),
 
     @Relation(
         parentColumn = "id",
         entityColumn = "message_id"
     )
-    val media: List<MediaIO>
+    val media: List<MediaIO> = listOf()
 ) {
 
     @Transient

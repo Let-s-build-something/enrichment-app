@@ -119,7 +119,7 @@ open class ConversationModel(
     protected var conversationId: MutableStateFlow<String>,
     private val userId: String? = null,
     enableMessages: Boolean = true,
-    scrollTo: String? = null, // TODO 86c45m6v8
+    private val scrollTo: String? = null,
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,
@@ -233,6 +233,9 @@ open class ConversationModel(
             }
 
             onDataRequest(isSpecial = false, isPullRefresh = false)
+        }
+        scrollTo?.let { messageId ->
+            scrollTo(messageId)
         }
     }
 
@@ -517,6 +520,10 @@ open class ConversationModel(
                 }
             }
         }
+    }
+
+    fun scrollTo(messageId: String?) {
+        // TODO 86c45m6v8
     }
 
     @OptIn(ExperimentalUuidApi::class)
