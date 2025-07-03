@@ -96,7 +96,8 @@ abstract class MessageProcessor {
     suspend fun saveEvents(
         events: List<ClientEvent<*>>,
         roomId: String,
-        prevBatch: String?
+        prevBatch: String?,
+        nextBatch: String? = null,
     ): SaveEventsResult {
         return withContext(Dispatchers.IO) {
             val result = processEvents(
@@ -120,14 +121,16 @@ abstract class MessageProcessor {
             mediaDao.insertAll(result.media)
             messageReactionDao.insertAll(result.reactions.toList())
 
-            val messages = result.messages.plus(decryptedMessages).mapNotNull {
-                if (conversationMessageDao.insertIgnore(it) == -1L) {
-                    conversationMessageDao.insertReplace(it)
+            val messages = result.messages.plus(decryptedMessages).mapNotNull { message ->
+                if (conversationMessageDao.insertIgnore(message) == -1L) {
+                    conversationMessageDao.insertReplace(
+                        message.copy(nextBatch = nextBatch, prevBatch = prevBatch)
+                    )
                     null
                 } else FullConversationMessage(
-                    data = it,
-                    reactions = messageReactionDao.getAll(it.id),
-                    media = mediaDao.getAllByMessageId(it.id)
+                    data = message,
+                    reactions = messageReactionDao.getAll(message.id),
+                    media = mediaDao.getAllByMessageId(message.id)
                 )
             }
 
