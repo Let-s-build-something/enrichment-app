@@ -429,22 +429,16 @@ internal fun BoxScope.SendMessagePanel(
         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
 
         replyToMessage.value?.takeIf { it.id != overrideAnchorMessage?.id } ?.let { originalMessage ->
-            LaunchedEffect(Unit) {
-                focusRequester.requestFocus()
-            }
-
             ReplyIndication(
                 modifier = Modifier
                     .padding(start = 12.dp)
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxWidth(),
-                data = originalMessage.data,
+                data = originalMessage,
                 onClick = {
                     scrollToMessage(originalMessage)
                 },
-                onRemoveRequest = {
-                    replyToMessage.value = null
-                },
+                onRemoveRequest = { replyToMessage.value = null },
                 isCurrentUser = originalMessage.data.authorPublicId == model.currentUser.value?.matrixUserId,
                 removable = true
             )

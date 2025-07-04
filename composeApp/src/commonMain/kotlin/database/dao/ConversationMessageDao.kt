@@ -88,6 +88,25 @@ interface ConversationMessageDao {
     """)
     suspend fun getPendingVerifications(senderUserId: String?): List<ConversationMessageIO>
 
+    @Query("""
+    SELECT COUNT(*) 
+    FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+    WHERE conversation_id = :conversationId
+    AND sent_at > (
+        SELECT COALESCE(
+            (SELECT sent_at 
+             FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+             WHERE id = :messageId
+             AND conversation_id = :conversationId),
+            0
+        )
+    )
+""")
+    suspend fun getMessagesAfterCount(
+        messageId: String,
+        conversationId: String
+    ): Int
+
     /** Counts the number of items */
     @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE} " +
             "WHERE conversation_id = :conversationId ")
@@ -210,5 +229,4 @@ interface ConversationMessageDao {
             }
         )
     }
-
 }

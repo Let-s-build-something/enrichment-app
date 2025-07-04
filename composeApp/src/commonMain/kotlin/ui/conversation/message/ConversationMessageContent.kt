@@ -1,12 +1,10 @@
 package ui.conversation.message
 
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,7 +35,6 @@ import data.io.social.network.conversation.EmojiData
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import io.github.vinceglb.filekit.PlatformFile
-import kotlinx.coroutines.delay
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageBubble
 import ui.conversation.components.message.MessageBubbleModel
@@ -71,23 +67,12 @@ fun LazyItemScope.ConversationMessageContent(
     reactingToMessageId: MutableState<String?>,
     replyToMessage: MutableState<FullConversationMessage?>,
     preferredEmojis: List<EmojiData>,
-    scrollToMessage: (String?, Int?) -> Unit
+    scrollToMessage: (String?) -> Unit
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
 
-    val scrollPosition = rememberSaveable(data?.id) {
-        mutableStateOf(0)
-    }
-    val mediaRowState = rememberScrollState(
-        initial = scrollPosition.value
-    )
-    if(scrollPosition.value != 0) {
-        LaunchedEffect(Unit) {
-            delay(400)
-            mediaRowState.animateScrollBy(scrollPosition.value.toFloat())
-        }
-    }
+    val mediaRowState = rememberScrollState(initial = 0)
 
     Row(
         modifier = Modifier
@@ -163,7 +148,7 @@ fun LazyItemScope.ConversationMessageContent(
                     else -> Alignment.CenterHorizontally
                 }
                 Column(
-                    modifier = (if(rememberedHeight.value > 0f) Modifier.height(rememberedHeight.value.dp) else Modifier)
+                    modifier = (if(rememberedHeight.value > 0f) Modifier.heightIn(min = rememberedHeight.value.dp) else Modifier)
                         .wrapContentHeight()
                         .onSizeChanged {
                             if(it.height != 0) {
@@ -180,11 +165,8 @@ fun LazyItemScope.ConversationMessageContent(
                             modifier = Modifier
                                 .wrapContentWidth()
                                 .padding(start = 12.dp),
-                            data = anchorData,
-                            onClick = {
-                                // TODO jump scroll to anchor 86c45m6v8
-                                //scrollToMessage(anchorData.id, anchorData.index)
-                            },
+                            data = FullConversationMessage(anchorData),
+                            onClick = { scrollToMessage(anchorData.id) },
                             isCurrentUser = anchorData.authorPublicId == currentUserPublicId
                         )
                     }

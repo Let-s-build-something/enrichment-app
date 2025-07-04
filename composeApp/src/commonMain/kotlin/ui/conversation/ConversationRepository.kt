@@ -405,6 +405,14 @@ open class ConversationRepository(
         mediaDao.removeAllOf(messageId)
     }
 
+    suspend fun indexOfMessage(
+        messageId: String,
+        conversationId: String
+    ) = withContext(Dispatchers.IO) {
+        if (conversationMessageDao.get(messageId) != null) {
+            conversationMessageDao.getMessagesAfterCount(messageId, conversationId)
+        } else null
+    }
 
     suspend fun cacheMessage(message: ConversationMessageIO) = withContext(Dispatchers.IO) {
         conversationMessageDao.insertReplace(message)

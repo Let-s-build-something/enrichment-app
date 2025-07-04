@@ -354,6 +354,7 @@ fun ConversationScreen(
                             exit = slideOutVertically { (-it * 1.5f).toInt() }
                         ) {
                             SearchBar(
+                                conversationModel = model,
                                 searchFieldState = searchFieldState,
                                 conversationId = conversationId
                             )
@@ -410,7 +411,7 @@ fun ConversationScreen(
                             key = NavigationArguments.CONVERSATION_SCROLL_TO,
                             defaultValue = null,
                             listener = { scrollTo ->
-                                // TODO 86c45m6v8 if (scrollTo != null) model.scrollTo(scrollTo)
+                                if (scrollTo != null) model.scrollTo(scrollTo)
                             }
                         )
                     }
@@ -549,6 +550,7 @@ private fun LazyListScope.createRoomNoMembers(
 
 @Composable
 private fun SearchBar(
+    conversationModel: ConversationModel,
     searchFieldState: TextFieldState,
     conversationId: String?
 ) {
@@ -581,7 +583,8 @@ private fun SearchBar(
     }
 
     LaunchedEffect(messages.itemCount) {
-        // TODO 86c45m6v8 model.scrollTo(messages.getOrNull(0))
+        index.value = 0
+        conversationModel.scrollTo(messages.getOrNull(0)?.id)
     }
 
     Row(
@@ -636,10 +639,11 @@ private fun SearchBar(
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
                         .scalingClickable(key = upEnabled) {
-                            if (upEnabled) index.value += 1
+                            if (upEnabled) index.value = (index.value + 1).coerceAtMost(messages.itemCount)
 
-                            messages.getOrNull(index.value)?.data?.id?.let {
-                                // TODO 86c45m6v8 model.scrollTo(it)
+                            SharedLogger.logger.debug { "index: ${index.value}, messageId: ${messages.getOrNull(index.value)?.id}" }
+                            messages.getOrNull(index.value)?.id?.let {
+                                conversationModel.scrollTo(it)
                             }
                         }
                         .padding(2.dp),
@@ -653,10 +657,11 @@ private fun SearchBar(
                     modifier = Modifier
                         .size(with(density) { 38.sp.toDp() })
                         .scalingClickable(key = downEnabled) {
-                            if (downEnabled) index.value -= 1
+                            if (downEnabled) index.value = (index.value - 1).coerceAtLeast(0)
 
-                            messages.getOrNull(index.value)?.data?.id?.let {
-                                // TODO 86c45m6v8 model.scrollTo(it)
+                            SharedLogger.logger.debug { "index: ${index.value}, messageId: ${messages.getOrNull(index.value)?.id}" }
+                            messages.getOrNull(index.value)?.id?.let {
+                                conversationModel.scrollTo(it)
                             }
                         }
                         .padding(2.dp),

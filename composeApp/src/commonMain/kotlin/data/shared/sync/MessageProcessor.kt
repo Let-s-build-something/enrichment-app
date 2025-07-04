@@ -168,10 +168,14 @@ abstract class MessageProcessor {
             }
 
             result.replacements.forEach { replacement ->
-                conversationMessageDao.updateMessage(
-                    id = replacement.key,
-                    message = replacement.value?.content ?: ""
-                )
+                if (conversationMessageDao.get(replacement.key) != null) {
+                    conversationMessageDao.updateMessage(
+                        id = replacement.key,
+                        message = replacement.value?.content ?: ""
+                    )
+                }else replacement.value?.let {
+                    conversationMessageDao.insertReplace(it)
+                }
             }
 
             SaveEventsResult(
@@ -326,25 +330,26 @@ abstract class MessageProcessor {
                     null
                 }
                 is MessageEventContent -> {
-                    (content.relatesTo as? RelatesTo.Replace).let { replacement ->
-                        (this as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
-                            media.add(
-                                MediaIO(
-                                    url = it.url,
-                                    mimetype = it.info?.mimeType,
-                                    name = it.fileName,
-                                    size = it.info?.size,
-                                    messageId = event.idOrNull?.full ?: "",
-                                    conversationId = roomId
-                                )
+                    val replacement: RelatesTo.Replace? = if (content.relatesTo is RelatesTo.Replace) {
+                        content.relatesTo as RelatesTo.Replace
+                    } else null
+                    (this as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
+                        media.add(
+                            MediaIO(
+                                url = it.url,
+                                mimetype = it.info?.mimeType,
+                                name = it.fileName,
+                                size = it.info?.size,
+                                messageId = event.idOrNull?.full ?: "",
+                                conversationId = roomId
                             )
-                        }
-
-                        if (replacement != null) {
-                            replacements[replacement.eventId.full] = replacement.newContent?.process()
-                            null
-                        }else content.process()
+                        )
                     }
+
+                    if (replacement != null) {
+                        replacements[replacement.eventId.full] = replacement.newContent?.process()
+                        null
+                    }else content.process()
                 }
                 else -> null
                 /*EmptyEventContent -> TODO()
