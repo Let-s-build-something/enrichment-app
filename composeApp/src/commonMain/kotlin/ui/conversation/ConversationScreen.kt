@@ -149,6 +149,7 @@ fun ConversationScreen(
     val uiMode = model.uiMode.collectAsState()
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
+    val nestedNavController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val reactingToMessageId = rememberSaveable(model) {
         mutableStateOf<String?>(null)
@@ -157,13 +158,6 @@ fun ConversationScreen(
         mutableStateOf(searchQuery != null)
     }
     val isSearchVisible = rememberSaveable(model) { mutableStateOf(false) }
-    val initialNestedDestination = rememberSaveable(model) {
-        mutableStateOf(
-            if (searchQuery != null) {
-                NavigationNode.ConversationSearch(conversationId, searchQuery)
-            } else NavigationNode.ConversationSettings(conversationId)
-        )
-    }
     val searchFieldState = remember(model) { TextFieldState() }
     val modeSwitchState = rememberMultiChoiceState(
         items = mutableListOf(
@@ -225,14 +219,14 @@ fun ConversationScreen(
                     if (isCompact) {
                         isSearchVisible.value = true
                     } else {
-                        initialNestedDestination.value = NavigationNode.ConversationSearch(conversationId)
+                        nestedNavController.navigate(NavigationNode.ConversationSearch(conversationId))
                         showSettings.value = true
                     }
                 }
                 .onEscape {
                     isSearchVisible.value = false
                     showSettings.value = false
-                    initialNestedDestination.value = NavigationNode.ConversationSettings(conversationId)
+                    nestedNavController.navigate(NavigationNode.ConversationSettings(conversationId))
                 },
             navIconType = NavIconType.BACK,
             headerPrefix = {
@@ -369,7 +363,18 @@ fun ConversationScreen(
                         .width(if(showSettings.value) LocalScreenSize.current.width.times(.4f).dp else 0.dp)
                 ) {
                     if(showSettings.value) {
-                        val nestedNavController = rememberNavController()
+                        val initialQuery = rememberSaveable(model) {
+                            mutableStateOf(searchQuery)
+                        }
+
+                        LaunchedEffect(initialQuery) {
+                            if(initialQuery.value != null) {
+                                nestedNavController.navigate(
+                                    NavigationNode.ConversationSearch(conversationId, searchQuery)
+                                )
+                                initialQuery.value = null
+                            }
+                        }
 
                         Column {
                             if(BuildKonfig.isDevelopment) {
@@ -388,7 +393,7 @@ fun ConversationScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(color = LocalTheme.current.colors.backgroundLight),
-                                startDestination = initialNestedDestination.value,
+                                startDestination = NavigationNode.ConversationSettings(conversationId),
                                 navController = nestedNavController,
                                 enterTransition = {
                                     slideInHorizontally { -it * 2 }

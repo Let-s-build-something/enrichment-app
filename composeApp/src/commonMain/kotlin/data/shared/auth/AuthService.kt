@@ -37,6 +37,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -531,14 +532,18 @@ class AuthService {
     private fun observeAvatarChanges() {
         avatarScope.coroutineContext.cancelChildren()
         avatarScope.launch {
-            dataManager.matrixClient.value?.avatarUrl?.collectLatest { newUrl ->
-                val userUpdate = UserIO(avatarUrl = newUrl)
-                dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
-                if (newUrl != null) {
-                    secureSettings.putString(
-                        key = SecureSettingsKeys.KEY_AVATAR_URL,
-                        value = newUrl
-                    )
+            dataManager.matrixClient.value?.let { client ->
+                client.avatarUrl.combine(client.displayName) { avatarUrl, displayName ->
+                    avatarUrl to displayName
+                }.collectLatest { info ->
+                    val userUpdate = UserIO(avatarUrl = info.first, displayName = info.second)
+                    dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
+                    if (info.first != null) {
+                        secureSettings.putString(
+                            key = SecureSettingsKeys.KEY_AVATAR_URL,
+                            value = info.first ?: ""
+                        )
+                    }
                 }
             }
         }

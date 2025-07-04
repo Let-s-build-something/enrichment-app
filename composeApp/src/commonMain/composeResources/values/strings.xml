@@ -29,7 +29,7 @@
   <string name="screen_home_no_client_action">Okey-dokey, I'll sign-in</string>
 
   <string name="username_change_launcher_title">Hey there, %1$s</string>
-  <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
+  <string name="username_change_launcher_content">Being authentic makes you unique. There's no one like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
   <string name="username_change_launcher_confirm">Save</string>
   <string name="login_error_invalid_credential">Some of the info is incorrect 😵. Double check your information and try again 🤞</string>
@@ -79,7 +79,7 @@
   <string name="no_email_client_error">We failed opening an email client. Please, open your preferred client and check for the verification email:-).</string>
 
 
-  <string name="account_dashboard_theme">Mr. Theme</string>
+  <string name="account_dashboard_theme">50 shades of background</string>
   <string name="account_dashboard_theme_light">Light</string>
   <string name="account_dashboard_theme_dark">Dark</string>
   <string name="account_dashboard_theme_device">System</string>
