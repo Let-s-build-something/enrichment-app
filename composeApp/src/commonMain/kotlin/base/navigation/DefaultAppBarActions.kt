@@ -60,7 +60,7 @@ fun DefaultAppBarActions(
             // lobby destinations
             NavigationNode.Home.route -> {
                 Crossfade(targetState = isUserSignedIn) { showAccount ->
-                    if(showAccount) {
+                    if (showAccount) {
                         val showText = expanded && (avatarUrl == null || !isPhone)
 
                         ActionBarIcon(

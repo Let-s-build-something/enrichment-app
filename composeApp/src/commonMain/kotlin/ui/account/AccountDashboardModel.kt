@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -112,19 +111,14 @@ class AccountDashboardModel(
     /** Logs out the currently signed in user */
     override suspend fun logoutCurrentUser() {
         _isLoading.value = true
-        repository.logout()
         super.logoutCurrentUser()
         _signOutResponse.emit(true)
         _isLoading.value = false
     }
 
     fun logout() {
-        runBlocking {
-            _isLoading.value = true
-            repository.logout()
-            super.logoutCurrentUser()
-            _signOutResponse.emit(true)
-            _isLoading.value = false
+        viewModelScope.launch {
+            logoutCurrentUser()
         }
     }
 }

@@ -26,6 +26,7 @@ import net.folivo.trixnity.client.MatrixClient
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
+import ui.home.homeModule
 import ui.login.AUGMY_HOME_SERVER
 import utils.SharedLogger
 
@@ -150,12 +151,15 @@ open class SharedModel: ViewModel() {
         authService.clear()
         secureSettings.clear()
         sharedDataManager.matrixClient.value?.logout()
+        sharedDataManager.matrixClient.value?.close()
         sharedDataManager.currentUser.value = null
         sharedDataManager.localSettings.value = null
         sharedDataManager.matrixClient.value = null
         sharedDataManager.pingStream.value = setOf()
         unloadKoinModules(commonModule)
+        unloadKoinModules(homeModule)
         loadKoinModules(commonModule)
+        loadKoinModules(homeModule)
         updateClientSettings()
     }
 }
