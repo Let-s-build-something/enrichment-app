@@ -115,7 +115,12 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
 
     LaunchedEffect(signOutResponse.value, currentUser.value) {
         if(signOutResponse.value && currentUser.value == null) {
-            navController?.popBackStack(NavigationNode.Home, inclusive = false)
+            navController?.navigate(NavigationNode.Home) {
+                popUpTo(NavigationNode.Home) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
         }
     }
 

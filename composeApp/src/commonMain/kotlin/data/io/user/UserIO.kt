@@ -34,12 +34,6 @@ data class UserIO(
         @Ignore
         get() = matrixUserId?.let { UserId(it).generateUserTag() }
 
-    val matrixDisplayName: String?
-        @Ignore
-        get() = if(matrixUserId != null) {
-            UserId(matrixUserId).localpart
-        }else null
-
     val isFullyValid: Boolean
         @Ignore
         get() = accessToken != null
@@ -53,7 +47,8 @@ data class UserIO(
             matrixUserId = other?.matrixUserId ?: this.matrixUserId,
             matrixHomeserver = other?.matrixHomeserver ?: this.matrixHomeserver,
             publicId = other?.publicId ?: this.publicId,
-            configuration = other?.configuration ?: this.configuration
+            configuration = other?.configuration ?: this.configuration,
+            avatarUrl = other?.avatarUrl ?: this.avatarUrl
         )
     }
 
