@@ -10,6 +10,7 @@ import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
+import data.io.base.AppPingType
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
@@ -99,6 +100,14 @@ open class SharedModel: ViewModel() {
         sharedDataManager.pingStream.update { prev ->
             prev.toMutableSet().apply {
                 removeAll { it.identifier == identifier }
+            }
+        }
+    }
+
+    suspend fun consumePing(type: AppPingType) = withContext(Dispatchers.Default) {
+        sharedDataManager.pingStream.update { prev ->
+            prev.toMutableSet().apply {
+                removeAll { it.type == type }
             }
         }
     }

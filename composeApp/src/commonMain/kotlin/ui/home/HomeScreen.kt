@@ -169,7 +169,9 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
         model.pingStream.collectLatest { stream ->
             stream.forEach {
                 if(it.type == AppPingType.ConversationDashboard) {
+                    model.consumePing(AppPingType.ConversationDashboard)
                     conversationRooms.refresh()
+                    return@forEach
                 }
             }
         }

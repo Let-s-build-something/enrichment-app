@@ -186,6 +186,7 @@ fun ConversationScreen(
                 ) {
                     messages.refresh()
                     model.consumePing(conversationId)
+                    return@forEach
                 }
             }
         }
