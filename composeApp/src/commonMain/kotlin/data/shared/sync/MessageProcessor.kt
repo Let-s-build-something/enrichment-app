@@ -122,16 +122,16 @@ abstract class MessageProcessor {
             mediaDao.insertAll(result.media)
             messageReactionDao.insertAll(result.reactions.toList())
 
-            val messages = result.messages.plus(decryptedMessages).mapNotNull { message ->
+            val messages = result.messages.plus(decryptedMessages).mapNotNull { m ->
+                val message = m.copy(nextBatch = nextBatch, prevBatch = prevBatch)
+
                 if (conversationMessageDao.insertIgnore(message) == -1L) {
-                    conversationMessageDao.insertReplace(
-                        message.copy(nextBatch = nextBatch, prevBatch = prevBatch)
-                    )
+                    conversationMessageDao.insertReplace(message)
                     null
-                } else FullConversationMessage(
+                }else FullConversationMessage(
                     data = message,
-                    reactions = messageReactionDao.getAll(message.id),
-                    media = mediaDao.getAllByMessageId(message.id)
+                    reactions = result.reactions.filter { it.messageId == message.id },
+                    media = result.media.filter { it.messageId == message.id },
                 )
             }
 

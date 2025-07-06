@@ -10,6 +10,7 @@ import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
+import data.io.base.AppPingType
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
@@ -103,6 +104,14 @@ open class SharedModel: ViewModel() {
         }
     }
 
+    suspend fun consumePing(type: AppPingType) = withContext(Dispatchers.Default) {
+        sharedDataManager.pingStream.update { prev ->
+            prev.toMutableSet().apply {
+                removeAll { it.type == type }
+            }
+        }
+    }
+
     /** Changes the state of the toolbar */
     fun changeToolbarState(expand: Boolean) {
         sharedDataManager.isToolbarExpanded.value = expand
@@ -132,7 +141,6 @@ open class SharedModel: ViewModel() {
             "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId"
         )?.split(",")
             ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
-        // Jvm_3b158f7e3e20467681c9ac573ffb9fd6
 
         val update = LocalSettings(
             theme = theme,

@@ -186,6 +186,7 @@ fun ConversationScreen(
                 ) {
                     messages.refresh()
                     model.consumePing(conversationId)
+                    return@forEach
                 }
             }
         }
@@ -219,14 +220,16 @@ fun ConversationScreen(
                     if (isCompact) {
                         isSearchVisible.value = true
                     } else {
-                        nestedNavController.navigate(NavigationNode.ConversationSearch(conversationId))
                         showSettings.value = true
+                        coroutineScope.launch {
+                            delay(250)
+                            nestedNavController.navigate(NavigationNode.ConversationSearch(conversationId))
+                        }
                     }
                 }
                 .onEscape {
                     isSearchVisible.value = false
                     showSettings.value = false
-                    nestedNavController.navigate(NavigationNode.ConversationSettings(conversationId))
                 },
             navIconType = NavIconType.BACK,
             headerPrefix = {

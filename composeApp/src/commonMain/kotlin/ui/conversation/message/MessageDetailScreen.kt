@@ -73,15 +73,15 @@ fun MessageDetailScreen(
     conversationId: String?,
     title: String?
 ) {
-    val viewModel: MessageDetailModel = koinViewModel(
+    val model: MessageDetailModel = koinViewModel(
         key = messageId,
         parameters = {
             parametersOf(messageId ?: "", conversationId ?: "")
         }
     )
 
-    val replies = viewModel.replies.collectAsLazyPagingItems()
-    val message = viewModel.message.collectAsState(null)
+    val replies = model.replies.collectAsLazyPagingItems()
+    val message = model.message.collectAsState(null)
 
     val transcribing = rememberSaveable(messageId) {
         mutableStateOf(false)
@@ -91,15 +91,17 @@ fun MessageDetailScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.pingStream.collectLatest { stream ->
+        model.pingStream.collectLatest { stream ->
             stream.forEach {
                 if(it.type == AppPingType.Conversation) {
                     if(it.identifier == messageId) {
                         replies.refresh()
-                        viewModel.consumePing(messageId)
+                        model.consumePing(messageId)
+                        return@forEach
                     }else if(it.identifier == conversationId) {
                         replies.refresh()
-                        viewModel.consumePing(conversationId)
+                        model.consumePing(conversationId)
+                        return@forEach
                     }
                 }
             }
@@ -133,7 +135,7 @@ fun MessageDetailScreen(
             verticalArrangement = Arrangement.Top,
             shimmerItemCount = REPLIES_SHIMMER_ITEM_COUNT,
             conversationId = conversationId,
-            model = viewModel,
+            model = model,
             messages = replies,
             lazyScope = {
                 item {
@@ -150,7 +152,7 @@ fun MessageDetailScreen(
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        val isCurrentUser = viewModel.matrixUserId == message.value?.data?.authorPublicId
+                        val isCurrentUser = model.matrixUserId == message.value?.data?.authorPublicId
 
                         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
                         if(!isCurrentUser) {
@@ -265,7 +267,7 @@ fun MessageDetailScreen(
                                                         textAlign = TextAlign.Center
                                                     )
                                                 )
-                                                if (reaction.user?.userId == viewModel.matrixUserId) {
+                                                if (reaction.user?.userId == model.matrixUserId) {
                                                     Box(
                                                         modifier = Modifier
                                                             .height(2.dp)

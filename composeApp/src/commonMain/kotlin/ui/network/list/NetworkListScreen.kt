@@ -51,7 +51,6 @@ import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.NetworkProximityCategory
-import data.io.base.AppPingType
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -85,16 +84,6 @@ fun NetworkListContent(
     val selectedItem = remember { mutableStateOf<String?>(null) }
     val selectedUser = remember {
         mutableStateOf<NetworkItemIO?>(null)
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.pingStream.collectLatest { stream ->
-            stream.forEach {
-                if(it.type == AppPingType.NetworkDashboard) {
-                    networkItems.refresh()
-                }
-            }
-        }
     }
 
     navController?.CollectResult(

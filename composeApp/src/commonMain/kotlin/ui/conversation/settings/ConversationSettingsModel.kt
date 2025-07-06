@@ -21,11 +21,11 @@ import korlibs.io.net.MimeType
 import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -85,9 +85,10 @@ class ConversationSettingsModel(
 
     /** Detailed information about this conversation */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val conversation = dataManager.conversations.mapLatest { it.second[conversationId] }
+    private val _conversation = MutableStateFlow(dataManager.conversations.value.second[conversationId])
 
     val ongoingChange = _ongoingChange.asStateFlow()
+    val conversation = _conversation.asStateFlow()
     val selectedInvitedUser = _selectedInvitedUser.asStateFlow()
     val verifications = _verifications.asStateFlow()
 
@@ -109,6 +110,28 @@ class ConversationSettingsModel(
                     NetworkProximityCategory.entries[index] to color
                 }
             }.orEmpty().toMap()
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            if((conversationId.isNotBlank() && dataManager.conversations.value.second[conversationId] == null)) {
+                withContext(Dispatchers.IO) {
+                    repository.getConversationDetail(
+                        conversationId = conversationId,
+                        owner = matrixUserId
+                    )?.let { data ->
+                        dataManager.updateConversations { it.apply { this[conversationId] = data } }
+                        _conversation.value = data
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            dataManager.conversations.collect {
+                _conversation.value = it.second[conversationId]
+            }
         }
     }
 

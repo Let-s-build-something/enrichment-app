@@ -6,6 +6,7 @@ import androidx.paging.PagingSource
 import data.io.base.BaseResponse
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.user.NetworkItemIO
@@ -79,6 +80,14 @@ class ConversationSettingsRepository(
         conversationMessageDao.getPendingVerifications(senderUserId = senderUserId)
     }
 
+    /** Returns a detailed information about a conversation */
+    suspend fun getConversationDetail(
+        conversationId: String,
+        owner: String?
+    ): FullConversationRoom? = withContext(Dispatchers.IO) {
+        conversationRoomDao.get(conversationId, ownerPublicId = owner)
+    }
+
     /** Returns a flow of conversation messages */
     fun getMembersListFlow(
         homeserver: () -> String,
@@ -117,9 +126,17 @@ class ConversationSettingsRepository(
                                         )
                                     }else null
                                 } ?: if(prevBatch != null || entity == null) {
+                                    // no batch = start of the members remote pagination
+                                    val excludedUsers = withContext(Dispatchers.Default) {
+                                        (if (prevBatch == null) {
+                                            setOf(*roomMemberDao.getAll(conversationId).map { it.userId }.toTypedArray())
+                                        } else setOf()).plus(ignoreUserId ?: "")
+                                    }
+
                                     getAndStoreNewMembers(
                                         limit = config.pageSize,
                                         conversationId = conversationId,
+                                        excludedUsers = excludedUsers,
                                         fromBatch = prevBatch,
                                         homeserver = homeserver()
                                     )?.let { res ->
