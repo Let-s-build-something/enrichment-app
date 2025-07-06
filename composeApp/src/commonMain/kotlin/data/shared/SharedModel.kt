@@ -132,7 +132,6 @@ open class SharedModel: ViewModel() {
             "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId"
         )?.split(",")
             ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
-        // Jvm_3b158f7e3e20467681c9ac573ffb9fd6
 
         val update = LocalSettings(
             theme = theme,

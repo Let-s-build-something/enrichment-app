@@ -296,6 +296,7 @@
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
+  <string name="accessibility_scroll_up">Scroll up</string>
   <string name="accessibility_search_up">Move to previous search match</string>
   <string name="accessibility_search_down">Move to next search match</string>
   <string name="accessibility_info_box">Help info box</string>

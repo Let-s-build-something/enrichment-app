@@ -13,6 +13,12 @@ interface RoomMemberDao {
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}")
     suspend fun getAll(): List<ConversationRoomMember>
 
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+        WHERE room_id = :roomId
+        """)
+    suspend fun getAll(roomId: String): List<ConversationRoomMember>
+
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
             "WHERE userId = :userId ")
     suspend fun get(userId: String): ConversationRoomMember?

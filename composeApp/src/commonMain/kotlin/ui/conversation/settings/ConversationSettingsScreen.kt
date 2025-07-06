@@ -3,6 +3,8 @@ package ui.conversation.settings
 import CollectResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -30,11 +33,13 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.FaceRetouchingOff
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.material.icons.outlined.SensorOccupied
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +64,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_add_new_member
 import augmy.composeapp.generated.resources.accessibility_change_avatar
 import augmy.composeapp.generated.resources.accessibility_change_username
+import augmy.composeapp.generated.resources.accessibility_scroll_up
 import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
@@ -85,6 +91,7 @@ import augmy.interactive.shared.ext.brandShimmerEffect
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.base.ZIndexFab
 import augmy.interactive.shared.ui.components.MinimalisticComponentIcon
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MinimalisticIcon
@@ -124,7 +131,9 @@ import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
 import ui.network.components.user_detail.AddToCircleAction
 import ui.network.components.user_detail.UserDetailDialog
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Composable
 fun ConversationSettingsScreen(conversationId: String?) {
@@ -176,7 +185,7 @@ fun ConversationSettingsScreen(conversationId: String?) {
             )
         }
 
-        val conversation = model.conversation.collectAsState(null)
+        val conversation = model.conversation.collectAsState()
 
         ConversationSettingsContent(
             modifier = Modifier
@@ -238,7 +247,7 @@ fun ConversationSettingsContent(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    val detail = model.conversation.collectAsState(null)
+    val detail = model.conversation.collectAsState()
     val ongoingChange = model.ongoingChange.collectAsState()
     val selectedUserToInvite = model.selectedInvitedUser.collectAsState()
     val directUser = detail.value?.members?.firstOrNull()?.toNetworkItem()
@@ -252,6 +261,7 @@ fun ConversationSettingsContent(
     val selectedMemberDetail = remember { mutableStateOf<ConversationRoomMember?>(null) }
     val kickMemberUserId = remember { mutableStateOf<String?>(null) }
     val enableMembersPaging = rememberSaveable { mutableStateOf(false) }
+    val showScrollUp = remember { mutableStateOf(listState.firstVisibleItemIndex > 30) }
 
 
     navController?.CollectResult<String?>(
@@ -263,9 +273,11 @@ fun ConversationSettingsContent(
     )
 
     LaunchedEffect(Unit) {
-        snapshotFlow { listState.firstVisibleItemIndex }.collectLatest {
+        snapshotFlow { listState.firstVisibleItemIndex }.collectLatest { index ->
+            SharedLogger.logger.debug { "firstVisibleItemIndex: $index" }
+            showScrollUp.value = index > 30
             // TODO filtering
-            if(it > 2) {
+            if(index > 2) {
                 // show members filter
             }else {
                 // if members filter was visible, stop the pagination
@@ -347,257 +359,292 @@ fun ConversationSettingsContent(
         )
     }
 
-    LazyColumn(
+    Box(
         modifier = modifier,
-        state = listState,
-        horizontalAlignment = Alignment.CenterHorizontally
+        contentAlignment = Alignment.TopCenter
     ) {
-        item {
-            Box(modifier = Modifier.padding(top = 6.dp)) {
-                AvatarImage(
-                    modifier = Modifier.fillMaxWidth(.5f),
-                    media = detail.value?.avatar ?: directUser?.avatar,
-                    tag = detail.value?.tag ?: directUser?.tag,
-                    name = detail.value?.name ?: directUser?.displayName
-                )
-                AnimatedVisibility(
-                    modifier = Modifier.align(Alignment.BottomEnd),
-                    visible = detail.value != null
-                ) {
-                    MinimalisticFilledIcon(
-                        modifier = Modifier.padding(bottom = 8.dp, end = 8.dp),
-                        onTap = {
-                            showPictureChangeDialog.value = true
-                        },
-                        imageVector = Icons.Outlined.Brush,
-                        contentDescription = stringResource(Res.string.accessibility_change_avatar)
+        AnimatedVisibility(
+            modifier = Modifier.zIndex(ZIndexFab),
+            visible = showScrollUp.value,
+            enter = slideInVertically { -it },
+            exit = slideOutVertically { -it }
+        ) {
+            Icon(
+                modifier = Modifier
+                    .scalingClickable(key = "scrollUp") {
+                        scope.launch { listState.animateScrollToItem(0) }
+                    }
+                    .padding(top = 6.dp)
+                    .size(42.dp)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundLight,
+                        shape = LocalTheme.current.shapes.rectangularActionShape
                     )
-                }
-            }
-        }
-        item {
-            RoomNameContent(
-                model = model,
-                roomName = detail.value?.name ?: directUser?.displayName
+                    .padding(4.dp),
+                imageVector = Icons.Outlined.KeyboardArrowUp,
+                contentDescription = stringResource(Res.string.accessibility_scroll_up),
+                tint = LocalTheme.current.colors.primary
             )
         }
-        if(detail.value?.data?.summary?.isDirect != true) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        modifier = Modifier.padding(start = 6.dp),
-                        text = stringResource(Res.string.conversation_members),
-                        style = LocalTheme.current.styles.title.copy(
-                            color = LocalTheme.current.colors.disabled
-                        )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item(key = "avatar") {
+                Box(modifier = Modifier.padding(top = 6.dp)) {
+                    AvatarImage(
+                        modifier = Modifier.fillMaxWidth(.5f),
+                        media = detail.value?.avatar ?: directUser?.avatar,
+                        tag = detail.value?.tag ?: directUser?.tag,
+                        name = detail.value?.name ?: directUser?.displayName
                     )
-                    if (inviteEnabled) {
-                        MinimalisticIcon(
-                            imageVector = Icons.Outlined.PersonAddAlt,
-                            contentDescription = stringResource(Res.string.accessibility_add_new_member),
+                    AnimatedVisibility(
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                        visible = detail.value != null
+                    ) {
+                        MinimalisticFilledIcon(
+                            modifier = Modifier.padding(bottom = 8.dp, end = 8.dp),
                             onTap = {
-                                scope.launch {
-                                    navController?.navigate(
-                                        NavigationNode.SearchUser(
-                                            awaitingResult = true,
-                                            excludeUsers = withContext(Dispatchers.Default) {
-                                                members.itemSnapshotList.joinToString(",") { it?.userId ?: "" }
-                                            }
-                                        )
-                                    )
-                                }
-                            }
+                                showPictureChangeDialog.value = true
+                            },
+                            imageVector = Icons.Outlined.Brush,
+                            contentDescription = stringResource(Res.string.accessibility_change_avatar)
                         )
                     }
                 }
             }
-            items(
-                count = when {
-                    members.itemCount == 0 && isLoadingInitialPage -> SHIMMER_ITEM_COUNT
-                    enableMembersPaging.value -> members.itemCount
-                    else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
-                },
-                //key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
-            ) { index ->
-                val member = members.getOrNull(index)
-                val isSelected = selectedMemberId.value == member?.id
-                val itemModifier = Modifier
-                    .animateItem()
-                    .scalingClickable(
-                        hoverEnabled = !isSelected,
-                        scaleInto = .95f,
-                        onTap = {
-                            model.checkVerificationState(userId = member?.id)
-                            selectedMemberId.value = if(selectedMemberId.value == member?.id) null else member?.id
-                        }
-                    )
-                    .fillMaxWidth()
-                    .then(
-                        (if (selectedMemberId.value != null && isSelected) {
-                            Modifier
-                                .background(
-                                    color = LocalTheme.current.colors.backgroundLight,
-                                    shape = LocalTheme.current.shapes.rectangularActionShape
-                                )
-                                .border(
-                                    width = 2.dp,
-                                    color = LocalTheme.current.colors.backgroundDark,
-                                    shape = LocalTheme.current.shapes.rectangularActionShape
-                                )
-                        }else Modifier)
-                    )
-
-                NetworkItemRow(
-                    modifier = itemModifier,
-                    data = member?.toNetworkItem(),
-                    isSelected = isSelected,
-                    onAvatarClick = {
-                        selectedMemberDetail.value = member
-                    },
-                    actions = {
-                        Column {
-                            val verifications = model.verifications.collectAsState()
-                            val verification = verifications.value[member?.id]
-
-                            AnimatedVisibility(verification != null) {
-                                Row(
-                                    modifier = Modifier
-                                        .background(
-                                            color = LocalTheme.current.colors.backgroundDark,
-                                            shape = LocalTheme.current.shapes.rectangularActionShape
-                                        )
-                                        .fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = stringResource(
-                                            when(verification?.state?.value) {
-                                                is ActiveVerificationState.Done -> Res.string.device_verification_success
-                                                is ActiveVerificationState.Ready -> Res.string.message_user_verification_ready
-                                                is ActiveVerificationState.Start -> Res.string.message_user_verification_start
-                                                is ActiveVerificationState.Cancel -> Res.string.message_user_verification_canceled
-                                                else -> Res.string.message_user_verification_awaiting
-                                            }
-                                        ),
-                                        style = LocalTheme.current.styles.regular
-                                    )
-
-                                    AnimatedVisibility(verification?.state?.value?.isFinished() == false) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.requiredSize(24.dp),
-                                            color = LocalTheme.current.colors.disabled,
-                                            trackColor = LocalTheme.current.colors.disabledComponent
-                                        )
-                                    }
-                                }
-                            }
-                            Row(modifier = Modifier.padding(bottom = 4.dp)) {
-                                Spacer(Modifier.width(6.dp))
-                                ScalingIcon(
-                                    color = SharedColors.RED_ERROR.copy(.6f),
-                                    imageVector = Icons.Outlined.FaceRetouchingOff,
-                                    contentDescription = stringResource(Res.string.button_block),
-                                    onClick = {
-                                        kickMemberUserId.value = member?.userId
-                                    }
-                                )
-                                AnimatedVisibility(ongoingChange.value !is ConversationSettingsModel.ChangeType.VerifyMember) {
-                                    ScalingIcon(
-                                        color = SharedColors.YELLOW.copy(.6f),
-                                        imageVector = Icons.Outlined.SensorOccupied,
-                                        contentDescription = stringResource(Res.string.button_verify),
-                                        onClick = {
-                                            model.verifyUser(userId = member?.userId)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+            item {
+                RoomNameContent(
+                    model = model,
+                    roomName = detail.value?.name ?: directUser?.displayName
                 )
             }
-            if (!isLoadingInitialPage
-                && members.itemCount > MAX_MEMBERS_COUNT
-                && !enableMembersPaging.value
-            ) {
-                item {
-                    Text(
-                        modifier = Modifier.scalingClickable {
-                            selectedMemberId.value = null
-                            enableMembersPaging.value = true
-                        },
-                        text = stringResource(
-                            Res.string.items_see_more,
-                            (detail.value?.data?.summary?.joinedMemberCount
-                                ?: detail.value?.members?.size)?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
-                        ),
-                        style = LocalTheme.current.styles.category.copy(
-                            color = LocalTheme.current.colors.secondary
-                        )
-                    )
-                }
-            }
-        }else {
             item {
-                val socialCircleColors = model.socialCircleColors.collectAsState(initial = null)
-
-                AnimatedVisibility(visible = directUser?.proximity != null) {
-                    directUser?.proximity?.let { proximity ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val selectedCategory = NetworkProximityCategory.entries.firstOrNull { proximity in it.range }
-                                ?: NetworkProximityCategory.Community
-
-                            Text(
-                                text = stringResource(selectedCategory.res),
-                                style = LocalTheme.current.styles.regular
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            if(detail.value?.data?.summary?.isDirect != true) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(start = 6.dp),
+                            text = stringResource(Res.string.conversation_members),
+                            style = LocalTheme.current.styles.title.copy(
+                                color = LocalTheme.current.colors.disabled
                             )
+                        )
+                        if (inviteEnabled) {
+                            MinimalisticIcon(
+                                imageVector = Icons.Outlined.PersonAddAlt,
+                                contentDescription = stringResource(Res.string.accessibility_add_new_member),
+                                onTap = {
+                                    scope.launch {
+                                        navController?.navigate(
+                                            NavigationNode.SearchUser(
+                                                awaitingResult = true,
+                                                excludeUsers = withContext(Dispatchers.Default) {
+                                                    members.itemSnapshotList.joinToString(",") { it?.userId ?: "" }
+                                                }
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+                items(
+                    count = when {
+                        members.itemCount == 0 && isLoadingInitialPage -> SHIMMER_ITEM_COUNT
+                        enableMembersPaging.value -> members.itemCount
+                        else -> members.itemCount.coerceAtMost(MAX_MEMBERS_COUNT)
+                    },
+                    key = { index -> members.getOrNull(index)?.id ?: Uuid.random().toString() }
+                ) { index ->
+                    val member = members.getOrNull(index)
+                    val isSelected = selectedMemberId.value == member?.id
+                    val itemModifier = Modifier
+                        .animateItem()
+                        .scalingClickable(
+                            key = member?.id,
+                            hoverEnabled = !isSelected,
+                            scaleInto = .95f,
+                            onTap = {
+                                model.checkVerificationState(userId = member?.id)
+                                selectedMemberId.value = if(selectedMemberId.value == member?.id) null else member?.id
+                            }
+                        )
+                        .fillMaxWidth()
+                        .then(
+                            (if (selectedMemberId.value != null && isSelected) {
+                                Modifier
+                                    .background(
+                                        color = LocalTheme.current.colors.backgroundLight,
+                                        shape = LocalTheme.current.shapes.rectangularActionShape
+                                    )
+                                    .border(
+                                        width = 2.dp,
+                                        color = LocalTheme.current.colors.backgroundDark,
+                                        shape = LocalTheme.current.shapes.rectangularActionShape
+                                    )
+                            }else Modifier)
+                        )
 
-                            Box(
-                                modifier = Modifier.weight(1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                var previousShares = 0.0
-                                val entries = NetworkProximityCategory.entries
+                    NetworkItemRow(
+                        modifier = itemModifier,
+                        data = member?.toNetworkItem(),
+                        isSelected = isSelected,
+                        onAvatarClick = {
+                            selectedMemberDetail.value = member
+                        },
+                        actions = {
+                            Column {
+                                val verifications = model.verifications.collectAsState()
+                                val verification = verifications.value[member?.id]
 
-                                entries.toList().forEach { category ->
-                                    val zIndex = entries.size - entries.indexOf(category) + 1f
-                                    val shares = (if (selectedCategory == category) .7f else .3f / entries.size) + previousShares
-
-                                    Box(
+                                AnimatedVisibility(verification != null) {
+                                    Row(
                                         modifier = Modifier
                                             .background(
-                                                (socialCircleColors.value?.get(category) ?: category.color).copy(
-                                                    alpha = if (selectedCategory == category) 1f else .5f
-                                                )
+                                                color = LocalTheme.current.colors.backgroundDark,
+                                                shape = LocalTheme.current.shapes.rectangularActionShape
                                             )
-                                            .zIndex(zIndex)
-                                            .fillMaxWidth(shares.toFloat())
-                                            .height(8.dp)
+                                            .fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = stringResource(
+                                                when(verification?.state?.value) {
+                                                    is ActiveVerificationState.Done -> Res.string.device_verification_success
+                                                    is ActiveVerificationState.Ready -> Res.string.message_user_verification_ready
+                                                    is ActiveVerificationState.Start -> Res.string.message_user_verification_start
+                                                    is ActiveVerificationState.Cancel -> Res.string.message_user_verification_canceled
+                                                    else -> Res.string.message_user_verification_awaiting
+                                                }
+                                            ),
+                                            style = LocalTheme.current.styles.regular
+                                        )
+
+                                        AnimatedVisibility(verification?.state?.value?.isFinished() == false) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.requiredSize(24.dp),
+                                                color = LocalTheme.current.colors.disabled,
+                                                trackColor = LocalTheme.current.colors.disabledComponent
+                                            )
+                                        }
+                                    }
+                                }
+                                Row(modifier = Modifier.padding(bottom = 4.dp)) {
+                                    Spacer(Modifier.width(6.dp))
+                                    ScalingIcon(
+                                        color = SharedColors.RED_ERROR.copy(.6f),
+                                        imageVector = Icons.Outlined.FaceRetouchingOff,
+                                        contentDescription = stringResource(Res.string.button_block),
+                                        onClick = {
+                                            kickMemberUserId.value = member?.userId
+                                        }
                                     )
-                                    previousShares = shares
+                                    AnimatedVisibility(ongoingChange.value !is ConversationSettingsModel.ChangeType.VerifyMember) {
+                                        ScalingIcon(
+                                            color = SharedColors.YELLOW.copy(.6f),
+                                            imageVector = Icons.Outlined.SensorOccupied,
+                                            contentDescription = stringResource(Res.string.button_verify),
+                                            onClick = {
+                                                model.verifyUser(userId = member?.userId)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+                if (!isLoadingInitialPage
+                    && members.itemCount > MAX_MEMBERS_COUNT
+                    && !enableMembersPaging.value
+                ) {
+                    item(key = "loadMoreButton") {
+                        Text(
+                            modifier = Modifier.scalingClickable {
+                                selectedMemberId.value = null
+                                enableMembersPaging.value = true
+                            },
+                            text = stringResource(
+                                Res.string.items_see_more,
+                                (detail.value?.data?.summary?.joinedMemberCount
+                                    ?: detail.value?.members?.size)?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
+                            ),
+                            style = LocalTheme.current.styles.category.copy(
+                                color = LocalTheme.current.colors.secondary
+                            )
+                        )
+                    }
+                }
+                item(key = "bottomPadding") {
+                    Spacer(modifier = Modifier.height(48.dp))
+                }
+            }else {
+                item {
+                    val socialCircleColors = model.socialCircleColors.collectAsState(initial = null)
+
+                    AnimatedVisibility(visible = directUser?.proximity != null) {
+                        directUser?.proximity?.let { proximity ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val selectedCategory = NetworkProximityCategory.entries.firstOrNull { proximity in it.range }
+                                    ?: NetworkProximityCategory.Community
+
+                                Text(
+                                    text = stringResource(selectedCategory.res),
+                                    style = LocalTheme.current.styles.regular
+                                )
+
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    var previousShares = 0.0
+                                    val entries = NetworkProximityCategory.entries
+
+                                    entries.toList().forEach { category ->
+                                        val zIndex = entries.size - entries.indexOf(category) + 1f
+                                        val shares = (if (selectedCategory == category) .7f else .3f / entries.size) + previousShares
+
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    (socialCircleColors.value?.get(category) ?: category.color).copy(
+                                                        alpha = if (selectedCategory == category) 1f else .5f
+                                                    )
+                                                )
+                                                .zIndex(zIndex)
+                                                .fillMaxWidth(shares.toFloat())
+                                                .height(8.dp)
+                                        )
+                                        previousShares = shares
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            item {
-                if (directUser != null) {
-                    AddToCircleAction(
-                        modifier = Modifier.padding(top = 16.dp),
-                        user = directUser
-                    )
+                item {
+                    if (directUser != null) {
+                        AddToCircleAction(
+                            modifier = Modifier.padding(top = 16.dp),
+                            user = directUser
+                        )
+                    }
                 }
             }
+            additionalContent()
         }
-        additionalContent()
     }
 }
 
