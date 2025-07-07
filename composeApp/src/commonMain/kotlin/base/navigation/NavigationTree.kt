@@ -12,6 +12,7 @@ import augmy.composeapp.generated.resources.screen_login
 import augmy.composeapp.generated.resources.screen_media_detail
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_search_network
+import augmy.composeapp.generated.resources.screen_search_room
 import augmy.composeapp.generated.resources.screen_search_user
 import augmy.composeapp.generated.resources.screen_water_please
 import data.io.social.network.conversation.message.MediaIO
@@ -71,6 +72,12 @@ sealed class NavigationNode {
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_search_user
         override val deepLink: String = "users/search?awaitingResult=$awaitingResult&excludeUsers=$excludeUsers"
+    }
+
+    @Serializable
+    object SearchRoom: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_search_room
+        override val deepLink: String = "room/search"
     }
 
     /** Conversation detail screen */
@@ -135,13 +142,6 @@ sealed class NavigationNode {
         override val deepLink: String = "account/dashboard"
     }
 
-    /** screen for searching within one's account, preferences, and settings */
-    @Serializable
-    data object SearchAccount: NavigationNode() {
-        @Transient override val titleRes: StringResource = Res.string.screen_search_network
-        override val deepLink: String = "account/search"
-    }
-
     /** Screen for searching within one's network */
     @Serializable
     data object SearchNetwork: NavigationNode() {
@@ -196,6 +196,7 @@ sealed class NavigationNode {
         val allNodes = listOf(
             Login(),
             Water,
+            SearchRoom,
             Conversation(),
             ConversationSearch(),
             AccountDashboard,

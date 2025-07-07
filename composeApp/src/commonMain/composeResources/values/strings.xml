@@ -17,6 +17,7 @@
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
   <string name="screen_search_user">Let the manhunt begin</string>
+  <string name="screen_search_room">Wild tribe search</string>
   <string name="screen_user_default">Newfound pirate</string>
 
   <string name="navigate_home">Back</string>
@@ -277,6 +278,7 @@
 
   <string name="action_settings">Options</string>
   <string name="action_create_room">Create a room</string>
+  <string name="action_join_room">Join a room</string>
   <string name="action_find_user">Find new user</string>
   <string name="action_remove">Remove</string>
   <string name="action_download_all">Download all</string>

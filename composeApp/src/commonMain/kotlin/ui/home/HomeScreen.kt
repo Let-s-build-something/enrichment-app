@@ -42,6 +42,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Hive
 import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
@@ -83,6 +84,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_add_new
 import augmy.composeapp.generated.resources.action_create_room
 import augmy.composeapp.generated.resources.action_find_user
+import augmy.composeapp.generated.resources.action_join_room
 import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
@@ -444,6 +446,14 @@ private fun HomeActions(
             .navigationBarsPadding()
     ) {
         RowAction(
+            message = stringResource(Res.string.action_find_user),
+            imageVector = Icons.Outlined.PersonSearch,
+            onClick = {
+                onDismissRequest()
+                navController?.navigate(NavigationNode.SearchUser())
+            }
+        )
+        RowAction(
             message = stringResource(Res.string.action_create_room),
             imageVector = Icons.Outlined.Tag,
             onClick = {
@@ -452,11 +462,11 @@ private fun HomeActions(
             }
         )
         RowAction(
-            message = stringResource(Res.string.action_find_user),
-            imageVector = Icons.Outlined.PersonSearch,
+            message = stringResource(Res.string.action_join_room),
+            imageVector = Icons.Outlined.Hive,
             onClick = {
                 onDismissRequest()
-                navController?.navigate(NavigationNode.SearchUser())
+                navController?.navigate(NavigationNode.SearchRoom)
             }
         )
     }
