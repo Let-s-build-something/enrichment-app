@@ -4,6 +4,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -15,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
+import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.OutlinedButton
+import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
@@ -36,8 +40,8 @@ fun EmptyLayout(
         )
     },
     animReverseOnRepeat: Boolean = true,
-    action: String? = null,
-    onClick: () -> Unit = {},
+    primaryAction: ButtonState? = null,
+    secondaryAction: ButtonState? = null,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
     Column(
@@ -80,13 +84,29 @@ fun EmptyLayout(
                 )
             )
         }
-        action?.let { text ->
-            OutlinedButton(
-                modifier = Modifier.padding(top = 12.dp),
-                text = text,
-                onClick = onClick,
-                activeColor = LocalTheme.current.colors.secondary
-            )
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            secondaryAction?.let { action ->
+                OutlinedButton(
+                    text = action.text,
+                    trailingIcon = action.imageVector,
+                    onClick = action.onClick,
+                    activeColor = LocalTheme.current.colors.secondary
+                )
+            }
+            primaryAction?.let { action ->
+                BrandHeaderButton(
+                    text = action.text,
+                    onClick = action.onClick,
+                    endImageVector = action.imageVector,
+                    contentPadding = PaddingValues(
+                        vertical = 6.dp,
+                        horizontal = 12.dp
+                    )
+                )
+            }
         }
         content()
     }

@@ -51,6 +51,12 @@ sealed class BaseResponse<out T> {
     val isLoading: Boolean
         get() = this is Loading
 
+    val isSuccess: Boolean
+        get() = this is Success
+
+    val isError: Boolean
+        get() = this is Error
+
     companion object {
         suspend inline fun <reified T> HttpResponse.getResponse(): BaseResponse<T> {
             return when (status) {

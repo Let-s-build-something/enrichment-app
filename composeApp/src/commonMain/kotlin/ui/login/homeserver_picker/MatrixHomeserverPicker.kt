@@ -1,13 +1,16 @@
-package ui.login
+package ui.login.homeserver_picker
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -15,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -32,53 +34,32 @@ import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
-import data.io.DELAY_BETWEEN_REQUESTS_SHORT
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.context.loadKoinModules
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatrixHomeserverPicker(
-    viewModel: LoginModel,
-    screenType: LoginScreenType,
-    homeserver: String,
+    homeserver: String? = null,
     onDismissRequest: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    val isLoading = viewModel.isLoading.collectAsState()
-    val homeServerResponse = viewModel.homeServerResponse.collectAsState()
-    val cancellableScope = rememberCoroutineScope()
-    val isValid = homeServerResponse.value?.state == LoginModel.HomeServerState.Valid
+    loadKoinModules(homeserverPickerModule)
+    val model = koinViewModel<HomeserverPickerModel>()
+    val state = model.state.collectAsState()
+
     val homeServerState = remember {
-        TextFieldState(
-            initialText = if(homeserver != AUGMY_HOME_SERVER && homeserver != MATRIX_HOME_SERVER) homeserver else ""
-        )
+        TextFieldState(initialText = homeserver ?: "")
     }
 
     LaunchedEffect(homeServerState.text) {
-        cancellableScope.coroutineContext.cancelChildren()
         if(homeServerState.text.isNotEmpty()) {
-            cancellableScope.launch {
-                viewModel.setLoading(true)
-                delay(DELAY_BETWEEN_REQUESTS_SHORT)
-                viewModel.selectHomeServer(
-                    screenType = screenType,
-                    address = homeServerState.text.toString()
-                )
-            }
+            model.validateHomeserver(homeserver = homeServerState.text)
         }
     }
 
-    SimpleModalBottomSheet(
-        onDismissRequest = {
-            if(!isValid) {
-                viewModel.selectHomeServer(address = homeserver, screenType = screenType)
-            }
-            onDismissRequest()
-        }
-    ) {
+    SimpleModalBottomSheet(onDismissRequest = onDismissRequest) {
         Text(
             text = stringResource(Res.string.login_homeserver_heading),
             style = LocalTheme.current.styles.subheading
@@ -151,19 +132,21 @@ fun MatrixHomeserverPicker(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send
                 ),
-                onKeyboardAction = {
-                    if(isValid) {
-                        onSelect(homeServerState.text.toString())
-                    }
-                },
                 hint = stringResource(Res.string.login_homeserver_address),
-                errorText = if(!isValid && homeServerState.text.isNotEmpty()) {
+                errorText = if(state.value.isError && homeServerState.text.isNotEmpty()) {
                     stringResource(Res.string.login_homeserver_address_error)
                 } else null,
                 state = homeServerState,
                 lineLimits = TextFieldLineLimits.SingleLine,
                 shape = LocalTheme.current.shapes.rectangularActionShape
             )
+            AnimatedVisibility(state.value.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.requiredSize(24.dp),
+                    color = LocalTheme.current.colors.disabled,
+                    trackColor = LocalTheme.current.colors.disabledComponent
+                )
+            }
         }
 
         BrandHeaderButton(
@@ -171,12 +154,10 @@ fun MatrixHomeserverPicker(
                 .align(Alignment.End)
                 .padding(top = 8.dp),
             text = stringResource(Res.string.button_confirm),
-            isEnabled = isValid || homeServerState.text.isBlank(),
-            isLoading = isLoading.value
+            isEnabled = state.value.isSuccess || homeServerState.text.isBlank(),
+            isLoading = state.value.isLoading
         ) {
-            if(isValid && homeServerState.text.isNotBlank()
-                && homeServerState.text == homeServerResponse.value?.address
-            ) {
+            if(state.value.isSuccess && homeServerState.text.isNotBlank()) {
                 onSelect(homeServerState.text.toString())
             }
             onDismissRequest()

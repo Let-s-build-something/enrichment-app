@@ -187,6 +187,7 @@
   <string name="hard_logout_message">You have been logged out, sorry about that. Try logging in again.</string>
   <string name="hard_logout_action">Log-in</string>
 
+  <string name="room_search_empty_text">Nothing matches that, sorry 🤷</string>
 
   <string name="conversation_creating_room">Creating conversation...</string>
   <string name="conversation_create_search_hint">Search for people</string>
@@ -276,6 +277,7 @@
   <string name="button_search">Search</string>
   <string name="button_tune">Tune</string>
 
+  <string name="action_clear">Clear</string>
   <string name="action_settings">Options</string>
   <string name="action_create_room">Create a room</string>
   <string name="action_join_room">Join a room</string>
@@ -299,6 +301,7 @@
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
   <string name="accessibility_scroll_up">Scroll up</string>
+  <string name="accessibility_change_homeserver">Change homeserver</string>
   <string name="accessibility_search_up">Move to previous search match</string>
   <string name="accessibility_search_down">Move to next search match</string>
   <string name="accessibility_info_box">Help info box</string>

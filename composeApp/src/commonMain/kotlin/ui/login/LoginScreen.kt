@@ -162,6 +162,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.gif.GifImage
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.MatrixHomeserverPicker
 
 /**
  * Screen for logging into an account through various methods, including:
@@ -429,8 +431,6 @@ private fun ColumnScope.LoginScreenContent(
 
     if(showHomeServerPicker.value) {
         MatrixHomeserverPicker(
-            viewModel = model,
-            screenType = screenType,
             homeserver = homeServer.value,
             onDismissRequest = { showHomeServerPicker.value = false },
             onSelect = {

@@ -100,6 +100,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -327,8 +328,9 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                         )
                         HomeModel.UiMode.NoClient -> EmptyLayout(
                             title = stringResource(Res.string.screen_home_no_client_title),
-                            action = stringResource(Res.string.screen_home_no_client_action),
-                            onClick = {
+                            secondaryAction = ButtonState(
+                                stringResource(Res.string.screen_home_no_client_action)
+                            ) {
                                 navController?.navigate(NavigationNode.Login())
                             }
                         )
@@ -572,8 +574,9 @@ private fun ListContent(
             ) {
                 EmptyLayout(
                     title = stringResource(Res.string.network_list_empty_title),
-                    action = stringResource(Res.string.network_list_empty_action),
-                    onClick = {
+                    secondaryAction = ButtonState(
+                        stringResource(Res.string.network_list_empty_action)
+                    ) {
                         navController?.navigate(NavigationNode.SearchUser())
                     }
                 )

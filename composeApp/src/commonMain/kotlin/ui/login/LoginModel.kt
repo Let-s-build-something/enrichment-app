@@ -32,6 +32,7 @@ import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER
 import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -264,7 +265,7 @@ class LoginModel(
         SharedLogger.logger.debug { "signUpWithPassword, username: $username, email: $email, screenType: $screenType" }
         _isLoading.value = true
         viewModelScope.launch {
-            val res = if(screenType == LoginScreenType.SIGN_UP && response == null) {
+            val res = (if(screenType == LoginScreenType.SIGN_UP && response == null) {
                 val secret = Uuid.random().toString()
 
                 // we check for single EP registration first
@@ -324,7 +325,7 @@ class LoginModel(
                     }
                     return@launch
                 }
-            }else null ?: response
+            }else null) ?: response
             _matrixAuthResponse.value = res
 
             if(screenType == LoginScreenType.SIGN_UP) {

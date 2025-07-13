@@ -1,10 +1,18 @@
 package ui.search.room
 
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingConfig
+import androidx.paging.cachedIn
+import data.io.DELAY_BETWEEN_REQUESTS_SHORT
+import data.io.base.BaseResponse
 import data.shared.SharedModel
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import net.folivo.trixnity.clientserverapi.model.rooms.GetPublicRoomsResponse
 import org.koin.core.module.dsl.viewModelOf
@@ -21,30 +29,55 @@ class SearchRoomModel(
 ): SharedModel() {
 
     companion object {
-        const val ITEMS_COUNT = 10
+        const val ITEMS_COUNT = 15
     }
 
-    //TODO pagination
-    private val _rooms = MutableStateFlow<List<GetPublicRoomsResponse.PublicRoomsChunk>?>(null)
+    private val _state = MutableStateFlow<BaseResponse<Any>>(BaseResponse.Idle)
+    private val _query = MutableStateFlow("")
+    private val _selectedHomeserver = MutableStateFlow<String?>(null)
 
-    val rooms = _rooms.asStateFlow()
+    val selectedHomeserver = _selectedHomeserver.asStateFlow()
+    val state = _state.asStateFlow()
 
-    fun queryRooms(prompt: CharSequence, homeserver: String) {
-        if(prompt.isBlank()) return
+    val rooms = repository.getRooms(
+        query = { _query.value },
+        queryHomeserver = { _selectedHomeserver.value },
+        config = PagingConfig(
+            pageSize = ITEMS_COUNT,
+            enablePlaceholders = true
+        ),
+        homeserver = { homeserver }
+    ).flow.cachedIn(viewModelScope).onEach {
+        _state.value = BaseResponse.Idle
+    }
 
-        viewModelScope.launch(Dispatchers.Default) {
-            _rooms.value = repository.queryRooms(
-                limit = ITEMS_COUNT,
-                homeserver = this@SearchRoomModel.homeserver,
-                query = prompt.toString(),
-                queryHomeserver = homeserver
-            ).data?.let { res ->
-                res.chunk
-            }
+    fun selectHomeserver(homeserver: String) {
+        viewModelScope.launch {
+            _selectedHomeserver.value = homeserver
+            repository.invalidateLocalSource()
+        }
+    }
+
+    private val queryScope = CoroutineScope(Job())
+    fun queryRooms(prompt: CharSequence) {
+        if (prompt == _query.value) return
+
+        queryScope.coroutineContext.cancelChildren()
+        queryScope.launch {
+            _state.value = BaseResponse.Loading
+            _query.value = prompt.toString()
+            delay(DELAY_BETWEEN_REQUESTS_SHORT)
+            repository.invalidateLocalSource()
         }
     }
 
     fun joinRoom(room: GetPublicRoomsResponse.PublicRoomsChunk) {
+        viewModelScope.launch {
+            //TODO
+        }
+    }
+
+    fun knockOnRoom(room: GetPublicRoomsResponse.PublicRoomsChunk) {
         viewModelScope.launch {
             //TODO
         }
