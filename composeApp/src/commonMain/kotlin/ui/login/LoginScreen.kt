@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.delete
@@ -162,6 +161,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.gif.GifImage
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.MatrixHomeserverPicker
 
 /**
  * Screen for logging into an account through various methods, including:
@@ -335,7 +336,8 @@ fun LoginScreen(
             Crossfade(
                 modifier = Modifier
                     .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .animateContentSize(),
                 targetState = LoginScreenType.entries[screenStateIndex.value],
                 animationSpec = tween(DEFAULT_ANIMATION_LENGTH_LONG),
                 label = ""
@@ -429,10 +431,9 @@ private fun ColumnScope.LoginScreenContent(
 
     if(showHomeServerPicker.value) {
         MatrixHomeserverPicker(
-            viewModel = model,
-            screenType = screenType,
             homeserver = homeServer.value,
             onDismissRequest = { showHomeServerPicker.value = false },
+            userHomeserver = model.homeserver,
             onSelect = {
                 homeServer.value = it
                 model.selectHomeServer(
@@ -516,7 +517,6 @@ private fun ColumnScope.LoginScreenContent(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
-                lineLimits = TextFieldLineLimits.SingleLine,
                 state = identificationState,
                 errorText = when {
                     isIdentificationFocused.value || identificationState.text.isEmpty() -> null
@@ -541,7 +541,6 @@ private fun ColumnScope.LoginScreenContent(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
-                lineLimits = TextFieldLineLimits.SingleLine,
                 state = emailState,
                 errorText = if(isEmailValid || emailState.text.isEmpty() || isEmailFocused.value) {
                     null
@@ -558,7 +557,6 @@ private fun ColumnScope.LoginScreenContent(
             prefixIcon = Icons.Outlined.Key,
             state = passwordState,
             isCorrect = isPasswordValid,
-            lineLimits = TextFieldLineLimits.SingleLine,
             errorText = if(isPasswordValid.not() && passwordState.text.isNotEmpty()) " " else null,
             textObfuscationMode = if(passwordVisible.value) {
                 TextObfuscationMode.Visible

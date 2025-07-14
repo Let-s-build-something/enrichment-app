@@ -32,6 +32,7 @@ import ui.login.LoginScreen
 import ui.login.loginModule
 import ui.network.NetworkManagementScreen
 import ui.network.received.networkManagementModule
+import ui.search.room.SearchRoomScreen
 import ui.search.user.SearchUserScreen
 import kotlin.jvm.JvmSuppressWildcards
 
@@ -78,9 +79,6 @@ fun NavigationHost(
             composable<NavigationNode.SearchNetwork> {
                 WaterPleaseScreen()
             }
-            composable<NavigationNode.SearchAccount> {
-                WaterPleaseScreen()
-            }
             composable<NavigationNode.Water> {
                 WaterPleaseScreen()
             }
@@ -107,6 +105,7 @@ fun NavigationHost(
                     name = it.arguments?.getString("name"),
                     scrollTo = it.arguments?.getString("scrollTo"),
                     searchQuery = it.arguments?.getString("searchQuery"),
+                    joinRule = it.arguments?.getString("joinRule"),
                 )
             }
             composable<NavigationNode.ConversationSearch> {
@@ -123,6 +122,9 @@ fun NavigationHost(
                     awaitingResult = it.arguments?.getBoolean("awaitingResult"),
                     excludeUsers = it.arguments?.getString("excludeUsers")?.split(",")
                 )
+            }
+            composable<NavigationNode.SearchRoom> {
+                SearchRoomScreen()
             }
             composable<NavigationNode.MessageDetail> {
                 loadKoinModules(messageDetailModule)

@@ -28,7 +28,7 @@ import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.home.homeModule
-import ui.login.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER
 import utils.SharedLogger
 
 /** Viewmodel with shared behavior and injections for general purposes */

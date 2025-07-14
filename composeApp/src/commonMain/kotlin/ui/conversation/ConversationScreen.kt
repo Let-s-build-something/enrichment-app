@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -27,7 +28,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -89,7 +90,6 @@ import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.ZIndexFab
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.input.CustomTextField
-import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -107,9 +107,9 @@ import components.network.NetworkItemRow
 import components.pull_refresh.LocalRefreshCallback
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.io.base.AppPingType
+import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -131,6 +131,7 @@ fun ConversationScreen(
     conversationId: String? = null,
     userId: String? = null,
     name: String? = null,
+    joinRule: String? = null,
     scrollTo: String? = null,
     searchQuery: String? = null,
 ) {
@@ -138,7 +139,7 @@ fun ConversationScreen(
     val model: ConversationModel = koinViewModel(
         key = conversationId,
         parameters = {
-            parametersOf(conversationId, userId, true, scrollTo)
+            parametersOf(conversationId, userId, true, scrollTo, joinRule)
         }
     )
     val navController = LocalNavController.current
@@ -282,37 +283,35 @@ fun ConversationScreen(
                         if(selectedIndex == 1) {
                             PrototypeConversation(conversationId = conversationId)
                         }else {
-                            val scopeItems: LazyListScope.() -> Unit = if (uiMode.value == ConversationModel.UiMode.CreateRoomNoMembers) {
-                                val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
-                                val membersToInvite = model.membersToInvite.collectAsState()
-                                val searchState = remember(model) { TextFieldState() }
-                                val focusRequester = remember(model) { FocusRequester() }
-                                val cancellableScope = rememberCoroutineScope()
+                            val scopeItems: LazyListScope.() -> Unit = when (uiMode.value) {
+                                ConversationModel.UiMode.CreateRoomNoMembers -> {
+                                    val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
+                                    val membersToInvite = model.membersToInvite.collectAsState()
+                                    val searchState = remember(model) { TextFieldState() }
+                                    val focusRequester = remember(model) { FocusRequester() }
 
-                                LaunchedEffect(Unit) {
-                                    model.recommendUsersToInvite()
-                                }
-
-                                LaunchedEffect(searchState.text) {
-                                    cancellableScope.coroutineContext.cancelChildren()
-                                    cancellableScope.launch {
-                                        delay(DELAY_BETWEEN_TYPING_SHORT)
-                                        model.recommendUsersToInvite(query = searchState.text)
+                                    LaunchedEffect(Unit) {
+                                        model.recommendUsersToInvite()
                                     }
-                                };
 
-                                { scope: LazyListScope ->
-                                    scope.createRoomNoMembers(
-                                        model = model,
-                                        recommendedUserToInvite = recommendedUsersToInvite,
-                                        membersToInvite = membersToInvite,
-                                        searchState = searchState,
-                                        focusRequester = focusRequester
-                                    )
+                                    LaunchedEffect(searchState.text) {
+                                        model.recommendUsersToInvite(query = searchState.text)
+                                    };
+
+                                    { scope: LazyListScope ->
+                                        scope.createRoomNoMembers(
+                                            model = model,
+                                            recommendedUserToInvite = recommendedUsersToInvite,
+                                            membersToInvite = membersToInvite,
+                                            searchState = searchState,
+                                            focusRequester = focusRequester
+                                        )
+                                    }
                                 }
-                            }else { scope: LazyListScope ->
-                                scope.item(key = "topPadding") {
-                                    Spacer(Modifier.height(120.dp))
+                                else -> { scope: LazyListScope ->
+                                    scope.item(key = "topPadding") {
+                                        Spacer(Modifier.height(120.dp))
+                                    }
                                 }
                             }
 
@@ -475,27 +474,47 @@ private fun LazyListScope.createRoomNoMembers(
         }
     }
     stickyHeader(key = "searchHeader") {
-        CustomTextField(
+        val state = model.recommendUsersState.collectAsState()
+
+        Row(
             modifier = Modifier
                 .zIndex(1f)
-                .background(
-                    color = LocalTheme.current.colors.backgroundDark,
-                    shape = LocalTheme.current.shapes.rectangularActionShape
-                )
-                .padding(horizontal = 4.dp, vertical = 2.dp)
                 .fillMaxWidth(if (LocalDeviceType.current == WindowWidthSizeClass.Compact) .85f else .5f),
-            focusRequester = focusRequester,
-            shape = LocalTheme.current.shapes.rectangularActionShape,
-            hint = stringResource(Res.string.conversation_create_search_hint),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Search
-            ),
-            prefixIcon = Icons.Outlined.Search,
-            state = searchState,
-            isClearable = true,
-            showBorders = false
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            CustomTextField(
+                modifier = Modifier.weight(1f),
+                focusRequester = focusRequester,
+                shape = LocalTheme.current.shapes.rectangularActionShape,
+                hint = stringResource(Res.string.conversation_create_search_hint),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Search
+                ),
+                prefixIcon = Icons.Outlined.Search,
+                state = searchState,
+                enabled = state.value !is BaseResponse.Loading,
+                isClearable = true
+            )
+
+            AnimatedVisibility(state.value is BaseResponse.Loading) {
+                Box(
+                   modifier = Modifier
+                       .background(
+                           color = LocalTheme.current.colors.backgroundDark,
+                           shape = LocalTheme.current.shapes.rectangularActionShape
+                       )
+                       .padding(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.requiredSize(18.dp),
+                        color = LocalTheme.current.colors.disabled,
+                        trackColor = LocalTheme.current.colors.disabledComponent
+                    )
+                }
+            }
+        }
     }
     items(
         items = membersToInvite.value.toList(),
@@ -604,11 +623,6 @@ private fun SearchBar(
     ) {
         CustomTextField(
             modifier = Modifier
-                .background(
-                    LocalTheme.current.colors.backgroundDark,
-                    shape = LocalTheme.current.shapes.rectangularActionShape
-                )
-                .padding(horizontal = 4.dp, vertical = 2.dp)
                 .weight(1f),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
@@ -619,8 +633,6 @@ private fun SearchBar(
             focusRequester = focusRequester,
             hint = stringResource(Res.string.button_search),
             state = searchFieldState,
-            showBorders = false,
-            lineLimits = TextFieldLineLimits.SingleLine,
             shape = LocalTheme.current.shapes.rectangularActionShape
         )
 

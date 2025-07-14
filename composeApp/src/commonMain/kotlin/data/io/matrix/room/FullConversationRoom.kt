@@ -52,7 +52,7 @@ data class FullConversationRoom(
                 }
             }
             !data.summary?.heroes.isNullOrEmpty() -> {
-                data.summary.heroes.joinToString(", ") {
+                data.summary.heroes.take(4).joinToString(", ") {
                     initialsOf(it.localpart)
                 }.let {
                     if (data.summary.heroes.size > 4) it.plus("...") else it

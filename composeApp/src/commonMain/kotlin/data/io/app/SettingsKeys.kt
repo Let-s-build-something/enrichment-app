@@ -44,6 +44,8 @@ object SettingsKeys {
     const val KEY_PACING_WIDE_AVG = "pacing_wide_avg"
     const val KEY_PACING_NARROW_AVG = "pacing_narrow_avg"
 
+    const val KEY_HOMESERVERS = "homeservers"
+
 
     // DEV use only
     const val KEY_STREAMING_URL = "streaming_url"

@@ -85,7 +85,7 @@ fun SimpleModalBottomSheet(
             }
         },
         sheetState = sheetState,
-        containerColor = LocalTheme.current.colors.backgroundDark,
+        containerColor = LocalTheme.current.colors.backgroundLight,
         shape = RoundedCornerShape(
             topStart = LocalTheme.current.shapes.componentCornerRadius,
             topEnd = LocalTheme.current.shapes.componentCornerRadius

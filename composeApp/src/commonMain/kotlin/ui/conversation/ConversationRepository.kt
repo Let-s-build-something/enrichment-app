@@ -84,6 +84,7 @@ open class ConversationRepository(
     companion object {
         const val MENTION_REGEX_USER_ID = """.*\/#\/(@[^"]+)"""
         private const val MENTION_REGEX = """<a href="$MENTION_REGEX_USER_ID">([^<]+)<\/a>"""
+        const val REGEX_HTML_MENTION = """<a href=".*(@[^"]+)">([^<]+)<\/a>"""
     }
 
     /** Attempts to invalidate local PagingSource with conversation messages */

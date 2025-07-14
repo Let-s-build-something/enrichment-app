@@ -37,11 +37,11 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Hive
 import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
@@ -83,6 +83,7 @@ import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_add_new
 import augmy.composeapp.generated.resources.action_create_room
 import augmy.composeapp.generated.resources.action_find_user
+import augmy.composeapp.generated.resources.action_join_room
 import augmy.composeapp.generated.resources.button_search
 import augmy.composeapp.generated.resources.network_list_empty_action
 import augmy.composeapp.generated.resources.network_list_empty_title
@@ -98,6 +99,7 @@ import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
+import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
@@ -119,8 +121,6 @@ import data.io.base.BaseResponse
 import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
-import io.github.alexzhirkevich.compottie.DotLottie
-import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -319,14 +319,13 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                             modifier = Modifier.fillMaxSize(),
                             title = stringResource(Res.string.screen_home_initial_sync),
                             animReverseOnRepeat = false,
-                            animSpec = {
-                                LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
-                            }
+                            animPath = "files/loading_envelope.lottie"
                         )
                         HomeModel.UiMode.NoClient -> EmptyLayout(
                             title = stringResource(Res.string.screen_home_no_client_title),
-                            action = stringResource(Res.string.screen_home_no_client_action),
-                            onClick = {
+                            secondaryAction = ButtonState(
+                                stringResource(Res.string.screen_home_no_client_action)
+                            ) {
                                 navController?.navigate(NavigationNode.Login())
                             }
                         )
@@ -400,14 +399,6 @@ private fun SearchField(
     CustomTextField(
         modifier = Modifier
             .padding(top = 16.dp, start = 8.dp, end = 8.dp)
-            .background(
-                LocalTheme.current.colors.backgroundDark,
-                shape = LocalTheme.current.shapes.rectangularActionShape
-            )
-            .padding(
-                horizontal = 4.dp,
-                vertical = 2.dp
-            )
             .fillMaxWidth(if (isCompact) 1f else .8f),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Text,
@@ -418,8 +409,6 @@ private fun SearchField(
         focusRequester = focusRequester,
         hint = stringResource(Res.string.button_search),
         state = searchFieldState,
-        showBorders = false,
-        lineLimits = TextFieldLineLimits.SingleLine,
         shape = LocalTheme.current.shapes.rectangularActionShape
     )
 }
@@ -444,6 +433,14 @@ private fun HomeActions(
             .navigationBarsPadding()
     ) {
         RowAction(
+            message = stringResource(Res.string.action_find_user),
+            imageVector = Icons.Outlined.PersonSearch,
+            onClick = {
+                onDismissRequest()
+                navController?.navigate(NavigationNode.SearchUser())
+            }
+        )
+        RowAction(
             message = stringResource(Res.string.action_create_room),
             imageVector = Icons.Outlined.Tag,
             onClick = {
@@ -452,11 +449,11 @@ private fun HomeActions(
             }
         )
         RowAction(
-            message = stringResource(Res.string.action_find_user),
-            imageVector = Icons.Outlined.PersonSearch,
+            message = stringResource(Res.string.action_join_room),
+            imageVector = Icons.Outlined.Hive,
             onClick = {
                 onDismissRequest()
-                navController?.navigate(NavigationNode.SearchUser())
+                navController?.navigate(NavigationNode.SearchRoom)
             }
         )
     }
@@ -525,10 +522,10 @@ private fun ListContent(
     }
     selectedRoomId.value?.let { roomId ->
         ConversationDetailDialog(
-            conversationId = roomId,
             onDismissRequest = {
                 selectedRoomId.value = null
-            }
+            },
+            conversationId = roomId,
         )
     }
 
@@ -562,8 +559,9 @@ private fun ListContent(
             ) {
                 EmptyLayout(
                     title = stringResource(Res.string.network_list_empty_title),
-                    action = stringResource(Res.string.network_list_empty_action),
-                    onClick = {
+                    secondaryAction = ButtonState(
+                        stringResource(Res.string.network_list_empty_action)
+                    ) {
                         navController?.navigate(NavigationNode.SearchUser())
                     }
                 )

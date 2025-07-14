@@ -86,7 +86,7 @@ import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
-import ui.login.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER
 
 /**
  * Bottom sheet for verifying current device

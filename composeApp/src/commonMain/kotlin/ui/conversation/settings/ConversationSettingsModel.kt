@@ -41,7 +41,6 @@ import net.folivo.trixnity.core.model.events.m.room.NameEventContent
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationDataManager
-import ui.home.utils.NetworkItemUseCase
 
 val conversationSettingsModule = module {
     factory { ConversationDataManager() }
@@ -54,13 +53,12 @@ val conversationSettingsModule = module {
 
 class ConversationSettingsModel(
     private val conversationId: String,
-    private val networkItemUseCase: NetworkItemUseCase,
     private val repository: ConversationSettingsRepository,
     private val dataManager: ConversationDataManager
 ): SharedModel() {
     companion object {
         const val SHIMMER_ITEM_COUNT = 4
-        const val MAX_MEMBERS_COUNT = 8
+        const val MAX_MEMBERS_COUNT = 6
         const val PAGE_ITEM_COUNT = 20
 
         fun ActiveVerificationState.isFinished() = this is ActiveVerificationState.Cancel
@@ -129,8 +127,10 @@ class ConversationSettingsModel(
         }
 
         viewModelScope.launch {
-            dataManager.conversations.collect {
-                _conversation.value = it.second[conversationId]
+            dataManager.conversations.collect { stream ->
+                stream.second[conversationId]?.let {
+                    _conversation.value = it
+                }
             }
         }
     }
@@ -143,23 +143,6 @@ class ConversationSettingsModel(
                 roomId = RoomId(conversationId),
                 userId = UserId(memberId)
             )
-        }
-    }
-
-    /** Makes a request for a change of proximity of a conversation */
-    fun requestProximityChange(
-        publicId: String?,
-        proximity: Float,
-        onOperationDone: () -> Unit = {}
-    ) {
-        viewModelScope.launch {
-            networkItemUseCase.requestProximityChange(
-                conversationId = conversationId,
-                publicId = publicId,
-                proximity = proximity,
-                ownerPublicId = matrixUserId
-            )
-            onOperationDone()
         }
     }
 

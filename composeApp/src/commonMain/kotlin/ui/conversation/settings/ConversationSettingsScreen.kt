@@ -110,7 +110,10 @@ import components.AvatarImage
 import components.network.NetworkItemRow
 import data.NetworkProximityCategory
 import data.io.base.BaseResponse
+import data.io.matrix.room.RoomType
 import data.io.matrix.room.event.ConversationRoomMember
+import data.io.social.network.conversation.message.MediaIO
+import data.io.user.UserIO.Companion.generateUserTag
 import korlibs.math.toInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -120,6 +123,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.verification.ActiveVerificationState
+import net.folivo.trixnity.clientserverapi.model.rooms.GetPublicRoomsResponse
+import net.folivo.trixnity.core.model.UserId
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -131,7 +136,6 @@ import ui.conversation.settings.ConversationSettingsModel.Companion.isFinished
 import ui.network.components.ScalingIcon
 import ui.network.components.user_detail.AddToCircleAction
 import ui.network.components.user_detail.UserDetailDialog
-import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -239,7 +243,8 @@ fun ConversationSettingsContent(
             parametersOf(conversationId ?: "")
         }
     ),
-    inviteEnabled: Boolean = true,
+    publicRoom: GetPublicRoomsResponse.PublicRoomsChunk? = null,
+    inviteEnabled: Boolean = publicRoom == null,
     additionalContent: LazyListScope.() -> Unit = {}
 ) {
     val navController = LocalNavController.current
@@ -250,7 +255,9 @@ fun ConversationSettingsContent(
     val detail = model.conversation.collectAsState()
     val ongoingChange = model.ongoingChange.collectAsState()
     val selectedUserToInvite = model.selectedInvitedUser.collectAsState()
-    val directUser = detail.value?.members?.firstOrNull()?.toNetworkItem()
+    val directUser = if (detail.value?.isDirect == true) {
+        detail.value?.members?.firstOrNull()?.toNetworkItem()
+    }else null
     val members = model.members.collectAsLazyPagingItems()
 
     val isLoadingInitialPage = members.loadState.refresh is LoadState.Loading
@@ -274,7 +281,6 @@ fun ConversationSettingsContent(
 
     LaunchedEffect(Unit) {
         snapshotFlow { listState.firstVisibleItemIndex }.collectLatest { index ->
-            SharedLogger.logger.debug { "firstVisibleItemIndex: $index" }
             showScrollUp.value = index > 30
             // TODO filtering
             if(index > 2) {
@@ -387,17 +393,17 @@ fun ConversationSettingsContent(
             )
         }
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             state = listState,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item(key = "avatar") {
+            item(key = "roomAvatar") {
                 Box(modifier = Modifier.padding(top = 6.dp)) {
                     AvatarImage(
                         modifier = Modifier.fillMaxWidth(.5f),
-                        media = detail.value?.avatar ?: directUser?.avatar,
-                        tag = detail.value?.tag ?: directUser?.tag,
-                        name = detail.value?.name ?: directUser?.displayName
+                        media = detail.value?.avatar ?: directUser?.avatar ?: publicRoom?.avatarUrl?.let { MediaIO(it) },
+                        tag = detail.value?.tag ?: directUser?.tag ?: publicRoom?.roomId?.full?.let { UserId(it).generateUserTag() },
+                        name = detail.value?.name ?: directUser?.displayName ?: publicRoom?.name
                     )
                     AnimatedVisibility(
                         modifier = Modifier.align(Alignment.BottomEnd),
@@ -414,17 +420,17 @@ fun ConversationSettingsContent(
                     }
                 }
             }
-            item {
+            item(key = "roomName") {
                 RoomNameContent(
                     model = model,
-                    roomName = detail.value?.name ?: directUser?.displayName
+                    roomName = detail.value?.name ?: directUser?.displayName ?: publicRoom?.name
                 )
             }
             item {
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            if(detail.value?.data?.summary?.isDirect != true) {
-                item {
+            if(detail.value?.data?.summary?.isDirect == false || publicRoom != null) {
+                item("membersHeader") {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -576,7 +582,8 @@ fun ConversationSettingsContent(
                             text = stringResource(
                                 Res.string.items_see_more,
                                 (detail.value?.data?.summary?.joinedMemberCount
-                                    ?: detail.value?.members?.size)?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
+                                    ?: detail.value?.members?.size
+                                    ?: publicRoom?.joinedMembersCount?.toInt())?.minus(MAX_MEMBERS_COUNT)?.toString() ?: ""
                             ),
                             style = LocalTheme.current.styles.category.copy(
                                 color = LocalTheme.current.colors.secondary
@@ -584,11 +591,13 @@ fun ConversationSettingsContent(
                         )
                     }
                 }
-                item(key = "bottomPadding") {
-                    Spacer(modifier = Modifier.height(48.dp))
+                if (!enableMembersPaging.value) {
+                    item(key = "bottomPadding") {
+                        Spacer(modifier = Modifier.height(48.dp))
+                    }
                 }
             }else {
-                item {
+                item("SocialCircleColors") {
                     val socialCircleColors = model.socialCircleColors.collectAsState(initial = null)
 
                     AnimatedVisibility(visible = directUser?.proximity != null) {
@@ -634,7 +643,7 @@ fun ConversationSettingsContent(
                         }
                     }
                 }
-                item {
+                item("SocialCircleAction") {
                     if (directUser != null) {
                         AddToCircleAction(
                             modifier = Modifier.padding(top = 16.dp),
@@ -654,6 +663,7 @@ private fun RoomNameContent(
     model: ConversationSettingsModel,
     roomName: String?
 ) {
+    val detail = model.conversation.collectAsState()
     val ongoingChange = model.ongoingChange.collectAsState()
     val isLoading = ongoingChange.value?.state is BaseResponse.Loading
     val showNameChangeLauncher = remember(roomName) { mutableStateOf(false) }
@@ -677,13 +687,15 @@ private fun RoomNameContent(
                         text = roomName ?: "",
                         style = LocalTheme.current.styles.subheading
                     )
-                    MinimalisticComponentIcon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = stringResource(Res.string.accessibility_change_username),
-                        onTap = {
-                            showNameChangeLauncher.value = true
-                        }
-                    )
+                    if (detail.value?.data?.type == RoomType.Joined) {
+                        MinimalisticComponentIcon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = stringResource(Res.string.accessibility_change_username),
+                            onTap = {
+                                showNameChangeLauncher.value = true
+                            }
+                        )
+                    }
                 }
                 1 -> {
                     val focusRequester = remember { FocusRequester() }

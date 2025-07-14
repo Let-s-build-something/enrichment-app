@@ -128,7 +128,10 @@ private fun ContentLayout(
             }
             AvatarImage(
                 modifier = Modifier
-                    .scalingClickable(enabled = onAvatarClick != null) {
+                    .scalingClickable(
+                        key = data.publicId,
+                        enabled = onAvatarClick != null
+                    ) {
                         onAvatarClick?.invoke()
                     }
                     .padding(start = LocalTheme.current.shapes.betweenItemsSpace)

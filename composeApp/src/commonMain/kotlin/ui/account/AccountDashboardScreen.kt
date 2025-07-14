@@ -16,9 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.IosShare
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
@@ -63,8 +61,6 @@ import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
 import augmy.composeapp.generated.resources.network_action_share
 import augmy.composeapp.generated.resources.screen_account_title
-import augmy.composeapp.generated.resources.screen_network_management
-import augmy.composeapp.generated.resources.screen_search_preferences
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -76,7 +72,6 @@ import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
-import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
@@ -144,14 +139,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
 
     BrandBaseScreen(
         title = stringResource(Res.string.screen_account_title),
-        actionIcons = { isExpanded ->
-            ActionBarIcon(
-                text = if(isExpanded) stringResource(Res.string.screen_search_preferences) else null,
-                imageVector = Icons.Outlined.Search,
-                onClick = {
-                    navController?.navigate(NavigationNode.SearchAccount)
-                }
-            )
+        /*actionIcons = { isExpanded ->
             ActionBarIcon(
                 text = if(isExpanded) stringResource(Res.string.screen_network_management) else null,
                 imageVector = Icons.Outlined.Handshake,
@@ -159,7 +147,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
                     navController?.navigate(NavigationNode.NetworkManagement())
                 }
             )
-        }
+        }*/
     ) {
         ModalScreenContent(
             modifier = Modifier

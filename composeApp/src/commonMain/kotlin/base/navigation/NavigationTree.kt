@@ -12,6 +12,7 @@ import augmy.composeapp.generated.resources.screen_login
 import augmy.composeapp.generated.resources.screen_media_detail
 import augmy.composeapp.generated.resources.screen_network_management
 import augmy.composeapp.generated.resources.screen_search_network
+import augmy.composeapp.generated.resources.screen_search_room
 import augmy.composeapp.generated.resources.screen_search_user
 import augmy.composeapp.generated.resources.screen_water_please
 import data.io.social.network.conversation.message.MediaIO
@@ -73,6 +74,12 @@ sealed class NavigationNode {
         override val deepLink: String = "users/search?awaitingResult=$awaitingResult&excludeUsers=$excludeUsers"
     }
 
+    @Serializable
+    object SearchRoom: NavigationNode() {
+        @Transient override val titleRes: StringResource = Res.string.screen_search_room
+        override val deepLink: String = "room/search"
+    }
+
     /** Conversation detail screen */
     @Serializable
     data class Conversation(
@@ -90,6 +97,8 @@ sealed class NavigationNode {
 
         /** Specific to larger screens as the search query will be open in split screen under this conversation */
         val searchQuery: String? = null,
+
+        val joinRule: String? = null
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
         override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo&searchQuery=$searchQuery"
@@ -133,13 +142,6 @@ sealed class NavigationNode {
     data object AccountDashboard: NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_account_title
         override val deepLink: String = "account/dashboard"
-    }
-
-    /** screen for searching within one's account, preferences, and settings */
-    @Serializable
-    data object SearchAccount: NavigationNode() {
-        @Transient override val titleRes: StringResource = Res.string.screen_search_network
-        override val deepLink: String = "account/search"
     }
 
     /** Screen for searching within one's network */
@@ -196,6 +198,7 @@ sealed class NavigationNode {
         val allNodes = listOf(
             Login(),
             Water,
+            SearchRoom,
             Conversation(),
             ConversationSearch(),
             AccountDashboard,

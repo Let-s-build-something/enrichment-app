@@ -4,8 +4,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,6 +43,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -74,10 +77,10 @@ fun CustomTextField(
         fontSize = 18.sp
     ),
     paddingValues: PaddingValues = PaddingValues(
-        start = 16.dp,
-        end = 0.dp,
-        top = 8.dp,
-        bottom = 8.dp
+        start = 20.dp,
+        end = 4.dp,
+        top = 10.dp,
+        bottom = 10.dp
     ),
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -91,30 +94,28 @@ fun CustomTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     additionalContent: @Composable (() -> Unit)? = null,
     onTextLayout: (Density.(getResult: () -> TextLayoutResult?) -> Unit)? = null,
-    lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.SingleLine,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
     hint: String? = null,
+    backgroundColor: Color? = LocalTheme.current.colors.backgroundDark,
     suggestText: String? = null,
     isClearable: Boolean = false,
-    showBorders: Boolean = true,
+    focusable: Boolean = true,
     isCorrect: Boolean = false,
     enabled: Boolean = true,
     isFocused: MutableState<Boolean> = remember(state.text) { mutableStateOf(false) }
 ) {
     val focusManager = LocalFocusManager.current
-    val controlColor = if(showBorders) {
-        animateColorAsState(
-            when {
-                errorText != null -> colors.errorTextColor
-                isCorrect -> SharedColors.GREEN_CORRECT
-                isFocused.value -> colors.focusedTextColor
-                !enabled -> colors.disabledTextColor
-                else -> colors.unfocusedTextColor
-            },
-            label = "controlColorChange"
-        )
-    }else null
+    val controlColor = animateColorAsState(
+        when {
+            errorText != null -> colors.errorTextColor
+            isCorrect -> SharedColors.GREEN_CORRECT
+            focusable && isFocused.value -> LocalTheme.current.colors.disabled
+            else -> Color.Transparent
+        },
+        label = "controlColorChange"
+    )
 
     Column(modifier = modifier.animateContentSize()) {
         additionalContent?.invoke()
@@ -122,17 +123,22 @@ fun CustomTextField(
             Modifier
                 .heightIn(min = 44.dp)
                 .then(
-                    controlColor?.value?.let {
-                        Modifier.border(
-                            width = if (isFocused.value) 1.dp else 0.25.dp,
-                            color = it,
+                    if(backgroundColor != null) {
+                        Modifier.background(
+                            color = LocalTheme.current.colors.backgroundDark,
                             shape = shape
                         )
-                    } ?: Modifier
+                    }else Modifier
                 )
-                .clickable(indication = null, interactionSource = null) {
-                    focusRequester.requestFocus()
-                },
+                .border(
+                    width = 0.25.dp,
+                    color = controlColor.value,
+                    shape = shape
+                )
+                .padding(
+                    horizontal = 4.dp,
+                    vertical = 2.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             prefixIcon?.let { vector ->
@@ -192,7 +198,11 @@ fun CustomTextField(
                     )
                 }
                 if(hint != null) {
-                    androidx.compose.animation.AnimatedVisibility(state.text.isEmpty()) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = state.text.isEmpty(),
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
                         Text(
                             text = hint,
                             style = textStyle.copy(
@@ -223,7 +233,7 @@ fun CustomTextField(
                                 imageVector = Icons.Outlined.Clear,
                                 tint = LocalTheme.current.colors.secondary
                             ) {
-                                state.setTextAndPlaceCursorAtEnd("")
+                                if (enabled) state.setTextAndPlaceCursorAtEnd("")
                             }
                         }
                     }

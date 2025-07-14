@@ -1,5 +1,6 @@
 package ui.network.list
 
+import CollectResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -36,8 +37,6 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.invite_conversation_heading
 import augmy.composeapp.generated.resources.invite_new_item_conversation
-import augmy.composeapp.generated.resources.network_list_empty_action
-import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -45,8 +44,6 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.getOrNull
-import CollectResult
-import components.EmptyLayout
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
@@ -68,7 +65,6 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun NetworkListContent(
-    openAddNewModal: () -> Unit,
     refreshHandler: RefreshHandler,
     viewModel: NetworkListModel = koinViewModel()
 ) {
@@ -141,11 +137,11 @@ fun NetworkListContent(
                     enter = expandVertically() + fadeIn(),
                     visible = networkItems.itemCount == 0 && !isLoadingInitialPage
                 ) {
-                    EmptyLayout(
+                    /*EmptyLayout(
                         title = stringResource(Res.string.network_list_empty_title),
-                        action = stringResource(Res.string.network_list_empty_action),
+                        secondaryAction = stringResource(Res.string.network_list_empty_action),
                         onClick = openAddNewModal
-                    )
+                    )*/
                 }
             }
             items(

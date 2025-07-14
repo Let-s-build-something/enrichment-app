@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PersonAddAlt
-import androidx.compose.material.icons.outlined.PersonOutline
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -75,7 +75,7 @@ fun DefaultAppBarActions(
                                     )
                                 }
                             }else null,
-                            imageVector = Icons.Outlined.PersonOutline,
+                            imageVector = Icons.Outlined.AccountCircle,
                             onClick = {
                                 navController?.navigate(NavigationNode.AccountDashboard)
                             }
@@ -96,7 +96,7 @@ fun DefaultAppBarActions(
                     }else {
                         ActionBarIcon(
                             text = if(expanded) stringResource(Res.string.screen_login) else null,
-                            imageVector = Icons.Outlined.PersonAddAlt,
+                            imageVector = Icons.Outlined.Fingerprint,
                             onClick = {
                                 navController?.navigate(NavigationNode.Login())
                             }
@@ -110,7 +110,7 @@ fun DefaultAppBarActions(
                     ActionBarIcon(
                         modifier = Modifier,
                         enabled = false,
-                        imageVector = Icons.Outlined.PersonAddAlt,
+                        imageVector = Icons.Outlined.Fingerprint,
                         tint = Color.Transparent,
                         text = ""
                     )
