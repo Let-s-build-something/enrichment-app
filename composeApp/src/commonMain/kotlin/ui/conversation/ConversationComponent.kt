@@ -1,7 +1,9 @@
 package ui.conversation
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -16,10 +18,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.RoomService
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -36,6 +46,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
@@ -43,21 +54,30 @@ import app.cash.paging.compose.LazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.conversation_creating_room
 import augmy.composeapp.generated.resources.conversation_detail_you
+import augmy.composeapp.generated.resources.conversation_knock_error
+import augmy.composeapp.generated.resources.conversation_knock_helper
+import augmy.composeapp.generated.resources.conversation_knock_success
+import augmy.composeapp.generated.resources.conversation_knock_title
 import augmy.composeapp.generated.resources.conversation_no_room_message
 import augmy.composeapp.generated.resources.conversation_no_room_title
+import augmy.composeapp.generated.resources.conversation_preview_helper
+import augmy.composeapp.generated.resources.conversation_preview_title
+import augmy.composeapp.generated.resources.conversation_restricted_title
 import augmy.interactive.shared.ext.draggable
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.ui.base.CustomSnackbarVisuals
 import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalNavController
+import augmy.interactive.shared.ui.base.LocalSnackbarHost
+import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.utils.PersistentListData
 import augmy.interactive.shared.utils.persistedLazyListState
 import base.navigation.NavigationNode
 import base.utils.getOrNull
 import base.utils.openLink
 import components.EmptyLayout
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.message.FullConversationMessage
-import io.github.alexzhirkevich.compottie.DotLottie
-import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -260,6 +280,130 @@ fun ConversationComponent(
                         targetState = uiMode.value
                     ) { mode ->
                         when(mode) {
+                            ConversationModel.UiMode.Knock -> {
+                                val snackbarHostState = LocalSnackbarHost.current
+                                val knockResponse = model.knockResponse.collectAsState()
+
+                                LaunchedEffect(knockResponse.value) {
+                                    if (knockResponse.value.isSuccess) {
+                                        snackbarHostState?.showSnackbar(
+                                            getString(Res.string.conversation_knock_success)
+                                        )
+                                    }else if (knockResponse.value.isError) {
+                                        snackbarHostState?.showSnackbar(
+                                            CustomSnackbarVisuals(
+                                                message = getString(
+                                                    Res.string.conversation_knock_error,
+                                                    knockResponse.value.error?.code?.let { "($it)" } ?: ""
+                                                ),
+                                                isError = true
+                                            )
+                                        )
+                                    }
+                                }
+
+                                Column(
+                                    modifier = Modifier
+                                        .padding(bottom = 32.dp)
+                                        .fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Crossfade(knockResponse.value is BaseResponse.Loading) { isLoading ->
+                                        if (isLoading) {
+                                            Box(
+                                                modifier = Modifier.size(62.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.requiredSize(48.dp),
+                                                    color = LocalTheme.current.colors.disabled,
+                                                    trackColor = LocalTheme.current.colors.disabledComponent
+                                                )
+                                            }
+                                        } else {
+                                            Icon(
+                                                modifier = Modifier.size(62.dp),
+                                                imageVector = Icons.Outlined.RoomService,
+                                                contentDescription = null,
+                                                tint = LocalTheme.current.colors.disabled
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        text = stringResource(Res.string.conversation_knock_title),
+                                        style = LocalTheme.current.styles.subheading
+                                    )
+                                    Crossfade(knockResponse.value is BaseResponse.Error) { isError ->
+                                        Text(
+                                            modifier = Modifier.padding(horizontal = 8.dp),
+                                            text = if (isError) {
+                                                stringResource(
+                                                    Res.string.conversation_knock_error,
+                                                    knockResponse.value.error?.code?.let { "($it)" } ?: ""
+                                                )
+                                            } else stringResource(Res.string.conversation_knock_helper),
+                                            style = LocalTheme.current.styles.regular.copy(
+                                                textAlign = TextAlign.Center
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                            ConversationModel.UiMode.Preview -> {
+                                val joinResponse = model.joinResponse.collectAsState()
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .background(LocalTheme.current.colors.backgroundDark)
+                                        .padding(
+                                            horizontal = 16.dp,
+                                            vertical = 12.dp
+                                        ),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    AnimatedVisibility(joinResponse.value.isLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.requiredSize(48.dp),
+                                            color = LocalTheme.current.colors.disabled,
+                                            trackColor = LocalTheme.current.colors.disabledComponent
+                                        )
+                                    }
+                                    Text(
+                                        text = stringResource(Res.string.conversation_preview_title),
+                                        style = LocalTheme.current.styles.subheading
+                                    )
+                                    Text(
+                                        text = stringResource(Res.string.conversation_preview_helper),
+                                        style = LocalTheme.current.styles.regular
+                                    )
+                                }
+                            }
+                            ConversationModel.UiMode.Restricted -> {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(bottom = 32.dp)
+                                        .fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(62.dp),
+                                        imageVector = Icons.Outlined.Block,
+                                        contentDescription = null,
+                                        tint = LocalTheme.current.colors.disabled
+                                    )
+                                    Text(
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        text = stringResource(Res.string.conversation_restricted_title),
+                                        style = LocalTheme.current.styles.subheading
+                                    )
+                                }
+                            }
                             ConversationModel.UiMode.IdleNoRoom -> EmptyLayout(
                                 modifier = Modifier.padding(bottom = 32.dp),
                                 title = stringResource(Res.string.conversation_no_room_title),
@@ -268,9 +412,7 @@ fun ConversationComponent(
                             ConversationModel.UiMode.CreatingRoom -> EmptyLayout(
                                 modifier = Modifier.padding(bottom = 32.dp),
                                 title = stringResource(Res.string.conversation_creating_room),
-                                animSpec = {
-                                    LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
-                                }
+                                animPath = "files/loading_envelope.lottie"
                             )
                             ConversationModel.UiMode.InternalError -> {}
                             else -> {}
@@ -280,6 +422,7 @@ fun ConversationComponent(
                 items(
                     count = (if(messages.itemCount == 0 && isLoadingInitialPage) shimmerItemCount else messages.itemCount).takeIf {
                         uiMode.value == ConversationModel.UiMode.Idle
+                                || uiMode.value == ConversationModel.UiMode.Preview
                     } ?: 0,
                     key = { index -> messages.getOrNull(index)?.id ?: index }
                 ) { index ->
@@ -422,23 +565,25 @@ fun ConversationComponent(
             }
         }
 
-        SendMessagePanel(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged {
-                    if(it.height != 0) {
-                        with(density) {
-                            messagePanelHeight.value = it.height.toDp().value
+        if (uiMode.value != ConversationModel.UiMode.Restricted) {
+            SendMessagePanel(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged {
+                        if(it.height != 0) {
+                            with(density) {
+                                messagePanelHeight.value = it.height.toDp().value
+                            }
                         }
-                    }
-                },
-            overrideAnchorMessage = thread,
-            keyboardMode = keyboardMode,
-            model = model,
-            replyToMessage = replyToMessage,
-            scrollToMessage = {
-                model.scrollTo(it.id)
-            }
-        )
+                    },
+                overrideAnchorMessage = thread,
+                keyboardMode = keyboardMode,
+                model = model,
+                replyToMessage = replyToMessage,
+                scrollToMessage = {
+                    model.scrollTo(it.id)
+                }
+            )
+        }
     }
 }

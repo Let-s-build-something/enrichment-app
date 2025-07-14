@@ -2,7 +2,9 @@ package ui.search.room
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Language
@@ -44,11 +47,13 @@ import augmy.composeapp.generated.resources.action_search_users
 import augmy.composeapp.generated.resources.room_search_empty_text
 import augmy.composeapp.generated.resources.screen_search_user
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
+import base.navigation.NavigationNode
 import base.utils.getOrNull
 import components.EmptyLayout
 import components.network.NetworkItemRow
@@ -61,6 +66,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import ui.conversation.settings.ConversationDetailDialog
+import ui.login.homeserver_picker.MatrixHomeserverPicker
 import ui.search.room.SearchRoomModel.Companion.ITEMS_COUNT
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -70,6 +76,7 @@ import kotlin.uuid.Uuid
 fun SearchRoomScreen() {
     loadKoinModules(searchRoomModule)
     val model = koinViewModel<SearchRoomModel>()
+    val navController = LocalNavController.current
 
     val searchState = remember { TextFieldState() }
     val showHomeServerPicker = remember { mutableStateOf(false) }
@@ -87,20 +94,25 @@ fun SearchRoomScreen() {
         model.queryRooms(prompt = searchState.text)
     }
 
+    LaunchedEffect(isLoadingInitialPage) {
+        if (!isLoadingInitialPage) model.setIdleState()
+    }
+
     if(showHomeServerPicker.value) {
-        /*MatrixHomeserverPicker(
-            homeserver = homeserver.value,
+        MatrixHomeserverPicker(
+            homeserver = homeserver.value ?: model.homeserver,
             onDismissRequest = { showHomeServerPicker.value = false },
+            userHomeserver = model.homeserver,
             onSelect = {
                 model.selectHomeserver(it)
             }
-        )*/
+        )
     }
 
     selectedRoom.value?.let { room ->
-        // TODO dialog actions, can be just composable parameter
         ConversationDetailDialog(
             conversationId = room.roomId.full,
+            publicRoom = room,
             onDismissRequest = {
                 selectedRoom.value = null
             }
@@ -123,16 +135,9 @@ fun SearchRoomScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CustomTextField(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                color = LocalTheme.current.colors.backgroundDark,
-                                shape = LocalTheme.current.shapes.rectangularActionShape
-                            )
-                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        modifier = Modifier.weight(1f),
                         shape = LocalTheme.current.shapes.rectangularActionShape,
                         hint = stringResource(Res.string.action_search_users),
-                        showBorders = false,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Search
@@ -144,25 +149,58 @@ fun SearchRoomScreen() {
                     )
 
                     Crossfade(state.value is BaseResponse.Loading) { isLoading ->
-                        Box(
-                            modifier = Modifier
-                                .scalingClickable { showHomeServerPicker.value = true }
-                                .background(
-                                    color = LocalTheme.current.colors.backgroundDark,
+                        Row(
+                            modifier = if (homeserver.value != null) {
+                                Modifier.border(
+                                    width = .5.dp,
+                                    color = LocalTheme.current.colors.disabled,
                                     shape = LocalTheme.current.shapes.rectangularActionShape
                                 )
-                                .padding(12.dp)
+                            } else Modifier,
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.requiredSize(24.dp),
-                                    color = LocalTheme.current.colors.disabled,
-                                    trackColor = LocalTheme.current.colors.disabledComponent
-                                )
-                            } else {
+                            Box(
+                                modifier = Modifier
+                                    .scalingClickable { showHomeServerPicker.value = true }
+                                    .size(48.dp)
+                                    .background(
+                                        color = LocalTheme.current.colors.backgroundDark,
+                                        shape = LocalTheme.current.shapes.rectangularActionShape
+                                    )
+                                    .padding(12.dp)
+                                    .animateContentSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.requiredSize(18.dp),
+                                        color = LocalTheme.current.colors.disabled,
+                                        trackColor = LocalTheme.current.colors.disabledComponent
+                                    )
+                                } else {
+                                    Icon(
+                                        modifier = Modifier.size(24.dp),
+                                        imageVector = Icons.Outlined.Home,
+                                        tint = LocalTheme.current.colors.disabled,
+                                        contentDescription = stringResource(Res.string.accessibility_change_homeserver)
+                                    )
+                                }
+                            }
+
+                            AnimatedVisibility(homeserver.value != null) {
                                 Icon(
-                                    modifier = Modifier.size(24.dp),
-                                    imageVector = Icons.Outlined.Home,
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .scalingClickable {
+                                            model.selectHomeserver(null)
+                                        }
+                                        .background(
+                                            color = LocalTheme.current.colors.backgroundDark,
+                                            shape = LocalTheme.current.shapes.rectangularActionShape
+                                        )
+                                        .padding(6.dp),
+                                    imageVector = Icons.Outlined.Close,
                                     tint = LocalTheme.current.colors.disabled,
                                     contentDescription = stringResource(Res.string.accessibility_change_homeserver)
                                 )
@@ -204,7 +242,7 @@ fun SearchRoomScreen() {
                     Icon(
                         modifier = Modifier.size(18.dp),
                         imageVector = when (room?.joinRule) {
-                            JoinRulesEventContent.JoinRule.Public -> Icons.Outlined.Language
+                            JoinRulesEventContent.JoinRule.Public, null -> Icons.Outlined.Language
                             JoinRulesEventContent.JoinRule.Invite -> Icons.Outlined.LocalPostOffice
                             JoinRulesEventContent.JoinRule.Knock,
                             JoinRulesEventContent.JoinRule.KnockRestricted -> Icons.Outlined.RoomService
@@ -222,16 +260,27 @@ fun SearchRoomScreen() {
                                 scaleInto = .95f,
                                 enabled = room != null
                             ) {
-                                selectedRoom.value = room
+                                navController?.navigate(
+                                    NavigationNode.Conversation(
+                                        conversationId = room?.roomId?.full ?: return@scalingClickable,
+                                        joinRule = room.joinRule.name,
+                                        name = room.name ?: room.roomId.full
+                                    )
+                                )
                             }
                             .fillMaxWidth(),
+                        onAvatarClick = {
+                            selectedRoom.value = room
+                        },
                         highlight = searchState.text.toString().lowercase(),
-                        data = NetworkItemIO(
-                            displayName = room?.name ?: room?.roomId?.full,
-                            avatar = room?.avatarUrl?.let { MediaIO(it) },
-                            userId = room?.roomId?.full,
-                            lastMessage = room?.topic
-                        )
+                        data = if (room != null) {
+                            NetworkItemIO(
+                                displayName = room.name ?: room.roomId.full,
+                                avatar = room.avatarUrl?.let { MediaIO(it) },
+                                userId = room.roomId.full,
+                                lastMessage = room.topic
+                            )
+                        } else null
                     )
                 }
             }

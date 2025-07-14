@@ -4,12 +4,14 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
+import net.folivo.trixnity.clientserverapi.model.rooms.GetPublicRoomsResponse
 import org.koin.core.context.loadKoinModules
 
 @Composable
 fun ConversationDetailDialog(
-    onDismissRequest: () -> Unit,
     conversationId: String,
+    publicRoom: GetPublicRoomsResponse.PublicRoomsChunk? = null,
+    onDismissRequest: () -> Unit
 ) {
     loadKoinModules(conversationSettingsModule)
 
@@ -18,6 +20,7 @@ fun ConversationDetailDialog(
         additionalContent = {
             ConversationSettingsContent(
                 modifier = Modifier.animateContentSize(),
+                publicRoom = publicRoom,
                 conversationId = conversationId
             )
         },

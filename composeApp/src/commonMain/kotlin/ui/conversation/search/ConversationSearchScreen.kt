@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -70,7 +69,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
 import org.koin.core.parameter.parametersOf
 import ui.network.components.user_detail.UserDetailDialog
-import utils.SharedLogger
 
 
 @Composable
@@ -118,7 +116,6 @@ fun ConversationSearchScreen(
                 key = { index -> messages.getOrNull(index)?.id ?: index }
             ) { index ->
                 val message = messages.getOrNull(index)
-                SharedLogger.logger.debug { "itemCount: ${messages.itemCount}, message: ${message?.data?.content}, ${message?.data?.id}" }
 
                 NetworkItemRow(
                     modifier = Modifier
@@ -214,13 +211,7 @@ private fun SearchBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CustomTextField(
-                modifier = Modifier
-                    .background(
-                        LocalTheme.current.colors.backgroundDark,
-                        shape = LocalTheme.current.shapes.rectangularActionShape
-                    )
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                    .weight(1f),
+                modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Search
@@ -230,8 +221,6 @@ private fun SearchBar(
                 focusRequester = focusRequester,
                 hint = stringResource(Res.string.button_search),
                 state = searchFieldState,
-                showBorders = false,
-                lineLimits = TextFieldLineLimits.SingleLine,
                 shape = LocalTheme.current.shapes.rectangularActionShape
             )
 

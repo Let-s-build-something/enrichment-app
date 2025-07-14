@@ -97,6 +97,8 @@ sealed class NavigationNode {
 
         /** Specific to larger screens as the search query will be open in split screen under this conversation */
         val searchQuery: String? = null,
+
+        val joinRule: String? = null
     ): NavigationNode() {
         @Transient override val titleRes: StringResource = Res.string.screen_conversation
         override val deepLink: String = "messages?conversation=$conversationId&name=$name&userId=$userId&scrollTo=$scrollTo&searchQuery=$searchQuery"

@@ -5,12 +5,14 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.utils.DateUtils.localNow
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.getUrlExtension
 import base.utils.toSha256
 import components.pull_refresh.RefreshableViewModel
 import data.io.app.SettingsKeys
+import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomType
@@ -33,6 +35,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,12 +51,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.clientserverapi.model.rooms.CreateRoom
 import net.folivo.trixnity.clientserverapi.model.rooms.DirectoryVisibility
+import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.InitialStateEvent
 import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
 import net.folivo.trixnity.core.model.events.m.room.GuestAccessEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent.HistoryVisibility
+import net.folivo.trixnity.core.model.events.m.room.JoinRulesEventContent
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -86,12 +92,13 @@ internal val conversationModule = module {
         )
     }
 
-    factory { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?) ->
+    factory { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?, joinRule: String?) ->
         ConversationModel(
-            MutableStateFlow(conversationId ?: ""),
-            userId,
-            enableMessages,
-            scrollTo,
+            conversationId = MutableStateFlow(conversationId ?: ""),
+            userId = userId,
+            enableMessages = enableMessages,
+            scrollTo = scrollTo,
+            joinRule = joinRule,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -101,12 +108,13 @@ internal val conversationModule = module {
             get<GravityUseCase>(),
         )
     }
-    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?) ->
+    viewModel { (conversationId: String?, userId: String?, enableMessages: Boolean, scrollTo: String?, joinRule: String?) ->
         ConversationModel(
-            MutableStateFlow(conversationId ?: ""),
-            userId,
-            enableMessages,
-            scrollTo,
+            conversationId = MutableStateFlow(conversationId ?: ""),
+            userId = userId,
+            enableMessages = enableMessages,
+            scrollTo = scrollTo,
+            joinRule = joinRule,
             get<ConversationRepository>(),
             get<ConversationDataManager>(),
             get<EmojiUseCase>(),
@@ -124,6 +132,7 @@ open class ConversationModel(
     private val userId: String? = null,
     enableMessages: Boolean = true,
     private val scrollTo: String? = null,
+    private val joinRule: String? = null,
     private val repository: ConversationRepository,
     private val dataManager: ConversationDataManager,
     emojiUseCase: EmojiUseCase,
@@ -144,7 +153,10 @@ open class ConversationModel(
         IdleNoRoom,
         InternalError,
         CreatingRoom,
-        CreateRoomNoMembers
+        CreateRoomNoMembers,
+        Preview,
+        Restricted,
+        Knock
     }
 
     override val isRefreshing = MutableStateFlow(false)
@@ -155,6 +167,8 @@ open class ConversationModel(
     private val _mentionRecommendations = MutableStateFlow<List<ConversationRoomMember>?>(null)
     private val _recommendedUsersToInvite = MutableStateFlow(listOf<ConversationRoomMember>())
     private val _membersToInvite = MutableStateFlow(mutableSetOf<ConversationRoomMember>())
+    private val _joinResponse = MutableStateFlow<BaseResponse<RoomId>>(BaseResponse.Idle)
+    private val _knockResponse = MutableStateFlow<BaseResponse<RoomId>>(BaseResponse.Idle)
 
     // firstVisibleItemIndex to firstVisibleItemScrollOffset
     var persistentPositionData: PersistentListData? = null
@@ -207,6 +221,9 @@ open class ConversationModel(
     val recommendedUsersToInvite = _recommendedUsersToInvite.asStateFlow()
     val membersToInvite = _membersToInvite.asStateFlow()
 
+    val joinResponse = _joinResponse.asStateFlow()
+    val knockResponse = _knockResponse.asStateFlow()
+
     val uiMode = _uiMode.asStateFlow()
 
     /** Progress of the current upload */
@@ -226,15 +243,20 @@ open class ConversationModel(
 
     init {
         viewModelScope.launch {
-            // no conversationId, attempt to retrieve it from userId
-            if (conversationId.value.isBlank()) {
-                if (userId != null) {
-                    repository.getRoomIdByUser(userId)?.let { newConversationId ->
-                        conversationId.value = newConversationId
-                    }.ifNull {
-                        _uiMode.value = UiMode.IdleNoRoom
-                    }
-                }else _uiMode.value = UiMode.CreateRoomNoMembers
+            _uiMode.value = when {
+                joinRule != null -> when (joinRule) {
+                    JoinRulesEventContent.JoinRule.Public.name -> UiMode.Preview
+                    JoinRulesEventContent.JoinRule.Knock.name,
+                    JoinRulesEventContent.JoinRule.KnockRestricted.name -> UiMode.Knock
+                    else -> UiMode.Restricted
+                }
+                !conversationId.value.isBlank() -> UiMode.Idle
+                // no conversationId, attempt to retrieve it from userId
+                userId != null -> repository.getRoomIdByUser(userId)?.let { newConversationId ->
+                    conversationId.value = newConversationId
+                    UiMode.Idle
+                } ?: UiMode.IdleNoRoom
+                else -> UiMode.CreateRoomNoMembers
             }
 
             onDataRequest(isSpecial = false, isPullRefresh = false)
@@ -247,7 +269,7 @@ open class ConversationModel(
     // ==================== functions ===========================
 
     override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
-        if((conversationId.value.isNotBlank()
+        if ((conversationId.value.isNotBlank()
                     && dataManager.conversations.value.second[conversationId.value] == null)
             || isSpecial
         ) {
@@ -258,6 +280,11 @@ open class ConversationModel(
                 )?.let { data ->
                     dataManager.updateConversations { it.apply { this[conversationId.value] = data } }
                     dataManager.conversations.value.second[conversationId.value] = data
+                }.ifNull {
+                    // only if there is no detail existing
+                    if (joinRule == JoinRulesEventContent.JoinRule.Public.name) {
+                        _uiMode.value = UiMode.Preview
+                    }
                 }
             }
         }
@@ -273,7 +300,7 @@ open class ConversationModel(
             }
         }
 
-        if(isSpecial) {
+        if (isSpecial) {
             repository.invalidateLocalSource()
         }
     }
@@ -318,8 +345,15 @@ open class ConversationModel(
     }
 
     /** Either calls for most relevant recommendations or queries all users */
+    private val recommendScope = CoroutineScope(Job())
+    private val _recommendUsersState = MutableStateFlow<BaseResponse<Any>>(BaseResponse.Idle)
+    val recommendUsersState = _recommendUsersState.asStateFlow()
+
     fun recommendUsersToInvite(query: CharSequence? = null) {
-        viewModelScope.launch(Dispatchers.Default) {
+        _recommendUsersState.value = BaseResponse.Loading
+        recommendScope.coroutineContext.cancelChildren()
+        recommendScope.launch(Dispatchers.Default) {
+            delay(DELAY_BETWEEN_TYPING_SHORT)
             val limit = 10
 
             _recommendedUsersToInvite.value = (if (query.isNullOrBlank()) {
@@ -337,6 +371,7 @@ open class ConversationModel(
                 it.userId != matrixUserId
                         && membersToInvite.value.none { member -> member.userId == it.userId  }
             }
+            _recommendUsersState.value = BaseResponse.Idle
         }
     }
 
@@ -412,6 +447,95 @@ open class ConversationModel(
         }
     }
 
+    private fun joinRoom(reason: String) {
+        if (_uiMode.value != UiMode.Preview) return
+
+        _joinResponse.value = BaseResponse.Loading
+        viewModelScope.launch {
+            matrixClient?.api?.room?.joinRoom(
+                roomId = RoomId(conversationId.value),
+                reason = reason.takeIf { it.isNotBlank() }
+            )?.getOrElse { error ->
+                _joinResponse.value = BaseResponse.Error(code = error.message)
+                null
+            }?.let {
+                _uiMode.value = UiMode.Idle
+                _joinResponse.value = BaseResponse.Success(it)
+            }
+        }
+    }
+
+    private fun knockOnRoom(reason: String) {
+        if (_uiMode.value != UiMode.Knock) return
+
+        _knockResponse.value = BaseResponse.Loading
+        viewModelScope.launch {
+            matrixClient?.api?.room?.knockRoom(
+                roomId = RoomId(conversationId.value),
+                reason = reason.takeIf { it.isNotBlank() }
+            )?.getOrElse { error ->
+                _knockResponse.value = BaseResponse.Error(code = error.message)
+                null
+            }?.let {
+                _knockResponse.value = BaseResponse.Success(it)
+            }
+        }
+    }
+
+    private suspend fun createMissingRoom() {
+        if (_membersToInvite.value.size == 1) {
+            _membersToInvite.value.firstOrNull()?.userId?.let {
+                repository.getRoomIdByUser(it)?.let { userId ->
+                    conversationId.value = userId
+                    _uiMode.value = UiMode.Idle
+                    onDataRequest(isSpecial = false, isPullRefresh = false)
+                    if (conversationId.value.isNotBlank()) return
+                }
+            }
+        }
+
+        _uiMode.value = UiMode.CreatingRoom
+        val users = _membersToInvite.value.map { UserId(it.userId) }.toMutableSet().apply {
+            userId?.let { add(UserId(it)) }
+        }
+
+        matrixClient?.api?.room?.createRoom(
+            visibility = DirectoryVisibility.PRIVATE,
+            initialState = listOf<InitialStateEvent<*>>(
+                InitialStateEvent(GuestAccessEventContent(GuestAccessEventContent.GuestAccessType.FORBIDDEN), ""),
+                InitialStateEvent(HistoryVisibilityEventContent(HistoryVisibility.INVITED), ""),
+                InitialStateEvent(EncryptionEventContent(algorithm = EncryptionAlgorithm.Megolm), "")
+            ),
+            roomVersion = "11",
+            isDirect = userId != null,
+            preset = CreateRoom.Request.Preset.TRUSTED_PRIVATE,
+            invite = users,
+        )?.getOrNull()?.full?.let { newConversationId ->
+            _uiMode.value = UiMode.Idle
+            repository.insertConversation(
+                ConversationRoomIO(
+                    id = newConversationId,
+                    summary = RoomSummary(
+                        heroes = users.toList(),
+                        isDirect = userId != null
+                    ),
+                    ownerPublicId = matrixUserId,
+                    historyVisibility = HistoryVisibility.INVITED,
+                    prevBatch = null,
+                    type = RoomType.Joined
+                )
+            )
+            userId?.let {
+                repository.insertMemberByUserId(
+                    conversationId = newConversationId,
+                    userId = it,
+                    homeserver = homeserver
+                )
+            }
+            conversationId.value = newConversationId
+        }
+    }
+
     /**
      * Makes a request to send a conversation message
      * @param content textual content of the message
@@ -428,100 +552,55 @@ open class ConversationModel(
         showPreview: Boolean
     ) {
         CoroutineScope(Job()).launch {
-            // no conversation room yet, let's create it
-            if ((userId != null || _membersToInvite.value.isNotEmpty())
-                && conversationId.value.isBlank()
-                && _uiMode.value != UiMode.CreatingRoom
-            ) {
-                if (_membersToInvite.value.size == 1) {
-                    _membersToInvite.value.firstOrNull()?.userId?.let {
-                        repository.getRoomIdByUser(it)?.let { userId ->
-                            conversationId.value = userId
-                            _uiMode.value = UiMode.Idle
-                            onDataRequest(isSpecial = false, isPullRefresh = false)
-                            if (conversationId.value.isNotBlank()) return@launch
-                        }
+            when (_uiMode.value) {
+                UiMode.CreateRoomNoMembers, UiMode.IdleNoRoom -> {  // no conversation room yet, let's create it
+                    createMissingRoom()
+                }
+                UiMode.Preview -> {
+                    joinRoom(content)
+                }
+                UiMode.Knock -> {
+                    knockOnRoom(content)
+                }
+                else -> {
+                    var progressId = ""
+                    val media = mediaUrls.mapNotNull { url ->
+                        MediaIO(
+                            url = url,
+                            mimetype = MimeType.getByExtension(getUrlExtension(url)).mime,
+                        ).takeIf { url.isNotBlank() }
                     }
-                }
-
-                _uiMode.value = UiMode.CreatingRoom
-                val users = _membersToInvite.value.map { UserId(it.userId) }.toMutableSet().apply {
-                    userId?.let { add(UserId(it)) }
-                }
-
-                matrixClient?.api?.room?.createRoom(
-                    visibility = DirectoryVisibility.PRIVATE,
-                    initialState = listOf<InitialStateEvent<*>>(
-                        InitialStateEvent(GuestAccessEventContent(GuestAccessEventContent.GuestAccessType.FORBIDDEN), ""),
-                        InitialStateEvent(HistoryVisibilityEventContent(HistoryVisibility.INVITED), ""),
-                        InitialStateEvent(EncryptionEventContent(algorithm = EncryptionAlgorithm.Megolm), "")
-                    ),
-                    roomVersion = "11",
-                    isDirect = userId != null,
-                    preset = CreateRoom.Request.Preset.TRUSTED_PRIVATE,
-                    invite = users,
-                )?.getOrNull()?.full?.let { newConversationId ->
-                    _uiMode.value = UiMode.Idle
-                    repository.insertConversation(
-                        ConversationRoomIO(
-                            id = newConversationId,
-                            summary = RoomSummary(
-                                heroes = users.toList(),
-                                isDirect = userId != null
+                    sendMessage(
+                        conversationId = conversationId.value,
+                        homeserver = homeserver,
+                        mediaFiles = mediaFiles,
+                        onProgressChange = { progress ->
+                            _uploadProgress.update {
+                                it.toMutableList().apply {
+                                    add(progress)
+                                    progressId = progress.id
+                                }
+                            }
+                        },
+                        gifAsset = gifAsset,
+                        message = ConversationMessageIO(
+                            content = content,
+                            gravityData = GravityData(
+                                values = gravityValues.map { it.copy(conversationId = null) },
+                                tickMs = TICK_MILLIS
                             ),
-                            ownerPublicId = matrixUserId,
-                            historyVisibility = HistoryVisibility.INVITED,
-                            prevBatch = null,
-                            type = RoomType.Joined
-                        )
+                            anchorMessageId = anchorMessage?.id,
+                            parentAnchorMessageId = anchorMessage?.anchorMessageId,
+                            showPreview = showPreview,
+                            timings = timings
+                        ),
+                        mediaIn = media
                     )
-                    userId?.let {
-                        repository.insertMemberByUserId(
-                            conversationId = newConversationId,
-                            userId = it,
-                            homeserver = homeserver
-                        )
-                    }
-                    conversationId.value = newConversationId
-                }
-            }
-
-            var progressId = ""
-            val media = mediaUrls.mapNotNull { url ->
-                MediaIO(
-                    url = url,
-                    mimetype = MimeType.getByExtension(getUrlExtension(url)).mime,
-                ).takeIf { url.isNotBlank() }
-            }
-            sendMessage(
-                conversationId = conversationId.value,
-                homeserver = homeserver,
-                mediaFiles = mediaFiles,
-                onProgressChange = { progress ->
-                    _uploadProgress.update {
-                        it.toMutableList().apply {
-                            add(progress)
-                            progressId = progress.id
+                    _uploadProgress.update { previous ->
+                        previous.toMutableList().apply {
+                            removeAll { it.id == progressId }
                         }
                     }
-                },
-                gifAsset = gifAsset,
-                message = ConversationMessageIO(
-                    content = content,
-                    gravityData = GravityData(
-                        values = gravityValues.map { it.copy(conversationId = null) },
-                        tickMs = TICK_MILLIS
-                    ),
-                    anchorMessageId = anchorMessage?.id,
-                    parentAnchorMessageId = anchorMessage?.anchorMessageId,
-                    showPreview = showPreview,
-                    timings = timings
-                ),
-                mediaIn = media
-            )
-            _uploadProgress.update { previous ->
-                previous.toMutableList().apply {
-                    removeAll { it.id == progressId }
                 }
             }
         }

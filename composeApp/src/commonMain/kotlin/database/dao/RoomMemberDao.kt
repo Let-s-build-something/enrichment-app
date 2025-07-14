@@ -56,7 +56,8 @@ interface RoomMemberDao {
         SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
             WHERE room_id = :roomId
             AND userId != :ignoreUserId
-            ORDER BY timestamp DESC 
+            AND membership = 'join'
+            ORDER BY proximity DESC, timestamp ASC
             LIMIT :limit
             OFFSET :offset
             """)
@@ -67,8 +68,13 @@ interface RoomMemberDao {
         limit: Int,
     ): List<ConversationRoomMember>
 
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE room_id = :roomId ")
+    @Query(
+        """
+         SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}   
+         WHERE room_id = :roomId
+         AND membership = 'join'
+        """
+    )
     suspend fun getCount(roomId: String?): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

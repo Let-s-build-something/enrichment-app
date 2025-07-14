@@ -122,6 +122,7 @@ import base.utils.MediaType
 import base.utils.getUrlExtension
 import base.utils.maxMultiLineHeight
 import components.AvatarImage
+import data.io.base.BaseResponse
 import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
@@ -140,6 +141,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import ui.conversation.ConversationModel
+import ui.conversation.ConversationRepository.Companion.REGEX_HTML_MENTION
 import ui.conversation.components.audio.PanelMicrophone
 import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
@@ -277,10 +279,11 @@ internal fun BoxScope.SendMessagePanel(
     }
 
     val sendMessage = {
-        if(messageState.text.toString().isNotBlank()
+        if ((messageState.text.toString().isNotBlank()
             || mediaAttached.isNotEmpty()
             || gifAttached.value != null
-            || urlsAttached.isNotEmpty()
+            || urlsAttached.isNotEmpty())
+                && model.joinResponse.value !is BaseResponse.Loading
         ) {
             model.sendMessage(
                 content = messageState.text.toString(),
@@ -568,10 +571,6 @@ internal fun BoxScope.SendMessagePanel(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 12.dp, end = spacing)
-                    .background(
-                        color = LocalTheme.current.colors.backgroundDark,
-                        shape = LocalTheme.current.shapes.rectangularActionShape
-                    )
                     .onGloballyPositioned {
                         actionYCoordinate.value = it.positionOnScreen().y
                     },
@@ -596,7 +595,6 @@ internal fun BoxScope.SendMessagePanel(
                         }else model.stopTypingServices()
                     }
                     .fillMaxWidth(),
-                showBorders = false,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send,
@@ -609,7 +607,7 @@ internal fun BoxScope.SendMessagePanel(
                 } else null,
                 outputTransformation = object: OutputTransformation {
                     override fun TextFieldBuffer.transformOutput() {
-                        val mentionRegex = """<a href=".*(@[^"]+)">([^<]+)<\/a>""".toRegex()
+                        val mentionRegex = REGEX_HTML_MENTION.toRegex()
 
                         // Start from the end to preserve correct indexing while replacing
                         mentionRegex.findAll(originalText).toList().asReversed().forEach { match ->

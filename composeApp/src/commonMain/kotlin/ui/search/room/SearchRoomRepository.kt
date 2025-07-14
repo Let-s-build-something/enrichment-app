@@ -70,6 +70,7 @@ class SearchRoomRepository(
                     GetPublicRoomsWithFilter.Request(
                         limit = limit.toLong(),
                         since = since,
+                        includeAllNetworks = true,
                         filter = GetPublicRoomsWithFilter.Request.Filter(
                             genericSearchTerm = query
                         )

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Link
@@ -194,7 +193,6 @@ fun DialogChangeRoomAvatar(
                         hint = stringResource(Res.string.image_field_url_hint),
                         prefixIcon = Icons.Outlined.Link,
                         state = urlState,
-                        lineLimits = TextFieldLineLimits.SingleLine,
                         errorText = if(urlLoadState.value is BaseResponse.Error) {
                             stringResource(Res.string.image_field_url_error_formats)
                         }else null,

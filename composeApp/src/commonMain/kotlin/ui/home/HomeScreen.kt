@@ -37,7 +37,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -122,8 +121,6 @@ import data.io.base.BaseResponse
 import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomType
 import data.io.user.NetworkItemIO
-import io.github.alexzhirkevich.compottie.DotLottie
-import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -322,9 +319,7 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                             modifier = Modifier.fillMaxSize(),
                             title = stringResource(Res.string.screen_home_initial_sync),
                             animReverseOnRepeat = false,
-                            animSpec = {
-                                LottieCompositionSpec.DotLottie(Res.readBytes("files/loading_envelope.lottie"))
-                            }
+                            animPath = "files/loading_envelope.lottie"
                         )
                         HomeModel.UiMode.NoClient -> EmptyLayout(
                             title = stringResource(Res.string.screen_home_no_client_title),
@@ -404,14 +399,6 @@ private fun SearchField(
     CustomTextField(
         modifier = Modifier
             .padding(top = 16.dp, start = 8.dp, end = 8.dp)
-            .background(
-                LocalTheme.current.colors.backgroundDark,
-                shape = LocalTheme.current.shapes.rectangularActionShape
-            )
-            .padding(
-                horizontal = 4.dp,
-                vertical = 2.dp
-            )
             .fillMaxWidth(if (isCompact) 1f else .8f),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Text,
@@ -422,8 +409,6 @@ private fun SearchField(
         focusRequester = focusRequester,
         hint = stringResource(Res.string.button_search),
         state = searchFieldState,
-        showBorders = false,
-        lineLimits = TextFieldLineLimits.SingleLine,
         shape = LocalTheme.current.shapes.rectangularActionShape
     )
 }
@@ -537,10 +522,10 @@ private fun ListContent(
     }
     selectedRoomId.value?.let { roomId ->
         ConversationDetailDialog(
-            conversationId = roomId,
             onDismissRequest = {
                 selectedRoomId.value = null
-            }
+            },
+            conversationId = roomId,
         )
     }
 

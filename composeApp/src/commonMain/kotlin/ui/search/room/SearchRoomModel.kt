@@ -12,9 +12,7 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import net.folivo.trixnity.clientserverapi.model.rooms.GetPublicRoomsResponse
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -47,14 +45,17 @@ class SearchRoomModel(
             enablePlaceholders = true
         ),
         homeserver = { homeserver }
-    ).flow.cachedIn(viewModelScope).onEach {
+    ).flow.cachedIn(viewModelScope)
+
+    fun setIdleState() {
         _state.value = BaseResponse.Idle
     }
 
-    fun selectHomeserver(homeserver: String) {
+    fun selectHomeserver(homeserver: String?) {
         viewModelScope.launch {
             _selectedHomeserver.value = homeserver
             repository.invalidateLocalSource()
+            _state.value = BaseResponse.Loading
         }
     }
 
@@ -68,18 +69,6 @@ class SearchRoomModel(
             _query.value = prompt.toString()
             delay(DELAY_BETWEEN_REQUESTS_SHORT)
             repository.invalidateLocalSource()
-        }
-    }
-
-    fun joinRoom(room: GetPublicRoomsResponse.PublicRoomsChunk) {
-        viewModelScope.launch {
-            //TODO
-        }
-    }
-
-    fun knockOnRoom(room: GetPublicRoomsResponse.PublicRoomsChunk) {
-        viewModelScope.launch {
-            //TODO
         }
     }
 }

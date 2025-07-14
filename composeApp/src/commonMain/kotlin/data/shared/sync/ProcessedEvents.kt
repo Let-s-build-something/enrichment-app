@@ -13,7 +13,7 @@ import net.folivo.trixnity.core.model.events.m.room.RedactionEventContent
 data class ProcessedEvents(
     val messages: List<ConversationMessageIO>,
     /** List of new member information and whether they should be added or removed */
-    val members: List<Pair<Boolean, ConversationRoomMember>>,
+    val members: List<ConversationRoomMember>,
     val receipts: List<ClientEvent<ReceiptEventContent>>,
     val redactions: List<RedactionEventContent>,
     val presenceData: List<PresenceData>,

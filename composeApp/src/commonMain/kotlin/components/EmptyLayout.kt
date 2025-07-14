@@ -34,11 +34,7 @@ fun EmptyLayout(
     modifier: Modifier = Modifier,
     title: String? = null,
     description: String? = null,
-    animSpec : suspend () -> LottieCompositionSpec = {
-        LottieCompositionSpec.DotLottie(
-            Res.readBytes("files/empty.lottie")
-        )
-    },
+    animPath: String? = null,
     animReverseOnRepeat: Boolean = true,
     primaryAction: ButtonState? = null,
     secondaryAction: ButtonState? = null,
@@ -49,7 +45,11 @@ fun EmptyLayout(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        val composition by rememberLottieComposition(spec = animSpec)
+        val composition by rememberLottieComposition {
+            LottieCompositionSpec.DotLottie(
+                Res.readBytes(animPath ?: "files/empty.lottie")
+            )
+        }
 
         Image(
             modifier = Modifier

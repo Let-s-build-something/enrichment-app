@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -427,7 +426,6 @@ private fun StreamingSection(model: DevelopmentConsoleModel) {
                     keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Done
                 ),
-                lineLimits = TextFieldLineLimits.SingleLine,
                 onKeyboardAction = {
                     model.setupRemoteStream(streamingUrlState.text)
                 },

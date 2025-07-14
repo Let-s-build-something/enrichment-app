@@ -138,12 +138,7 @@ fun NetworkManagementScreen(
                     beyondViewportPageCount = 1
                 ) { index ->
                     if(index == 0) {
-                        NetworkListContent(
-                            refreshHandler = refreshHandler,
-                            openAddNewModal = {
-                                showAddNewModal.value = true
-                            }
-                        )
+                        NetworkListContent(refreshHandler = refreshHandler)
                     }else {
                         NetworkReceivedContent(refreshHandler = refreshHandler)
                     }

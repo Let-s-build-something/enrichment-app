@@ -105,6 +105,7 @@ fun NavigationHost(
                     name = it.arguments?.getString("name"),
                     scrollTo = it.arguments?.getString("scrollTo"),
                     searchQuery = it.arguments?.getString("searchQuery"),
+                    joinRule = it.arguments?.getString("joinRule"),
                 )
             }
             composable<NavigationNode.ConversationSearch> {

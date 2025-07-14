@@ -150,10 +150,16 @@ abstract class MessageProcessor {
                 presenceEventDao.insertAll(result.presenceData)
             }
 
-            result.members.forEach { member ->
-                if (member.first) {
-                    roomMemberDao.insertReplace(member.second)
-                }else roomMemberDao.remove(member.second.userId, roomId)
+            val members = result.members.mapNotNull { member ->
+                val existingMember = roomMemberDao.get(member.userId)
+
+                val isNew = existingMember == null
+                val isNewer = (existingMember?.timestamp ?: 0) < (member.timestamp ?: 0)
+
+                if (isNew || isNewer) {
+                    roomMemberDao.insertReplace(member)
+                    member
+                } else null
             }
 
             result.redactions.forEach { redaction ->
@@ -180,7 +186,7 @@ abstract class MessageProcessor {
 
             SaveEventsResult(
                 messages = messages,
-                members = result.members.map { it.second },
+                members = members.filter { it.membership == Membership.JOIN },
                 events = events.size,
                 prevBatch = prevBatch,
                 changeInMessages = !result.isEmpty,
@@ -197,7 +203,7 @@ abstract class MessageProcessor {
     ): ProcessedEvents = withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
         val media = mutableListOf<MediaIO>()
-        val members = mutableListOf<Pair<Boolean, ConversationRoomMember>>()
+        val members = mutableListOf<ConversationRoomMember>()
         val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
         val redactions = mutableListOf<RedactionEventContent>()
@@ -211,7 +217,7 @@ abstract class MessageProcessor {
                     (event.stateKeyOrNull ?: event.senderOrNull?.full
                         ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
-                            (content.membership == Membership.JOIN) to ConversationRoomMember(
+                            ConversationRoomMember(
                                 roomId = roomId,
                                 timestamp = event.originTimestampOrNull,
                                 sender = event.senderOrNull,

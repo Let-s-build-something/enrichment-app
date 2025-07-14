@@ -28,9 +28,9 @@ class SearchRoomSource(
             if(response != null) {
                 LoadResult.Page(
                     data = response.chunk,
-                    prevKey = null,
+                    prevKey = response.prevBatch,
                     nextKey = response.nextBatch,
-                    itemsAfter = if(response.nextBatch != null) {
+                    itemsAfter = if (response.nextBatch != null) {
                         response.totalRoomCountEstimate?.minus(getCount())?.toInt() ?: size
                     }else COUNT_UNDEFINED,
                     itemsBefore = COUNT_UNDEFINED

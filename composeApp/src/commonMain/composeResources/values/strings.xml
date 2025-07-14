@@ -61,10 +61,8 @@
   <string name="login_username_condition_1">Can only contain special characters -, _, ., =, /</string>
   <string name="login_homeserver_heading">Choose where your account is hosted</string>
   <string name="login_homeserver_description">Homeserver is a remote service, that hosts your account and communicates with other homeservers in order to serve your needs.</string>
-  <string name="login_homeserver_address">Homeserver address</string>
   <string name="login_matrix_homeserver">Hosted on %1$s</string>
   <string name="login_username_error">The username is not valid, try a different one.</string>
-  <string name="login_homeserver_address_error">Incorrect address, you can always select existing ones.</string>
   <string name="login_error_duplicate_username">Restroom occupied, try a different one.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
@@ -78,6 +76,9 @@
   <string name="login_email_verification_action">Closest post office</string>
   <string name="login_email_verification_repeat">Try again</string>
   <string name="no_email_client_error">We failed opening an email client. Please, open your preferred client and check for the verification email:-).</string>
+  <string name="homeserver_picker_address_error">Incorrect address, you can always select existing ones.</string>
+  <string name="homeserver_picker_address_hint">homeserver address</string>
+  <string name="homeserver_picker_your_address">Your homeserver</string>
 
 
   <string name="account_dashboard_theme">50 shades of background</string>
@@ -214,6 +215,13 @@
   <string name="conversation_mode_default">Default</string>
   <string name="conversation_mode_experimental">Experimental</string>
   <string name="items_see_more">See %1$s more</string>
+  <string name="conversation_preview_title">Conversation preview</string>
+  <string name="conversation_preview_helper">You haven't joined this conversation yet but you can join by sending a message.</string>
+  <string name="conversation_knock_error">You do not have permission to knock on the room. %1$s</string>
+  <string name="conversation_knock_success">Knock knock! Let's see if they are home.</string>
+  <string name="conversation_knock_title">Knock knock...</string>
+  <string name="conversation_knock_helper">Who's there?\nInvite-only room\nSend a message with your invite request.</string>
+  <string name="conversation_restricted_title">This conversation is restricted :(.\nYou shall not pass.</string>
 
   <string name="message_room_invite">got invited.</string>
   <string name="message_room_join">joined the room.</string>

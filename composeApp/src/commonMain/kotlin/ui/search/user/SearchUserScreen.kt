@@ -1,7 +1,6 @@
 package ui.search.user
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -96,15 +95,9 @@ fun SearchUserScreen(
                     modifier = Modifier
                         .zIndex(1f)
                         .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .background(
-                            color = LocalTheme.current.colors.backgroundDark,
-                            shape = LocalTheme.current.shapes.rectangularActionShape
-                        )
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
                         .fillMaxWidth(),
                     shape = LocalTheme.current.shapes.rectangularActionShape,
                     hint = stringResource(Res.string.action_search_users),
-                    showBorders = false,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Search
