@@ -44,7 +44,10 @@ class ExperimentModel(
                         ExperimentSetValue("\uD83E\uDEE8")
                     )
                 )
-                createExperiment(ExperimentIO(name = "Sample experiment", setUids = listOf(newSet.uid)))
+                createExperiment(
+                    ExperimentIO(name = "Sample experiment", setUids = listOf(newSet.uid)),
+                    set = newSet
+                )
                 createSet(newSet)
             }
         }
@@ -93,11 +96,16 @@ class ExperimentModel(
         }
     }
 
-    fun createExperiment(experiment: ExperimentIO) {
+    fun createExperiment(experiment: ExperimentIO, set: ExperimentSet? = null) {
         viewModelScope.launch {
             repository.insertExperiment(experiment)
-            dataManager.experiments.update {
-                it.plus(FullExperiment(experiment))
+            dataManager.experiments.update { prev ->
+                prev.plus(
+                    FullExperiment(
+                        data = experiment,
+                        sets = set?.let { listOf(it) } ?: listOf()
+                    )
+                )
             }
         }
     }

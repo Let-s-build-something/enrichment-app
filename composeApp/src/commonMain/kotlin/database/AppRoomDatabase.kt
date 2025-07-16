@@ -1,7 +1,9 @@
 package database
 
+import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingMetaIO
@@ -50,6 +52,7 @@ import ui.conversation.components.experimental.gravity.GravityValue
     version = 82,
     exportSchema = true
 )
+@ConstructedBy(AppDatabaseConstructor::class)
 @TypeConverters(AppDatabaseConverter::class)
 abstract class AppRoomDatabase: RoomDatabase() {
 
@@ -111,3 +114,9 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
 /** returns database builder specific to each platform */
 expect fun getDatabaseBuilder(): RoomDatabase.Builder<AppRoomDatabase>
+
+/** Master database of this application */
+@Suppress("NO_ACTUAL_FOR_EXPECT")
+expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppRoomDatabase> {
+    override fun initialize(): AppRoomDatabase
+}
