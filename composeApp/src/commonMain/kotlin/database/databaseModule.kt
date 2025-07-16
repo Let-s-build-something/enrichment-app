@@ -27,4 +27,6 @@ internal val databaseModule = module {
     factory { get<AppRoomDatabase>().messageReactionDao() }
     factory { get<AppRoomDatabase>().mediaDao() }
     factory { get<AppRoomDatabase>().gravityDao() }
+    factory { get<AppRoomDatabase>().experimentDao() }
+    factory { get<AppRoomDatabase>().experimentSetDao() }
 }

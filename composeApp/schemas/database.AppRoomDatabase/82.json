@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 74,
-    "identityHash": "ab8a476433f6c794b43780b949dedff3",
+    "version": 82,
+    "identityHash": "d935835ffb3b76ba03ad05c2fcf88693",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -625,6 +625,94 @@
         ]
       },
       {
+        "tableName": "experiment_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT NOT NULL, `owner` TEXT, `uid` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `activate_until` INTEGER, `setUids` TEXT NOT NULL, `displayFrequency` TEXT NOT NULL, `choiceBehavior` TEXT NOT NULL, PRIMARY KEY(`uid`))",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "owner",
+            "columnName": "owner",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activateUntil",
+            "columnName": "activate_until",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "setUids",
+            "columnName": "setUids",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayFrequency",
+            "columnName": "displayFrequency",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "choiceBehavior",
+            "columnName": "choiceBehavior",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uid"
+          ]
+        }
+      },
+      {
+        "tableName": "experiment_set_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` TEXT NOT NULL, `name` TEXT NOT NULL, `values` TEXT NOT NULL, PRIMARY KEY(`uid`))",
+        "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "values",
+            "columnName": "values",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uid"
+          ]
+        }
+      },
+      {
         "tableName": "room_conversation_room_table",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `summary` TEXT, `proximity` REAL, `unread_notifications` TEXT, `invite_state` TEXT, `knock_state` TEXT, `owner_public_id` TEXT, `primary_key` TEXT NOT NULL, `prev_batch` TEXT, `last_message_timestamp` TEXT, `history_visibility` TEXT, `algorithm` TEXT, `type` TEXT NOT NULL, `is_direct` INTEGER, PRIMARY KEY(`primary_key`))",
         "fields": [
@@ -770,7 +858,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ab8a476433f6c794b43780b949dedff3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd935835ffb3b76ba03ad05c2fcf88693')"
     ]
   }
 }

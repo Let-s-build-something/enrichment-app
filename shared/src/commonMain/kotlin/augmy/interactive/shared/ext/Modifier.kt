@@ -107,9 +107,9 @@ fun Modifier.scalingClickable(
     onTap: ((Offset) -> Unit)? = null
 ): Modifier = composed {
     if(enabled) {
-        val hoverInteractionSource = remember(key) { MutableInteractionSource() }
+        val hoverInteractionSource = remember(key ?: onTap) { MutableInteractionSource() }
         val isHovered = hoverInteractionSource.collectIsHoveredAsState()
-        val isPressed = remember(key) { mutableStateOf(false) }
+        val isPressed = remember(key ?: onTap) { mutableStateOf(false) }
         val scale = animateFloatAsState(
             if ((isPressed.value || isHovered.value) && enabled) scaleInto else 1f,
             label = "scalingClickableAnimation"
@@ -121,7 +121,7 @@ fun Modifier.scalingClickable(
                 enabled = enabled && hoverEnabled,
                 interactionSource = hoverInteractionSource
             )
-            .pointerInput(Unit, key) {
+            .pointerInput(Unit, key ?: onTap) {
                 detectTapGestures(
                     onPress = {
                         if(enabled) onPress?.invoke(it, true)

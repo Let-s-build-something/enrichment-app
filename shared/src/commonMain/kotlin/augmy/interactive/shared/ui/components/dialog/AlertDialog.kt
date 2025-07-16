@@ -28,6 +28,7 @@ val dismissibleDialogProperties = DialogProperties(dismissOnBackPress = true, di
  */
 @Composable
 fun AlertDialog(
+    modifier: Modifier = Modifier,
     title: String? = null,
     message: AnnotatedString? = null,
     confirmButtonState: ButtonState? = null,
@@ -66,10 +67,10 @@ fun AlertDialog(
             {
                 Column(
                     modifier = if (intrinsicContent) {
-                        Modifier
+                        modifier
                             .height(IntrinsicSize.Max)
                             .width(IntrinsicSize.Max)
-                    }else Modifier
+                    }else modifier
                 ) {
                     if(message != null) {
                         Text(

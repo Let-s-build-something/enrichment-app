@@ -34,7 +34,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.MatrixServerException
 import org.koin.mp.KoinPlatform
-import ui.dev.DevelopmentConsoleModel
+import ui.dev.DeveloperConsoleModel
 import utils.DeveloperUtils
 import utils.SharedLogger
 import kotlin.math.roundToInt
@@ -47,7 +47,7 @@ internal expect fun httpClient(): HttpClient
 @OptIn(ExperimentalUuidApi::class)
 internal fun httpClientFactory(
     sharedModel: SharedModel,
-    developerViewModel: DevelopmentConsoleModel?,
+    developerViewModel: DeveloperConsoleModel?,
     authService: AuthService,
     json: Json
 ): HttpClient {
@@ -129,7 +129,7 @@ internal fun httpClientFactory(
 }
 
 fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
-    val developerViewModel = KoinPlatform.getKoin().getOrNull<DevelopmentConsoleModel>()
+    val developerViewModel = KoinPlatform.getKoin().getOrNull<DeveloperConsoleModel>()
 
     install(Logging) {
         logger = Logger.DEFAULT

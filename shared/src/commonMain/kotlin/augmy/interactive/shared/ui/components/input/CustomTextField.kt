@@ -104,7 +104,7 @@ fun CustomTextField(
     focusable: Boolean = true,
     isCorrect: Boolean = false,
     enabled: Boolean = true,
-    isFocused: MutableState<Boolean> = remember(state.text) { mutableStateOf(false) }
+    isFocused: MutableState<Boolean> = remember { mutableStateOf(false) }
 ) {
     val focusManager = LocalFocusManager.current
     val controlColor = animateColorAsState(
@@ -125,7 +125,7 @@ fun CustomTextField(
                 .then(
                     if(backgroundColor != null) {
                         Modifier.background(
-                            color = LocalTheme.current.colors.backgroundDark,
+                            color = backgroundColor,
                             shape = shape
                         )
                     }else Modifier
@@ -156,6 +156,9 @@ fun CustomTextField(
                 contentAlignment = Alignment.CenterStart
             ) {
                 val finalModifier = fieldModifier
+                    .onFocusChanged {
+                        isFocused.value = it.isFocused
+                    }
                     .onPreviewKeyEvent { keyEvent ->
                         when(keyEvent.key) {
                             Key.Tab -> true // unable to move focus, so we intercept it at the very least
@@ -168,9 +171,6 @@ fun CustomTextField(
                     }
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
-                    .onFocusChanged {
-                        isFocused.value = it.isFocused
-                    }
 
                 if(keyboardOptions.keyboardType == KeyboardType.Password || textObfuscationMode != null) {
                     BasicSecureTextField(
@@ -197,7 +197,7 @@ fun CustomTextField(
                         onKeyboardAction = onKeyboardAction
                     )
                 }
-                if(hint != null) {
+                if (hint != null) {
                     androidx.compose.animation.AnimatedVisibility(
                         visible = state.text.isEmpty(),
                         enter = fadeIn(),
@@ -242,7 +242,7 @@ fun CustomTextField(
             Spacer(Modifier.width(16.dp))
         }
 
-        if(suggestText.isNullOrBlank().not()) {
+        if (suggestText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier.padding(
                     start = 8.dp,
@@ -253,7 +253,7 @@ fun CustomTextField(
                 style = LocalTheme.current.styles.regular
             )
         }
-        if(errorText.isNullOrBlank().not()) {
+        if (errorText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier
                     .wrapContentHeight()

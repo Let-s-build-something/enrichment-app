@@ -37,7 +37,7 @@ fun SimpleModalBottomSheet(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(
-        start = 12.dp, end = 12.dp, bottom = 12.dp
+        start = 16.dp, end = 16.dp, bottom = 12.dp
     ),
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     windowInsets: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
