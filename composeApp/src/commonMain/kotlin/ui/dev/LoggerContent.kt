@@ -82,7 +82,7 @@ import utils.DeveloperUtils
 
 @Composable
 internal fun ColumnScope.LoggerContent(
-    model: DevelopmentConsoleModel,
+    model: DeveloperConsoleModel,
     isCompact: Boolean
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -136,7 +136,7 @@ internal fun ColumnScope.LoggerContent(
 }
 
 @Composable
-private fun LogsContent(model: DevelopmentConsoleModel) {
+private fun LogsContent(model: DeveloperConsoleModel) {
     val coroutineScope = rememberCoroutineScope()
 
     val logs = model.logData.collectAsState(initial = listOf())
@@ -260,7 +260,7 @@ private fun LogsContent(model: DevelopmentConsoleModel) {
 }
 
 @Composable
-private fun GeneralContent(model: DevelopmentConsoleModel) {
+private fun GeneralContent(model: DeveloperConsoleModel) {
     val currentUser = model.currentUser.collectAsState()
     val localSettings = model.localSettings.collectAsState()
 
@@ -311,6 +311,7 @@ private fun GeneralContent(model: DevelopmentConsoleModel) {
                 .fillMaxWidth()
                 .padding(top = 12.dp),
             hint = "Host, default: ${BuildKonfig.HttpsHostName}",
+            backgroundColor = LocalTheme.current.colors.backgroundLight,
             state = hostState,
             isClearable = true,
             paddingValues = PaddingValues(start = 16.dp)
@@ -343,7 +344,7 @@ private fun GeneralContent(model: DevelopmentConsoleModel) {
 }
 
 @Composable
-private fun HttpContent(model: DevelopmentConsoleModel) {
+private fun HttpContent(model: DeveloperConsoleModel) {
     val coroutineScope = rememberCoroutineScope()
 
     val logs = model.httpLogData.collectAsState(initial = listOf())

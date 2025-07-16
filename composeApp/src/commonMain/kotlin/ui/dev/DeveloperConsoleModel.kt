@@ -39,28 +39,28 @@ import okio.SYSTEM
 import okio.buffer
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.dev.experiments.experimentModule
 import utils.DeveloperUtils
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal val developerConsoleModule = module {
-    single<DevelopmentConsoleDataManager> { DevelopmentConsoleDataManager() }
-    factory { DevelopmentConsoleRepository() }
+    single<DeveloperConsoleDataManager> { DeveloperConsoleDataManager() }
+    factory { DeveloperConsoleRepository() }
     factory {
-        DevelopmentConsoleModel(
-            get(),
-            get()
-        )
+        DeveloperConsoleModel(get(), get())
     }
-    viewModelOf(::DevelopmentConsoleModel)
+    viewModelOf(::DeveloperConsoleModel)
+    includes(experimentModule)
 }
 
 
 /** Shared viewmodel for developer console */
-class DevelopmentConsoleModel(
-    private val dataManager: DevelopmentConsoleDataManager,
-    private val repository: DevelopmentConsoleRepository
+class DeveloperConsoleModel(
+    private val dataManager: DeveloperConsoleDataManager,
+    private val repository: DeveloperConsoleRepository
 ): SharedModel() {
+
     private val _streamingUrlResponse = MutableStateFlow<BaseResponse<*>>(BaseResponse.Idle)
     private val _availableSensors = MutableStateFlow(listOf<SensorEventListener>())
     private val _activeSensors = MutableStateFlow(listOf<String>())

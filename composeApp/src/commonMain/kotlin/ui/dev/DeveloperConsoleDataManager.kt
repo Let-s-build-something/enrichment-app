@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import utils.DeveloperUtils
 import utils.SharedLogger.LoggerMessage
 
-class DevelopmentConsoleDataManager {
+class DeveloperConsoleDataManager {
 
     /** developer console size */
     val developerConsoleSize = MutableStateFlow(0f)
@@ -19,7 +19,7 @@ class DevelopmentConsoleDataManager {
     val hostOverride = MutableStateFlow<String?>(null)
 
     /** filter input + whether it's ASC */
-    val httpLogFilter = MutableStateFlow<Pair<String, Boolean>>("" to false)
+    val httpLogFilter = MutableStateFlow("" to false)
 
     /** filter input + whether it's ASC */
     val logFilter = MutableStateFlow<Triple<String, Boolean, Logger.Level?>>(Triple("", false, null))

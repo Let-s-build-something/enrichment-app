@@ -7,15 +7,15 @@ import korlibs.logger.Logger
 import korlibs.logger.Logger.Output
 import kotlinx.coroutines.flow.update
 import org.koin.mp.KoinPlatform
-import ui.dev.DevelopmentConsoleDataManager
+import ui.dev.DeveloperConsoleDataManager
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 object SharedLogger {
     val logger = Logger("Augmy")
 
-    private val developmentConsoleDataManager by lazy {
-        KoinPlatform.getKoinOrNull()?.injectOrNull<DevelopmentConsoleDataManager>()
+    private val developerConsoleDataManager by lazy {
+        KoinPlatform.getKoinOrNull()?.injectOrNull<DeveloperConsoleDataManager>()
     }
 
     private val output = object: Output {
@@ -25,7 +25,7 @@ object SharedLogger {
             msg: Any?
         ) {
             if(BuildKonfig.isDevelopment) {
-                developmentConsoleDataManager?.value?.logs?.update {
+                developerConsoleDataManager?.value?.logs?.update {
                     it.toMutableList().apply {
                         add(0, LoggerMessage(level = level, message = "${logger.name}: $msg"))
                     }

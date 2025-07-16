@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 75,
-    "identityHash": "9caa19b863a6f2e8ffa1b3e11fd2c2fc",
+    "version": 77,
+    "identityHash": "cd0034aab8173b6173134b6fdf920856",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -626,7 +626,7 @@
       },
       {
         "tableName": "experiment_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `owner` TEXT, `uid` TEXT NOT NULL, `created_at` TEXT, `activate_until` TEXT, PRIMARY KEY(`uid`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`name` TEXT, `owner` TEXT, `uid` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `activate_until` INTEGER, `setUids` TEXT NOT NULL, `displayFrequency` TEXT NOT NULL, PRIMARY KEY(`uid`))",
         "fields": [
           {
             "fieldPath": "name",
@@ -647,12 +647,61 @@
           {
             "fieldPath": "createdAt",
             "columnName": "created_at",
-            "affinity": "TEXT"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "activateUntil",
             "columnName": "activate_until",
-            "affinity": "TEXT"
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "setUids",
+            "columnName": "setUids",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayFrequency",
+            "columnName": "displayFrequency",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uid"
+          ]
+        }
+      },
+      {
+        "tableName": "experiment_set_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` TEXT NOT NULL, `name` TEXT NOT NULL, `values` TEXT NOT NULL, `experiment_uid` TEXT NOT NULL, PRIMARY KEY(`uid`))",
+        "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "values",
+            "columnName": "values",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "experimentUid",
+            "columnName": "experiment_uid",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -808,7 +857,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9caa19b863a6f2e8ffa1b3e11fd2c2fc')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cd0034aab8173b6173134b6fdf920856')"
     ]
   }
 }

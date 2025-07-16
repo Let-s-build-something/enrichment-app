@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.WavingHand
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -49,23 +50,26 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
+import ui.dev.experiments.ExperimentsContent
 
 private enum class ConsoleSection(val imageVector: ImageVector) {
     Logger(Icons.AutoMirrored.Outlined.ReceiptLong),
-    Biometric(Icons.Outlined.WavingHand);
+    Biometric(Icons.Outlined.WavingHand),
+    Experiment(Icons.Outlined.Science);
 
     override fun toString(): String {
         return when(this) {
-            Logger -> "Logger"
-            Biometric -> "Insight console"
+            Logger -> "Logs"
+            Biometric -> "Depth"
+            Experiment -> "Experiments"
         }
     }
 }
 
 @Composable
-fun DevelopmentConsoleContent(modifier: Modifier = Modifier) {
+fun DeveloperConsoleContent(modifier: Modifier = Modifier) {
     loadKoinModules(developerConsoleModule)
-    val model: DevelopmentConsoleModel = koinViewModel()
+    val model: DeveloperConsoleModel = koinViewModel()
 
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -171,12 +175,9 @@ fun DevelopmentConsoleContent(modifier: Modifier = Modifier) {
                             style = LocalTheme.current.styles.heading
                         )
                         when(section) {
-                            ConsoleSection.Logger -> {
-                                LoggerContent(model = model, isCompact = isCompact)
-                            }
-                            ConsoleSection.Biometric -> {
-                                BiometricContent(model = model)
-                            }
+                            ConsoleSection.Logger -> LoggerContent(model = model, isCompact = isCompact)
+                            ConsoleSection.Biometric -> BiometricContent(model = model)
+                            ConsoleSection.Experiment -> ExperimentsContent()
                         }
                     }
                 }

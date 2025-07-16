@@ -1,12 +1,12 @@
 package database
 
-import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.base.paging.PagingMetaIO
+import data.io.experiment.ExperimentIO
+import data.io.experiment.ExperimentSet
 import data.io.matrix.room.ConversationRoomIO
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.EmojiSelection
@@ -26,6 +26,8 @@ import database.dao.NetworkItemDao
 import database.dao.PagingMetaDao
 import database.dao.PresenceEventDao
 import database.dao.RoomMemberDao
+import database.dao.experiment.ExperimentDao
+import database.dao.experiment.ExperimentSetDao
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
 import ui.conversation.components.experimental.gravity.GravityValue
 
@@ -41,13 +43,14 @@ import ui.conversation.components.experimental.gravity.GravityValue
         GravityValue::class,
         MessageReactionIO::class,
         MediaIO::class,
+        ExperimentIO::class,
+        ExperimentSet::class,
         ConversationRoomIO::class
     ],
-    version = 75,
+    version = 77,
     exportSchema = true
 )
 @TypeConverters(AppDatabaseConverter::class)
-@ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppRoomDatabase: RoomDatabase() {
 
     /** An interface for interacting with local database for collections */
@@ -62,6 +65,8 @@ abstract class AppRoomDatabase: RoomDatabase() {
     abstract fun messageReactionDao(): MessageReactionDao
     abstract fun mediaDao(): MediaDao
     abstract fun gravityDao(): GravityDao
+    abstract fun experimentDao(): ExperimentDao
+    abstract fun experimentSetDao(): ExperimentSetDao
 
     companion object {
         /** File name of the main database */
@@ -95,13 +100,13 @@ abstract class AppRoomDatabase: RoomDatabase() {
 
         /** Identification of table for [GravityValue] */
         const val TABLE_GRAVITY = "room_gravity_table"
-    }
-}
 
-/** Master database of this application */
-@Suppress("NO_ACTUAL_FOR_EXPECT")
-expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppRoomDatabase> {
-    override fun initialize(): AppRoomDatabase
+        /** Table for list of ongoing experiments [ExperimentIO] */
+        const val TABLE_EXPERIMENT = "experiment_table"
+
+        /** Sets with values that can be nested under experiments */
+        const val TABLE_EXPERIMENT_SET = "experiment_set_table"
+    }
 }
 
 /** returns database builder specific to each platform */

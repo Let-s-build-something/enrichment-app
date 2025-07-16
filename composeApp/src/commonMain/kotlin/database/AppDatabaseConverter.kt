@@ -2,6 +2,7 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
+import data.io.experiment.ExperimentIO
 import data.io.matrix.room.RoomSummary
 import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
@@ -144,15 +145,25 @@ class AppDatabaseConverter {
     }
     
     @TypeConverter
-    fun fromMediaList(value: List<MediaIO>?): String? {
-        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
+    fun fromDisplayFrequency(value: ExperimentIO.DisplayFrequency?): String? {
+        return if(value == null) null else json.encodeToString(value)
     }
-    
+
     @TypeConverter
-    fun toMediaList(value: String?): List<MediaIO>? {
+    fun toDisplayFrequency(value: String?): ExperimentIO.DisplayFrequency? {
         return if(value == null) null else json.decodeFromString(value)
     }
-    
+
+    @TypeConverter
+    fun fromStringList(value: List<String>): String {
+        return if (value.isEmpty()) "" else value.joinToString(",")
+    }
+
+    @TypeConverter
+    fun toStringList(value: String): List<String> {
+        return value.split(",")
+    }
+
     @TypeConverter
     fun fromLocalDateTime(value: LocalDateTime): String {
         return value.format(LocalDateTime.Formats.ISO)

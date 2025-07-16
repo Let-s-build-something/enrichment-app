@@ -74,7 +74,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.dev.DevelopmentConsoleContent
+import ui.dev.DeveloperConsoleContent
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -293,7 +293,7 @@ private fun AppContent(
 
     Column {
         if(isPhone) {
-            if(BuildKonfig.isDevelopment) DevelopmentConsoleContent(
+            if(BuildKonfig.isDevelopment) DeveloperConsoleContent(
                 modifier = Modifier.statusBarsPadding(),
             )
             InformationPopUps()
@@ -305,7 +305,7 @@ private fun AppContent(
             InformationPopUps()
             InformationLines(sharedModel = model)
             Row {
-                if(BuildKonfig.isDevelopment) DevelopmentConsoleContent()
+                if(BuildKonfig.isDevelopment) DeveloperConsoleContent()
                 Box {
                     NavigationHost(navController = navController)
                 }
