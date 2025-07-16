@@ -6,6 +6,8 @@ import base.utils.openSinkFromUri
 import data.io.app.SettingsKeys.KEY_STREAMING_DIRECTORY
 import data.io.app.SettingsKeys.KEY_STREAMING_URL
 import data.io.base.BaseResponse
+import data.io.experiment.ExperimentIO
+import data.io.experiment.ExperimentSetValue
 import data.sensor.SensorDelay
 import data.sensor.SensorEvent
 import data.sensor.SensorEventListener
@@ -39,7 +41,7 @@ import okio.SYSTEM
 import okio.buffer
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
-import ui.dev.experiments.experimentModule
+import ui.dev.experiment.experimentModule
 import utils.DeveloperUtils
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -61,7 +63,6 @@ class DeveloperConsoleModel(
     private val repository: DeveloperConsoleRepository
 ): SharedModel() {
 
-    private val _streamingUrlResponse = MutableStateFlow<BaseResponse<*>>(BaseResponse.Idle)
     private val _availableSensors = MutableStateFlow(listOf<SensorEventListener>())
     private val _activeSensors = MutableStateFlow(listOf<String>())
     private var localStreamJob: Job? = null
@@ -121,11 +122,13 @@ class DeveloperConsoleModel(
 
     var streamingUrl = ""
     var streamingDirectory = ""
-    val streamingUrlResponse = _streamingUrlResponse.asStateFlow()
+    val streamingUrlResponse = dataManager.streamingUrlResponse.asStateFlow()
     val availableSensors = _availableSensors.asStateFlow()
     val activeSensors = _activeSensors.asStateFlow()
     val streamLines = MutableStateFlow(listOf<String>())
     val isLocalStreamRunning = MutableStateFlow(false)
+    val experimentsToShow = dataManager.experimentsToShow.asStateFlow()
+    private val activeExperimentScopes = hashMapOf<String, Job>()
 
 
     //======================================== functions ==========================================
@@ -143,11 +146,51 @@ class DeveloperConsoleModel(
                 _availableSensors.value.forEach { sensor ->
                     sensor.listener = if (sensor.uid in sensors) {
                         { event ->
-                            eventStreamListener.invoke(sensor, event)
+                            streamEvent(sensor, event)
                         }
                     }else null
                 }
             }
+        }
+        viewModelScope.launch {
+            dataManager.activeExperiments.collectLatest { list ->
+                list.forEach { uid ->
+                    val experiment = dataManager.experiments.value.firstOrNull { it.data.uid == uid }
+                    val interval = (experiment?.data?.displayFrequency as? ExperimentIO.DisplayFrequency.Constant)?.delaySeconds
+
+                    if (interval != null && activeExperimentScopes[uid] == null) {
+                        val newJob = Job()
+                        CoroutineScope(newJob).launch(Dispatchers.Default) {
+                            while (isActive) {
+                                dataManager.experimentsToShow.update { prev ->
+                                    prev.plus(experiment).distinctBy { it.data.uid }
+                                }
+                                delay(interval * 1000)
+                            }
+                        }
+                        activeExperimentScopes[uid] = newJob
+                    }
+                }
+                activeExperimentScopes.keys.filter { it !in list }.forEach {
+                    activeExperimentScopes[it]?.cancel()
+                    activeExperimentScopes.remove(it)
+                }
+            }
+        }
+    }
+
+    fun reportExperimentValues(
+        experiment: ExperimentIO,
+        values: List<ExperimentSetValue>,
+        customValue: String?
+    ) {
+        viewModelScope.launch(Dispatchers.Default) {
+            if (experiment.displayFrequency !is ExperimentIO.DisplayFrequency.Permanent) {
+                dataManager.experimentsToShow.update { prev ->
+                    prev.filter { it.data.uid != experiment.uid }
+                }
+            }
+            streamSetValues(experiment, values, customValue)
         }
     }
 
@@ -180,15 +223,15 @@ class DeveloperConsoleModel(
 
     fun stopRemoteStream() {
         remoteStreamJob?.cancel()
-        _streamingUrlResponse.value = BaseResponse.Idle
+        dataManager.streamingUrlResponse.value = BaseResponse.Idle
     }
 
     var remoteStreamDelay = SensorDelay.Normal
     fun setupRemoteStream(uri: CharSequence) {
         if(uri.isBlank()) return
-        _streamingUrlResponse.value = BaseResponse.Loading
+        dataManager.streamingUrlResponse.value = BaseResponse.Loading
         viewModelScope.launch {
-            _streamingUrlResponse.value = repository.postStreamData(
+            dataManager.streamingUrlResponse.value = repository.postStreamData(
                 url = uri.toString(),
                 body = ""
             ).also {
@@ -244,6 +287,9 @@ class DeveloperConsoleModel(
         }.forEach {
             it.unregister()
         }
+        activeExperimentScopes.values.forEach {
+            it.cancel()
+        }
         super.onCleared()
     }
 
@@ -264,7 +310,7 @@ class DeveloperConsoleModel(
         }
     }
 
-    private val eventStreamListener: (sensor: SensorEventListener, event: SensorEvent) -> Unit = { sensor, event ->
+    private fun streamEvent(sensor: SensorEventListener, event: SensorEvent) {
         val sensorName = sensor.name
 
         val values = event.values?.toList()?.let {
@@ -281,12 +327,39 @@ class DeveloperConsoleModel(
             }
             val newLine = json.encodeToString(jsonLine)
 
-            if(isLocalStreamRunning.value || _streamingUrlResponse.value is BaseResponse.Success) {
+            if(isLocalStreamRunning.value || dataManager.streamingUrlResponse.value is BaseResponse.Success) {
                 streamChannel.trySend(newLine)
                 streamLines.update {
                     it.toMutableList().apply {
                         add(0, newLine)
                     }
+                }
+            }
+        }
+    }
+
+    private fun streamSetValues(
+        experiment: ExperimentIO,
+        values: List<ExperimentSetValue>,
+        customValue: String?
+    ) {
+        val values = values.map { it.value }.let {
+            json.encodeToJsonElement(it)
+        }
+
+        val jsonLine = buildJsonObject {
+            put("experiment", experiment.name)
+            put("set", experiment.name)
+            customValue?.let { put("customValue", it) }
+            put("values", values)
+        }
+        val newLine = json.encodeToString(jsonLine)
+
+        if(isLocalStreamRunning.value || dataManager.streamingUrlResponse.value is BaseResponse.Success) {
+            streamChannel.trySend(newLine)
+            streamLines.update {
+                it.toMutableList().apply {
+                    add(0, newLine)
                 }
             }
         }

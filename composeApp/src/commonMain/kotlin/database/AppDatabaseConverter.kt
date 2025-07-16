@@ -3,6 +3,7 @@ package database
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import data.io.experiment.ExperimentIO
+import data.io.experiment.ExperimentSetValue
 import data.io.matrix.room.RoomSummary
 import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
@@ -162,6 +163,16 @@ class AppDatabaseConverter {
     @TypeConverter
     fun toStringList(value: String): List<String> {
         return value.split(",")
+    }
+
+    @TypeConverter
+    fun fromExperimentSetValueList(value: List<ExperimentSetValue>): String {
+        return if (value.isEmpty()) "" else json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toExperimentSetValueList(value: String): List<ExperimentSetValue> {
+        return json.decodeFromString(value)
     }
 
     @TypeConverter

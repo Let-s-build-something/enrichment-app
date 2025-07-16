@@ -74,7 +74,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.dev.DeveloperConsoleContent
+import ui.dev.DeveloperHolderLayout
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -153,7 +153,7 @@ private fun AppContent(
     val snackbarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
 
-    val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
+    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
     val modalDeepLink = rememberSaveable(model) {
         mutableStateOf<String?>(null)
@@ -292,24 +292,33 @@ private fun AppContent(
     }
 
     Column {
-        if(isPhone) {
-            if(BuildKonfig.isDevelopment) DeveloperConsoleContent(
-                modifier = Modifier.statusBarsPadding(),
-            )
-            InformationPopUps()
-            InformationLines(sharedModel = model)
-            Box {
-                NavigationHost(navController = navController)
-            }
-        }else {
-            InformationPopUps()
-            InformationLines(sharedModel = model)
-            Row {
-                if(BuildKonfig.isDevelopment) DeveloperConsoleContent()
+        if(isCompact) {
+            val content = @Composable {
+                InformationPopUps()
+                InformationLines(sharedModel = model)
                 Box {
                     NavigationHost(navController = navController)
                 }
             }
+
+            if (BuildKonfig.isDevelopment) DeveloperHolderLayout(
+                modifier = Modifier.statusBarsPadding(),
+                appContent = content
+            ) else content()
+        }else {
+            InformationPopUps()
+            InformationLines(sharedModel = model)
+
+
+            val content = @Composable {
+                Box {
+                    NavigationHost(navController = navController)
+                }
+            }
+
+            if(BuildKonfig.isDevelopment) {
+                DeveloperHolderLayout(appContent = content)
+            }else content()
         }
     }
 }

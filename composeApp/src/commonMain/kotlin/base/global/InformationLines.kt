@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,7 +47,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DisplayNameChangeLauncher
 
 @Composable
-fun ColumnScope.InformationLines(
+fun InformationLines(
     sharedModel: SharedModel = koinViewModel()
 ) {
     val networkConnectivity = sharedModel.networkConnectivity.collectAsState()

@@ -16,7 +16,7 @@ interface ExperimentDao {
             SELECT * FROM ${AppRoomDatabase.TABLE_EXPERIMENT}
             WHERE owner = :owner
             OR owner IS NULL
-            ORDER BY created_at DESC
+            ORDER BY activate_until DESC, created_at DESC
         """
     )
     suspend fun getAll(owner: String?): List<ExperimentIO>

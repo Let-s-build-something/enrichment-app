@@ -21,7 +21,7 @@ import kotlin.uuid.Uuid
 data class ExperimentIO(
 
     /** User-friendly identifying name of the experiment */
-    val name: String?,
+    val name: String,
 
     /** Matrix user id of the relevant user. If null, it is globally applicable */
     val owner: String? = null,
@@ -34,11 +34,12 @@ data class ExperimentIO(
 
     /** Time of expiration in milliseconds. If null, it never expires until manually turned off. */
     @ColumnInfo("activate_until")
-    val activateUntil: Long? = null,
+    val activateUntil: Long? = 0,
 
     val setUids: List<String> = listOf(),
 
-    val displayFrequency: DisplayFrequency = DisplayFrequency.BeginEnd
+    val displayFrequency: DisplayFrequency = DisplayFrequency.BeginEnd,
+    val choiceBehavior: ChoiceBehavior = ChoiceBehavior.SingleChoice
 ) {
 
     @Serializable
@@ -48,17 +49,21 @@ data class ExperimentIO(
         @Serializable
         data object Permanent: DisplayFrequency()
         @Serializable
-        data class Constant(val delayMs: Long): DisplayFrequency()
+        data class Constant(val delaySeconds: Long): DisplayFrequency()
+    }
+
+    enum class ChoiceBehavior {
+        SingleChoice,
+        MultiChoice,
+        OrderedChoice
     }
 
     @get:Ignore
     val fullName: AnnotatedString
         @Composable get() = buildAnnotatedString {
-            append(name ?: uid)
-            if (name != null) {
-                withStyle(SpanStyle(color = LocalTheme.current.colors.secondary)) {
-                    append(" (${uid})")
-                }
+            append(name)
+            withStyle(SpanStyle(color = LocalTheme.current.colors.disabled)) {
+                append(" (${uid})")
             }
         }
 }

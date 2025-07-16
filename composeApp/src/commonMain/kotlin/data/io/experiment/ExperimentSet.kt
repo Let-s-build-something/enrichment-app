@@ -1,6 +1,5 @@
 package data.io.experiment
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
@@ -13,8 +12,5 @@ data class ExperimentSet(
     @PrimaryKey
     val uid: String = Uuid.random().toString(),
     val name: String,
-    val values: List<String> = listOf(),
-
-    @ColumnInfo("experiment_uid")
-    val experimentUid: String
+    val values: List<ExperimentSetValue> = listOf()
 )
