@@ -55,10 +55,6 @@ class ExperimentModel(
 
     fun toggleExperiment(experimentUid: String, play: Boolean) {
         viewModelScope.launch {
-            if (dataManager.experimentsToShow.value.any {
-                it.data.displayFrequency !is ExperimentIO.DisplayFrequency.BeginEnd && it.data.uid == experimentUid
-            }) return@launch
-
             val experiment = dataManager.experiments.value.first { it.data.uid == experimentUid }
 
             dataManager.activeExperiments.update { prev ->
