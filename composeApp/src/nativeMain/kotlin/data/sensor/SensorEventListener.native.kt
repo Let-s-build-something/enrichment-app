@@ -24,6 +24,7 @@ import platform.Foundation.NSOperationQueue
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
 import platform.UIKit.UIScreen
+import utils.SharedLogger
 
 
 actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener? {
@@ -379,11 +380,15 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? = withContext(Dis
     if (stepAvailable) {
         available += createListener(SensorType.StepCounter)
     }
-    withContext(Dispatchers.Default) {
-        device.setProximityMonitoringEnabled(true)
+    withContext(Dispatchers.Main) {
+        try {
+            device.setProximityMonitoringEnabled(true)
 
-        if (device.isProximityMonitoringEnabled()) {
-            available += createListener(SensorType.Proximity)
+            if (device.isProximityMonitoringEnabled()) {
+                available += createListener(SensorType.Proximity)
+            }
+        } catch (e: Exception) {
+            SharedLogger.logger.fatal { "proximity sensor caused exception: ${e.message}" }
         }
     }
     if (getForegroundApp() != null) {
