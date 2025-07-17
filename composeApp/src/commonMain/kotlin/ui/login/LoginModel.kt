@@ -168,7 +168,8 @@ class LoginModel(
                             ).error?.message?.contains("Bad login type") == false)).also { answer ->
                                 homeserverAbilityCache[address] = answer
                             }
-                        }
+                        },
+                        registrationEnabled = response.error?.contains("Registration has been disabled.") == false
                     )
                 } else {
                     HomeServerResponse(

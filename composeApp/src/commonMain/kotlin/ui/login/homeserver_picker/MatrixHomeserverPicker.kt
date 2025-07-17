@@ -103,7 +103,11 @@ fun MatrixHomeserverPicker(
         homeservers.value.forEach { homeserver ->
             Row(
                 modifier = Modifier
-                    .scalingClickable(key = homeserver, hoverEnabled = false) {
+                    .scalingClickable(
+                        key = homeserver,
+                        hoverEnabled = false,
+                        scaleInto = .95f
+                    ) {
                         select(homeserver.identifier)
                     }
                     .fillMaxWidth(),

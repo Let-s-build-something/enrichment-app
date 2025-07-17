@@ -13,7 +13,6 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.none
 import kotlinx.coroutines.flow.shareIn
@@ -99,7 +98,7 @@ class DeviceVerificationModel: SharedModel() {
         }
 
         viewModelScope.launch {
-            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest { client ->
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collect { client ->
                 if (client == null) hide()
             }
         }
@@ -107,10 +106,12 @@ class DeviceVerificationModel: SharedModel() {
 
     private fun subscribe() {
         hasActiveSubscribers = true
-        keyVerificationScope.coroutineContext.cancelChildren()
+        if (matrixClient?.verification?.activeDeviceVerification?.value == null) {
+            keyVerificationScope.coroutineContext.cancelChildren()
+        }
 
         keyVerificationScope.launch {
-            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest {
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collect {
                 it?.let { client ->
                     subscribeToVerificationMethods(client = client)
                 }
@@ -130,7 +131,14 @@ class DeviceVerificationModel: SharedModel() {
 
     private fun subscribeToVerificationMethods(client: MatrixClient) {
         keyVerificationScope.launch {
-            client.verification.getSelfVerificationMethods().shareIn(this, SharingStarted.Eagerly).collectLatest { verification ->
+            client.verification.activeDeviceVerification.collect { deviceVerification ->
+                deviceVerification?.state?.collect { state ->
+                    onActiveState(state)
+                }
+            }
+        }
+        keyVerificationScope.launch {
+            client.verification.getSelfVerificationMethods().shareIn(this, SharingStarted.Eagerly).collect { verification ->
                 logger.debug { "selfVerificationMethods: $verification" }
                 when(verification) {
                     is VerificationService.SelfVerificationMethods.AlreadyCrossSigned -> {
@@ -161,25 +169,14 @@ class DeviceVerificationModel: SharedModel() {
             }
         }
         keyVerificationScope.launch {
-            matrixClient?.key?.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: ""))?.collectLatest { keys ->
+            matrixClient?.key?.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: ""))?.collect { keys ->
                 logger.debug { "crossSigningKeys: $keys" }
             }
         }
         keyVerificationScope.launch {
-            matrixClient?.key?.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: ""))?.collectLatest { trust ->
+            matrixClient?.key?.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: ""))?.collect { trust ->
                 logger.debug { "trustLevel: $trust" }
             }
-        }
-        keyVerificationScope.launch {
-            client.verification.activeDeviceVerification
-                .shareIn(this, SharingStarted.Eagerly)
-                .collectLatest { deviceVerification ->
-                    keyVerificationScope.launch {
-                        deviceVerification?.state?.collectLatest { state ->
-                            onActiveState(state)
-                        }
-                    }
-                }
         }
     }
 
@@ -230,7 +227,6 @@ class DeviceVerificationModel: SharedModel() {
                     _verificationResult.value = method.verify(passphrase)
                 }
                 is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase-> {
-                    method
                     _verificationResult.value = method.verify(passphrase).also {
                         logger.debug { "verifySelf(), verify: ${it.getOrNullLoggingError()}, isSuccess: ${it.isSuccess}" }
                     }
@@ -284,7 +280,7 @@ class DeviceVerificationModel: SharedModel() {
             is ActiveVerificationState.Start -> {
                 when(val method = state.method) {
                     is ActiveSasVerificationMethod -> {
-                        method.state.collectLatest { sasState ->
+                        method.state.collect { sasState ->
                             logger.debug { "ActiveSasVerificationMethod, sasState: $sasState" }
                             when(sasState) {
                                 is ActiveSasVerificationState.ComparisonByUser -> {
@@ -325,7 +321,7 @@ class DeviceVerificationModel: SharedModel() {
                         logger.debug { "NOT starting $method" }
                     }else {
                         logger.debug { "starting $method" }
-                        state.start(method)
+                        //state.start(method)
                     }
                 }
             }
