@@ -206,7 +206,7 @@ open class ConversationModel(
                     enablePlaceholders = true,
                     initialLoadSize = 30
                 ),
-                homeserver = { homeserver },
+                homeserver = { homeserverAddress },
                 conversationId = conversationId
             ).flow.cachedIn(viewModelScope)
         }
@@ -354,7 +354,7 @@ open class ConversationModel(
         recommendScope.coroutineContext.cancelChildren()
         recommendScope.launch(Dispatchers.Default) {
             delay(DELAY_BETWEEN_TYPING_SHORT)
-            val limit = 10
+            val limit = 7
 
             _recommendedUsersToInvite.value = (if (query.isNullOrBlank()) {
                 repository.recommendUsersToInvite(
@@ -529,7 +529,7 @@ open class ConversationModel(
                 repository.insertMemberByUserId(
                     conversationId = newConversationId,
                     userId = it,
-                    homeserver = homeserver
+                    homeserver = homeserverAddress
                 )
             }
             conversationId.value = newConversationId
@@ -572,7 +572,7 @@ open class ConversationModel(
                     }
                     sendMessage(
                         conversationId = conversationId.value,
-                        homeserver = homeserver,
+                        homeserver = homeserverAddress,
                         mediaFiles = mediaFiles,
                         onProgressChange = { progress ->
                             _uploadProgress.update {
@@ -810,7 +810,7 @@ open class ConversationModel(
             sendMessage(
                 audioByteArray = byteArray,
                 conversationId = conversationId.value,
-                homeserver = homeserver,
+                homeserver = homeserverAddress,
                 message = ConversationMessageIO()
             )
         }

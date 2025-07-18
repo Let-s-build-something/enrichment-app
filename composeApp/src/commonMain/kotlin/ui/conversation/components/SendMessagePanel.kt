@@ -327,7 +327,7 @@ internal fun BoxScope.SendMessagePanel(
     LaunchedEffect(savedMessage.value) {
         focusRequester.requestFocus()
 
-        if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) keyboardController?.show()
+        if (missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) keyboardController?.show()
         else keyboardController?.hide()
     }
 
@@ -598,7 +598,7 @@ internal fun BoxScope.SendMessagePanel(
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Send,
-                    showKeyboardOnFocus = true
+                    showKeyboardOnFocus = false // can't be closed without clearing focus otherwise
                 ),
                 additionalContent = if (conversation.value?.data?.summary?.isDirect == false) {
                     {

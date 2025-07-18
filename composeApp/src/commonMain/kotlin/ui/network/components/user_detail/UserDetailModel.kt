@@ -57,7 +57,7 @@ class UserDetailModel(
     private fun getUser(userId: String) {
         _response.value = BaseResponse.Loading
         viewModelScope.launch {
-            repository.getUser(userId, homeserver).let {
+            repository.getUser(userId, homeserverAddress).let {
                 _response.value = if (it != null) BaseResponse.Success(it) else BaseResponse.Error()
             }
         }

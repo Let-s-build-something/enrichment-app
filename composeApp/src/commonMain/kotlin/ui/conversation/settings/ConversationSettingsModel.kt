@@ -95,7 +95,7 @@ class ConversationSettingsModel(
             pageSize = PAGE_ITEM_COUNT,
             enablePlaceholders = true
         ),
-        homeserver = { homeserver },
+        homeserver = { homeserverAddress },
         ignoreUserId = matrixUserId,
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)

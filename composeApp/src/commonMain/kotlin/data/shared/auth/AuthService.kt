@@ -36,7 +36,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +51,7 @@ import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
 import utils.ReferralUtils
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -428,6 +428,39 @@ class AuthService {
         return false
     }
 
+    suspend fun registerWithIdentifier(
+        setupAutoLogin: Boolean = true,
+        homeserver: String,
+        password: String,
+        identifier: MatrixIdentifierData?,
+        response: MatrixAuthenticationResponse?
+    ) {
+        val auth = response?.let { response ->
+            val auth = cacheCredentials(
+                response = response,
+                identifier = identifier,
+                homeserver = homeserver,
+                password = password,
+                token = null
+            )
+            coroutineScope {
+                if(isRunning && setupAutoLogin) stop()
+                if(setupAutoLogin) setupAutoLogin()
+            }
+            auth
+        }
+
+        if(setupAutoLogin && dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
+            (auth ?: retrieveCredentials())?.let { credentials ->
+                if(dataManager.currentUser.value?.matrixUserId == null) {
+                    updateUser(credentials = credentials)
+                }
+                delay(DELAY_REFRESH_TOKEN_START)
+                setupAutoLogin()
+            }
+        }
+    }
+
     /** Matrix login via email and username */
     suspend fun loginWithIdentifier(
         setupAutoLogin: Boolean = true,
@@ -462,7 +495,7 @@ class AuthService {
                         token = token
                     )
                     coroutineScope {
-                        if(isRunning) stop()
+                        if(isRunning && setupAutoLogin) stop()
                         if(setupAutoLogin) setupAutoLogin()
                     }
                     auth
@@ -533,15 +566,21 @@ class AuthService {
         avatarScope.coroutineContext.cancelChildren()
         avatarScope.launch {
             dataManager.matrixClient.value?.let { client ->
-                client.avatarUrl.combine(client.displayName) { avatarUrl, displayName ->
-                    avatarUrl to displayName
-                }.collectLatest { info ->
-                    val userUpdate = UserIO(avatarUrl = info.first, displayName = info.second)
+                combine(
+                    flow = client.avatarUrl,
+                    flow2 = client.displayName
+                ) { avatarUrl, displayName ->
+                    UserIO(
+                        avatarUrl = avatarUrl,
+                        displayName = displayName
+                    )
+                }.collect { userUpdate ->
+                    SharedLogger.logger.debug { "observeAvatarChanges, userUpdate: $userUpdate" }
                     dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
-                    if (info.first != null) {
+                    if (userUpdate.avatarUrl != null) {
                         secureSettings.putString(
                             key = SecureSettingsKeys.KEY_AVATAR_URL,
-                            value = info.first ?: ""
+                            value = userUpdate.avatarUrl
                         )
                     }
                 }
