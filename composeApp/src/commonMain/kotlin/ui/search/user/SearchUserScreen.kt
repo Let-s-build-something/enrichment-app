@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -58,6 +59,7 @@ fun SearchUserScreen(
 
     val navController = LocalNavController.current
     val cancellableScope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
     val searchState = remember { TextFieldState() }
 
     val users = model.users.collectAsState()
@@ -73,6 +75,10 @@ fun SearchUserScreen(
                 excludeUsers = excludeUsers.orEmpty()
             )
         }
+    }
+
+    LaunchedEffect(focusRequester) {
+        focusRequester.requestFocus()
     }
 
     selectedUser.value?.let { user ->
@@ -96,6 +102,7 @@ fun SearchUserScreen(
                         .zIndex(1f)
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                         .fillMaxWidth(),
+                    focusRequester = focusRequester,
                     shape = LocalTheme.current.shapes.rectangularActionShape,
                     hint = stringResource(Res.string.action_search_users),
                     keyboardOptions = KeyboardOptions(

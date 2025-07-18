@@ -354,7 +354,7 @@ open class ConversationModel(
         recommendScope.coroutineContext.cancelChildren()
         recommendScope.launch(Dispatchers.Default) {
             delay(DELAY_BETWEEN_TYPING_SHORT)
-            val limit = 10
+            val limit = 7
 
             _recommendedUsersToInvite.value = (if (query.isNullOrBlank()) {
                 repository.recommendUsersToInvite(

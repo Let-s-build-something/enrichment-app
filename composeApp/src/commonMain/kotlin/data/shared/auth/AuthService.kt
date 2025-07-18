@@ -36,7 +36,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +51,7 @@ import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.safeRequest
 import utils.ReferralUtils
+import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -566,15 +566,21 @@ class AuthService {
         avatarScope.coroutineContext.cancelChildren()
         avatarScope.launch {
             dataManager.matrixClient.value?.let { client ->
-                client.avatarUrl.combine(client.displayName) { avatarUrl, displayName ->
-                    avatarUrl to displayName
-                }.collectLatest { info ->
-                    val userUpdate = UserIO(avatarUrl = info.first, displayName = info.second)
+                combine(
+                    flow = client.avatarUrl,
+                    flow2 = client.displayName
+                ) { avatarUrl, displayName ->
+                    UserIO(
+                        avatarUrl = avatarUrl,
+                        displayName = displayName
+                    )
+                }.collect { userUpdate ->
+                    SharedLogger.logger.debug { "observeAvatarChanges, userUpdate: $userUpdate" }
                     dataManager.currentUser.value = dataManager.currentUser.value?.update(userUpdate) ?: userUpdate
-                    if (info.first != null) {
+                    if (userUpdate.avatarUrl != null) {
                         secureSettings.putString(
                             key = SecureSettingsKeys.KEY_AVATAR_URL,
-                            value = info.first ?: ""
+                            value = userUpdate.avatarUrl
                         )
                     }
                 }

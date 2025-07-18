@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -78,6 +79,7 @@ fun SearchRoomScreen() {
     val model = koinViewModel<SearchRoomModel>()
     val navController = LocalNavController.current
 
+    val focusRequester = remember { FocusRequester() }
     val searchState = remember { TextFieldState() }
     val showHomeServerPicker = remember { mutableStateOf(false) }
     val selectedRoom = remember { mutableStateOf<GetPublicRoomsResponse.PublicRoomsChunk?>(null) }
@@ -96,6 +98,10 @@ fun SearchRoomScreen() {
 
     LaunchedEffect(isLoadingInitialPage) {
         if (!isLoadingInitialPage) model.setIdleState()
+    }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
     }
 
     if(showHomeServerPicker.value) {
@@ -136,6 +142,7 @@ fun SearchRoomScreen() {
                 ) {
                     CustomTextField(
                         modifier = Modifier.weight(1f),
+                        focusRequester = focusRequester,
                         shape = LocalTheme.current.shapes.rectangularActionShape,
                         hint = stringResource(Res.string.action_search_users),
                         keyboardOptions = KeyboardOptions(
