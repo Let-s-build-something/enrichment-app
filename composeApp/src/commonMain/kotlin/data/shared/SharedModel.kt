@@ -29,6 +29,8 @@ import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.home.homeModule
 import ui.login.homeserver_picker.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER_ADDRESS
+import ui.login.homeserver_picker.HomeserverPickerModel
 import utils.SharedLogger
 
 /** Viewmodel with shared behavior and injections for general purposes */
@@ -50,8 +52,16 @@ open class SharedModel: ViewModel() {
     val matrixClient: MatrixClient?
         get() = sharedDataManager.matrixClient.value
 
-    val homeserver: String
-        get() = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
+    val homeserverAddress: String
+        get() = homeserver.address
+
+    val homeserver: HomeserverPickerModel.HomeserverAddress
+        get() = currentUser.value?.matrixHomeserver?.let {
+            HomeserverPickerModel.HomeserverAddress(it, it)
+        } ?: HomeserverPickerModel.HomeserverAddress(
+            AUGMY_HOME_SERVER,
+            AUGMY_HOME_SERVER_ADDRESS
+        )
 
     val awaitingAutologin: Boolean
         get() = authService.awaitingAutologin

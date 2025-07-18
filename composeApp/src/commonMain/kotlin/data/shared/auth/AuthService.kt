@@ -428,6 +428,39 @@ class AuthService {
         return false
     }
 
+    suspend fun registerWithIdentifier(
+        setupAutoLogin: Boolean = true,
+        homeserver: String,
+        password: String,
+        identifier: MatrixIdentifierData?,
+        response: MatrixAuthenticationResponse?
+    ) {
+        val auth = response?.let { response ->
+            val auth = cacheCredentials(
+                response = response,
+                identifier = identifier,
+                homeserver = homeserver,
+                password = password,
+                token = null
+            )
+            coroutineScope {
+                if(isRunning && setupAutoLogin) stop()
+                if(setupAutoLogin) setupAutoLogin()
+            }
+            auth
+        }
+
+        if(setupAutoLogin && dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
+            (auth ?: retrieveCredentials())?.let { credentials ->
+                if(dataManager.currentUser.value?.matrixUserId == null) {
+                    updateUser(credentials = credentials)
+                }
+                delay(DELAY_REFRESH_TOKEN_START)
+                setupAutoLogin()
+            }
+        }
+    }
+
     /** Matrix login via email and username */
     suspend fun loginWithIdentifier(
         setupAutoLogin: Boolean = true,
@@ -462,7 +495,7 @@ class AuthService {
                         token = token
                     )
                     coroutineScope {
-                        if(isRunning) stop()
+                        if(isRunning && setupAutoLogin) stop()
                         if(setupAutoLogin) setupAutoLogin()
                     }
                     auth

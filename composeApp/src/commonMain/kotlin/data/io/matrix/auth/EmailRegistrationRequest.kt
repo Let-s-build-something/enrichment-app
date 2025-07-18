@@ -8,5 +8,6 @@ data class EmailRegistrationRequest(
     val auth: AuthenticationData,
     val password: String?,
     val username: String?,
-    val initialDeviceDisplayName: String
+    val deviceId: String,
+    val initialDeviceDisplayName: String? = null
 )

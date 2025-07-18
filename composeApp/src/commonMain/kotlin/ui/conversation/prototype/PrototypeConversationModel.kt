@@ -57,7 +57,7 @@ class PrototypeConversationModel(
             enablePlaceholders = true,
             initialLoadSize = 50
         ),
-        homeserver = { homeserver },
+        homeserver = { homeserverAddress },
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)
 }

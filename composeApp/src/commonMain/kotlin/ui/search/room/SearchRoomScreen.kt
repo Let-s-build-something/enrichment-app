@@ -102,7 +102,7 @@ fun SearchRoomScreen() {
         MatrixHomeserverPicker(
             homeserver = homeserver.value ?: model.homeserver,
             onDismissRequest = { showHomeServerPicker.value = false },
-            userHomeserver = model.homeserver,
+            userHomeserver = model.homeserverAddress,
             onSelect = {
                 model.selectHomeserver(it)
             }

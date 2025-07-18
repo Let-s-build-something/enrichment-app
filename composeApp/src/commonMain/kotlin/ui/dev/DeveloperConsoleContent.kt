@@ -121,7 +121,7 @@ fun DeveloperHolderLayout(
         },
         content = {
             if (isCompact) {
-                Column {
+                Column(modifier = Modifier.background(LocalTheme.current.colors.backgroundDark)) {
                     DeveloperConsoleContent(
                         modifier = modifier,
                         model = model,
@@ -130,7 +130,7 @@ fun DeveloperHolderLayout(
                     appContent()
                 }
             } else {
-                Row {
+                Row(modifier = Modifier.background(LocalTheme.current.colors.backgroundDark)) {
                     DeveloperConsoleContent(
                         modifier = modifier,
                         model = model,

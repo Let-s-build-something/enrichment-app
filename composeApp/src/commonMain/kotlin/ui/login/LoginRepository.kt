@@ -68,6 +68,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
         address: String?,
         username: String?,
         password: String?,
+        deviceId: String,
         authenticationData: AuthenticationData
     ): MatrixAuthenticationResponse? {
         return withContext(Dispatchers.IO) {
@@ -78,7 +79,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
                             auth = authenticationData,
                             password = password,
                             username = username,
-                            initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform"
+                            deviceId = deviceId
                         )
                     )
                 }

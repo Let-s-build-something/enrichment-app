@@ -144,7 +144,7 @@ class DeviceVerificationModel: SharedModel() {
                     is VerificationService.SelfVerificationMethods.AlreadyCrossSigned -> {
                         if (_launcherState.value !is LauncherState.Hidden
                             && _launcherState.value !is LauncherState.Success
-                            && _launcherState.value.selfTransactionId != null
+                            //&& _launcherState.value.selfTransactionId != null
                         ) {
                             clear()
                         }
@@ -321,7 +321,7 @@ class DeviceVerificationModel: SharedModel() {
                         logger.debug { "NOT starting $method" }
                     }else {
                         logger.debug { "starting $method" }
-                        //state.start(method)
+                        state.start(method)
                     }
                 }
             }
