@@ -5,6 +5,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -480,8 +480,8 @@ private fun DisplayFrequencyDialog(
 
     AlertDialog(
         modifier = Modifier
-            .focusTarget()
             .focusRequester(missFocusRequester)
+            .focusable()
             .animateContentSize(),
         title = "Select display frequency",
         intrinsicContent = false,
@@ -539,7 +539,7 @@ private fun DisplayFrequencyDialog(
                 val isFocused = rememberSaveable(initialFrequency) {
                     mutableStateOf(false)
                 }
-                val secondsState = rememberSaveable(initialFrequency) {
+                val secondsState = remember(initialFrequency) {
                     TextFieldState(
                         initialText = (initialFrequency as? ExperimentIO.DisplayFrequency.Constant)?.delaySeconds?.toString() ?: "5"
                     )
@@ -722,7 +722,7 @@ private fun SetListDialog(
                                 key = { values.getOrNull(it)?.uid ?: Uuid.random().toString() }
                             ) { index ->
                                 val value = values.getOrNull(index)
-                                val valueState = rememberSaveable(value) {
+                                val valueState = remember(value) {
                                     TextFieldState(initialText = value?.value ?: "")
                                 }
 

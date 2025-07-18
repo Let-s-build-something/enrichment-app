@@ -147,6 +147,7 @@ import ui.conversation.components.gif.GifImage
 import ui.conversation.components.link.LinkPreview
 import ui.conversation.components.message.MessageMediaPanel
 import ui.conversation.components.message.ReplyIndication
+import utils.SharedLogger
 
 private const val MENTION_REGEX = """@[^.]*$"""
 
@@ -326,6 +327,7 @@ internal fun BoxScope.SendMessagePanel(
     }
     LaunchedEffect(savedMessage.value) {
         focusRequester.requestFocus()
+        SharedLogger.logger.debug { "savedMessage, requesting focus" }
 
         if(missingKeyboardHeight || !savedMessage.value.isNullOrBlank()) keyboardController?.show()
         else keyboardController?.hide()

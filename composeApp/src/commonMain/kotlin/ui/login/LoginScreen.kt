@@ -393,7 +393,7 @@ private fun ColumnScope.LoginScreenContent(
     val isIdentificationFocused = remember { mutableStateOf(false) }
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
-    val homeServer = rememberSaveable { mutableStateOf(model.homeserver) }
+    val homeServer = remember(model) { mutableStateOf(model.homeserver) }
     val showHomeServerPicker = remember { mutableStateOf(false) }
     val ssoFlow = remember(homeServerResponse.value) {
         derivedStateOf {

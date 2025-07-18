@@ -2,6 +2,7 @@ package ui.login.homeserver_picker
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,12 +21,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -61,21 +60,8 @@ fun MatrixHomeserverPicker(
 
     val focusRequester = remember { FocusRequester() }
     val homeServerState = remember { TextFieldState() }
-    val isCustomFocused = remember { mutableStateOf(false) }
-    val selectedHomeserver = rememberSaveable(model) {
+    val selectedHomeserver = remember(model) {
         mutableStateOf(homeserver)
-    }
-    val missFocusRequester = remember { FocusRequester() }
-
-    val select: (HomeserverAddress) -> Unit = { address ->
-        selectedHomeserver.value = address
-        missFocusRequester.requestFocus()
-    }
-
-    LaunchedEffect(isCustomFocused.value) {
-        if (isCustomFocused.value) {
-            selectedHomeserver.value = HomeserverAddress(identifier = homeServerState.text.toString(), address = "")
-        }
     }
 
     LaunchedEffect(homeServerState.text) {
@@ -87,10 +73,7 @@ fun MatrixHomeserverPicker(
     }
 
     SimpleModalBottomSheet(
-        modifier = Modifier
-            .focusTarget()
-            .focusRequester(missFocusRequester)
-            .padding(horizontal = 12.dp),
+        modifier = Modifier.padding(horizontal = 12.dp),
         onDismissRequest = onDismissRequest
     ) {
         Text(
@@ -105,14 +88,18 @@ fun MatrixHomeserverPicker(
         Spacer(Modifier.height(12.dp))
 
         homeservers.value.forEach { homeserver ->
+            val missFocusRequester = remember(homeserver.address) { FocusRequester() }
             Row(
                 modifier = Modifier
+                    .focusRequester(missFocusRequester)
+                    .focusable()
                     .scalingClickable(
                         key = homeserver,
                         hoverEnabled = false,
                         scaleInto = .95f
                     ) {
-                        select(homeserver)
+                        selectedHomeserver.value = homeserver
+                        missFocusRequester.requestFocus()
                     }
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -121,7 +108,10 @@ fun MatrixHomeserverPicker(
                 RadioButton(
                     selected = selectedHomeserver.value?.address == homeserver.address,
                     colors = LocalTheme.current.styles.radioButtonColors,
-                    onClick = { select(homeserver) }
+                    onClick = {
+                        selectedHomeserver.value = homeserver
+                        missFocusRequester.requestFocus()
+                    }
                 )
                 Text(
                     text = homeserver.identifier,
@@ -142,8 +132,15 @@ fun MatrixHomeserverPicker(
             }
         }
 
+        val isCustomFocused = remember { mutableStateOf(false) }
         val isCustomSelected = (homeServerState.text == selectedHomeserver.value
                 && homeServerState.text.isNotBlank()) || isCustomFocused.value
+
+        LaunchedEffect(isCustomFocused.value) {
+            if (isCustomFocused.value) {
+                selectedHomeserver.value = HomeserverAddress(identifier = homeServerState.text.toString(), address = "")
+            }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(.7f),
