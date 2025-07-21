@@ -288,7 +288,6 @@ fun ConversationScreen(
                                     val recommendedUsersToInvite = model.recommendedUsersToInvite.collectAsState()
                                     val membersToInvite = model.membersToInvite.collectAsState()
                                     val searchState = remember(model) { TextFieldState() }
-                                    val focusRequester = remember(model) { FocusRequester() }
 
                                     LaunchedEffect(Unit) {
                                         model.recommendUsersToInvite()
@@ -303,8 +302,7 @@ fun ConversationScreen(
                                             model = model,
                                             recommendedUserToInvite = recommendedUsersToInvite,
                                             membersToInvite = membersToInvite,
-                                            searchState = searchState,
-                                            focusRequester = focusRequester
+                                            searchState = searchState
                                         )
                                     }
                                 }
@@ -430,7 +428,6 @@ fun ConversationScreen(
 
 private fun LazyListScope.createRoomNoMembers(
     model: ConversationModel,
-    focusRequester: FocusRequester,
     recommendedUserToInvite: State<List<ConversationRoomMember>>,
     membersToInvite: State<MutableSet<ConversationRoomMember>>,
     searchState: TextFieldState
@@ -485,7 +482,6 @@ private fun LazyListScope.createRoomNoMembers(
         ) {
             CustomTextField(
                 modifier = Modifier.weight(1f),
-                focusRequester = focusRequester,
                 shape = LocalTheme.current.shapes.rectangularActionShape,
                 hint = stringResource(Res.string.conversation_create_search_hint),
                 keyboardOptions = KeyboardOptions(

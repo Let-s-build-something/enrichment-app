@@ -352,6 +352,7 @@ private fun DesktopLayout(
 @Composable
 fun BoxScope.ModalScreenContent(
     modifier: Modifier = Modifier,
+    contentModifier: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(8.dp),
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit
@@ -362,7 +363,7 @@ fun BoxScope.ModalScreenContent(
             .align(Alignment.TopCenter),
         content = {
             Column(
-                modifier = Modifier
+                modifier = contentModifier
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxHeight()
                     .padding(

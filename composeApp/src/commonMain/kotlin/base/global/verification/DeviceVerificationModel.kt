@@ -309,7 +309,7 @@ class DeviceVerificationModel: SharedModel() {
                                 is ActiveSasVerificationState.Accept -> {}
                                 is ActiveSasVerificationState.OwnSasStart -> {}
                                 is ActiveSasVerificationState.WaitForKeys -> {}
-                                ActiveSasVerificationState.WaitForMacs -> {}
+                                is ActiveSasVerificationState.WaitForMacs -> {}
                             }
                         }
                     }
@@ -339,7 +339,9 @@ class DeviceVerificationModel: SharedModel() {
             }
             is ActiveVerificationState.WaitForDone -> _launcherState.value = LauncherState.Loading
             is ActiveVerificationState.Cancel -> {
-                if (!state.isOurOwn) cancel(restart = false, manual = false)
+                if (!state.isOurOwn && _launcherState.value !is LauncherState.SelfVerification) {
+                    cancel(restart = false, manual = false)
+                }
             }
             else -> {}
         }

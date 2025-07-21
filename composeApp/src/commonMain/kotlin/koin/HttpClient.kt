@@ -90,7 +90,12 @@ internal fun httpClientFactory(
         install(HttpSend)
     }.apply {
         plugin(HttpSend).intercept { request ->
-            val isMatrix = request.url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.")
+            val isMatrix = request.url.toString().contains(
+                sharedModel.currentUser.value?.matrixHomeserver?.replace(
+                    """:\d+""".toRegex(),
+                    ""
+                ) ?: ".;'][."
+            )
             if(isMatrix) {
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
