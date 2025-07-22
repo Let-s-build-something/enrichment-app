@@ -37,7 +37,7 @@ fileKit = "0.10.0-beta04"
 multiplatformSettings = "1.3.0"
 datastore = "1.1.7"
 workRuntimeKtx = "2.10.2"
-trixnity = "4.16.9"
+trixnity = "4.17.1"
 installreferrer = "2.2"
 
 # Android

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ui.login.homeserver_picker.HomeserverPickerModel.HomeserverAddress
 
 internal val searchRoomModule = module {
     factory { SearchRoomRepository(get()) }
@@ -32,26 +33,26 @@ class SearchRoomModel(
 
     private val _state = MutableStateFlow<BaseResponse<Any>>(BaseResponse.Idle)
     private val _query = MutableStateFlow("")
-    private val _selectedHomeserver = MutableStateFlow<String?>(null)
+    private val _selectedHomeserver = MutableStateFlow<HomeserverAddress?>(null)
 
     val selectedHomeserver = _selectedHomeserver.asStateFlow()
     val state = _state.asStateFlow()
 
     val rooms = repository.getRooms(
         query = { _query.value },
-        queryHomeserver = { _selectedHomeserver.value },
+        queryHomeserver = { _selectedHomeserver.value?.address },
         config = PagingConfig(
             pageSize = ITEMS_COUNT,
             enablePlaceholders = true
         ),
-        homeserver = { homeserver }
+        homeserver = { homeserverAddress }
     ).flow.cachedIn(viewModelScope)
 
     fun setIdleState() {
         _state.value = BaseResponse.Idle
     }
 
-    fun selectHomeserver(homeserver: String?) {
+    fun selectHomeserver(homeserver: HomeserverAddress?) {
         viewModelScope.launch {
             _selectedHomeserver.value = homeserver
             repository.invalidateLocalSource()

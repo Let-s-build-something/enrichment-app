@@ -148,6 +148,8 @@ class LoginModel(
             dataManager.homeServerResponse.value = (if(screenType == LoginScreenType.SIGN_UP) {
                 repository.dummyMatrixRegister(address = address)
             }else repository.dummyMatrixLogin(address = address)).let { response ->
+                val registrationEnabled = response?.error?.contains("Registration has been disabled.") != true
+
                 if (response != null) {
                     session = response.session ?: session
                     HomeServerResponse(
@@ -168,13 +170,14 @@ class LoginModel(
                             ).error?.message?.contains("Bad login type") == false)).also { answer ->
                                 homeserverAbilityCache[address] = answer
                             }
-                        }
+                        },
+                        registrationEnabled = registrationEnabled
                     )
                 } else {
                     HomeServerResponse(
                         state = HomeServerState.Invalid,
                         address = address,
-                        registrationEnabled = response?.error?.contains("Registration has been disabled.") == false
+                        registrationEnabled = registrationEnabled
                     )
                 }
             }
@@ -237,8 +240,9 @@ class LoginModel(
                             clientSecret = progress.secret ?: "",
                             sid = progress.sid ?: ""
                         )
-                    )
-                )?.also { response ->
+                    ),
+                    deviceId = authService.getDeviceId()
+                ).also { response ->
                     if(progress.index == lastIndex) {
                         signUpWithPassword(
                             username = progress.username,
@@ -278,7 +282,8 @@ class LoginModel(
                         authenticationData = AuthenticationData(
                             session = session,
                             type = Matrix.LOGIN_DUMMY
-                        )
+                        ),
+                        deviceId = authService.getDeviceId()
                     )?.also {
                         session = it.session
                     }
@@ -310,7 +315,8 @@ class LoginModel(
                                 authenticationData = AuthenticationData(
                                     session = null,
                                     type = null
-                                )
+                                ),
+                                deviceId = authService.getDeviceId()
                             ) ?: dataManager.homeServerResponse.value?.plan)?.also { response ->
                                 session = response.session
                                 _matrixProgress.value = MatrixProgress(
@@ -332,7 +338,19 @@ class LoginModel(
                 if(res?.userId != null || username == null) {
                     _matrixAuthResponse.value = res
                     clearMatrixProgress()
+                    val isUser = !username.isNullOrBlank()
 
+                    authService.registerWithIdentifier(
+                        homeserver = res?.homeserver ?: dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                        password = password,
+                        response = res,
+                        identifier = MatrixIdentifierData(
+                            type = if(isUser) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
+                            medium = Matrix.Medium.EMAIL.takeIf { !isUser },
+                            address = email.takeIf { !isUser },
+                            user = username.takeIf { isUser }
+                        )
+                    )
                     loginWithCredentials(
                         username = username,
                         email = email,

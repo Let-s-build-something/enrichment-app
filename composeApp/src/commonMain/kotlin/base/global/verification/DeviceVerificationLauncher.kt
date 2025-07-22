@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
@@ -21,7 +20,6 @@ import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Android
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.KeyboardCommandKey
 import androidx.compose.material.icons.outlined.LaptopWindows
 import androidx.compose.material.icons.outlined.MarkChatUnread
@@ -70,13 +68,11 @@ import augmy.composeapp.generated.resources.device_verification_success
 import augmy.composeapp.generated.resources.device_verification_title
 import augmy.composeapp.generated.resources.device_verification_title_decimal
 import augmy.composeapp.generated.resources.device_verification_title_emojis
-import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.OutlinedButton
-import augmy.interactive.shared.ui.components.ProgressPressableContainer
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
@@ -105,26 +101,6 @@ fun DeviceVerificationLauncher(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .background(color = LocalTheme.current.colors.backgroundDark)
         ) {
-            if (BuildKonfig.isDevelopment) {
-                ProgressPressableContainer(
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(end = 16.dp)
-                        .requiredSize(36.dp),
-                    onFinish = {
-                        model.cancel(manual = true)
-                    },
-                    trackColor = LocalTheme.current.colors.disabled,
-                    progressColor = LocalTheme.current.colors.secondary
-                ) {
-                    Icon(
-                        modifier = Modifier.size(32.dp),
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = stringResource(Res.string.button_dismiss),
-                        tint = LocalTheme.current.colors.secondary
-                    )
-                }
-            }
             Crossfade(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 targetState = launcherState.value
@@ -317,10 +293,8 @@ private fun SelfVerification(
     val isLoading = model.isLoading.collectAsState()
     val verificationResult = model.verificationResult.collectAsState()
 
-    val selectedMethod = remember(state) {
-        mutableStateOf(
-            state.methods.find { it is SelfVerificationMethod.CrossSignedDeviceVerification } ?: state.methods.firstOrNull()
-        )
+    val selectedMethod = remember(model) {
+        mutableStateOf(state.methods.firstOrNull())
     }
     val passphraseState = remember { TextFieldState() }
     val showPassphrase = remember { mutableStateOf(false) }
@@ -347,31 +321,29 @@ private fun SelfVerification(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (i in state.methods.size.plus(1) downTo 0) {
-                state.methods.getOrNull(i)?.let { method ->
-                    ClickableTile(
-                        text = stringResource(
-                            when(method) {
-                                is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
-                                else -> Res.string.device_verification_passphrase
-                            }
-                        ),
-                        icon = when(method) {
-                            is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
-                            else -> Icons.Outlined.Pin
-                        },
-                        isSelected = selectedMethod.value == method,
-                        onClick = {
-                            selectedMethod.value = method
+            state.methods.forEach { method ->
+                ClickableTile(
+                    text = stringResource(
+                        when(method) {
+                            is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
+                            else -> Res.string.device_verification_passphrase
                         }
-                    )
-                }
+                    ),
+                    icon = when(method) {
+                        is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
+                        else -> Icons.Outlined.Pin
+                    },
+                    isSelected = selectedMethod.value == method,
+                    onClick = {
+                        selectedMethod.value = method
+                    }
+                )
             }
         }
 
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            visible = selectedMethod.value?.isVerify() == true
+            visible = selectedMethod.value?.isRecoveryMethod() == true
         ) {
             CustomTextField(
                 modifier = Modifier
@@ -432,7 +404,7 @@ private fun SelfVerification(
                 text = stringResource(
                     when {
                         isLoading.value -> Res.string.accessibility_cancel
-                        selectedMethod.value?.isVerify() == true -> Res.string.device_verification_confirm
+                        selectedMethod.value?.isRecoveryMethod() == true -> Res.string.device_verification_confirm
                         else -> Res.string.device_verification_send
                     }
                 ),
@@ -443,7 +415,9 @@ private fun SelfVerification(
                     }else verify()
                 }
             )
-            AnimatedVisibility(visible = selectedMethod.value is SelfVerificationMethod.CrossSignedDeviceVerification) {
+            AnimatedVisibility(
+                visible = selectedMethod.value is SelfVerificationMethod.CrossSignedDeviceVerification
+            ) {
                 Text(
                     modifier = Modifier
                         .padding(start = 16.dp, end = 16.dp, top = 2.dp)
@@ -642,7 +616,7 @@ private fun ComparisonByUser(
     }
 }
 
-fun SelfVerificationMethod.isVerify() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
+fun SelfVerificationMethod.isRecoveryMethod() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
         || this is SelfVerificationMethod.AesHmacSha2RecoveryKey
 
 private const val PASSPHRASE_MAX_LENGTH = 8

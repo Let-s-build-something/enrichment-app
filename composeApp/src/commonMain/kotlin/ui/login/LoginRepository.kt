@@ -1,6 +1,7 @@
 package ui.login
 
 import augmy.interactive.shared.ui.base.currentPlatform
+import base.utils.deviceName
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.getResponse
 import data.io.matrix.auth.AuthenticationData
@@ -68,6 +69,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
         address: String?,
         username: String?,
         password: String?,
+        deviceId: String,
         authenticationData: AuthenticationData
     ): MatrixAuthenticationResponse? {
         return withContext(Dispatchers.IO) {
@@ -78,7 +80,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
                             auth = authenticationData,
                             password = password,
                             username = username,
-                            initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform"
+                            deviceId = deviceId
                         )
                     )
                 }
@@ -93,7 +95,7 @@ class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
                 post(url = Url("https://${address}/_matrix/client/v3/register")) {
                     setBody(
                         MatrixRegistrationRequest(
-                            initialDeviceDisplayName = "augmy.interactive.com: $currentPlatform"
+                            initialDeviceDisplayName = deviceName() ?: currentPlatform.name
                         )
                     )
                 }

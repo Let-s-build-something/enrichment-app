@@ -39,7 +39,7 @@ class ConversationSearchModel(
             pageSize = PAGE_ITEM_COUNT,
             enablePlaceholders = true
         ),
-        homeserver = { homeserver },
+        homeserver = { homeserverAddress },
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)
 

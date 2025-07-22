@@ -16,9 +16,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
 import net.folivo.trixnity.client.MatrixClient
-import net.folivo.trixnity.clientserverapi.model.users.Filters
+import net.folivo.trixnity.core.ClientEventEmitter.Priority.FIRST
 import net.folivo.trixnity.core.model.events.m.Presence
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
@@ -39,7 +38,6 @@ class DataSyncService {
     }
 
     private val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
-    private val json: Json by KoinPlatform.getKoin().inject()
 
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var homeserver: String? = null
@@ -95,7 +93,7 @@ class DataSyncService {
         }
     }
 
-    private suspend fun CoroutineScope.enqueue(
+    private suspend fun enqueue(
         client: MatrixClient,
         homeserver: String? = this@DataSyncService.homeserver
     ) {
@@ -105,7 +103,7 @@ class DataSyncService {
             return
         }
 
-        client.api.sync.subscribe {
+        client.api.sync.subscribe(priority = FIRST) {
             handler.handle(
                 response = it.syncResponse,
                 owner = owner
@@ -114,9 +112,9 @@ class DataSyncService {
 
         logger.debug { "enqueue, entityId: ${homeserver}_$owner" }
         client.api.sync.start(
-            filter = json.encodeToString(
+            /*filter = json.encodeToString(
                 Filters.RoomFilter.RoomEventFilter(lazyLoadMembers = true)
-            ),
+            ),*/
             timeout = SYNC_INTERVAL.milliseconds,
             setPresence = when(sharedDataManager.currentUser.value?.configuration?.visibility) {
                 UserVisibility.Online -> Presence.ONLINE

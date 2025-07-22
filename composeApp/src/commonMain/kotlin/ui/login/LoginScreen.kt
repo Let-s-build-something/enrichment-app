@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -161,7 +162,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.gif.GifImage
-import ui.login.homeserver_picker.AUGMY_HOME_SERVER
 import ui.login.homeserver_picker.MatrixHomeserverPicker
 
 /**
@@ -318,7 +318,8 @@ fun LoginScreen(
         val listState = rememberScrollState()
 
         ModalScreenContent(
-            modifier = Modifier
+            modifier = Modifier.imePadding(),
+            contentModifier = Modifier
                 .onMouseScroll { direction, amount ->
                     coroutineScope.launch {
                         listState.scrollBy(amount.toFloat() * direction)
@@ -394,7 +395,7 @@ private fun ColumnScope.LoginScreenContent(
     val isIdentificationFocused = remember { mutableStateOf(false) }
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
-    val homeServer = rememberSaveable { mutableStateOf(AUGMY_HOME_SERVER) }
+    val homeServer = remember(model) { mutableStateOf(model.homeserver) }
     val showHomeServerPicker = remember { mutableStateOf(false) }
     val ssoFlow = remember(homeServerResponse.value) {
         derivedStateOf {
@@ -418,12 +419,8 @@ private fun ColumnScope.LoginScreenContent(
 
     val sendRequest = {
         model.signUpWithPassword(
-            email = identificationState.takeIf {
-                isEmailValid && it.text.isNotBlank()
-            }?.text?.toString() ?: emailState.text.toString(),
-            username = if (screenType == LoginScreenType.SIGN_IN) {
-                identificationState.takeIf { !isEmail }?.text?.toString() ?: ""
-            }else emailState.text.toString(),
+            email = emailState.text.toString(),
+            username = identificationState.text.toString(),
             password = passwordState.text.toString(),
             screenType = screenType
         )
@@ -433,12 +430,12 @@ private fun ColumnScope.LoginScreenContent(
         MatrixHomeserverPicker(
             homeserver = homeServer.value,
             onDismissRequest = { showHomeServerPicker.value = false },
-            userHomeserver = model.homeserver,
+            userHomeserver = model.homeserverAddress,
             onSelect = {
                 homeServer.value = it
                 model.selectHomeServer(
                     screenType = screenType,
-                    address = it
+                    address = it.address
                 )
             }
         )
@@ -451,7 +448,7 @@ private fun ColumnScope.LoginScreenContent(
     LaunchedEffect(screenType) {
         model.selectHomeServer(
             screenType = screenType,
-            address = homeServer.value
+            address = homeServer.value.address
         )
     }
 
@@ -464,7 +461,7 @@ private fun ColumnScope.LoginScreenContent(
                 cancellableScope.launch {
                     delay(DELAY_BETWEEN_TYPING_SHORT)
                     model.validateUsername(
-                        address = homeServer.value,
+                        address = homeServer.value.address,
                         username = identificationState.text.toString()
                     )
                 }
@@ -706,7 +703,7 @@ private fun ColumnScope.LoginScreenContent(
             .animateContentSize(),
         text = stringResource(
             Res.string.login_matrix_homeserver,
-            homeServer.value
+            homeServer.value.identifier
         ),
         style = LocalTheme.current.styles.regular
     )

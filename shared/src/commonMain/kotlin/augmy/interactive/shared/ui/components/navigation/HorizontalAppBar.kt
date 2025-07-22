@@ -116,7 +116,7 @@ fun HorizontalAppBar(
                 }
             )
         }
-        actions(true)
+        actions(false)
         Spacer(modifier = Modifier.width(4.dp))
     }
 }

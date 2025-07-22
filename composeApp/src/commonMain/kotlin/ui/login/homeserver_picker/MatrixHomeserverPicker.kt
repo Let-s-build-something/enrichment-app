@@ -2,6 +2,7 @@ package ui.login.homeserver_picker
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,11 +21,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -43,17 +43,16 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
+import ui.login.homeserver_picker.HomeserverPickerModel.HomeserverAddress
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatrixHomeserverPicker(
     userHomeserver: String,
-    homeserver: String? = null,
+    homeserver: HomeserverAddress? = null,
     onDismissRequest: () -> Unit,
-    onSelect: (String) -> Unit
+    onSelect: (HomeserverAddress) -> Unit
 ) {
-    val focusManager = LocalFocusManager.current
-
     loadKoinModules(homeserverPickerModule)
     val model = koinViewModel<HomeserverPickerModel>()
     val state = model.state.collectAsState()
@@ -61,27 +60,15 @@ fun MatrixHomeserverPicker(
 
     val focusRequester = remember { FocusRequester() }
     val homeServerState = remember { TextFieldState() }
-    val isCustomFocused = remember { mutableStateOf(false) }
-    val selectedHomeserver = rememberSaveable(model) {
+    val selectedHomeserver = remember(model) {
         mutableStateOf(homeserver)
-    }
-
-    val select: (String) -> Unit = { address ->
-        selectedHomeserver.value = address
-        focusManager.clearFocus(force = true)
-    }
-
-    LaunchedEffect(isCustomFocused.value) {
-        if (isCustomFocused.value) {
-            selectedHomeserver.value = homeServerState.text.toString()
-        }
     }
 
     LaunchedEffect(homeServerState.text) {
         val text = homeServerState.text
         if (text.isNotEmpty() && text != AUGMY_HOME_SERVER && text != MATRIX_HOME_SERVER) {
             model.validateHomeserver(homeserver = homeServerState.text)
-            selectedHomeserver.value = text.toString()
+            selectedHomeserver.value = HomeserverAddress(identifier = text.toString(), address = "")
         }
     }
 
@@ -101,25 +88,36 @@ fun MatrixHomeserverPicker(
         Spacer(Modifier.height(12.dp))
 
         homeservers.value.forEach { homeserver ->
+            val missFocusRequester = remember(homeserver.address) { FocusRequester() }
             Row(
                 modifier = Modifier
-                    .scalingClickable(key = homeserver, hoverEnabled = false) {
-                        select(homeserver.identifier)
+                    .focusRequester(missFocusRequester)
+                    .focusable()
+                    .scalingClickable(
+                        key = homeserver,
+                        hoverEnabled = false,
+                        scaleInto = .95f
+                    ) {
+                        selectedHomeserver.value = homeserver
+                        missFocusRequester.requestFocus()
                     }
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 RadioButton(
-                    selected = selectedHomeserver.value == homeserver.identifier,
+                    selected = selectedHomeserver.value?.address == homeserver.address,
                     colors = LocalTheme.current.styles.radioButtonColors,
-                    onClick = { select(homeserver.identifier) }
+                    onClick = {
+                        selectedHomeserver.value = homeserver
+                        missFocusRequester.requestFocus()
+                    }
                 )
                 Text(
                     text = homeserver.identifier,
                     style = LocalTheme.current.styles.title
                 )
-                if (userHomeserver == homeserver.identifier) {
+                if (userHomeserver == homeserver.address) {
                     Text(
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -134,8 +132,15 @@ fun MatrixHomeserverPicker(
             }
         }
 
+        val isCustomFocused = remember { mutableStateOf(false) }
         val isCustomSelected = (homeServerState.text == selectedHomeserver.value
                 && homeServerState.text.isNotBlank()) || isCustomFocused.value
+
+        LaunchedEffect(isCustomFocused.value) {
+            if (isCustomFocused.value) {
+                selectedHomeserver.value = HomeserverAddress(identifier = homeServerState.text.toString(), address = "")
+            }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(.7f),
@@ -182,11 +187,16 @@ fun MatrixHomeserverPicker(
             isEnabled = state.value.isSuccess || selectedHomeserver.value != homeServerState.text,
             isLoading = state.value.isLoading
         ) {
-            (selectedHomeserver.value.takeIf { !isCustomSelected } ?: state.value.data?.server)?.let { homeserver ->
+            (selectedHomeserver.value.takeIf { !isCustomSelected }?.address ?: state.value.data?.server)?.let { address ->
                 if (isCustomSelected) {
                     model.saveHomeserverAddress(identifier = homeServerState.text.toString())
                 }
-                onSelect(homeserver)
+                onSelect(
+                    HomeserverAddress(
+                        address = address,
+                        identifier = selectedHomeserver.value?.identifier ?: homeServerState.text.toString()
+                    )
+                )
                 onDismissRequest()
             }
         }
