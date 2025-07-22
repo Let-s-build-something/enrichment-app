@@ -35,7 +35,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -294,19 +293,14 @@ private fun SelfVerification(
     val isLoading = model.isLoading.collectAsState()
     val verificationResult = model.verificationResult.collectAsState()
 
-    val selectedMethodIndex = rememberSaveable(state.methods) {
-        mutableStateOf(
-            state.methods
-                .indexOfFirst { it is SelfVerificationMethod.CrossSignedDeviceVerification }
-                .takeIf { it != -1 } ?: 0
-        )
+    val selectedMethod = remember(model) {
+        mutableStateOf(state.methods.firstOrNull())
     }
-    val selectedMethod = state.methods.getOrNull(selectedMethodIndex.value) ?: state.methods.firstOrNull()
     val passphraseState = remember { TextFieldState() }
     val showPassphrase = remember { mutableStateOf(false) }
 
     val verify = {
-        selectedMethod?.let { method ->
+        selectedMethod.value?.let { method ->
             model.verifySelf(
                 method = method,
                 passphrase = passphraseState.text.toString()
@@ -327,31 +321,29 @@ private fun SelfVerification(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (i in state.methods.size.plus(1) downTo 0) {
-                state.methods.getOrNull(i)?.let { method ->
-                    ClickableTile(
-                        text = stringResource(
-                            when(method) {
-                                is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
-                                else -> Res.string.device_verification_passphrase
-                            }
-                        ),
-                        icon = when(method) {
-                            is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
-                            else -> Icons.Outlined.Pin
-                        },
-                        isSelected = selectedMethodIndex.value == i,
-                        onClick = {
-                            selectedMethodIndex.value = i
+            state.methods.forEach { method ->
+                ClickableTile(
+                    text = stringResource(
+                        when(method) {
+                            is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
+                            else -> Res.string.device_verification_passphrase
                         }
-                    )
-                }
+                    ),
+                    icon = when(method) {
+                        is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
+                        else -> Icons.Outlined.Pin
+                    },
+                    isSelected = selectedMethod.value == method,
+                    onClick = {
+                        selectedMethod.value = method
+                    }
+                )
             }
         }
 
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            visible = selectedMethod?.isVerify() == true
+            visible = selectedMethod.value?.isRecoveryMethod() == true
         ) {
             CustomTextField(
                 modifier = Modifier
@@ -412,7 +404,7 @@ private fun SelfVerification(
                 text = stringResource(
                     when {
                         isLoading.value -> Res.string.accessibility_cancel
-                        selectedMethod?.isVerify() == true -> Res.string.device_verification_confirm
+                        selectedMethod.value?.isRecoveryMethod() == true -> Res.string.device_verification_confirm
                         else -> Res.string.device_verification_send
                     }
                 ),
@@ -423,7 +415,9 @@ private fun SelfVerification(
                     }else verify()
                 }
             )
-            AnimatedVisibility(visible = selectedMethod is SelfVerificationMethod.CrossSignedDeviceVerification) {
+            AnimatedVisibility(
+                visible = selectedMethod.value is SelfVerificationMethod.CrossSignedDeviceVerification
+            ) {
                 Text(
                     modifier = Modifier
                         .padding(start = 16.dp, end = 16.dp, top = 2.dp)
@@ -622,7 +616,7 @@ private fun ComparisonByUser(
     }
 }
 
-fun SelfVerificationMethod.isVerify() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
+fun SelfVerificationMethod.isRecoveryMethod() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
         || this is SelfVerificationMethod.AesHmacSha2RecoveryKey
 
 private const val PASSPHRASE_MAX_LENGTH = 8

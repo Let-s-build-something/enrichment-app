@@ -3,6 +3,7 @@ package base.global.verification
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
 import data.shared.SharedModel
+import io.ktor.util.encodeBase64
 import korlibs.io.util.getOrNullLoggingError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.client.key
+import net.folivo.trixnity.client.store.KeyStore
 import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.client.verification.ActiveSasVerificationMethod
 import net.folivo.trixnity.client.verification.ActiveSasVerificationState
@@ -31,12 +33,17 @@ import net.folivo.trixnity.client.verification.ActiveVerificationState
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import net.folivo.trixnity.client.verification.VerificationService
 import net.folivo.trixnity.clientserverapi.client.UIA
-import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationMethod.Sas
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationRequestToDeviceEventContent
+import net.folivo.trixnity.core.model.events.m.secretstorage.SecretKeyEventContent.AesHmacSha2Key
+import net.folivo.trixnity.crypto.SecretType
+import net.folivo.trixnity.crypto.core.SecureRandom
+import net.folivo.trixnity.crypto.core.createAesHmacSha2MacFromKey
+import net.folivo.trixnity.crypto.key.decodeRecoveryKey
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import kotlin.reflect.KClass
 
 internal val verificationModule = module {
     viewModelOf(::DeviceVerificationModel)
@@ -56,7 +63,7 @@ sealed class LauncherState {
     var selfTransactionId: String? = null
 
     class SelfVerification(
-        val methods: List<SelfVerificationMethod>
+        val methods: Set<SelfVerificationMethod>
     ): LauncherState()
 
     class TheirRequest(
@@ -64,7 +71,9 @@ sealed class LauncherState {
         val onReady: () -> Unit
     ): LauncherState()
 
-    data object Bootstrap : LauncherState()
+    data class Bootstrap(
+        val methods: List<KClass<out SelfVerificationMethod>>
+    ): LauncherState()
 
     data class ComparisonByUser(
         val data: ComparisonByUserData,
@@ -131,28 +140,11 @@ class DeviceVerificationModel: SharedModel() {
         viewModelScope.launch {
             activeVerificationState.collect { state ->
                 onActiveState(state)
-                viewModelScope.launch {
-                    matrixUserId?.let { userId ->
-                        matrixClient?.key?.getDeviceKeys(UserId(userId))?.collect {
-                            logger.debug { "deviceKeys: $it" }
-                        }
-                    }
-                }
             }
         }
         viewModelScope.launch {
             sharedDataManager.matrixClient.collect { client ->
                 if (client == null) clear() else subscribeToVerificationMethods(client = client)
-            }
-        }
-        viewModelScope.launch {
-            matrixClient?.key?.getCrossSigningKeys(UserId(currentUser.value?.matrixUserId ?: ""))?.collect { keys ->
-                logger.debug { "crossSigningKeys: $keys" }
-            }
-        }
-        viewModelScope.launch {
-            matrixClient?.key?.getTrustLevel(UserId(currentUser.value?.matrixUserId ?: ""))?.collect { trust ->
-                logger.debug { "trustLevel: $trust" }
             }
         }
     }
@@ -164,6 +156,10 @@ class DeviceVerificationModel: SharedModel() {
     fun clear() {
         logger.debug { "clear()" }
         cancel(restart = false)
+    }
+
+    private suspend fun MatrixClient.isRootTrust(): Boolean = withContext(Dispatchers.IO) {
+        di.getOrNull<KeyStore>()?.getSecrets()[SecretType.M_CROSS_SIGNING_SELF_SIGNING] != null
     }
 
     private fun subscribeToVerificationMethods(client: MatrixClient) {
@@ -181,15 +177,23 @@ class DeviceVerificationModel: SharedModel() {
                             logger.debug { "selfVerificationMethod, methods: ${verification.methods.map { it::class }}" }
 
                             _launcherState.value = if(verification.methods.isEmpty()) {
-                                LauncherState.Bootstrap
-                            } else LauncherState.SelfVerification(
-                                methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
-                            )
+                                LauncherState.Bootstrap(
+                                    listOf(
+                                        SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase::class,
+                                        SelfVerificationMethod.AesHmacSha2RecoveryKey::class
+                                    )
+                                )
+                            } else LauncherState.SelfVerification(methods = verification.methods)
                         }
                         is VerificationService.SelfVerificationMethods.NoCrossSigningEnabled -> {
                             // TODO #86c2y7krb this is how we recognize a new user
                             if (_launcherState.value.isFinished) {
-                                _launcherState.value = LauncherState.Bootstrap
+                                _launcherState.value = LauncherState.Bootstrap(
+                                    listOf(
+                                        SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase::class,
+                                        SelfVerificationMethod.AesHmacSha2RecoveryKey::class
+                                    )
+                                )
                             }
                         }
                         else -> {}
@@ -216,9 +220,7 @@ class DeviceVerificationModel: SharedModel() {
                 if (_launcherState.value.selfTransactionId != null && !isCrossSigned) {
                     (matrixClient?.verification?.getSelfVerificationMethods()?.firstOrNull()
                             as? VerificationService.SelfVerificationMethods.CrossSigningEnabled)?.let { verification ->
-                        LauncherState.SelfVerification(
-                            methods = verification.methods.distinctBy { if(it.isVerify()) "0" else it.toString() }
-                        )
+                        LauncherState.SelfVerification(methods = verification.methods)
                     } ?: state
                 } else state
             } else state
@@ -269,29 +271,31 @@ class DeviceVerificationModel: SharedModel() {
         when(state) {
             is ActiveVerificationState.TheirRequest -> {
                 logger.debug { "theirRequest, content: ${state.content}" }
-                when(val content = state.content) {
-                    is VerificationRequestToDeviceEventContent -> {
-                        logger.debug { "VerificationRequestToDeviceEventContent, methods: ${content.methods}" }
-                        content.methods.forEach { method ->
-                            when(method) {
-                                Sas -> {
-                                    if (_launcherState.value.selfTransactionId == content.transactionId) {
-                                        logger.debug { "marking Sas as ready, deviceId: ${content.fromDevice}" }
-                                        state.ready()
-                                    } else {
-                                        _launcherState.value = LauncherState.TheirRequest(
-                                            fromDevice = content.fromDevice,
-                                            onReady = {
-                                                isLoading.value = true
-                                                viewModelScope.launch {
-                                                    logger.debug { "marking Sas as ready, deviceId: ${content.fromDevice}" }
-                                                    state.ready()
+                if (matrixClient?.isRootTrust() == true) {
+                    when(val content = state.content) {
+                        is VerificationRequestToDeviceEventContent -> {
+                            logger.debug { "VerificationRequestToDeviceEventContent, methods: ${content.methods}" }
+                            content.methods.forEach { method ->
+                                when(method) {
+                                    Sas -> {
+                                        if (_launcherState.value.selfTransactionId == content.transactionId) {
+                                            logger.debug { "marking Sas as ready, deviceId: ${content.fromDevice}" }
+                                            state.ready()
+                                        } else {
+                                            _launcherState.value = LauncherState.TheirRequest(
+                                                fromDevice = content.fromDevice,
+                                                onReady = {
+                                                    isLoading.value = true
+                                                    viewModelScope.launch {
+                                                        logger.debug { "marking Sas as ready, deviceId: ${content.fromDevice}" }
+                                                        state.ready()
+                                                    }
                                                 }
-                                            }
-                                        )
+                                            )
+                                        }
                                     }
+                                    is VerificationMethod.Unknown -> {}
                                 }
-                                is VerificationMethod.Unknown -> {}
                             }
                         }
                     }
@@ -343,8 +347,8 @@ class DeviceVerificationModel: SharedModel() {
                         logger.debug { "starting $method" }
                     }else {
                         logger.debug { "NOT starting $method" }
+                        state.start(method)
                     }
-                    state.start(method)
                 }
             }
             is ActiveVerificationState.Done -> {
@@ -369,7 +373,10 @@ class DeviceVerificationModel: SharedModel() {
     fun bootstrap(newPassphrase: String) {
         isLoading.value = true
         viewModelScope.launch {
-            bootstrapCrossSigning(passphrase = newPassphrase)?.let { result ->
+            (if (newPassphrase.contains(' ')) {
+                bootstrapCrossSigningRecoveryKey(recoveryKeyString = newPassphrase)
+            }else bootstrapCrossSigning(passphrase = newPassphrase))?.let { result ->
+                logger.debug { "bootstrapCrossSigning result: $result" }
                 if(result is UIA.Success<*>) {
                     finishDeviceVerification()
                     _launcherState.value = LauncherState.Success
@@ -384,6 +391,31 @@ class DeviceVerificationModel: SharedModel() {
     private suspend fun bootstrapCrossSigning(passphrase: String): UIA<out Any?>? {
         return matrixClient?.key?.bootstrapCrossSigningFromPassphrase(
             passphrase = passphrase
+        )?.result?.getOrThrow()?.let { result ->
+            logger.debug { "bootstrapCrossSigningFromPassphrase result: $result" }
+            processBootstrapResult(result)
+        }
+    }
+
+    private suspend fun bootstrapCrossSigningRecoveryKey(
+        recoveryKeyString: String
+    ): UIA<out Any?>? {
+        val recoveryKey = decodeRecoveryKey(recoveryKeyString)
+        val passphraseInfo = AesHmacSha2Key.SecretStorageKeyPassphrase.Pbkdf2(
+            salt = SecureRandom.nextBytes(32).encodeBase64(),
+            iterations = 210_000,
+            bits = 32 * 8
+        )
+        val iv = SecureRandom.nextBytes(16)
+        val secretKeyEventContent = AesHmacSha2Key(
+            passphrase = passphraseInfo,
+            iv = iv.encodeBase64(),
+            mac = createAesHmacSha2MacFromKey(key = recoveryKey, iv = iv)
+        )
+
+        return matrixClient?.key?.bootstrapCrossSigning(
+            recoveryKey = recoveryKey,
+            secretKeyEventContent = secretKeyEventContent
         )?.result?.getOrThrow()?.let { result ->
             logger.debug { "bootstrapCrossSigningFromPassphrase result: $result" }
             processBootstrapResult(result)
