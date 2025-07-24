@@ -864,18 +864,18 @@ private fun EmailConfirmationSheet(
     }
     LaunchedEffect(Unit) {
         model.matrixProgress.collectLatest {
-            if(it?.retryAfter != null) {
+            if (it?.retryAfter != null) {
                 counter.value = it.retryAfter
             }
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if(progress?.sid != null) {
+        if (progress?.sid != null) {
             model.matrixStepOver(type = currentStage)
         }
     }
     LaunchedEffect(Unit) {
-        if(progress?.sid == null) {
+        if (progress?.sid == null) {
             model.matrixRequestToken()
         }
     }
