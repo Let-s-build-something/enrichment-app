@@ -240,7 +240,7 @@ fun NetworkAddNewLauncher(
                 selectedCategory = selectedCategory,
                 newItem = NetworkItemIO(
                     displayName = displayNameState.text.toString(),
-                    avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.png")
+                    avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
                 )
             )
         }

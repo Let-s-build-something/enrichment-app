@@ -138,7 +138,7 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
 
     install(Logging) {
         logger = Logger.DEFAULT
-        level = LogLevel.ALL
+        level = LogLevel.BODY
 
         sanitizeHeader { header ->
             header == HttpHeaders.Authorization

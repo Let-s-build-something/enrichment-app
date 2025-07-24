@@ -28,6 +28,20 @@ import kotlinx.coroutines.withContext
 /** Class for calling APIs and remote work in general */
 class LoginRepository(private val httpClient: HttpClient): SharedRepository() {
 
+    /** Makes a request to create a user */
+    /*suspend fun createUser(data: RequestCreateUser): ResponseCreateUser? {
+        return withContext(Dispatchers.IO) {
+            httpClient.safeRequest<ResponseCreateUser> {
+                post(
+                    urlString = "/api/v1/users",
+                    block =  {
+                        setBody(data)
+                    }
+                )
+            }.success?.data
+        }
+    }*/
+
     /** Retrieves the request token for further registration */
     suspend fun requestRegistrationToken(
         address: String,
