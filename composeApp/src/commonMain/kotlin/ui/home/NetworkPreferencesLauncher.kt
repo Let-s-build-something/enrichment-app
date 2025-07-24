@@ -128,7 +128,7 @@ fun NetworkPreferencesLauncher(
                                 displayName = stringResource(Res.string.network_preferences_default_name),
                                 userId = "banana",
                                 lastMessage = stringResource(Res.string.network_preferences_default_message),
-                                avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.jpg")
+                                avatar = MediaIO(url = "https://augmy.org/storage/img/imjustafish.png")
                             ),
                             indicatorColor = selectedColor.value
                         )

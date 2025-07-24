@@ -272,6 +272,7 @@
   <string name="image_field_url_error_formats">An error occurred, the supported formats are: PNG, JPG, WebP, GIF, BMP, HEIF, AVIF and SVG.\n(Your URL must end with ".png", ".jpg", etc.)</string>
 
   <string name="button_confirm">Confirm</string>
+  <string name="button_agree">I agree</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
   <string name="button_reject">Reject</string>

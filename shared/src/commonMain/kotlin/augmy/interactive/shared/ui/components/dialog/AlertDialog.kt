@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 
 /** Dismissible properties for dialog */
 val dismissibleDialogProperties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
+val nonDismissibleDialogProperties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
 
 /**
  * Themed basic dialog
@@ -66,11 +68,11 @@ fun AlertDialog(
         text = if(message != null || additionalContent != null) {
             {
                 Column(
-                    modifier = if (intrinsicContent) {
+                    modifier = (if (intrinsicContent) {
                         modifier
                             .height(IntrinsicSize.Max)
                             .width(IntrinsicSize.Max)
-                    }else modifier
+                    }else modifier).widthIn(max = 750.dp)
                 ) {
                     if(message != null) {
                         Text(

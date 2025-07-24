@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
@@ -71,12 +73,12 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import augmy.composeapp.generated.resources.Res
+import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.accessibility_sign_in_illustration
 import augmy.composeapp.generated.resources.accessibility_sign_up_illustration
-import augmy.composeapp.generated.resources.button_confirm
-import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_agree
 import augmy.composeapp.generated.resources.dialog_recaptcha_title
 import augmy.composeapp.generated.resources.dialog_terms_message
 import augmy.composeapp.generated.resources.dialog_terms_title
@@ -125,9 +127,11 @@ import augmy.interactive.shared.ui.components.CorrectionText
 import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_LONG
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
+import augmy.interactive.shared.ui.components.ProgressPressableContainer
 import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
+import augmy.interactive.shared.ui.components.dialog.nonDismissibleDialogProperties
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.input.DELAY_BETWEEN_TYPING_SHORT
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
@@ -163,6 +167,7 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.gif.GifImage
 import ui.login.homeserver_picker.MatrixHomeserverPicker
+import utils.SharedLogger
 
 /**
  * Screen for logging into an account through various methods, including:
@@ -717,13 +722,14 @@ private fun MatrixProgressStage(
     val progress = model.matrixProgress.collectAsState()
 
     Crossfade(targetState = stage) { currentStage ->
+        SharedLogger.logger.debug { "MatrixProgressStage, stage: $stage" }
         when(currentStage) {
             Matrix.LOGIN_RECAPTCHA -> {
                 val density = LocalDensity.current
                 val isSuccess = remember { mutableStateOf(false) }
 
                 val state = rememberWebViewState(
-                    "http://augmy.org/recaptcha.html?site-key=${progress.value?.response?.params?.recaptcha?.publicKey}",
+                    "https://augmy.org/recaptcha.html?site-key=${progress.value?.response?.params?.recaptcha?.publicKey}",
                 )
                 val jsBridge = rememberWebViewJsBridge()
                 val navigator = rememberWebViewNavigator()
@@ -766,14 +772,19 @@ private fun MatrixProgressStage(
                     additionalContent = {
                         WebView(
                             modifier = Modifier
-                                .wrapContentHeight()
-                                .requiredWidth(with(density) { 340f.toDp() })
-                                .heightIn(min = 500.dp),
+                                .requiredHeight(with(density) { 1100.toDp() })
+                                .fillMaxWidth(),
                             navigator = navigator,
+                            captureBackPresses = false,
                             state = state,
                             webViewJsBridge = jsBridge
                         )
                     },
+                    dismissButtonState = ButtonState(
+                        text = stringResource(Res.string.accessibility_cancel)
+                    ),
+                    properties = nonDismissibleDialogProperties,
+                    intrinsicContent = false,
                     onDismissRequest = {
                         if(!isSuccess.value) {
                             model.clearMatrixProgress()
@@ -802,7 +813,7 @@ private fun MatrixProgressStage(
                         }
                     ),
                     confirmButtonState = ButtonState(
-                        text = stringResource(Res.string.button_confirm),
+                        text = stringResource(Res.string.button_agree),
                         onClick = {
                             isSuccess.value = true
                             model.matrixStepOver(
@@ -838,6 +849,7 @@ private fun EmailConfirmationSheet(
     val counter = remember { mutableStateOf(STOPWATCH_MAX) }
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
+    val cancellableScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit, counter.value) {
         if(counter.value >= STOPWATCH_MAX) {
@@ -868,24 +880,45 @@ private fun EmailConfirmationSheet(
         }
     }
 
+    LaunchedEffect(progress?.sid) {
+        cancellableScope.coroutineContext.cancelChildren()
+        cancellableScope.launch {
+            while(progress?.sid != null) {
+                delay(10_000)
+                model.matrixStepOver(type = currentStage)
+            }
+        }
+    }
+
     SimpleModalBottomSheet(
         sheetState = rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
             confirmValueChange = { false }
         ),
+        dragHandle = null,
+        scrollEnabled = false,
         horizontalAlignment = Alignment.CenterHorizontally,
         onDismissRequest = {}
     ) {
-        MinimalisticIcon(
-            modifier = Modifier.align(Alignment.End),
-            imageVector = Icons.Outlined.Close,
-            contentDescription = stringResource(Res.string.button_dismiss),
-            tint = LocalTheme.current.colors.secondary,
-            onTap = {
+        ProgressPressableContainer(
+            modifier = Modifier
+                .align(Alignment.End)
+                .padding(vertical = 8.dp, horizontal = 4.dp)
+                .requiredSize(36.dp),
+            onFinish = {
                 model.clearMatrixProgress()
                 model.setLoading(false)
-            }
-        )
+            },
+            trackColor = LocalTheme.current.colors.disabled,
+            progressColor = LocalTheme.current.colors.secondary
+        ) {
+            Icon(
+                modifier = Modifier.size(32.dp),
+                imageVector = Icons.Outlined.Close,
+                contentDescription = null,
+                tint = LocalTheme.current.colors.secondary
+            )
+        }
         Text(
             text = stringResource(Res.string.login_email_verification_heading),
             style = LocalTheme.current.styles.subheading

@@ -165,10 +165,14 @@ class HomeModel(
                     viewModelScope.launch {
                         client.syncState.collect { syncState ->
                             SharedLogger.logger.debug { "HomeModel, syncState: $syncState" }
-                            if (syncState == SyncState.INITIAL_SYNC) {
-                                _uiMode.value = UiMode.Loading
-                            } else if (syncState == SyncState.RUNNING && !_uiMode.value.isFinished) {
-                                _uiMode.value = UiMode.List
+                            when {
+                                syncState == SyncState.INITIAL_SYNC -> {
+                                    _uiMode.value = UiMode.Loading
+                                }
+                                syncState == SyncState.RUNNING && !_uiMode.value.isFinished -> {
+                                    _uiMode.value = UiMode.List
+                                }
+                                syncState == SyncState.STOPPED -> onDataRequest(isSpecial = true)
                             }
                         }
                     }
