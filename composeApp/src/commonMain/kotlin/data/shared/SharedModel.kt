@@ -28,7 +28,7 @@ import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.home.homeModule
-import ui.login.homeserver_picker.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOMESERVER_IDENTIFIER
 import ui.login.homeserver_picker.AUGMY_HOME_SERVER_ADDRESS
 import ui.login.homeserver_picker.HomeserverPickerModel
 import utils.SharedLogger
@@ -59,7 +59,7 @@ open class SharedModel: ViewModel() {
         get() = currentUser.value?.matrixHomeserver?.let {
             HomeserverPickerModel.HomeserverAddress(it, it)
         } ?: HomeserverPickerModel.HomeserverAddress(
-            AUGMY_HOME_SERVER,
+            AUGMY_HOMESERVER_IDENTIFIER,
             AUGMY_HOME_SERVER_ADDRESS
         )
 

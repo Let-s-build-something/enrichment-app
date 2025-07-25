@@ -165,6 +165,7 @@ private fun LogsContent(model: DeveloperConsoleModel) {
                         modifier = Modifier.padding(horizontal = 8.dp),
                         hint = "Filter anything",
                         isClearable = true,
+                        backgroundColor = LocalTheme.current.colors.backgroundLight,
                         paddingValues = PaddingValues(start = 16.dp),
                         state = filterState
                     )
@@ -377,6 +378,7 @@ private fun HttpContent(model: DeveloperConsoleModel) {
                         modifier = Modifier.weight(1f),
                         hint = "Filter anything",
                         isClearable = true,
+                        backgroundColor = LocalTheme.current.colors.backgroundLight,
                         paddingValues = PaddingValues(start = 16.dp),
                         state = filterState
                     )

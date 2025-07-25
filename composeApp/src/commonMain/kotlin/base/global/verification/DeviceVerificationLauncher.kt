@@ -82,7 +82,7 @@ import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
-import ui.login.homeserver_picker.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOMESERVER_IDENTIFIER
 
 /**
  * Bottom sheet for verifying current device
@@ -187,7 +187,7 @@ private fun BootstrapContent(model: DeviceVerificationModel) {
                 }
             },
             // Augmy has numeric PINs only
-            inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOME_SERVER) {
+            inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOMESERVER_IDENTIFIER) {
                 InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
                     proposed.replace(Regex("[^0-9]"), "")
                 }
@@ -384,7 +384,7 @@ private fun SelfVerification(
                     }
                 },
                 // Augmy has numeric PINs only
-                inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOME_SERVER) {
+                inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOMESERVER_IDENTIFIER) {
                     InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
                         proposed.replace(Regex("[^0-9]"), "")
                     }

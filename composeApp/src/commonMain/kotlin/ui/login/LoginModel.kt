@@ -32,19 +32,23 @@ import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
-import ui.login.homeserver_picker.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER_ADDRESS
+import ui.login.sso.SsoService
+import ui.login.sso.ssoServiceModule
 import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal fun loginModule() = module {
     factory { LoginRepository(get()) }
+    includes(ssoServiceModule())
     viewModelOf(::LoginModel)
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
 class LoginModel(
     private val dataManager: LoginDataManager,
+    private val ssoProvider: SsoService,
     private val repository: LoginRepository
 ): SharedModel() {
     data class HomeServerResponse(
@@ -150,6 +154,7 @@ class LoginModel(
             }else repository.dummyMatrixLogin(address = address)).let { response ->
                 val registrationEnabled = response?.error?.contains("Registration has been disabled.") != true
 
+                SharedLogger.logger.debug { "flows: ${response?.flows}" }
                 if (response != null) {
                     session = response.session ?: session
                     HomeServerResponse(
@@ -195,7 +200,7 @@ class LoginModel(
             repository.requestRegistrationToken(
                 secret = _matrixProgress.value?.secret ?: "",
                 email = _matrixProgress.value?.email ?: "",
-                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS
             ).also { res ->
                 res.error?.retryAfterMs?.let {
                     _matrixProgress.value = _matrixProgress.value?.copy(retryAfter = it)
@@ -228,7 +233,7 @@ class LoginModel(
                 index = _matrixProgress.value?.index?.plus(1)?.coerceAtMost(lastIndex) ?: 0
             )?.also { progress ->
                 repository.registerWithUsername(
-                    address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                    address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                     username = progress.username ?: "",
                     password = progress.password,
                     authenticationData = AuthenticationData(
@@ -276,7 +281,7 @@ class LoginModel(
                 val flow = dataManager.homeServerResponse.value?.plan?.flows?.firstOrNull()
                 if(flow?.stages?.size == 1 && flow.stages.firstOrNull() == Matrix.LOGIN_DUMMY) {
                     repository.registerWithUsername(
-                        address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                        address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                         username = username,
                         password = password,
                         authenticationData = AuthenticationData(
@@ -294,7 +299,7 @@ class LoginModel(
                         repository.requestRegistrationToken(
                             secret = secret,
                             email = email,
-                            address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+                            address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS
                         )
                     }else null
 
@@ -309,7 +314,7 @@ class LoginModel(
                         }
                         else -> {
                             (repository.registerWithUsername(
-                                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                                 username = null,
                                 password = null,
                                 authenticationData = AuthenticationData(
@@ -341,7 +346,7 @@ class LoginModel(
                     val isUser = !username.isNullOrBlank()
 
                     authService.registerWithIdentifier(
-                        homeserver = res?.homeserver ?: dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                        homeserver = res?.homeserver ?: dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                         password = password,
                         response = res,
                         identifier = MatrixIdentifierData(
@@ -373,7 +378,7 @@ class LoginModel(
         val res = if(_matrixAuthResponse.value?.userId == null) {
             val isUser = !username.isNullOrBlank()
             authService.loginWithIdentifier(
-                homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                 identifier = MatrixIdentifierData(
                     type = if(isUser) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
                     medium = Matrix.Medium.EMAIL.takeIf { !isUser },
@@ -394,7 +399,7 @@ class LoginModel(
             }
         }else _matrixAuthResponse.value
 
-        if(res?.userId != null || matrixClient != null) {
+        if (res?.userId != null || matrixClient != null) {
             _matrixAuthResponse.value = res
             clearMatrixProgress()
             initUserObject()
@@ -407,7 +412,7 @@ class LoginModel(
         viewModelScope.launch {
             _isLoading.value = true
             val ssoNonce = Uuid.random().toString()
-            val homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER
+            val homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS
             this@LoginModel.ssoNonce = "${ssoNonce}_$homeserver"
             val redirectUrl = "${deeplinkHost}${NavigationNode.Login(nonce = ssoNonce).deepLink}"
             openLink(
@@ -433,7 +438,7 @@ class LoginModel(
                 }
 
                 authService.loginWithIdentifier(
-                    homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER,
+                    homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                     identifier = null,
                     password = null,
                     token = token
@@ -460,6 +465,45 @@ class LoginModel(
             _loginResult.emit(
                 if (currentUser.value != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
             )
+        }
+    }
+
+    fun requestGoogleSignIn() {
+        viewModelScope.launch {
+            ssoProvider.requestGoogleSignIn(
+                homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                filterAuthorizedAccounts = true
+            ).let { response ->
+                response.data?.let { data ->
+                    val matrixRes = MatrixAuthenticationResponse(
+                        homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                        expiresInMs = data.expiresIn,
+                        refreshToken = data.refreshToken,
+                        userId = data.matrixUserId,
+                        accessToken = data.accessToken
+                    )
+                    authService.registerWithIdentifier(
+                        homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                        password = null,
+                        response = matrixRes,
+                        identifier = MatrixIdentifierData(
+                            type = Matrix.Id.AUGMY_OIDC,
+                            user = data.matrixUserId
+                        )
+                    )
+                    if (data.matrixUserId != null || matrixClient != null) {
+                        _matrixAuthResponse.value = matrixRes
+                        clearMatrixProgress()
+                        initUserObject()
+                    }
+                }
+            }
+        }
+    }
+
+    fun requestAppleSignIn() {
+        viewModelScope.launch {
+            ssoProvider.requestAppleSignIn()
         }
     }
 }

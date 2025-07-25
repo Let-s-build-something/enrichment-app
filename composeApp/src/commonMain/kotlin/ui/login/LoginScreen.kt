@@ -150,6 +150,7 @@ import com.multiplatform.webview.web.rememberWebViewState
 import components.AsyncImageThumbnail
 import components.buildAnnotatedLink
 import data.Asset
+import data.io.matrix.auth.MatrixIdentityProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
@@ -162,6 +163,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.gif.GifImage
+import ui.login.homeserver_picker.AUGMY_HOMESERVER_IDENTIFIER
 import ui.login.homeserver_picker.MatrixHomeserverPicker
 
 /**
@@ -657,21 +659,29 @@ private fun ColumnScope.LoginScreenContent(
     AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
-                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .animateContentSize(),
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ssoFlow.value?.identityProviders?.forEach { identityProvider ->
+            val isAugmy = homeServer.value.identifier == AUGMY_HOMESERVER_IDENTIFIER
+            (if (isAugmy) {
+                listOf(
+                    MatrixIdentityProvider(id = "google", brand = Matrix.Brand.GOOGLE),
+                    MatrixIdentityProvider(id = "apple", brand = Matrix.Brand.APPLE)
+                )
+            }else ssoFlow.value?.identityProviders)?.forEach { identityProvider ->
                 when(identityProvider.brand) {
                     Matrix.Brand.GOOGLE -> {
                         Image(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
-                                    model.requestSsoRedirect(identityProvider.id)
+                                    if (isAugmy) {
+                                        model.requestGoogleSignIn()
+                                    } else model.requestSsoRedirect(identityProvider.id)
                                 },
                             painter = painterResource(LocalTheme.current.icons.googleSignUp),
                             contentDescription = null
@@ -682,9 +692,11 @@ private fun ColumnScope.LoginScreenContent(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
-                                    model.requestSsoRedirect(identityProvider.id)
+                                    if (isAugmy) {
+                                        model.requestAppleSignIn()
+                                    } else model.requestSsoRedirect(identityProvider.id)
                                 },
-                            painter = painterResource(LocalTheme.current.icons.appleSignUp ),
+                            painter = painterResource(LocalTheme.current.icons.appleSignUp),
                             contentDescription = null
                         )
                     }
@@ -852,18 +864,18 @@ private fun EmailConfirmationSheet(
     }
     LaunchedEffect(Unit) {
         model.matrixProgress.collectLatest {
-            if(it?.retryAfter != null) {
+            if (it?.retryAfter != null) {
                 counter.value = it.retryAfter
             }
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if(progress?.sid != null) {
+        if (progress?.sid != null) {
             model.matrixStepOver(type = currentStage)
         }
     }
     LaunchedEffect(Unit) {
-        if(progress?.sid == null) {
+        if (progress?.sid == null) {
             model.matrixRequestToken()
         }
     }

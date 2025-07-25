@@ -49,7 +49,7 @@ class HomeserverPickerModel(
                     }
                 }
             } ?: listOf(
-                HomeserverAddress(AUGMY_HOME_SERVER, AUGMY_HOME_SERVER_ADDRESS),
+                HomeserverAddress(AUGMY_HOMESERVER_IDENTIFIER, AUGMY_HOME_SERVER_ADDRESS),
                 HomeserverAddress(MATRIX_HOME_SERVER, MATRIX_HOME_SERVER)
             )
         }

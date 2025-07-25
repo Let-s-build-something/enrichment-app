@@ -166,7 +166,7 @@ class DeviceVerificationModel: SharedModel() {
         viewModelScope.launch {
             client.verification.getSelfVerificationMethods().shareIn(this, SharingStarted.Eagerly).collect { verification ->
                 logger.debug { "selfVerificationMethods: $verification" }
-                if (_launcherState.value is LauncherState.Hidden) {
+                if (_launcherState.value !is LauncherState.SelfVerification) {
                     when(verification) {
                         is VerificationService.SelfVerificationMethods.AlreadyCrossSigned -> {
                             if (_launcherState.value is LauncherState.SelfVerification) {
@@ -183,7 +183,9 @@ class DeviceVerificationModel: SharedModel() {
                                         SelfVerificationMethod.AesHmacSha2RecoveryKey::class
                                     )
                                 )
-                            } else LauncherState.SelfVerification(methods = verification.methods)
+                            } else LauncherState.SelfVerification(
+                                methods = verification.methods.distinctBy { it.isRecoveryMethod() }.toSet()
+                            )
                         }
                         is VerificationService.SelfVerificationMethods.NoCrossSigningEnabled -> {
                             // TODO #86c2y7krb this is how we recognize a new user
@@ -220,7 +222,9 @@ class DeviceVerificationModel: SharedModel() {
                 if (_launcherState.value.selfTransactionId != null && !isCrossSigned) {
                     (matrixClient?.verification?.getSelfVerificationMethods()?.firstOrNull()
                             as? VerificationService.SelfVerificationMethods.CrossSigningEnabled)?.let { verification ->
-                        LauncherState.SelfVerification(methods = verification.methods)
+                        LauncherState.SelfVerification(
+                            methods = verification.methods.distinctBy { it.isRecoveryMethod() }.toSet()
+                        )
                     } ?: state
                 } else state
             } else state
@@ -244,11 +248,20 @@ class DeviceVerificationModel: SharedModel() {
 
             when(method) {
                 is SelfVerificationMethod.AesHmacSha2RecoveryKey -> {
-                    _verificationResult.value = method.verify(passphrase)
+                    _verificationResult.value = method.verify(passphrase).also {
+                        if (it.isSuccess) {
+                            isLoading.value = false
+                            hide()
+                        }
+                    }
                 }
                 is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase-> {
                     _verificationResult.value = method.verify(passphrase).also {
                         logger.debug { "verifySelf(), verify: ${it.getOrNullLoggingError()}, isSuccess: ${it.isSuccess}" }
+                        if (it.isSuccess) {
+                            isLoading.value = false
+                            hide()
+                        }
                     }
                 }
                 is SelfVerificationMethod.CrossSignedDeviceVerification -> {
