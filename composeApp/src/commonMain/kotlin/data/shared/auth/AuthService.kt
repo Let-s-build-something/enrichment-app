@@ -431,7 +431,7 @@ class AuthService {
     suspend fun registerWithIdentifier(
         setupAutoLogin: Boolean = true,
         homeserver: String,
-        password: String,
+        password: String?,
         identifier: MatrixIdentifierData?,
         response: MatrixAuthenticationResponse?
     ) {

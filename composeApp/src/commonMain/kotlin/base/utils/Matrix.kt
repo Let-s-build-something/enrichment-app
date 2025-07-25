@@ -22,6 +22,7 @@ object Matrix {
 
     object Id {
         const val THIRD_PARTY = "m.id.thirdparty"
+        const val AUGMY_OIDC = "org.augmy.oidc"
         const val USER = "m.id.user"
     }
 

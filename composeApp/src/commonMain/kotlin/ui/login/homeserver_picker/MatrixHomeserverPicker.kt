@@ -66,7 +66,7 @@ fun MatrixHomeserverPicker(
 
     LaunchedEffect(homeServerState.text) {
         val text = homeServerState.text
-        if (text.isNotEmpty() && text != AUGMY_HOME_SERVER && text != MATRIX_HOME_SERVER) {
+        if (text.isNotEmpty() && text != AUGMY_HOMESERVER_IDENTIFIER && text != MATRIX_HOME_SERVER) {
             model.validateHomeserver(homeserver = homeServerState.text)
             selectedHomeserver.value = HomeserverAddress(identifier = text.toString(), address = "")
         }
@@ -204,5 +204,5 @@ fun MatrixHomeserverPicker(
 }
 
 const val MATRIX_HOME_SERVER = "matrix.org"
-const val AUGMY_HOME_SERVER = "augmy.org"
+const val AUGMY_HOMESERVER_IDENTIFIER = "augmy.org"
 const val AUGMY_HOME_SERVER_ADDRESS = "homeserver.augmy.org"
