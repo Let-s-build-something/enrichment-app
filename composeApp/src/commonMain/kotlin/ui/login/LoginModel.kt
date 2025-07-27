@@ -470,6 +470,7 @@ class LoginModel(
 
     fun requestGoogleSignIn() {
         viewModelScope.launch {
+            _isLoading.value = true
             ssoProvider.requestGoogleSignIn(
                 homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                 filterAuthorizedAccounts = true
@@ -479,8 +480,9 @@ class LoginModel(
                         homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                         expiresInMs = data.expiresIn,
                         refreshToken = data.refreshToken,
-                        userId = data.matrixUserId,
-                        accessToken = data.accessToken
+                        userId = data.userId,
+                        accessToken = data.accessToken,
+                        deviceId = data.deviceId
                     )
                     authService.registerWithIdentifier(
                         homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
@@ -488,16 +490,23 @@ class LoginModel(
                         response = matrixRes,
                         identifier = MatrixIdentifierData(
                             type = Matrix.Id.AUGMY_OIDC,
-                            user = data.matrixUserId
+                            user = data.userId
                         )
                     )
-                    if (data.matrixUserId != null || matrixClient != null) {
+                    if (data.userId != null || matrixClient != null) {
                         _matrixAuthResponse.value = matrixRes
                         clearMatrixProgress()
                         initUserObject()
                     }
                 }
+                SharedLogger.logger.debug { "requestGoogleSignIn, data: ${response.data}" }
+                _loginResult.emit(
+                    if(response.isSuccess && response.data?.accessToken != null) {
+                        LoginResultType.SUCCESS
+                    } else LoginResultType.FAILURE
+                )
             }
+            _isLoading.value = false
         }
     }
 
