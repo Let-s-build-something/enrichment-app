@@ -23,7 +23,7 @@ class SsoServiceRepository(
         nonce: String
     ) = withContext(Dispatchers.IO) {
         httpClient.safeRequest<AugmySsoResponse> {
-            post("https://$homeserver/_synapse/client/v3/sso/registration") {
+            post("https://$homeserver/_synapse/client/sso/registration") {
                 setBody(
                     AugmySsoRequest(
                         type = AUGMY_OIDC,
@@ -45,7 +45,7 @@ class SsoServiceRepository(
         nonce: String
     ) = withContext(Dispatchers.IO) {
         httpClient.safeRequest<AugmySsoResponse> {
-            post("https://$homeserver/_synapse/client/v3/sso/login") {
+            post("https://$homeserver/_synapse/client/sso/login") {
                 setBody(
                     AugmySsoRequest(
                         type = AUGMY_OIDC,

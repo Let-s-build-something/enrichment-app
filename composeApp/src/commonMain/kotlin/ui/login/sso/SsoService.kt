@@ -3,7 +3,6 @@ package ui.login.sso
 import data.io.base.BaseResponse
 import org.koin.core.module.Module
 import ui.login.LoginResultType
-import ui.login.sso.SsoServiceRepository.AugmySsoResponse
 
 expect fun ssoServiceModule(): Module
 expect class SsoService {
