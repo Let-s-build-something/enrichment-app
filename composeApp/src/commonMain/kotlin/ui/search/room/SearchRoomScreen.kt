@@ -3,6 +3,8 @@ package ui.search.room
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -216,7 +218,11 @@ fun SearchRoomScreen() {
                 val isEmpty = state.value is BaseResponse.Idle && !isLoadingInitialPage
                         && rooms.itemCount == 0
 
-                AnimatedVisibility(isEmpty) {
+                AnimatedVisibility(
+                    visible = isEmpty,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
                     EmptyLayout(
                         modifier = Modifier.fillMaxWidth(),
                         title = stringResource(Res.string.room_search_empty_text),
