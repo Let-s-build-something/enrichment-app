@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
@@ -68,7 +67,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.ImeAction
@@ -332,13 +330,12 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                     }
                 }
             }
-
         }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.BottomEnd)
-                .animateContentSize(),
+                .align(Alignment.BottomEnd),
+                //.animateContentSize(),
             horizontalAlignment = Alignment.End
         ) {
             val rotation: Float by animateFloatAsState(
@@ -351,13 +348,13 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
 
             Icon(
                 modifier = Modifier
-                    .padding(end = 12.dp, bottom = 4.dp)
+                    .padding(end = 16.dp, bottom = 4.dp)
                     .scalingClickable {
                         showHomeActions.value = !showHomeActions.value
                     }
-                    .size(48.dp)
+                    .size(54.dp)
                     .background(
-                        color = LocalTheme.current.colors.appbarBackground,
+                        color = LocalTheme.current.colors.backgroundDark,
                         shape = LocalTheme.current.shapes.rectangularActionShape
                     )
                     .padding(8.dp)
@@ -367,14 +364,18 @@ fun HomeScreen(model: HomeModel = koinViewModel()) {
                 tint = LocalTheme.current.colors.secondary
             )
 
-            if (showHomeActions.value) {
+            AnimatedVisibility (!showHomeActions.value) {
+                Spacer(Modifier.height(20.dp))
+            }
+
+            AnimatedVisibility(showHomeActions.value) {
                 HomeActions(
                     isCompact,
                     onDismissRequest = {
                         showHomeActions.value = false
                     }
                 )
-            } else Spacer(Modifier.height(20.dp))
+            }
         }
     }
 }
@@ -423,14 +424,10 @@ private fun HomeActions(
     Column(
         modifier = Modifier
             .fillMaxWidth(if (isCompact) 1f else .5f)
-            .background(
-                color = LocalTheme.current.colors.backgroundDark,
-                shape = if (isCompact) RectangleShape else RoundedCornerShape(
-                    topStart = LocalTheme.current.shapes.rectangularActionRadius
-                )
-            )
             .padding(horizontal = 8.dp, vertical = 6.dp)
-            .navigationBarsPadding()
+            .padding(end = 8.dp)
+            .navigationBarsPadding(),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         RowAction(
             message = stringResource(Res.string.action_find_user),
@@ -469,6 +466,10 @@ private fun RowAction(
         modifier = Modifier
             .fillMaxWidth()
             .scalingClickable(scaleInto = .95f) { onClick() }
+            .background(
+                color = LocalTheme.current.colors.backgroundDark,
+                shape = LocalTheme.current.shapes.rectangularActionShape
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically

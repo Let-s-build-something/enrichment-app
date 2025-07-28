@@ -17,7 +17,7 @@ object LightAppColors: BaseColors {
     override val component: Color = Colors.GrayLight
 
     override val appbarBackground: Color = Colors.HunterGreen
-    override val appbarContent: Color = tetrial
+    override val appbarContent: Color = primary
     override val disabled: Color = secondary.copy(alpha = .6f)
     override val disabledComponent: Color = Colors.Coffee18
 

@@ -157,24 +157,22 @@ fun SearchRoomScreen() {
 
                     Crossfade(state.value is BaseResponse.Loading) { isLoading ->
                         Row(
-                            modifier = if (homeserver.value != null) {
+                            modifier = (if (homeserver.value != null) {
                                 Modifier.border(
                                     width = .5.dp,
                                     color = LocalTheme.current.colors.disabled,
                                     shape = LocalTheme.current.shapes.rectangularActionShape
                                 )
-                            } else Modifier,
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            } else Modifier).background(
+                                color = LocalTheme.current.colors.backgroundDark,
+                                shape = LocalTheme.current.shapes.rectangularActionShape
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .scalingClickable { showHomeServerPicker.value = true }
                                     .size(48.dp)
-                                    .background(
-                                        color = LocalTheme.current.colors.backgroundDark,
-                                        shape = LocalTheme.current.shapes.rectangularActionShape
-                                    )
                                     .padding(12.dp)
                                     .animateContentSize(),
                                 contentAlignment = Alignment.Center
@@ -198,14 +196,11 @@ fun SearchRoomScreen() {
                             AnimatedVisibility(homeserver.value != null) {
                                 Icon(
                                     modifier = Modifier
+                                        .padding(start = 8.dp)
                                         .size(32.dp)
                                         .scalingClickable {
                                             model.selectHomeserver(null)
                                         }
-                                        .background(
-                                            color = LocalTheme.current.colors.backgroundDark,
-                                            shape = LocalTheme.current.shapes.rectangularActionShape
-                                        )
                                         .padding(6.dp),
                                     imageVector = Icons.Outlined.Close,
                                     tint = LocalTheme.current.colors.disabled,
