@@ -3,11 +3,10 @@ package ui.login.sso
 import data.io.base.BaseResponse
 import org.koin.dsl.module
 import ui.login.LoginResultType
-import ui.login.sso.SsoServiceRepository.AugmySsoResponse
 
 /** module providing platform-specific sign in options */
 actual fun ssoServiceModule() = module {
-    single<SsoService> { ui.login.sso.SsoService() }
+    single<SsoService> { SsoService() }
 }
 actual class SsoService() {
 

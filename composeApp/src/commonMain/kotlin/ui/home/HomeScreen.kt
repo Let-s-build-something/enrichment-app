@@ -504,8 +504,8 @@ private fun ListContent(
     val customColors = model.customColors.collectAsState(initial = mapOf())
     val selectedUserId = model.selectedUserId.collectAsState()
 
-    val isLoadingInitialPage = rooms.loadState.refresh is LoadState.Loading
-            || (rooms.itemCount == 0 && !rooms.loadState.append.endOfPaginationReached)
+    val isLoadingInitialPage = rooms.loadState.append is LoadState.Loading
+            && rooms.itemCount == 0 && !rooms.loadState.append.endOfPaginationReached
     val isEmpty = rooms.itemCount == 0 && rooms.loadState.append.endOfPaginationReached
             && !isLoadingInitialPage
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact

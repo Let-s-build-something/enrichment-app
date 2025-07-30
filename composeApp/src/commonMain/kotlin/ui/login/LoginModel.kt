@@ -1,9 +1,12 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.ui.base.PlatformType
+import augmy.interactive.shared.ui.base.currentPlatform
 import base.navigation.NavigationNode
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
+import base.utils.Matrix.LOGIN_AUGMY_SSO
 import base.utils.Matrix.LOGIN_EMAIL_IDENTITY
 import base.utils.deeplinkHost
 import base.utils.openLink
@@ -14,17 +17,21 @@ import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
 import data.io.matrix.auth.AuthenticationCredentials
 import data.io.matrix.auth.AuthenticationData
+import data.io.matrix.auth.MatrixAuthenticationFlow
 import data.io.matrix.auth.MatrixAuthenticationPlan
 import data.io.matrix.auth.MatrixAuthenticationResponse
 import data.io.matrix.auth.MatrixIdentifierData
+import data.io.matrix.auth.MatrixIdentityProvider
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.flow.lastOrNull
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -46,6 +53,7 @@ internal fun loginModule() = module {
 }
 
 /** Communication between the UI, the control layers, and control and data layers */
+@OptIn(ExperimentalCoroutinesApi::class)
 class LoginModel(
     private val dataManager: LoginDataManager,
     private val ssoProvider: SsoService,
@@ -83,13 +91,53 @@ class LoginModel(
     /** Sends signal to UI about a response that happened */
     val loginResult = _loginResult.asSharedFlow()
     val isLoading = _isLoading.asStateFlow()
-    val homeServerResponse = dataManager.homeServerResponse.asStateFlow()
-    val supportsEmail = dataManager.homeServerResponse.transform { res ->
-        emit(
-            res?.plan?.flows?.any {
-                it.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
-            } != false
-        )
+
+    val homeServerResponse = dataManager.homeServerResponse.mapLatest {
+        if (it?.address == AUGMY_HOME_SERVER_ADDRESS) {
+            it.copy(
+                plan = MatrixAuthenticationPlan(
+                    session = it.plan?.session,
+                    flows = it.plan?.flows.orEmpty().plus(
+                        when(currentPlatform) {
+                            PlatformType.Jvm -> listOf()
+                            PlatformType.Native -> listOf(
+                                MatrixAuthenticationFlow(
+                                    stages = listOf(LOGIN_AUGMY_SSO),
+                                    identityProviders = listOf(
+                                        MatrixIdentityProvider(
+                                            id = Matrix.Brand.GOOGLE,
+                                            brand = Matrix.Brand.AUGMY
+                                        ),
+                                        MatrixIdentityProvider(
+                                            id = Matrix.Brand.APPLE,
+                                            brand = Matrix.Brand.AUGMY
+                                        )
+                                    )
+                                )
+                            )
+                            PlatformType.Android -> listOf(
+                                MatrixAuthenticationFlow(
+                                    stages = listOf(LOGIN_AUGMY_SSO),
+                                    identityProviders = listOf(
+                                        MatrixIdentityProvider(
+                                            id = Matrix.Brand.GOOGLE,
+                                            brand = Matrix.Brand.AUGMY
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                    ),
+                    params = it.plan?.params
+                )
+            )
+        } else it
+    }
+
+    val supportsEmail = dataManager.homeServerResponse.mapLatest { res ->
+        res?.plan?.flows?.any {
+            it.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
+        } != false
     }
 
     private var ssoNonce: String?
@@ -161,7 +209,7 @@ class LoginModel(
                         state = if(response.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
                         plan = response,
                         address = address,
-                        supportsEmail = if(screenType == LoginScreenType.SIGN_UP) false else {
+                        supportsEmail = if(screenType == LoginScreenType.SIGN_UP) true else {
                             (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
                                 setupAutoLogin = false,
                                 homeserver = address,
@@ -430,7 +478,7 @@ class LoginModel(
             if(nonce != savedNonce?.firstOrNull()) {
                 _loginResult.emit(LoginResultType.AUTH_SECURITY)
             }else {
-                if(homeServerResponse.value == null) {
+                if(homeServerResponse.lastOrNull() == null) {
                     dataManager.homeServerResponse.value = HomeServerResponse(
                         address = savedNonce.lastOrNull() ?: "",
                         state = HomeServerState.Valid

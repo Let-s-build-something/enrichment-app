@@ -51,7 +51,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -154,7 +153,6 @@ import com.multiplatform.webview.web.rememberWebViewState
 import components.AsyncImageThumbnail
 import components.buildAnnotatedLink
 import data.Asset
-import data.io.matrix.auth.MatrixIdentityProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
@@ -167,7 +165,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.gif.GifImage
-import ui.login.homeserver_picker.AUGMY_HOMESERVER_IDENTIFIER
 import ui.login.homeserver_picker.MatrixHomeserverPicker
 import utils.SharedLogger
 
@@ -396,7 +393,7 @@ private fun ColumnScope.LoginScreenContent(
     passwordState: TextFieldState
 ) {
     val isLoading = model.isLoading.collectAsState()
-    val homeServerResponse = model.homeServerResponse.collectAsState()
+    val homeServerResponse = model.homeServerResponse.collectAsState(null)
     val supportsEmail = model.supportsEmail.collectAsState(initial = true)
 
     val isIdentificationFocused = remember { mutableStateOf(false) }
@@ -404,14 +401,12 @@ private fun ColumnScope.LoginScreenContent(
     val passwordVisible = remember { mutableStateOf(false) }
     val homeServer = remember(model) { mutableStateOf(model.homeserver) }
     val showHomeServerPicker = remember { mutableStateOf(false) }
-    val ssoFlow = remember(homeServerResponse.value) {
-        derivedStateOf {
-            homeServerResponse.value?.plan?.flows?.find {
-                it.type == Matrix.LOGIN_SSO
-            }
-        }
+    val ssoFlow = homeServerResponse.value?.plan?.flows?.find {
+        it.type == Matrix.LOGIN_SSO || it.type == Matrix.LOGIN_AUGMY_SSO
     }
     val emailState = remember { TextFieldState() }
+
+    SharedLogger.logger.debug { "ssoFlow: $ssoFlow" }
 
     val screenType = LoginScreenType.entries[screenStateIndex.value]
     val isPasswordValid = passwordValidations.all { it.isValid || it.isRequired.not() }
@@ -492,7 +487,7 @@ private fun ColumnScope.LoginScreenContent(
             )
         }
 
-        AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility == true) {
+        AnimatedVisibility(ssoFlow?.delegatedOidcCompatibility == true) {
             BrandHeaderButton(
                 modifier = Modifier
                     .padding(vertical = 8.dp)
@@ -661,7 +656,7 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
+    AnimatedVisibility(ssoFlow != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
                 .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
@@ -671,20 +666,15 @@ private fun ColumnScope.LoginScreenContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val isAugmy = homeServer.value.identifier == AUGMY_HOMESERVER_IDENTIFIER
-            (if (isAugmy) {
-                listOf(
-                    MatrixIdentityProvider(id = "google", brand = Matrix.Brand.GOOGLE),
-                    MatrixIdentityProvider(id = "apple", brand = Matrix.Brand.APPLE)
-                )
-            }else ssoFlow.value?.identityProviders)?.forEach { identityProvider ->
-                when(identityProvider.brand) {
-                    Matrix.Brand.GOOGLE -> {
+            ssoFlow?.identityProviders?.forEach { identityProvider ->
+                when(identityProvider.id) {
+                    Matrix.Brand.GOOGLE,
+                    Matrix.Brand.GOOGLE_OIDC -> {
                         Image(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
-                                    if (isAugmy) {
+                                    if (identityProvider.brand == Matrix.Brand.AUGMY) {
                                         model.requestGoogleSignIn()
                                     } else model.requestSsoRedirect(identityProvider.id)
                                 },
@@ -692,12 +682,13 @@ private fun ColumnScope.LoginScreenContent(
                             contentDescription = null
                         )
                     }
-                    Matrix.Brand.APPLE -> {
+                    Matrix.Brand.APPLE,
+                    Matrix.Brand.APPLE_OIDC -> {
                         Image(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
-                                    if (isAugmy) {
+                                    if (identityProvider.brand == Matrix.Brand.AUGMY) {
                                         model.requestAppleSignIn()
                                     } else model.requestSsoRedirect(identityProvider.id)
                                 },
