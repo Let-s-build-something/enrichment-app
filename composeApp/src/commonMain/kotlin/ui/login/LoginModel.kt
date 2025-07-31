@@ -149,6 +149,8 @@ class LoginModel(
             }
         }
 
+    private var providerId: String? = null
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             ClientStatus.entries.find {
@@ -168,6 +170,7 @@ class LoginModel(
     fun clearMatrixProgress() {
         _matrixProgress.value = null
         ssoNonce = null
+        providerId = null
     }
 
     /** Validates Matrix username availability */
@@ -471,16 +474,18 @@ class LoginModel(
         }
     }
 
-    fun loginWithToken(nonce: String, token: String) {
+    fun loginWithCode(nonce: String, code: String) {
         _isLoading.value = true
-        val savedNonce = ssoNonce?.split("_")
+        val savedNonceInfo = ssoNonce?.split("_")
+        val savedNonce = savedNonceInfo?.firstOrNull()
+
         viewModelScope.launch {
-            if(nonce != savedNonce?.firstOrNull()) {
+            if(nonce != savedNonce) {
                 _loginResult.emit(LoginResultType.AUTH_SECURITY)
             }else {
-                if(homeServerResponse.lastOrNull() == null) {
+                if (homeServerResponse.lastOrNull() == null) {
                     dataManager.homeServerResponse.value = HomeServerResponse(
-                        address = savedNonce.lastOrNull() ?: "",
+                        address = homeserverAddress,
                         state = HomeServerState.Valid
                     )
                 }
@@ -489,7 +494,7 @@ class LoginModel(
                     homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                     identifier = null,
                     password = null,
-                    token = token
+                    token = code
                 ).let {
                     when {
                         it.success != null -> initUserObject()

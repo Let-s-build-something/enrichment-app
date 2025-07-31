@@ -220,9 +220,9 @@ fun LoginScreen(
 
     LaunchedEffect(nonce, loginToken) {
         if(nonce != null && loginToken != null) {
-            model.loginWithToken(
+            model.loginWithCode(
                 nonce = nonce,
-                token = loginToken
+                code = loginToken
             )
         }
     }
@@ -405,8 +405,6 @@ private fun ColumnScope.LoginScreenContent(
         it.type == Matrix.LOGIN_SSO || it.type == Matrix.LOGIN_AUGMY_SSO
     }
     val emailState = remember { TextFieldState() }
-
-    SharedLogger.logger.debug { "ssoFlow: $ssoFlow" }
 
     val screenType = LoginScreenType.entries[screenStateIndex.value]
     val isPasswordValid = passwordValidations.all { it.isValid || it.isRequired.not() }
