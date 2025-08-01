@@ -82,13 +82,25 @@ class LoginModel(
     val loginResult = _loginResult.asSharedFlow()
     val isLoading = _isLoading.asStateFlow()
 
-    val homeServerResponse = dataManager.homeServerResponse.asStateFlow()
+    val loginHomeserverResponse = dataManager.loginHomeserverResponse.asStateFlow()
+    val registrationHomeserverResponse = dataManager.registrationHomeserverResponse.asStateFlow()
 
-    val supportsEmail = dataManager.homeServerResponse.mapLatest { res ->
+    val supportsEmail = dataManager.loginHomeserverResponse.mapLatest { res ->
         res?.plan?.flows?.any {
             it.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
         } != false
     }
+
+    val ssoFlow = dataManager.loginHomeserverResponse.mapLatest { res ->
+        res?.plan?.flows?.find {
+            it.type == Matrix.LOGIN_SSO || it.type == Matrix.LOGIN_AUGMY_SSO
+        }
+    }
+
+    val homeserverResponseAddress: String
+        get() = registrationHomeserverResponse.value?.address
+            ?: loginHomeserverResponse.value?.address
+            ?: AUGMY_HOME_SERVER_ADDRESS
 
     private var ssoNonce: String?
         get() = runBlocking { settings.getStringOrNull(SecureSettingsKeys.KEY_LOGIN_NONCE) }
@@ -148,9 +160,20 @@ class LoginModel(
         screenType: LoginScreenType,
         address: String
     ) {
+        if ((screenType == LoginScreenType.SIGN_IN
+                    && loginHomeserverResponse.value?.address == address
+                    && loginHomeserverResponse.value?.state == HomeServerState.Valid)
+            || (screenType == LoginScreenType.SIGN_UP
+                    && registrationHomeserverResponse.value?.address == address
+                    && registrationHomeserverResponse.value?.state == HomeServerState.Valid)
+        ) {
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
-            dataManager.homeServerResponse.value = (if(screenType == LoginScreenType.SIGN_UP) {
+
+            (if(screenType == LoginScreenType.SIGN_UP) {
                 repository.dummyMatrixRegister(address = address)
             }else repository.dummyMatrixLogin(address = address)).let { response ->
                 val registrationEnabled = response?.error?.contains("Registration has been disabled.") != true
@@ -185,6 +208,12 @@ class LoginModel(
                         registrationEnabled = registrationEnabled
                     )
                 }
+            }.let {
+                if (screenType == LoginScreenType.SIGN_UP) {
+                    dataManager.registrationHomeserverResponse.value = it
+                } else {
+                    dataManager.loginHomeserverResponse.value = it
+                }
             }
             _isLoading.value = false
         }
@@ -200,7 +229,7 @@ class LoginModel(
             repository.requestRegistrationToken(
                 secret = _matrixProgress.value?.secret ?: "",
                 email = _matrixProgress.value?.email ?: "",
-                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS
+                address = homeserverResponseAddress
             ).also { res ->
                 res.error?.retryAfterMs?.let {
                     _matrixProgress.value = _matrixProgress.value?.copy(retryAfter = it)
@@ -233,7 +262,7 @@ class LoginModel(
                 index = _matrixProgress.value?.index?.plus(1)?.coerceAtMost(lastIndex) ?: 0
             )?.also { progress ->
                 repository.registerWithUsername(
-                    address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                    address = homeserverResponseAddress,
                     username = progress.username ?: "",
                     password = progress.password,
                     authenticationData = AuthenticationData(
@@ -278,10 +307,10 @@ class LoginModel(
                 val secret = Uuid.random().toString()
 
                 // we check for single EP registration first
-                val flow = dataManager.homeServerResponse.value?.plan?.flows?.firstOrNull()
+                val flow = dataManager.registrationHomeserverResponse.value?.plan?.flows?.firstOrNull()
                 if(flow?.stages?.size == 1 && flow.stages.firstOrNull() == Matrix.LOGIN_DUMMY) {
                     repository.registerWithUsername(
-                        address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                        address = homeserverResponseAddress,
                         username = username,
                         password = password,
                         authenticationData = AuthenticationData(
@@ -299,7 +328,7 @@ class LoginModel(
                         repository.requestRegistrationToken(
                             secret = secret,
                             email = email,
-                            address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS
+                            address = homeserverResponseAddress
                         )
                     }else null
 
@@ -314,7 +343,7 @@ class LoginModel(
                         }
                         else -> {
                             (repository.registerWithUsername(
-                                address = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                                address = homeserverResponseAddress,
                                 username = null,
                                 password = null,
                                 authenticationData = AuthenticationData(
@@ -322,7 +351,7 @@ class LoginModel(
                                     type = null
                                 ),
                                 deviceId = authService.getDeviceId()
-                            ) ?: dataManager.homeServerResponse.value?.plan)?.also { response ->
+                            ) ?: dataManager.registrationHomeserverResponse.value?.plan)?.also { response ->
                                 session = response.session
                                 _matrixProgress.value = MatrixProgress(
                                     username = username,
@@ -346,7 +375,7 @@ class LoginModel(
                     val isUser = !username.isNullOrBlank()
 
                     authService.registerWithIdentifier(
-                        homeserver = res?.homeserver ?: dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                        homeserver = res?.homeserver ?: homeserverResponseAddress,
                         password = password,
                         response = res,
                         identifier = MatrixIdentifierData(
@@ -378,7 +407,7 @@ class LoginModel(
         val res = if(_matrixAuthResponse.value?.userId == null) {
             val isUser = !username.isNullOrBlank()
             authService.loginWithIdentifier(
-                homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                homeserver = homeserverResponseAddress,
                 identifier = MatrixIdentifierData(
                     type = if(isUser) Matrix.Id.USER else Matrix.Id.THIRD_PARTY,
                     medium = Matrix.Medium.EMAIL.takeIf { !isUser },
@@ -412,22 +441,17 @@ class LoginModel(
         viewModelScope.launch {
             _isLoading.value = true
             val ssoNonce = Uuid.random().toString()
-            val homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS
-            this@LoginModel.ssoNonce = "${ssoNonce}_$homeserver"
+            this@LoginModel.ssoNonce = "${ssoNonce}_$homeserverResponseAddress"
             val redirectUrl = "${deeplinkHost}${NavigationNode.Login(nonce = ssoNonce).deepLink}"
             openLink(
-                "https://${homeserver}/_matrix/client/v3/login/sso/redirect" +
+                "https://${homeserverResponseAddress}/_matrix/client/v3/login/sso/redirect" +
                         (if(idpId != null)"/$idpId" else "") +
                         "?redirectUrl=${redirectUrl.toUri()}"
             )
         }
     }
 
-    fun loginWithToken(
-        screenType: LoginScreenType,
-        nonce: String,
-        token: String
-    ) {
+    fun loginWithToken(nonce: String, token: String) {
         _isLoading.value = true
         viewModelScope.launch {
             val savedNonceInfo = ssoNonce?.split("_")
@@ -439,8 +463,8 @@ class LoginModel(
             if(nonce != savedNonce && savedHomeserver != null) {
                 _loginResult.emit(LoginResultType.AUTH_SECURITY)
             }else {
-                if (homeServerResponse.value == null) {
-                    dataManager.homeServerResponse.value = HomeServerResponse(
+                if (loginHomeserverResponse.value == null) {
+                    dataManager.loginHomeserverResponse.value = HomeServerResponse(
                         address = savedHomeserver ?: homeserverAddress,
                         state = HomeServerState.Valid
                     )
@@ -448,7 +472,7 @@ class LoginModel(
                 SharedLogger.logger.debug { "loginWithToken, savedHomeserver: $savedHomeserver" }
 
                 authService.loginWithIdentifier(
-                    homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
+                    homeserver = homeserverResponseAddress,
                     identifier = null,
                     password = null,
                     token = token
@@ -463,7 +487,7 @@ class LoginModel(
                         else -> _loginResult.emit(LoginResultType.FAILURE)
                     }
                     if (!it.isSuccess) {
-                        selectHomeServer(screenType, savedHomeserver ?: "")
+                        selectHomeServer(LoginScreenType.SIGN_IN, savedHomeserver ?: "")
                     }
                 }
             }

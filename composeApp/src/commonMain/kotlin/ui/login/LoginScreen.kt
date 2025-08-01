@@ -220,11 +220,7 @@ fun LoginScreen(
 
     LaunchedEffect(nonce, loginToken) {
         if(nonce != null && loginToken != null) {
-            model.loginWithToken(
-                nonce = nonce,
-                token = loginToken,
-                screenType = LoginScreenType.entries[screenStateIndex.value]
-            )
+            model.loginWithToken(nonce = nonce, token = loginToken)
         }
     }
 
@@ -394,17 +390,18 @@ private fun ColumnScope.LoginScreenContent(
     passwordState: TextFieldState
 ) {
     val isLoading = model.isLoading.collectAsState()
-    val homeServerResponse = model.homeServerResponse.collectAsState(null)
+    val homeserverResponse = if (screenStateIndex.value == LoginScreenType.SIGN_UP.ordinal) {
+        model.registrationHomeserverResponse.collectAsState(null)
+    } else model.loginHomeserverResponse.collectAsState(null)
+
     val supportsEmail = model.supportsEmail.collectAsState(initial = true)
+    val ssoFlow = model.ssoFlow.collectAsState(null)
 
     val isIdentificationFocused = remember { mutableStateOf(false) }
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
     val homeServer = remember(model) { mutableStateOf(model.homeserver) }
     val showHomeServerPicker = remember { mutableStateOf(false) }
-    val ssoFlow = homeServerResponse.value?.plan?.flows?.find {
-        it.type == Matrix.LOGIN_SSO || it.type == Matrix.LOGIN_AUGMY_SSO
-    }
     val emailState = remember { TextFieldState() }
 
     val screenType = LoginScreenType.entries[screenStateIndex.value]
@@ -416,7 +413,7 @@ private fun ColumnScope.LoginScreenContent(
         if (showEmailField) emailState.text else identificationState.text
     ) && errorMessage.value == null)
     val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
-    val disabledRegistration = homeServerResponse.value?.registrationEnabled == false && screenType == LoginScreenType.SIGN_UP
+    val disabledRegistration = homeserverResponse.value?.registrationEnabled == false
 
     val sendRequest = {
         model.signUpWithPassword(
@@ -486,7 +483,7 @@ private fun ColumnScope.LoginScreenContent(
             )
         }
 
-        AnimatedVisibility(ssoFlow?.delegatedOidcCompatibility == true) {
+        AnimatedVisibility(ssoFlow.value?.delegatedOidcCompatibility == true) {
             BrandHeaderButton(
                 modifier = Modifier
                     .padding(vertical = 8.dp)
@@ -655,7 +652,7 @@ private fun ColumnScope.LoginScreenContent(
         )
     }
 
-    AnimatedVisibility(ssoFlow != null && isLoading.value.not()) {
+    AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
                 .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
@@ -665,7 +662,7 @@ private fun ColumnScope.LoginScreenContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ssoFlow?.identityProviders?.forEach { identityProvider ->
+            ssoFlow.value?.identityProviders?.forEach { identityProvider ->
                 when(identityProvider.id) {
                     Matrix.Brand.GOOGLE,
                     Matrix.Brand.GOOGLE_OIDC -> {
