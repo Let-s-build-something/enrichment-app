@@ -426,23 +426,13 @@ private fun ColumnScope.LoginScreenContent(
             userHomeserver = model.homeserverAddress,
             onSelect = {
                 homeServer.value = it
-                model.selectHomeServer(
-                    screenType = screenType,
-                    address = it.address
-                )
+                model.selectHomeServer(address = it.address)
             }
         )
     }
 
     LaunchedEffect(identificationState.text) {
         errorMessage.value = null
-    }
-
-    LaunchedEffect(screenType) {
-        model.selectHomeServer(
-            screenType = screenType,
-            address = homeServer.value.address
-        )
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

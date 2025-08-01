@@ -6,15 +6,18 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
+import platform.Foundation.NSDictionary
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
 import platform.Foundation.NSUserDomainMask
 import platform.Foundation.create
+import platform.Foundation.dictionary
 import platform.Foundation.writeToFile
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIViewController
+import utils.SharedLogger
 
 actual fun shareLink(title: String, link: String): Boolean {
     val itemsToShare = listOf(link)
@@ -47,11 +50,19 @@ actual fun shareMessage(media: List<MediaIO>, messageContent: String): Boolean {
 
 actual fun openLink(link: String): Boolean {
     val nsUrl = NSURL.URLWithString(link)
+    if (nsUrl == null) {
+        SharedLogger.logger.error { "Invalid NSURL from $link" }
+        return false
+    }
 
-    return if (nsUrl != null && UIApplication.sharedApplication.canOpenURL(nsUrl)) {
-        UIApplication.sharedApplication.openURL(nsUrl)
-        true
-    }else false
+    val app = UIApplication.sharedApplication
+    if (!app.canOpenURL(nsUrl)) {
+        SharedLogger.logger.error { "Cannot open URL: $nsUrl" }
+        return false
+    }
+
+    app.openURL(nsUrl, options = NSDictionary.dictionary(), completionHandler = null)
+    return true
 }
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)

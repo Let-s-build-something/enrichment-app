@@ -121,6 +121,8 @@ class LoginModel(
                 clientStatus.value = status
             }
         }
+
+        selectHomeServer(homeserverAddress)
     }
 
     /** Changes loading status */
@@ -153,67 +155,57 @@ class LoginModel(
         }
     }
 
-    private val homeserverAbilityCache = hashMapOf<String, Boolean>()
+    private fun MatrixAuthenticationPlan?.handleHomeserverResponse(address: String): HomeServerResponse {
+        val registrationEnabled = this?.error?.contains("Registration has been disabled.") != true
+
+        return if (this != null) {
+            this@LoginModel.session = this.session ?: this@LoginModel.session
+            HomeServerResponse(
+                state = if(flows != null) HomeServerState.Valid else HomeServerState.Invalid,
+                plan = this,
+                address = address,
+                /*supportsEmail = if(screenType == LoginScreenType.SIGN_UP) true else {
+                    (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
+                        setupAutoLogin = false,
+                        homeserver = address,
+                        identifier = MatrixIdentifierData(
+                            type = Matrix.Id.THIRD_PARTY,
+                            medium = Matrix.Medium.EMAIL,
+                            address = "email@email.com"
+                        ),
+                        password = "-",
+                        token = null
+                    ).error?.message?.contains("Bad login type") == false)).also { answer ->
+                        homeserverAbilityCache[address] = answer
+                    }
+                },*/
+                registrationEnabled = registrationEnabled
+            )
+        } else {
+            HomeServerResponse(
+                state = HomeServerState.Invalid,
+                address = address,
+                registrationEnabled = registrationEnabled
+            )
+        }
+    }
 
     /** Clears home server information */
-    fun selectHomeServer(
-        screenType: LoginScreenType,
-        address: String
-    ) {
-        if ((screenType == LoginScreenType.SIGN_IN
-                    && loginHomeserverResponse.value?.address == address
-                    && loginHomeserverResponse.value?.state == HomeServerState.Valid)
-            || (screenType == LoginScreenType.SIGN_UP
-                    && registrationHomeserverResponse.value?.address == address
-                    && registrationHomeserverResponse.value?.state == HomeServerState.Valid)
-        ) {
-            return
-        }
+    fun selectHomeServer(address: String) {
+        _isLoading.value = true
 
         viewModelScope.launch {
-            _isLoading.value = true
-
-            (if(screenType == LoginScreenType.SIGN_UP) {
-                repository.dummyMatrixRegister(address = address)
-            }else repository.dummyMatrixLogin(address = address)).let { response ->
-                val registrationEnabled = response?.error?.contains("Registration has been disabled.") != true
-
-                if (response != null) {
-                    session = response.session ?: session
-                    HomeServerResponse(
-                        state = if(response.flows != null) HomeServerState.Valid else HomeServerState.Invalid,
-                        plan = response,
-                        address = address,
-                        supportsEmail = if(screenType == LoginScreenType.SIGN_UP) true else {
-                            (homeserverAbilityCache[address] ?: (authService.loginWithIdentifier(
-                                setupAutoLogin = false,
-                                homeserver = address,
-                                identifier = MatrixIdentifierData(
-                                    type = Matrix.Id.THIRD_PARTY,
-                                    medium = Matrix.Medium.EMAIL,
-                                    address = "email@email.com"
-                                ),
-                                password = "-",
-                                token = null
-                            ).error?.message?.contains("Bad login type") == false)).also { answer ->
-                                homeserverAbilityCache[address] = answer
-                            }
-                        },
-                        registrationEnabled = registrationEnabled
-                    )
-                } else {
-                    HomeServerResponse(
-                        state = HomeServerState.Invalid,
-                        address = address,
-                        registrationEnabled = registrationEnabled
-                    )
-                }
-            }.let {
-                if (screenType == LoginScreenType.SIGN_UP) {
-                    dataManager.registrationHomeserverResponse.value = it
-                } else {
-                    dataManager.loginHomeserverResponse.value = it
-                }
+            if (loginHomeserverResponse.value?.address != address
+                || loginHomeserverResponse.value?.state == HomeServerState.Valid
+            ) {
+                dataManager.loginHomeserverResponse.value = repository.dummyMatrixLogin(address = address)
+                    ?.handleHomeserverResponse(address)
+            }
+            if (registrationHomeserverResponse.value?.address == address
+                || registrationHomeserverResponse.value?.state == HomeServerState.Valid
+            ) {
+                dataManager.registrationHomeserverResponse.value = repository.dummyMatrixRegister(address = address)
+                    ?.handleHomeserverResponse(address)
             }
             _isLoading.value = false
         }
@@ -458,8 +450,6 @@ class LoginModel(
             val savedNonce = savedNonceInfo?.firstOrNull()
             val savedHomeserver = savedNonceInfo?.lastOrNull()
 
-            SharedLogger.logger.debug { "loginWithToken, is nonce valid: ${nonce == savedNonce}, savedHomeserver: $savedHomeserver" }
-
             if(nonce != savedNonce && savedHomeserver != null) {
                 _loginResult.emit(LoginResultType.AUTH_SECURITY)
             }else {
@@ -469,7 +459,6 @@ class LoginModel(
                         state = HomeServerState.Valid
                     )
                 }
-                SharedLogger.logger.debug { "loginWithToken, savedHomeserver: $savedHomeserver" }
 
                 authService.loginWithIdentifier(
                     homeserver = homeserverResponseAddress,
@@ -477,7 +466,6 @@ class LoginModel(
                     password = null,
                     token = token
                 ).let {
-                    SharedLogger.logger.debug { "loginWithIdentifier, isSuccess: ${it.isSuccess}, error: ${it.error}" }
                     when {
                         it.isSuccess -> {
                             _matrixAuthResponse.value = it.success?.data
@@ -487,7 +475,7 @@ class LoginModel(
                         else -> _loginResult.emit(LoginResultType.FAILURE)
                     }
                     if (!it.isSuccess) {
-                        selectHomeServer(LoginScreenType.SIGN_IN, savedHomeserver ?: "")
+                        selectHomeServer(savedHomeserver ?: "")
                     }
                 }
             }
