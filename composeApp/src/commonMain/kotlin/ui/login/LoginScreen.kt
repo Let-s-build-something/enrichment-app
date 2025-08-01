@@ -181,7 +181,6 @@ fun LoginScreen(
     val navController = LocalNavController.current
     val snackbarHostState = LocalSnackbarHost.current
 
-    val clientStatus = model.clientStatus.collectAsState()
     val matrixProgress = model.matrixProgress.collectAsState()
     val errorMessage = remember {
         mutableStateOf<String?>(null)
@@ -189,7 +188,7 @@ fun LoginScreen(
     val passwordState = remember { TextFieldState() }
     val identificationState = remember { TextFieldState() }
     val screenStateIndex = rememberSaveable {
-        mutableStateOf(clientStatus.value.ordinal)
+        mutableStateOf(LoginScreenType.SIGN_IN.ordinal)
     }
     val passwordValidations = remember {
         mutableStateOf(listOf<FieldValidation>())
@@ -210,9 +209,6 @@ fun LoginScreen(
             errorMessage.value = null
         }
     )
-    LaunchedEffect(clientStatus.value) {
-        switchScreenState.selectedTabIndex.value = clientStatus.value.ordinal
-    }
 
     LaunchedEffect(Unit) {
         if(model.currentUser.value != null) navController?.popBackStack()
@@ -394,7 +390,7 @@ private fun ColumnScope.LoginScreenContent(
     passwordState: TextFieldState
 ) {
     val isLoading = model.isLoading.collectAsState()
-    val homeServerResponse = model.homeServerResponse.collectAsState(null)
+    val homeServerResponse = model.homeserverResponse.collectAsState(null)
     val supportsEmail = model.supportsEmail.collectAsState(initial = true)
 
     val isIdentificationFocused = remember { mutableStateOf(false) }
