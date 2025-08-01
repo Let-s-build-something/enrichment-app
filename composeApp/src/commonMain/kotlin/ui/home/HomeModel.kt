@@ -84,7 +84,8 @@ class HomeModel(
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
     )
-    // firstVisibleItemIndex to firstVisibleItemScrollOffset
+
+    /** firstVisibleItemIndex to firstVisibleItemScrollOffset */
     var persistentPositionData: PersistentListData? = null
 
     val collapsedRooms = _collapsedRooms.asStateFlow()

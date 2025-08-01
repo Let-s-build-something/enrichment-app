@@ -3,6 +3,8 @@ package ui.search.room
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -157,24 +159,22 @@ fun SearchRoomScreen() {
 
                     Crossfade(state.value is BaseResponse.Loading) { isLoading ->
                         Row(
-                            modifier = if (homeserver.value != null) {
+                            modifier = (if (homeserver.value != null) {
                                 Modifier.border(
                                     width = .5.dp,
                                     color = LocalTheme.current.colors.disabled,
                                     shape = LocalTheme.current.shapes.rectangularActionShape
                                 )
-                            } else Modifier,
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            } else Modifier).background(
+                                color = LocalTheme.current.colors.backgroundDark,
+                                shape = LocalTheme.current.shapes.rectangularActionShape
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .scalingClickable { showHomeServerPicker.value = true }
                                     .size(48.dp)
-                                    .background(
-                                        color = LocalTheme.current.colors.backgroundDark,
-                                        shape = LocalTheme.current.shapes.rectangularActionShape
-                                    )
                                     .padding(12.dp)
                                     .animateContentSize(),
                                 contentAlignment = Alignment.Center
@@ -198,14 +198,11 @@ fun SearchRoomScreen() {
                             AnimatedVisibility(homeserver.value != null) {
                                 Icon(
                                     modifier = Modifier
+                                        .padding(start = 8.dp)
                                         .size(32.dp)
                                         .scalingClickable {
                                             model.selectHomeserver(null)
                                         }
-                                        .background(
-                                            color = LocalTheme.current.colors.backgroundDark,
-                                            shape = LocalTheme.current.shapes.rectangularActionShape
-                                        )
                                         .padding(6.dp),
                                     imageVector = Icons.Outlined.Close,
                                     tint = LocalTheme.current.colors.disabled,
@@ -221,7 +218,11 @@ fun SearchRoomScreen() {
                 val isEmpty = state.value is BaseResponse.Idle && !isLoadingInitialPage
                         && rooms.itemCount == 0
 
-                AnimatedVisibility(isEmpty) {
+                AnimatedVisibility(
+                    visible = isEmpty,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
                     EmptyLayout(
                         modifier = Modifier.fillMaxWidth(),
                         title = stringResource(Res.string.room_search_empty_text),

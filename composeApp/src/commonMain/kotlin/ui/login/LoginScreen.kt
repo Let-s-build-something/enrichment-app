@@ -49,7 +49,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -216,10 +215,7 @@ fun LoginScreen(
 
     LaunchedEffect(nonce, loginToken) {
         if(nonce != null && loginToken != null) {
-            model.loginWithToken(
-                nonce = nonce,
-                token = loginToken
-            )
+            model.loginWithToken(nonce = nonce, token = loginToken)
         }
     }
 
@@ -389,21 +385,18 @@ private fun ColumnScope.LoginScreenContent(
     passwordState: TextFieldState
 ) {
     val isLoading = model.isLoading.collectAsState()
-    val homeServerResponse = model.homeServerResponse.collectAsState()
+    val homeserverResponse = if (screenStateIndex.value == LoginScreenType.SIGN_UP.ordinal) {
+        model.registrationHomeserverResponse.collectAsState(null)
+    } else model.loginHomeserverResponse.collectAsState(null)
+
     val supportsEmail = model.supportsEmail.collectAsState(initial = true)
+    val ssoFlow = model.ssoFlow.collectAsState(null)
 
     val isIdentificationFocused = remember { mutableStateOf(false) }
     val isEmailFocused = remember { mutableStateOf(false) }
     val passwordVisible = remember { mutableStateOf(false) }
     val homeServer = remember(model) { mutableStateOf(model.homeserver) }
     val showHomeServerPicker = remember { mutableStateOf(false) }
-    val ssoFlow = remember(homeServerResponse.value) {
-        derivedStateOf {
-            homeServerResponse.value?.plan?.flows?.find {
-                it.type == Matrix.LOGIN_SSO
-            }
-        }
-    }
     val emailState = remember { TextFieldState() }
 
     val screenType = LoginScreenType.entries[screenStateIndex.value]
@@ -415,7 +408,7 @@ private fun ColumnScope.LoginScreenContent(
         if (showEmailField) emailState.text else identificationState.text
     ) && errorMessage.value == null)
     val error = usernameValidations.find { it.isRequired && !it.isValid }?.message
-    val disabledRegistration = homeServerResponse.value?.registrationEnabled == false && screenType == LoginScreenType.SIGN_UP
+    val disabledRegistration = homeserverResponse.value?.registrationEnabled == false
 
     val sendRequest = {
         model.signUpWithPassword(
@@ -657,7 +650,7 @@ private fun ColumnScope.LoginScreenContent(
     AnimatedVisibility(ssoFlow.value != null && isLoading.value.not()) {
         Row(
             modifier = Modifier
-                .padding(top = LocalTheme.current.shapes.betweenItemsSpace)
+                .padding(vertical = LocalTheme.current.shapes.betweenItemsSpace)
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .animateContentSize(),
@@ -665,8 +658,9 @@ private fun ColumnScope.LoginScreenContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             ssoFlow.value?.identityProviders?.forEach { identityProvider ->
-                when(identityProvider.brand) {
-                    Matrix.Brand.GOOGLE -> {
+                when(identityProvider.id) {
+                    Matrix.Brand.GOOGLE,
+                    Matrix.Brand.GOOGLE_OIDC -> {
                         Image(
                             modifier = Modifier
                                 .height(42.dp)
@@ -677,14 +671,15 @@ private fun ColumnScope.LoginScreenContent(
                             contentDescription = null
                         )
                     }
-                    Matrix.Brand.APPLE -> {
+                    Matrix.Brand.APPLE,
+                    Matrix.Brand.APPLE_OIDC -> {
                         Image(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
                                     model.requestSsoRedirect(identityProvider.id)
                                 },
-                            painter = painterResource(LocalTheme.current.icons.appleSignUp ),
+                            painter = painterResource(LocalTheme.current.icons.appleSignUp),
                             contentDescription = null
                         )
                     }
@@ -852,18 +847,18 @@ private fun EmailConfirmationSheet(
     }
     LaunchedEffect(Unit) {
         model.matrixProgress.collectLatest {
-            if(it?.retryAfter != null) {
+            if (it?.retryAfter != null) {
                 counter.value = it.retryAfter
             }
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if(progress?.sid != null) {
+        if (progress?.sid != null) {
             model.matrixStepOver(type = currentStage)
         }
     }
     LaunchedEffect(Unit) {
-        if(progress?.sid == null) {
+        if (progress?.sid == null) {
             model.matrixRequestToken()
         }
     }

@@ -21,7 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
@@ -111,11 +110,11 @@ private fun NoConnectionLine() {
             ) {
                 Text(
                     text = stringResource(Res.string.no_connection_title),
-                    style = LocalTheme.current.styles.title.copy(color = Color.White)
+                    style = LocalTheme.current.styles.title
                 )
                 Text(
                     text = stringResource(Res.string.no_connection_description),
-                    style = LocalTheme.current.styles.regular.copy(color = Colors.GrayLight)
+                    style = LocalTheme.current.styles.regular
                 )
             }
             if(LocalDeviceType.current != WindowWidthSizeClass.Compact) {

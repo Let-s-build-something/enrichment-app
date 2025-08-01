@@ -23,7 +23,7 @@ plugins {
 
     kotlin("plugin.serialization") version libs.versions.kotlin
     kotlin("native.cocoapods") version libs.versions.kotlin
-    id("com.codingfeline.buildkonfig") version "0.15.2"
+    id("com.codingfeline.buildkonfig") version libs.versions.buildkonfig
 }
 
 val vCode = libs.versions.version.code.get().toInt()
@@ -137,6 +137,7 @@ kotlin {
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
             implementation(libs.credential.store)
+            implementation(libs.java.jwt)
             implementation(libs.logback.classic)
             implementation(libs.oshi.core)
 

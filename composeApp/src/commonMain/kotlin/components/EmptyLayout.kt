@@ -80,7 +80,8 @@ fun EmptyLayout(
                     .fillMaxWidth(.8f),
                 text = text,
                 style = LocalTheme.current.styles.regular.copy(
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = LocalTheme.current.colors.secondary
                 )
             )
         }
