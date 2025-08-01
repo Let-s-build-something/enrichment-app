@@ -37,7 +37,7 @@ fun PrototypeConversation(
     val messages = viewModel.messages.collectAsLazyPagingItems()
 
     ConversationComponent(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         listModifier = Modifier
             .padding(
                 horizontal = if(LocalDeviceType.current == WindowWidthSizeClass.Compact) 0.dp else 16.dp
@@ -48,9 +48,6 @@ fun PrototypeConversation(
         conversationId = conversationId,
         model = viewModel,
         messages = messages,
-        emptyLayout = {
-            // TODO
-        },
         lazyScope = {
             item {
                 Column(

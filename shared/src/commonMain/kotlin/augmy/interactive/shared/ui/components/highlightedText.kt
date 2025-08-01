@@ -14,33 +14,39 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 fun highlightedText(
     highlight: String?,
     highLightColor: Color = LocalTheme.current.colors.brandMain,
-    text: String
+    annotatedString: AnnotatedString
 ): AnnotatedString {
+    if (highlight.isNullOrBlank()) return annotatedString
+
+    val text = annotatedString.text
+    val lowerText = text.lowercase()
+    val lowerHighlight = highlight.lowercase()
+
+    if (!lowerText.contains(lowerHighlight)) return annotatedString
+
     return buildAnnotatedString {
-        if(!highlight.isNullOrBlank() && text.lowercase().contains(highlight.lowercase())) {
-            var textLeft = text
-
-            while(textLeft.isNotEmpty()) {
-                val index = textLeft.lowercase().indexOf(highlight.lowercase())
-
-                if(index != -1) {
-                    append(textLeft.substring(0, index))
-                    withStyle(
-                        style = SpanStyle(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = highLightColor
-                        )
-                    ) {
-                        append(textLeft.substring(index, index + highlight.length))
-                    }
-                    textLeft = textLeft.substring(index + highlight.length, textLeft.length)
-                }else {
-                    append(textLeft)
-                    textLeft = ""
-                }
+        var startIndex = 0
+        while (startIndex < text.length) {
+            val matchIndex = lowerText.indexOf(lowerHighlight, startIndex)
+            if (matchIndex == -1) {
+                append(annotatedString.subSequence(startIndex, text.length))
+                break
             }
-        }else {
-            append(text)
+
+            if (matchIndex > startIndex) {
+                append(annotatedString.subSequence(startIndex, matchIndex))
+            }
+
+            withStyle(
+                style = SpanStyle(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = highLightColor
+                )
+            ) {
+                append(annotatedString.subSequence(matchIndex, matchIndex + highlight.length))
+            }
+
+            startIndex = matchIndex + highlight.length
         }
     }
 }

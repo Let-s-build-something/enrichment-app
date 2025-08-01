@@ -49,7 +49,6 @@ import base.utils.Matrix.Media.MATRIX_REPOSITORY_PREFIX
 import base.utils.MediaType
 import base.utils.PlatformFileShell
 import base.utils.getExtensionFromMimeType
-import base.utils.getMediaType
 import base.utils.getUrlExtension
 import chaintech.videoplayer.host.MediaPlayerHost
 import chaintech.videoplayer.model.VideoPlayerConfig
@@ -98,7 +97,7 @@ fun MediaElement(
     var finalMedia by remember(newMedia?.url) {
         mutableStateOf(newMedia)
     }
-    val mediaType = getMediaType(
+    val mediaType = MediaType.fromMimeType(
         finalMedia?.mimetype
             ?: localMedia?.extension?.let { MimeType.getByExtension(it).mime }
             ?: finalMedia?.url?.let { MimeType.getByExtension(getUrlExtension(it)).mime }

@@ -4,13 +4,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -20,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
@@ -39,14 +43,17 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import augmy.interactive.shared.ui.components.MinimalisticIcon
@@ -70,61 +77,68 @@ fun CustomTextField(
         fontSize = 18.sp
     ),
     paddingValues: PaddingValues = PaddingValues(
-        start = 16.dp,
-        end = 0.dp,
-        top = 8.dp,
-        bottom = 8.dp
+        start = 20.dp,
+        end = 4.dp,
+        top = 10.dp,
+        bottom = 10.dp
     ),
     colors: TextFieldColors = LocalTheme.current.styles.textFieldColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     onKeyboardAction: KeyboardActionHandler? = null,
     textObfuscationMode: TextObfuscationMode? = null,
     inputTransformation: InputTransformation? = null,
+    outputTransformation: OutputTransformation? = null,
     prefixIcon: ImageVector? = null,
     maxCharacters: Int = -1,
-    focusRequester: FocusRequester = remember(state) { FocusRequester() },
+    focusRequester: FocusRequester = remember { FocusRequester() },
     trailingIcon: @Composable (() -> Unit)? = null,
-    lineLimits: TextFieldLineLimits = TextFieldLineLimits.Default,
+    additionalContent: @Composable (() -> Unit)? = null,
+    onTextLayout: (Density.(getResult: () -> TextLayoutResult?) -> Unit)? = null,
+    lineLimits: TextFieldLineLimits = TextFieldLineLimits.SingleLine,
     shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     errorText: String? = null,
     hint: String? = null,
+    backgroundColor: Color? = LocalTheme.current.colors.backgroundDark,
     suggestText: String? = null,
     isClearable: Boolean = false,
-    showBorders: Boolean = true,
+    focusable: Boolean = true,
     isCorrect: Boolean = false,
     enabled: Boolean = true,
-    isFocused: MutableState<Boolean> = remember(state.text) { mutableStateOf(false) }
+    isFocused: MutableState<Boolean> = remember { mutableStateOf(false) }
 ) {
     val focusManager = LocalFocusManager.current
-    val controlColor = if(showBorders) {
-        animateColorAsState(
-            when {
-                errorText != null -> colors.errorTextColor
-                isCorrect -> SharedColors.GREEN_CORRECT
-                isFocused.value -> colors.focusedTextColor
-                !enabled -> colors.disabledTextColor
-                else -> colors.unfocusedTextColor
-            },
-            label = "controlColorChange"
-        )
-    }else null
+    val controlColor = animateColorAsState(
+        when {
+            errorText != null -> colors.errorTextColor
+            isCorrect -> SharedColors.GREEN_CORRECT
+            focusable && isFocused.value -> LocalTheme.current.colors.disabled
+            else -> Color.Transparent
+        },
+        label = "controlColorChange"
+    )
 
     Column(modifier = modifier.animateContentSize()) {
+        additionalContent?.invoke()
         Row(
             Modifier
                 .heightIn(min = 44.dp)
                 .then(
-                    controlColor?.value?.let {
-                        Modifier.border(
-                            width = if (isFocused.value) 1.dp else 0.25.dp,
-                            color = it,
+                    if(backgroundColor != null) {
+                        Modifier.background(
+                            color = backgroundColor,
                             shape = shape
                         )
-                    } ?: Modifier
+                    }else Modifier
                 )
-                .clickable(indication = null, interactionSource = null) {
-                    focusRequester.requestFocus()
-                },
+                .border(
+                    width = 0.25.dp,
+                    color = controlColor.value,
+                    shape = shape
+                )
+                .padding(
+                    horizontal = 4.dp,
+                    vertical = 2.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             prefixIcon?.let { vector ->
@@ -142,6 +156,9 @@ fun CustomTextField(
                 contentAlignment = Alignment.CenterStart
             ) {
                 val finalModifier = fieldModifier
+                    .onFocusChanged {
+                        isFocused.value = it.isFocused
+                    }
                     .onPreviewKeyEvent { keyEvent ->
                         when(keyEvent.key) {
                             Key.Tab -> true // unable to move focus, so we intercept it at the very least
@@ -152,10 +169,8 @@ fun CustomTextField(
                             else -> false
                         }
                     }
+                    .fillMaxWidth()
                     .focusRequester(focusRequester)
-                    .onFocusChanged {
-                        isFocused.value = it.isFocused
-                    }
 
                 if(keyboardOptions.keyboardType == KeyboardType.Password || textObfuscationMode != null) {
                     BasicSecureTextField(
@@ -164,6 +179,7 @@ fun CustomTextField(
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
                         textObfuscationMode = textObfuscationMode ?: TextObfuscationMode.RevealLastTyped,
                         textStyle = textStyle,
+                        onTextLayout = onTextLayout,
                         keyboardOptions = keyboardOptions,
                         onKeyboardAction = onKeyboardAction
                     )
@@ -171,7 +187,9 @@ fun CustomTextField(
                     BasicTextField(
                         modifier = finalModifier,
                         inputTransformation = inputTransformation,
+                        outputTransformation = outputTransformation,
                         state = state,
+                        onTextLayout = onTextLayout,
                         cursorBrush = Brush.linearGradient(listOf(textStyle.color, textStyle.color)),
                         textStyle = textStyle,
                         lineLimits = lineLimits,
@@ -179,8 +197,12 @@ fun CustomTextField(
                         onKeyboardAction = onKeyboardAction
                     )
                 }
-                if(hint != null) {
-                    androidx.compose.animation.AnimatedVisibility(state.text.isEmpty()) {
+                if (hint != null) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = state.text.isEmpty(),
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
                         Text(
                             text = hint,
                             style = textStyle.copy(
@@ -211,7 +233,7 @@ fun CustomTextField(
                                 imageVector = Icons.Outlined.Clear,
                                 tint = LocalTheme.current.colors.secondary
                             ) {
-                                state.setTextAndPlaceCursorAtEnd("")
+                                if (enabled) state.setTextAndPlaceCursorAtEnd("")
                             }
                         }
                     }
@@ -220,18 +242,18 @@ fun CustomTextField(
             Spacer(Modifier.width(16.dp))
         }
 
-        if(suggestText.isNullOrBlank().not()) {
+        if (suggestText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier.padding(
                     start = 8.dp,
                     end = 8.dp,
                     bottom = 4.dp
                 ),
-                text = suggestText ?: "",
+                text = suggestText,
                 style = LocalTheme.current.styles.regular
             )
         }
-        if(errorText.isNullOrBlank().not()) {
+        if (errorText.isNullOrBlank().not()) {
             Text(
                 modifier = Modifier
                     .wrapContentHeight()
@@ -240,7 +262,7 @@ fun CustomTextField(
                         end = 8.dp,
                         bottom = 4.dp
                     ),
-                text = errorText ?: "",
+                text = errorText,
                 style = LocalTheme.current.styles.regular.copy(
                     color = SharedColors.RED_ERROR,
                     fontSize = 14.sp

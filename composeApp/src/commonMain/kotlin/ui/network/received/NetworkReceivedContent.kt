@@ -9,26 +9,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
 import augmy.composeapp.generated.resources.accessibility_save
-import augmy.composeapp.generated.resources.network_received_empty_action
-import augmy.composeapp.generated.resources.network_received_empty_description
-import augmy.composeapp.generated.resources.network_received_empty_title
 import augmy.composeapp.generated.resources.network_request_accepted
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.components.OutlinedButton
@@ -36,7 +31,6 @@ import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import base.utils.getOrNull
-import components.EmptyLayout
 import components.network.CircleRequestRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
@@ -47,7 +41,6 @@ import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.account.shareProfile
 import ui.network.RefreshHandler
 import ui.network.components.ProximityPicker
 import kotlin.uuid.ExperimentalUuidApi
@@ -64,9 +57,7 @@ fun NetworkReceivedContent(
     val response = viewModel.response.collectAsState()
     val isRefreshing = viewModel.isRefreshing.collectAsState()
 
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHost.current
-    val clipboard = LocalClipboard.current
     val isLoadingInitialPage = requests.loadState.refresh is LoadState.Loading
 
     val showProximityPicker = remember {
@@ -123,10 +114,10 @@ fun NetworkReceivedContent(
                     enter = expandVertically() + fadeIn(),
                     visible = requests.itemCount == 0 && !isLoadingInitialPage
                 ) {
-                    EmptyLayout(
+                    /*EmptyLayout(
                         title = stringResource(Res.string.network_received_empty_title),
                         description = stringResource(Res.string.network_received_empty_description),
-                        action = stringResource(Res.string.network_received_empty_action),
+                        secondaryAction = stringResource(Res.string.network_received_empty_action),
                         onClick = {
                             shareProfile(
                                 publicId = viewModel.currentUser.value?.publicId,
@@ -135,7 +126,7 @@ fun NetworkReceivedContent(
                                 coroutineScope = coroutineScope
                             )
                         }
-                    )
+                    )*/
                 }
             }
             items(
@@ -162,7 +153,7 @@ fun NetworkReceivedContent(
                         }
                     )
                     if(requests.itemCount - 1 != index) {
-                        Divider(
+                        HorizontalDivider(
                             modifier = Modifier.fillMaxWidth(),
                             color = LocalTheme.current.colors.disabledComponent,
                             thickness = .3.dp
@@ -192,12 +183,9 @@ private fun ProximityPickerModal(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ProximityPicker(
-            viewModel = koinViewModel(),
-            selectedCategory = selectedCategory.value,
-            newItem = networkItem,
-            onSelectionChange = {
-                selectedCategory.value = it
-            }
+            model = koinViewModel(),
+            selectedCategory = selectedCategory,
+            newItem = networkItem
         )
         Row(
             modifier = Modifier

@@ -1,5 +1,6 @@
 package ui.network.list
 
+import CollectResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -18,8 +19,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,8 +37,6 @@ import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.invite_conversation_heading
 import augmy.composeapp.generated.resources.invite_new_item_conversation
-import augmy.composeapp.generated.resources.network_list_empty_action
-import augmy.composeapp.generated.resources.network_list_empty_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalNavController
@@ -45,13 +44,10 @@ import augmy.interactive.shared.ui.theme.LocalTheme
 import base.navigation.NavigationArguments
 import base.navigation.NavigationNode
 import base.utils.getOrNull
-import collectResult
-import components.EmptyLayout
 import components.network.NetworkItemRow
 import components.pull_refresh.RefreshableContent
 import components.pull_refresh.RefreshableViewModel.Companion.requestData
 import data.NetworkProximityCategory
-import data.io.base.AppPingType
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -61,7 +57,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.network.RefreshHandler
 import ui.network.components.AddToLauncher
 import ui.network.components.SocialItemActions
-import ui.network.profile.UserProfileLauncher
+import ui.network.components.user_detail.UserDetailDialog
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -69,7 +65,6 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun NetworkListContent(
-    openAddNewModal: () -> Unit,
     refreshHandler: RefreshHandler,
     viewModel: NetworkListModel = koinViewModel()
 ) {
@@ -87,17 +82,7 @@ fun NetworkListContent(
         mutableStateOf<NetworkItemIO?>(null)
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.pingStream.collectLatest { stream ->
-            stream.forEach {
-                if(it.type == AppPingType.NetworkDashboard) {
-                    networkItems.refresh()
-                }
-            }
-        }
-    }
-
-    navController?.collectResult(
+    navController?.CollectResult(
         key = NavigationArguments.NETWORK_NEW_SUCCESS,
         defaultValue = false,
         listener = { isSuccess ->
@@ -106,12 +91,9 @@ fun NetworkListContent(
     )
 
     if(selectedUser.value != null) {
-        UserProfileLauncher(
-            user = selectedUser.value,
-            onDismissRequest = {
-                selectedUser.value = null
-            }
-        )
+        UserDetailDialog(networkItem = selectedUser.value) {
+            selectedUser.value = null
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -155,11 +137,11 @@ fun NetworkListContent(
                     enter = expandVertically() + fadeIn(),
                     visible = networkItems.itemCount == 0 && !isLoadingInitialPage
                 ) {
-                    EmptyLayout(
+                    /*EmptyLayout(
                         title = stringResource(Res.string.network_list_empty_title),
-                        action = stringResource(Res.string.network_list_empty_action),
+                        secondaryAction = stringResource(Res.string.network_list_empty_action),
                         onClick = openAddNewModal
-                    )
+                    )*/
                 }
             }
             items(
@@ -200,7 +182,7 @@ fun NetworkListContent(
                         }
                     ) {
                         if(networkItems.itemCount - 1 != index) {
-                            Divider(
+                            HorizontalDivider(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = LocalTheme.current.colors.disabledComponent,
                                 thickness = .3.dp
@@ -247,8 +229,8 @@ private fun NetworkItem(
                 if(!it?.conversationId.isNullOrBlank()) {
                     navController?.navigate(
                         NavigationNode.Conversation(
-                            conversationId = it?.conversationId,
-                            name = it?.alias
+                            conversationId = it.conversationId,
+                            name = it.alias
                         )
                     )
                 }
@@ -273,14 +255,7 @@ private fun NetworkItem(
                     newName = newName
                 )
             },
-            mapToNetworkItem = {
-                NetworkItemIO(
-                    displayName = it.summary?.roomName,
-                    proximity = it.proximity,
-                    publicId = it.id,
-                    avatar = it.summary?.avatar
-                )
-            },
+            mapToNetworkItem = { it.toNetworkItem() },
             onDismissRequest = {
                 showAddMembers.value = false
             }
@@ -325,9 +300,6 @@ private fun NetworkItem(
                     SocialItemActions(
                         key = data.userPublicId,
                         requestProximityChange = requestProximityChange,
-                        onInvite = {
-                            showAddMembers.value = true
-                        },
                         newItem = data
                     )
                 }

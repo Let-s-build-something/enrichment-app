@@ -57,6 +57,7 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,7 +75,9 @@ import augmy.interactive.shared.ext.detectMessageInteraction
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
+import augmy.interactive.shared.ui.base.LocalLinkHandler
 import augmy.interactive.shared.ui.base.LocalScreenSize
+import augmy.interactive.shared.ui.components.highlightedText
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
 import augmy.interactive.shared.utils.DateUtils.formatAsRelative
@@ -84,11 +87,13 @@ import base.theme.DefaultThemeStyles.Companion.fontQuicksandSemiBold
 import base.utils.openLink
 import components.buildAnnotatedLinkString
 import data.io.social.network.conversation.EmojiData
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MessageState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ui.conversation.components.audio.MediaProcessorModel
@@ -116,15 +121,17 @@ interface MessageBubbleModel {
 @Composable
 fun MessageBubble(
     modifier: Modifier = Modifier,
-    data: ConversationMessageIO?,
+    data: FullConversationMessage?,
     model: MessageBubbleModel,
     isReacting: Boolean,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     hasNext: Boolean,
+    hasAttachment: Boolean,
     isMyLastMessage: Boolean,
     isReplying: Boolean,
     currentUserPublicId: String,
+    highlight: String? = null,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
         onDrag: (Boolean) -> Unit,
@@ -139,10 +146,12 @@ fun MessageBubble(
                 modifier = modifier,
                 hasPrevious = hasPrevious,
                 hasNext = hasNext,
+                highlight = highlight,
+                hasAttachment = hasAttachment,
                 data = data,
                 model = model,
                 preferredEmojis = preferredEmojis,
-                currentUserPublicId = currentUserPublicId,
+                currentUserId = currentUserPublicId,
                 isReacting = isReacting,
                 isReplying = isReplying,
                 isMyLastMessage = isMyLastMessage,
@@ -155,14 +164,16 @@ fun MessageBubble(
 @Composable
 private fun ContentLayout(
     modifier: Modifier = Modifier,
-    data: ConversationMessageIO,
+    data: FullConversationMessage,
     preferredEmojis: List<EmojiData>,
     hasPrevious: Boolean,
     isMyLastMessage: Boolean,
     hasNext: Boolean,
+    hasAttachment: Boolean,
     model: MessageBubbleModel,
     isReplying: Boolean,
-    currentUserPublicId: String,
+    currentUserId: String,
+    highlight: String?,
     isReacting: Boolean,
     additionalContent: @Composable ColumnScope.(
         onDragChange: (PointerInputChange, Offset) -> Unit,
@@ -172,10 +183,11 @@ private fun ContentLayout(
 ) {
     val density = LocalDensity.current
     val screenSize = LocalScreenSize.current
+    val linkHandler = LocalLinkHandler.current
     val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
     val coroutineScope = rememberCoroutineScope()
     val dragCoroutineScope = rememberCoroutineScope()
-    val isCurrentUser = data.authorPublicId == currentUserPublicId
+    val isCurrentUser = data.data.authorPublicId == currentUserId
 
     val replyBounds = remember {
         with(density) {
@@ -183,43 +195,47 @@ private fun ContentLayout(
         }
     }
     val contentPadding = PaddingValues(
-        bottom = if(!data.reactions.isNullOrEmpty()) {
+        bottom = if(data.reactions.isNotEmpty()) {
             with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 6.dp }
         }else 0.dp
     )
     val replyIndicationSize = with(density) { LocalTheme.current.styles.category.fontSize.toDp() + 20.dp }
-    val hoverInteractionSource = remember(data.id) { MutableInteractionSource() }
-    val processor = if(data.media?.isEmpty() == false) koinViewModel<MediaProcessorModel>(key = data.id) else null
+    val hoverInteractionSource = remember(data.data.id) { MutableInteractionSource() }
+    val processor = if(!data.media.isEmpty()) koinViewModel<MediaProcessorModel>(key = data.id) else null
     val downloadState = if(processor != null) rememberIndicationState(processor) else null
     val isFocused = hoverInteractionSource.collectIsHoveredAsState()
     val alignment = if (isCurrentUser) Alignment.End else Alignment.Start
     val awaitingTranscription = !isCurrentUser
             && !model.transcribe.value
-            && data.transcribed != true
-            && !data.timings.isNullOrEmpty()
+            && data.data.transcribed != true
+            && !data.data.timings.isNullOrEmpty()
 
-    val textContent = if(!data.content.isNullOrBlank()) {
-        buildTempoString(
-            key = data.id,
-            timings = data.timings.orEmpty(),
-            text = buildAnnotatedLinkString(
-                text = data.content,
-                onLinkClicked = { openLink(it) }
+
+    val textStyle = LocalTheme.current.styles.title.copy(
+        color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
+            .copy(
+                alpha = if(awaitingTranscription) .4f else 1f
             ),
-            onFinish = { model.onTranscribed() },
-            enabled = model.transcribe.value,
-            style = LocalTheme.current.styles.title.copy(
-                color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary)
-                    .copy(
-                        alpha = if(awaitingTranscription) .4f else 1f
-                    ),
-                fontFamily = FontFamily(fontQuicksandMedium)
-            ).toSpanStyle()
+        fontFamily = FontFamily(fontQuicksandMedium)
+    )
+    val textContent = if(!data.data.content.isNullOrBlank()) {
+        highlightedText(
+            highlight = highlight,
+            annotatedString = buildTempoString(
+                key = data.id,
+                timings = data.data.timings.orEmpty(),
+                text = buildAnnotatedLinkString(
+                    text = data.data.content,
+                    onLinkClicked = { href ->
+                        linkHandler?.invoke(href) ?: openLink(href)
+                    }
+                ),
+                onFinish = { model.onTranscribed() },
+                enabled = model.transcribe.value,
+                spanStyle = textStyle.toSpanStyle()
+            )
         )
     }else AnnotatedString("")
-    val hasAttachment = remember(data.id) {
-        data.media?.isEmpty() == false || textContent.hasLinkAnnotations(0, textContent.length)
-    }
 
 
     val isDragged = remember(data.id) {
@@ -243,7 +259,7 @@ private fun ContentLayout(
     )
     val onDownloadRequest: () -> Unit = {
         processor?.downloadFiles(
-            *data.media.orEmpty().toTypedArray()
+            *data.media.toTypedArray()
         )
     }
     val onDrag: (Boolean) -> Unit = { dragged ->
@@ -367,7 +383,7 @@ private fun ContentLayout(
                                 .padding(contentPadding)
                                 .padding(end = 8.dp),
                             visible = !showOptions && isFocused.value,
-                            hasMedia = data.media?.isEmpty() == false,
+                            hasMedia = !data.media.isEmpty(),
                             onDownloadRequest = onDownloadRequest,
                             onReplyRequest = { model.onReplyRequest() },
                             onReactionRequest = { model.onReactionRequest(it) }
@@ -434,14 +450,14 @@ private fun ContentLayout(
                             val messageShape = if (isCurrentUser) {
                                 RoundedCornerShape(
                                     topStart = if(hasAttachment) 1.dp else 24.dp,
-                                    topEnd = if(hasPrevious || !data.media.isNullOrEmpty() || hasAttachment) 1.dp else 24.dp,
+                                    topEnd = if(hasPrevious || data.media.isNotEmpty() || hasAttachment) 1.dp else 24.dp,
                                     bottomStart = 24.dp,
                                     bottomEnd = if (hasNext) 1.dp else 24.dp
                                 )
                             } else {
                                 RoundedCornerShape(
                                     topEnd = if(hasAttachment) 1.dp else 24.dp,
-                                    topStart = if(hasPrevious || !data.media.isNullOrEmpty() || hasAttachment) 1.dp else 24.dp,
+                                    topStart = if(hasPrevious || data.media.isNotEmpty() || hasAttachment) 1.dp else 24.dp,
                                     bottomEnd = 24.dp,
                                     bottomStart = if (hasNext) 1.dp else 24.dp
                                 )
@@ -458,7 +474,7 @@ private fun ContentLayout(
                                 if (downloadState != null) {
                                     DownloadIndication(
                                         modifier = Modifier.fillMaxWidth(),
-                                        shape = if(data.content.isNullOrBlank()) messageShape else RectangleShape,
+                                        shape = if(data.data.content.isNullOrBlank()) messageShape else RectangleShape,
                                         state = downloadState
                                     )
                                 }
@@ -468,9 +484,11 @@ private fun ContentLayout(
                                     data = data,
                                     model = model,
                                     textContent = textContent,
+                                    textStyle = textStyle,
                                     isCurrentUser = isCurrentUser,
                                     showOptions = showOptions,
-                                    hasAttachment = hasAttachment
+                                    hasAttachment = hasAttachment,
+                                    currentUserId = currentUserId
                                 )
                             }
 
@@ -479,7 +497,7 @@ private fun ContentLayout(
                                     .align(Alignment.End)
                                     .padding(end = if (isCurrentUser) 16.dp else 0.dp),
                                 visible = showOptions,
-                                hasMedia = data.media?.isEmpty() == false,
+                                hasMedia = !data.media.isEmpty(),
                                 onDownloadRequest = onDownloadRequest,
                                 onReplyRequest = { model.onReplyRequest() },
                                 onReactionRequest = { model.onReactionRequest(it) }
@@ -499,7 +517,7 @@ private fun ContentLayout(
                                 .padding(contentPadding)
                                 .padding(start = 8.dp),
                             visible = !showOptions && isFocused.value,
-                            hasMedia = data.media?.isEmpty() == false,
+                            hasMedia = !data.media.isEmpty(),
                             onDownloadRequest = onDownloadRequest,
                             onReplyRequest = { model.onReplyRequest() },
                             onReactionRequest = { model.onReactionRequest(it) }
@@ -511,21 +529,21 @@ private fun ContentLayout(
             AnimatedVisibility(isReacting) {
                 Text(
                     modifier = Modifier.padding(end = 6.dp),
-                    text = "${data.state?.description ?: ""} ${data.sentAt?.formatAsRelative()}",
+                    text = "${data.data.state?.description ?: ""} ${data.data.sentAt?.formatAsRelative()}",
                     style = LocalTheme.current.styles.regular
                 )
             }
 
-            if (isCurrentUser && (isMyLastMessage || (data.state?.ordinal ?: 0) < MessageState.Sent.ordinal)) {
-                data.state?.imageVector?.let { imgVector ->
+            if (isCurrentUser && (isMyLastMessage || (data.data.state?.ordinal ?: 0) < MessageState.Sent.ordinal)) {
+                data.data.state?.imageVector?.let { imgVector ->
                     Icon(
                         modifier = Modifier
                             .offset(y = if(isReacting) 0.dp else -contentPadding.calculateBottomPadding())
                             .zIndex(2f)
                             .size(16.dp),
                         imageVector = imgVector,
-                        contentDescription = data.state.description,
-                        tint = if (data.state == MessageState.Failed) {
+                        contentDescription = data.data.state.description,
+                        tint = if (data.data.state == MessageState.Failed) {
                             SharedColors.RED_ERROR
                         } else LocalTheme.current.colors.disabled
                     )
@@ -543,11 +561,13 @@ private fun ContentLayout(
 @Composable
 private fun MessageContent(
     modifier: Modifier = Modifier,
-    data: ConversationMessageIO,
+    data: FullConversationMessage,
     model: MessageBubbleModel,
     textContent: AnnotatedString,
+    textStyle: TextStyle,
     shape: Shape,
     isCurrentUser: Boolean,
+    currentUserId: String,
     showOptions: Boolean,
     hasAttachment: Boolean,
 ) {
@@ -561,7 +581,7 @@ private fun MessageContent(
 
     showDetailDialogOf.value?.let {
         MessageReactionsDialog(
-            reactions = data.reactions.orEmpty(),
+            reactions = data.reactions,
             messageContent = it.first,
             initialEmojiSelection = it.second,
             onDismissRequest = {
@@ -570,11 +590,13 @@ private fun MessageContent(
         )
     }
 
-    Box(modifier = modifier.animateContentSize(
-        alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh)
-    )) {
-        if(!data.content.isNullOrEmpty()) {
+    Box(
+        modifier = modifier.animateContentSize(
+            alignment = if (isCurrentUser) Alignment.CenterEnd else Alignment.CenterStart,
+            animationSpec = spring(stiffness = Spring.StiffnessHigh)
+        )
+    ) {
+        if(!data.data.content.isNullOrEmpty()) {
             val showReadMore = remember(data.id) {
                 mutableStateOf(false)
             }
@@ -583,7 +605,7 @@ private fun MessageContent(
                 Column(
                     modifier = Modifier
                         .then(
-                            if (!data.reactions.isNullOrEmpty()) {
+                            if (data.reactions.isNotEmpty()) {
                                 Modifier.padding(bottom = with(density) {
                                     LocalTheme.current.styles.category.fontSize.toDp() + 6.dp
                                 })
@@ -595,23 +617,21 @@ private fun MessageContent(
                             } else LocalTheme.current.colors.backgroundContrast,
                             shape = shape
                         )
-                        .then(
-                            if(hasAttachment) Modifier.fillMaxWidth() else Modifier
-                        )
+                        .then(if(hasAttachment) Modifier.fillMaxWidth() else Modifier.widthIn(min = 50.dp))
                         .padding(
                             vertical = 10.dp,
                             horizontal = 14.dp
-                        )
+                        ),
+                    horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start
                 ) {
                     Text(
-                        modifier = Modifier
-                            .widthIn(max = (screenSize.width * .8f).dp)
-                            .then(if(model.transcribe.value) Modifier else Modifier),
-                        text = if(data.state == MessageState.Decrypting) {
+                        modifier = Modifier.widthIn(max = (screenSize.width * .8f).dp),
+                        text = if(data.data.state == MessageState.Decrypting) {
                             AnnotatedString(stringResource(Res.string.message_decrypting))
                         }else textContent,
                         maxLines = MaximumTextLines,
                         overflow = TextOverflow.Ellipsis,
+                        style = textStyle,
                         onTextLayout = {
                             showReadMore.value = it.didOverflowHeight
                         }
@@ -644,35 +664,60 @@ private fun MessageContent(
                     if (isCurrentUser) Alignment.BottomStart else Alignment.BottomEnd
                 )
                 .zIndex(2f),
-            visible = !data.reactions.isNullOrEmpty()
+            visible = data.reactions.isNotEmpty()
         ) {
             Row(
                 modifier = Modifier
+                    .animateContentSize()
                     .padding(
                         start = if (isCurrentUser) 0.dp else 12.dp,
                         end = if (isCurrentUser) 12.dp else 0.dp
                     )
-                    .then(
-                        if ((data.reactions?.size ?: 0) > 1) {
-                            Modifier.offset(x = if (isCurrentUser) (-8).dp else 8.dp)
-                        } else Modifier
-                    )
                     .offset(
                         x = 0.dp,
                         y = with(density) {
-                            -LocalTheme.current.styles.category.fontSize.toDp() + 10.dp
+                            -LocalTheme.current.styles.category.fontSize.toDp() + 14.dp
                         }
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                data.reactions?.take(MaximumReactions)?.forEach { reaction ->
+                val reactions = remember(data.id) {
+                    mutableStateOf(mapOf<String, Pair<Int, Boolean>>())
+                }
+
+                LaunchedEffect(data.reactions) {
+                    withContext(Dispatchers.Default) {
+                        val newMap = hashMapOf<String, Pair<Int, Boolean>>()
+                        data.reactions.forEach {
+                            if (it.content != null) {
+                                val content = it.content.replace("\uFE0F", "").trim()
+                                newMap[content] = (newMap[content]?.first?.plus(1) ?: 1) to
+                                        (it.authorPublicId == currentUserId || newMap[content]?.second == true)
+                            }
+                        }
+                        reactions.value = newMap.toList()
+                            .sortedByDescending { it.second.first }
+                            .take(4)
+                            .toMap()
+                    }
+                }
+
+                reactions.value.keys.forEachIndexed { index, reaction ->
+                    val value = reactions.value[reaction]
+
                     Row(
                         Modifier
-                            .scalingClickable {
-                                if (data.reactions.size > 1) {
-                                    showDetailDialogOf.value = data.content to reaction.content
+                            .scalingClickable(
+                                onTap = {
+                                    model.onReactionChange(reaction)
+                                },
+                                onDoubleTap = {
+                                    showDetailDialogOf.value = data.data.content to reaction
+                                },
+                                onLongPress = {
+                                    showDetailDialogOf.value = data.data.content to reaction
                                 }
-                            }
+                            )
                             .width(IntrinsicSize.Min)
                             .background(
                                 color = LocalTheme.current.colors.disabledComponent,
@@ -683,13 +728,12 @@ private fun MessageContent(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                modifier = Modifier.padding(end = 2.dp),
-                                text = reaction.content ?: "",
+                                text = reaction,
                                 style = LocalTheme.current.styles.category.copy(
                                     textAlign = TextAlign.Center
                                 )
                             )
-                            if (isCurrentUser) {
+                            if (value?.second == true) {
                                 Box(
                                     modifier = Modifier
                                         .height(2.dp)
@@ -701,18 +745,9 @@ private fun MessageContent(
                                 )
                             }
                         }
-                        val count = remember(data.id) {
-                            mutableStateOf(1)
-                        }
-                        LaunchedEffect(data.reactions) {
-                            count.value = data.reactions.count {
-                                it.content == reaction.content
-                            }
-                        }
-
-                        count.value.takeIf { it > 1 }?.let {
+                        value?.first?.takeIf { it > 1 }?.toString()?.let { count ->
                             Text(
-                                text = it.toString(),
+                                text = count,
                                 style = LocalTheme.current.styles.regular
                             )
                         }
@@ -766,20 +801,20 @@ private fun Options(
             }
             Icon(
                 modifier = Modifier
-                    .scalingClickable { onReplyRequest() }
-                    .size(buttonSize)
-                    .padding(2.dp),
-                imageVector = Icons.AutoMirrored.Outlined.Reply,
-                contentDescription = stringResource(Res.string.accessibility_message_reply),
-                tint = LocalTheme.current.colors.secondary
-            )
-            Icon(
-                modifier = Modifier
                     .scalingClickable { onReactionRequest(true) }
                     .size(buttonSize)
                     .padding(2.dp),
                 imageVector = Icons.Outlined.Mood,
                 contentDescription = stringResource(Res.string.accessibility_action_message_react),
+                tint = LocalTheme.current.colors.secondary
+            )
+            Icon(
+                modifier = Modifier
+                    .scalingClickable { onReplyRequest() }
+                    .size(buttonSize)
+                    .padding(2.dp),
+                imageVector = Icons.AutoMirrored.Outlined.Reply,
+                contentDescription = stringResource(Res.string.accessibility_message_reply),
                 tint = LocalTheme.current.colors.secondary
             )
         }
@@ -806,6 +841,6 @@ private fun ShimmerLayout(modifier: Modifier = Modifier) {
 }
 
 // maximum visible reactions within message bubble
-const val MaximumReactions = 4
+const val MaximumReactions = 8
 private const val MaximumTextLines = 8
 private const val DragCancelDelayMillis = 100L

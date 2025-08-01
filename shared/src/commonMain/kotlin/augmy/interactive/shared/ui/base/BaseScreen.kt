@@ -53,6 +53,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import augmy.interactive.shared.ui.components.input.AutoResizeText
 import augmy.interactive.shared.ui.components.input.FontSizeRange
@@ -95,7 +96,7 @@ fun BaseScreen(
     containerColor: Color? = null,
     contentColor: Color = Color.Transparent,
     floatingActionButtonPosition: FabPosition = FabPosition.End,
-    floatingActionButton: @Composable () -> Unit = {},
+    floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
     verticalAppBar: @Composable () -> Unit
 ) {
@@ -123,8 +124,6 @@ fun BaseScreen(
         },
         containerColor = Color.Transparent,
         contentColor = contentColor,
-        floatingActionButton = floatingActionButton,
-        floatingActionButtonPosition = floatingActionButtonPosition,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         content = { paddingValues ->
             ShelledContent(
@@ -167,6 +166,19 @@ fun BaseScreen(
                         LocalHeyIamScreen provides true
                     ) {
                         content(this)
+                    }
+
+                    if (floatingActionButton != null) {
+                        Box(
+                            modifier = Modifier
+                                .align(if(floatingActionButtonPosition == FabPosition.End) {
+                                    Alignment.BottomEnd
+                                } else Alignment.BottomStart)
+                                .zIndex(ZIndexFab)
+                                .padding(bottom = 24.dp, end = 16.dp)
+                        ) {
+                            floatingActionButton()
+                        }
                     }
                 }
             }
@@ -340,6 +352,7 @@ private fun DesktopLayout(
 @Composable
 fun BoxScope.ModalScreenContent(
     modifier: Modifier = Modifier,
+    contentModifier: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(8.dp),
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit
@@ -350,7 +363,7 @@ fun BoxScope.ModalScreenContent(
             .align(Alignment.TopCenter),
         content = {
             Column(
-                modifier = Modifier
+                modifier = contentModifier
                     .widthIn(max = MaxModalWidthDp.dp)
                     .fillMaxHeight()
                     .padding(
@@ -403,6 +416,8 @@ val LocalContentSize = staticCompositionLocalOf {
 /** Maximum width of a modal element - this can include a screen in case the device is a desktop */
 const val MaxModalWidthDp = 640
 
+const val ZIndexFab = 10f
+
 /** Platform using this application */
 expect val currentPlatform: PlatformType
 
@@ -420,6 +435,9 @@ val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState?> { null }
 
 /** Default page size based on current device tye */
 val LocalNavController = staticCompositionLocalOf<NavHostController?> { null }
+
+/** Localized parent handling of links within child composables */
+val LocalLinkHandler = staticCompositionLocalOf<((href: String) -> Unit)?> { null }
 
 /** Custom on back pressed provided by parent */
 val LocalBackPressDispatcher = staticCompositionLocalOf<BackPressDispatcher?> { null }

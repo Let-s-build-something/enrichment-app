@@ -4,10 +4,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -15,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
+import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.OutlinedButton
+import augmy.interactive.shared.ui.components.dialog.ButtonState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import io.github.alexzhirkevich.compottie.DotLottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
@@ -28,10 +32,12 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 @Composable
 fun EmptyLayout(
     modifier: Modifier = Modifier,
-    title: String,
+    title: String? = null,
     description: String? = null,
-    action: String? = null,
-    onClick: () -> Unit = {},
+    animPath: String? = null,
+    animReverseOnRepeat: Boolean = true,
+    primaryAction: ButtonState? = null,
+    secondaryAction: ButtonState? = null,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
     Column(
@@ -41,7 +47,7 @@ fun EmptyLayout(
     ) {
         val composition by rememberLottieComposition {
             LottieCompositionSpec.DotLottie(
-                Res.readBytes("files/empty.lottie")
+                Res.readBytes(animPath ?: "files/empty.lottie")
             )
         }
 
@@ -52,34 +58,56 @@ fun EmptyLayout(
                 .requiredHeight(200.dp),
             painter = rememberLottiePainter(
                 composition = composition,
-                reverseOnRepeat = true,
+                reverseOnRepeat = animReverseOnRepeat,
                 iterations = Int.MAX_VALUE
             ),
             contentDescription = null
         )
-        Text(
-            modifier = Modifier.fillMaxWidth(.8f),
-            text = title,
-            style = LocalTheme.current.styles.category.copy(
-                textAlign = TextAlign.Center
-            )
-        )
-        description?.let { text ->
+        if (title != null) {
             Text(
                 modifier = Modifier.fillMaxWidth(.8f),
-                text = text,
-                style = LocalTheme.current.styles.regular.copy(
-                    textAlign = TextAlign.Center
+                text = title,
+                style = LocalTheme.current.styles.category.copy(
+                    textAlign = TextAlign.Center,
+                    color = LocalTheme.current.colors.secondary
                 )
             )
         }
-        action?.let { text ->
-            OutlinedButton(
-                modifier = Modifier.padding(top = 12.dp),
+        description?.let { text ->
+            Text(
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .fillMaxWidth(.8f),
                 text = text,
-                onClick = onClick,
-                activeColor = LocalTheme.current.colors.secondary
+                style = LocalTheme.current.styles.regular.copy(
+                    textAlign = TextAlign.Center,
+                    color = LocalTheme.current.colors.secondary
+                )
             )
+        }
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            secondaryAction?.let { action ->
+                OutlinedButton(
+                    text = action.text,
+                    trailingIcon = action.imageVector,
+                    onClick = action.onClick,
+                    activeColor = LocalTheme.current.colors.secondary
+                )
+            }
+            primaryAction?.let { action ->
+                BrandHeaderButton(
+                    text = action.text,
+                    onClick = action.onClick,
+                    endImageVector = action.imageVector,
+                    contentPadding = PaddingValues(
+                        vertical = 6.dp,
+                        horizontal = 12.dp
+                    )
+                )
+            }
         }
         content()
     }

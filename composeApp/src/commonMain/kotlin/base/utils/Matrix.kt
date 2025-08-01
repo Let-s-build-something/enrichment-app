@@ -5,6 +5,7 @@ object Matrix {
 
     const val LOGIN_DUMMY = "$LOGIN.dummy"
     const val LOGIN_SSO = "$LOGIN.sso"
+    const val LOGIN_AUGMY_SSO = "$LOGIN.augmy.sso"
     const val LOGIN_EMAIL_IDENTITY = "$LOGIN.email.identity"
     const val LOGIN_RECAPTCHA = "$LOGIN.recaptcha"
     const val LOGIN_TERMS = "$LOGIN.terms"
@@ -27,7 +28,9 @@ object Matrix {
 
     object Brand {
         const val GOOGLE = "google"
+        const val GOOGLE_OIDC = "oidc-google"
         const val APPLE = "apple"
+        const val APPLE_OIDC = "oidc-apple"
     }
 
     object Medium {

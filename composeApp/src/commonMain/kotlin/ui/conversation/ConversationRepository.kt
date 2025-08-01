@@ -3,27 +3,32 @@ package ui.conversation
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.MediaType
-import base.utils.getMediaType
 import base.utils.toSha256
 import data.io.base.BaseResponse
 import data.io.matrix.media.FileList
 import data.io.matrix.media.MediaRepositoryConfig
 import data.io.matrix.media.MediaUploadResponse
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.RoomSummary
+import data.io.matrix.room.FullConversationRoom
+import data.io.matrix.room.event.ConversationRoomMember
 import data.io.matrix.room.event.ConversationTypingIndicator
 import data.io.social.network.conversation.MessageReactionRequest
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.ConversationMessagesResponse
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
+import data.io.user.NetworkItemIO
 import data.shared.SharedDataManager
 import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.MediaDao
+import database.dao.MessageReactionDao
+import database.dao.RoomMemberDao
 import database.file.FileAccess
 import io.github.vinceglb.filekit.PlatformFile
 import io.ktor.client.HttpClient
@@ -45,30 +50,42 @@ import net.folivo.trixnity.client.roomEventEncryptionServices
 import net.folivo.trixnity.core.model.EventId
 import net.folivo.trixnity.core.model.RoomId
 import net.folivo.trixnity.core.model.UserId
-import net.folivo.trixnity.core.model.events.ClientEvent
+import net.folivo.trixnity.core.model.events.m.Mentions
+import net.folivo.trixnity.core.model.events.m.ReactionEventContent
+import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.room.AudioInfo
 import net.folivo.trixnity.core.model.events.m.room.FileInfo
 import net.folivo.trixnity.core.model.events.m.room.ImageInfo
+import net.folivo.trixnity.core.model.events.m.room.Membership
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
+import utils.SharedLogger
 
 /** Class for calling APIs and remote work in general */
 open class ConversationRepository(
     private val httpClient: HttpClient,
     private val conversationMessageDao: ConversationMessageDao,
     internal val conversationRoomDao: ConversationRoomDao,
-    private val roomMemberDao: RoomMemberDao,
     mediaDataManager: MediaProcessorDataManager,
     fileAccess: FileAccess
 ): MediaRepository(httpClient, mediaDataManager, fileAccess) {
     private val sharedDataManager by lazy { KoinPlatform.getKoin().get<SharedDataManager>() }
     private val dataSyncHandler by lazy { KoinPlatform.getKoin().get<DataSyncHandler>() }
+    private val mediaDao by lazy { KoinPlatform.getKoin().get<MediaDao>() }
+    private val roomMemberDao by lazy { KoinPlatform.getKoin().get<RoomMemberDao>() }
+    private val messageReactionDao by lazy { KoinPlatform.getKoin().get<MessageReactionDao>() }
 
     protected var currentPagingSource: PagingSource<*, *>? = null
     val cachedFiles = MutableStateFlow(hashMapOf<String, PlatformFile?>())
     protected var certainMessageCount: Int? = null
+
+    companion object {
+        const val MENTION_REGEX_USER_ID = """.*\/#\/(@[^"]+)"""
+        private const val MENTION_REGEX = """<a href="$MENTION_REGEX_USER_ID">([^<]+)<\/a>"""
+        const val REGEX_HTML_MENTION = """<a href=".*(@[^"]+)">([^<]+)<\/a>"""
+    }
 
     /** Attempts to invalidate local PagingSource with conversation messages */
     fun invalidateLocalSource() {
@@ -128,23 +145,98 @@ open class ConversationRepository(
         }else null
     }
 
+    suspend fun insertMemberByUserId(
+        conversationId: String,
+        userId: String,
+        homeserver: String
+    ) {
+        return withContext(Dispatchers.IO) {
+            if (roomMemberDao.get(userId) == null) {
+                val remoteInfo = getRemoteUser(userId, homeserver)
+
+                roomMemberDao.insertReplace(
+                    ConversationRoomMember(
+                        userId = userId,
+                        roomId = conversationId,
+                        sender = UserId(userId),
+                        timestamp = DateUtils.now.toEpochMilliseconds(),
+                        isDirect = true,
+                        membership = Membership.INVITE,
+                        avatarUrl = remoteInfo?.avatarUrl,
+                        displayName = remoteInfo?.displayName
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun insertConversation(conversation: ConversationRoomIO) {
+        return withContext(Dispatchers.IO) {
+            conversationRoomDao.insert(conversation)
+        }
+    }
+
+    suspend fun getRemoteUser(
+        userId: String,
+        homeserver: String
+    ) = httpClient.safeRequest<NetworkItemIO> {
+        httpClient.get(urlString = "https://${homeserver}/_matrix/client/v3/profile/${userId}")
+    }.success?.data
+
+    suspend fun getRoomIdByUser(userId: String): String? {
+        return withContext(Dispatchers.IO) {
+            conversationRoomDao.getAll().let { rooms ->
+                withContext(Dispatchers.Default) {
+                    rooms.find {
+                        it.data.summary?.isDirect == true && roomMemberDao.getOfRoom(it.data.id).firstOrNull()?.userId == userId
+                    }?.data?.id ?: rooms.find {
+                        roomMemberDao.getOfRoom(it.data.id).size == 1 && roomMemberDao.getOfRoom(it.data.id).firstOrNull()?.userId == userId
+                    }?.data?.id
+
+                }
+            }
+        }
+    }
+
+    suspend fun recommendUsersToInvite(
+        limit: Int,
+        excludeMembers: List<String>
+    ): List<ConversationRoomMember> {
+        return withContext(Dispatchers.IO) {
+            roomMemberDao.getSorted(excludeIds = excludeMembers, limit = limit)
+        }
+    }
+
+    suspend fun queryUsersToInvite(
+        query: String,
+        excludeMembers: List<String>,
+        limit: Int
+    ): List<ConversationRoomMember> {
+        return withContext(Dispatchers.IO) {
+            roomMemberDao.query(query, excludeIds = excludeMembers, limit = limit)
+        }
+    }
+
     /** Returns a flow of conversation messages */
     fun getMessagesListFlow(
         homeserver: () -> String,
         config: PagingConfig,
         conversationId: String? = null
-    ): Pager<Int, ConversationMessageIO> {
+    ): Pager<Int, FullConversationMessage> {
         return Pager(
             config = config,
             pagingSourceFactory = {
                 ConversationRoomSource(
                     getMessages = { page ->
-                        if(conversationId == null) return@ConversationRoomSource GetMessagesResponse(
-                            data = listOf(), hasNext = false
-                        )
+                        if(conversationId.isNullOrBlank()) {
+                            SharedLogger.logger.debug { "conversation id is null, can't load messages" }
+                            return@ConversationRoomSource GetMessagesResponse(
+                                data = listOf(), hasNext = false
+                            )
+                        }
 
                         withContext(Dispatchers.IO) {
-                            val prevBatch = conversationRoomDao.get(conversationId)?.prevBatch
+                            val prevBatch = conversationRoomDao.get(conversationId)?.data?.prevBatch
 
                             conversationMessageDao.getPaginated(
                                 conversationId = conversationId,
@@ -204,31 +296,8 @@ open class ConversationRepository(
     suspend fun getConversationDetail(
         conversationId: String,
         owner: String?
-    ): ConversationRoomIO? = withContext(Dispatchers.IO) {
-        conversationRoomDao.getItem(conversationId, ownerPublicId = owner)?.let { room ->
-            val members = roomMemberDao.get(
-                userIds = room.summary?.heroes?.map { it.full }.orEmpty()
-            ).let { local ->
-                // if there are missing members, let's use API
-                if (local.size < (room.summary?.heroes?.size?.plus(1) ?: 1) || local.isEmpty()) {
-                    (sharedDataManager.matrixClient.value?.api?.room?.getMembers(
-                        roomId = RoomId(conversationId)
-                    )?.getOrNull()?.toList() as? List<ClientEvent<*>>)?.let { memberEvents ->
-                        dataSyncHandler.saveEvents(
-                            roomId = conversationId,
-                            prevBatch = null,
-                            events = memberEvents
-                        ).members
-                    }?.plus(local)?.distinctBy { it.userId } ?: local
-                } else local
-            }
-
-            room.copy(
-                summary = (room.summary ?: RoomSummary(heroes = members.map { UserId(it.userId) })).apply {
-                    this.members = members
-                }
-            )
-        }
+    ): FullConversationRoom? = withContext(Dispatchers.IO) {
+        conversationRoomDao.get(conversationId, ownerPublicId = owner)
     }
 
     /** Informs Matrix about typing progress */
@@ -249,59 +318,73 @@ open class ConversationRepository(
     suspend fun sendMessage(
         client: MatrixClient?,
         conversationId: String,
-        message: ConversationMessageIO
+        message: ConversationMessageIO,
+        media: List<MediaIO>? = null
     ): Result<EventId>? = withContext(Dispatchers.IO) {
         val roomId = RoomId(conversationId)
+        val mentions = Mentions(
+            users = MENTION_REGEX.toRegex().findAll(message.content ?: "").map { UserId(it.groupValues[1]) }.toSet(),
+            room = false // TODO ability to mention rooms 86c46m1bq
+        )
+        val content = message.content?.replace(MENTION_REGEX.toRegex()) { it.groupValues[2] } ?: ""
+
         val eventContent = when {
-            message.media?.size == 1 -> {
-                val media = message.media.firstOrNull()
-                when(getMediaType(media?.mimetype ?: "")) {
+            media?.size == 1 -> {
+                val media = media.firstOrNull()
+                when(MediaType.fromMimeType(media?.mimetype ?: "")) {
                     MediaType.AUDIO -> RoomMessageEventContent.FileBased.Audio(
-                        body = message.content ?: "",
+                        body = content,
                         url = media?.url,
                         fileName = media?.name,
                         info = AudioInfo(
                             mimeType = media?.mimetype,
                             size = media?.size
                         ),
+                        mentions = mentions,
                         relatesTo = message.relatesTo()
                     )
                     MediaType.GIF, MediaType.IMAGE -> RoomMessageEventContent.FileBased.Image(
-                        body = message.content ?: "",
+                        body = content,
                         url = media?.url,
                         fileName = media?.name,
                         info = ImageInfo(
                             mimeType = media?.mimetype,
                             size = media?.size
                         ),
+                        mentions = mentions,
                         relatesTo = message.relatesTo()
                     )
                     else -> RoomMessageEventContent.FileBased.File(
-                        body = message.content ?: "",
+                        body = content,
                         url = media?.url,
                         fileName = media?.name,
                         info = FileInfo(
                             mimeType = media?.mimetype,
                             size = media?.size
                         ),
+                        mentions = mentions,
                         relatesTo = message.relatesTo()
                     )
                 }
             }
-            (message.media?.size ?: 0) > 1 -> FileList(
-                body = message.content ?: "",
-                urls = message.media?.mapNotNull { it.url },
-                fileName = message.media?.firstOrNull()?.name,
-                infos = message.media?.map { media ->
+            (media?.size ?: 0) > 1 -> FileList(
+                body = content,
+                urls = media?.mapNotNull { it.url },
+                fileName = media?.firstOrNull()?.name,
+                infos = media?.map { media ->
                     FileInfo(
                         mimeType = media.mimetype,
                         size = media.size
                     )
                 },
+                mentions = mentions,
                 relatesTo = message.relatesTo()
             )
             else -> RoomMessageEventContent.TextBased.Text(
-                body = message.content ?: "",
+                body = content,
+                formattedBody = message.content ?: "",
+                format = "org.matrix.custom.html",
+                mentions = mentions,
                 relatesTo = message.relatesTo()
             )
         }
@@ -310,9 +393,26 @@ open class ConversationRepository(
             roomId = roomId,
             eventContent = client.roomEventEncryptionServices.encrypt(
                 content = eventContent,
-                roomId = roomId
+                roomId = roomId,
             )?.getOrNull() ?: eventContent
         )
+    }
+
+    suspend fun saveMedia(media: MediaIO) = withContext(Dispatchers.IO) {
+        mediaDao.insertReplace(media)
+    }
+
+    suspend fun removeAllMediaOf(messageId: String) = withContext(Dispatchers.IO) {
+        mediaDao.removeAllOf(messageId)
+    }
+
+    suspend fun indexOfMessage(
+        messageId: String,
+        conversationId: String
+    ) = withContext(Dispatchers.IO) {
+        if (conversationMessageDao.get(messageId) != null) {
+            conversationMessageDao.getMessagesAfterCount(messageId, conversationId)
+        } else null
     }
 
     suspend fun cacheMessage(message: ConversationMessageIO) = withContext(Dispatchers.IO) {
@@ -335,32 +435,57 @@ open class ConversationRepository(
         conversationId: String,
         reaction: MessageReactionRequest
     ): BaseResponse<Any> {
-        return withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.Default) {
+            val self = sharedDataManager.currentUser.value?.matrixUserId
+            val data = MessageReactionIO(
+                content = reaction.content,
+                authorPublicId = self,
+                messageId = reaction.messageId
+            )
             conversationMessageDao.get(reaction.messageId)?.let { message ->
-                val dataManager = KoinPlatform.getKoin().get<SharedDataManager>()
+                val existingReaction = message.reactions.find {
+                    it.authorPublicId == self && it.content == reaction.content
+                }
 
-                conversationMessageDao.insertReplace(message.copy(
-                    reactions = message.reactions.orEmpty().toMutableList().apply {
-                        add(
-                            MessageReactionIO(
-                                content = reaction.content,
-                                authorPublicId = dataManager.currentUser.value?.matrixUserId
+                // add new reaction
+                if (existingReaction == null) {
+                    messageReactionDao.insertReplace(data) // placeholder local reaction
+                    invalidateLocalSource()
+
+                    sharedDataManager.matrixClient.value?.api?.room?.sendMessageEvent(
+                        roomId = RoomId(conversationId),
+                        eventContent = ReactionEventContent(
+                            relatesTo = RelatesTo.Annotation(
+                                eventId = EventId(reaction.messageId),
+                                key = reaction.content
                             )
                         )
-                    }
-                ))
-            }
-            invalidateLocalSource()
+                    )?.getOrNull().let { eventId ->
+                        messageReactionDao.remove(data.eventId)
 
-            httpClient.safeRequest<Any> {
-                post(
-                    urlString = "/api/v1/social/conversation/react",
-                    block = {
-                        parameter("conversationId", conversationId)
-                        setBody(reaction)
+                        (if (eventId != null) { // replace placeholder with real event
+                            messageReactionDao.insertReplace(data.copy(eventId = eventId.full))
+                            BaseResponse.Success(eventId)
+                        }else BaseResponse.Error()).also {
+                            invalidateLocalSource()
+                        }
                     }
-                )
-            }
+                } else {    // remove existing reaction
+                    messageReactionDao.remove(existingReaction.eventId)
+                    invalidateLocalSource()
+
+                    sharedDataManager.matrixClient.value?.api?.room?.redactEvent(
+                        roomId = RoomId(conversationId),
+                        eventId = EventId(existingReaction.eventId)
+                    )?.getOrNull().let { eventId ->
+                        if (eventId == null) {
+                            messageReactionDao.insertReplace(existingReaction)
+                            invalidateLocalSource()
+                            BaseResponse.Error()
+                        } else BaseResponse.Success(eventId)
+                    }
+                }
+            } ?: BaseResponse.Error()
         }
     }
 

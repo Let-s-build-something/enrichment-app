@@ -1,10 +1,9 @@
 package base.global
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
@@ -34,6 +32,7 @@ import augmy.composeapp.generated.resources.no_connection_title
 import augmy.interactive.shared.ext.scalingClickable
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.theme.LocalTheme
+import base.global.verification.DeviceVerificationLauncher
 import base.theme.Colors
 import components.notification.InfoHintBox
 import data.shared.SharedModel
@@ -47,25 +46,32 @@ import org.koin.compose.viewmodel.koinViewModel
 import ui.account.profile.DisplayNameChangeLauncher
 
 @Composable
-fun ColumnScope.InformationLines(
+fun InformationLines(
     sharedModel: SharedModel = koinViewModel()
 ) {
     val networkConnectivity = sharedModel.networkConnectivity.collectAsState()
     val currentUser = sharedModel.currentUser.collectAsState()
 
 
-    // no stable internet connection
-    AnimatedVisibility(networkConnectivity.value?.isStable == false) {
-        NoConnectionLine()
-    }
-
-    // missing display name
-    AnimatedVisibility(
-        currentUser.value != null
-                && currentUser.value?.displayName == null
-                && !sharedModel.awaitingAutologin
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
     ) {
-        MissingDisplayNameLine()
+        // no stable internet connection
+        if (networkConnectivity.value?.isStable == false) {
+            NoConnectionLine()
+        }
+
+        // missing display name
+        if (currentUser.value != null
+            && currentUser.value?.displayName == null
+            && !sharedModel.awaitingAutologin
+        ) {
+            MissingDisplayNameLine()
+        }
+
+        DeviceVerificationLauncher()
     }
 }
 
@@ -104,11 +110,11 @@ private fun NoConnectionLine() {
             ) {
                 Text(
                     text = stringResource(Res.string.no_connection_title),
-                    style = LocalTheme.current.styles.title.copy(color = Color.White)
+                    style = LocalTheme.current.styles.title
                 )
                 Text(
                     text = stringResource(Res.string.no_connection_description),
-                    style = LocalTheme.current.styles.regular.copy(color = Colors.GrayLight)
+                    style = LocalTheme.current.styles.regular
                 )
             }
             if(LocalDeviceType.current != WindowWidthSizeClass.Compact) {

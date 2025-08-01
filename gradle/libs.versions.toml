@@ -1,65 +1,66 @@
 [versions]
-agp = "8.10.1"
+agp = "8.12.0"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
 version-name = "1.0"
-version-code = "52"
+version-code = "53"
 
 androidx-activityCompose = "1.10.1"
-composeWebviewMultiplatform = "1.9.40"
-kotlin = "2.2.0-RC"
-kotlinTest = "2.2.0-RC"
-ksp = "2.2.0-RC-2.0.1"
-ktor = "3.1.3"
+composeWebviewMultiplatform = "2.0.1"
+kotlin = "2.2.0"
+buildkonfig = "0.17.1"
+kotlinTest = "2.2.0"
+ksp = "2.2.0-2.0.2"
+ktor = "3.2.2"
 ksoup = "0.2.4"
-navigationCompose = "2.8.0-alpha12"     # has lifecycle inside - 2.9.0. crashes
+navigationCompose = "2.8.0-alpha13"     # has lifecycle inside - 2.9.0. crashes
 lifecycle = "2.8.4"                     # 2.9.0. crashes
-compose-plugin = "1.8.1"
+compose-plugin = "1.8.2"
 compottie = "2.0.0-rc04"
-mediaPlayerChaintech = "1.0.31"
-kotlinCrypto = "0.5.3"
+mediaPlayerChaintech = "1.0.42"
+kotlinCrypto = "0.7.0"
 koin = "4.0.4"
 pagingCompose = "3.3.0-alpha02-0.5.1"
-room = "2.7.1"
-sqlite-bundled = "2.5.1"
+room = "2.7.2"
+sqlite-bundled = "2.5.2"
 googleId = "1.1.1"
 firebaseJavaSdk = "0.4.6"
 firebaseGitlive = "2.1.0"
 windowSizeClass = "0.5.0"
-coilCompose = "3.2.0-rc02"
-coilGif = "3.2.0-rc02"
-kamel = "1.0.3"
+coilCompose = "3.3.0"
+coilGif = "3.3.0"
+kamel = "1.0.7"
 coroutines = "1.10.2"
-kotlinxSerialization = "1.8.1"
+kotlinxSerialization = "1.9.0"
 kotlinx-datetime = "0.6.2"
-fileKit = "0.10.0-beta04"
+fileKit = "0.10.0"
 multiplatformSettings = "1.3.0"
 datastore = "1.1.7"
-workRuntimeKtx = "2.10.1"
-trixnity = "4.13.3"
-oshaiKotlinLogging = "7.0.5" # https://github.com/oshai/kotlin-logging/releases
+workRuntimeKtx = "2.10.3"
+trixnity = "4.19.0"
+installreferrer = "2.2"
 
 # Android
 accompanistPermissions = "0.37.3"
 credentials = "1.5.0"
-androidxSplashscreen = "1.2.0-beta02"
-androidFirebaseMessaging = "24.1.1"
+androidxSplashscreen = "1.2.0-rc01"
+androidFirebaseMessaging = "25.0.0"
 
 # Java
 jvmCredentialStore = "243.23654.166"
-jvmLogback = "1.5.17"
-oshiCore = "6.8.1"
-securityCryptoKtx = "1.1.0-alpha07"
-runner = "1.6.2"
-core = "1.6.1"
-junit = "1.2.1"
+javaJwt = "4.5.0"
+jvmLogback = "1.5.18"
+oshiCore = "6.8.2"
+securityCryptoKtx = "1.1.0"
+runner = "1.7.0"
+core = "1.7.0"
+junit = "1.3.0"
 
 
 [libraries]
 compose-webview-multiplatform = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "composeWebviewMultiplatform" }
 firebase-java-sdk = { module = "dev.gitlive:firebase-java-sdk", version.ref = "firebaseJavaSdk" }
-oshai-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "oshaiKotlinLogging" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
@@ -135,9 +136,11 @@ android-firebase-messaging = { module = "com.google.firebase:firebase-messaging"
 android-accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coilGif" }
 androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
+android-installreferrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installreferrer" }
 
 #------------------- JVM -------------------
 credential-store = { module = "com.jetbrains.intellij.platform:credential-store", version.ref = "jvmCredentialStore" }
+java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "jvmLogback" }
 oshi-core = { module = "com.github.oshi:oshi-core", version.ref = "oshiCore" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }

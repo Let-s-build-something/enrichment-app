@@ -1,11 +1,7 @@
 package data.io.matrix.room
 
-import androidx.room.Ignore
-import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
-import data.io.user.UserIO
-import data.io.user.UserIO.Companion.generateUserTag
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
@@ -57,44 +53,16 @@ data class RoomSummary(
             invitationMessage = other.invitationMessage ?: invitationMessage,
             invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
             joinedMemberCount = other.joinedMemberCount ?: joinedMemberCount
-        ).apply {
-            members = other.members.takeIf { !it.isNullOrEmpty() } ?: members
-        }
+        )
     }
-
-    /** List of members */
-    @Ignore
-    var members: List<ConversationRoomMember>? = null
-
-    /** Either [canonicalAlias] or a default based on [heroes] */
-    val roomName: String
-        get() = canonicalAlias ?: heroes?.joinToString(", ") ?: when {
-            !heroes.isNullOrEmpty() -> {
-                heroes.joinToString(", ") {
-                    UserIO.initialsOf(it.localpart)
-                }
-            }
-            !members.isNullOrEmpty() -> {
-                members?.joinToString(", ") {
-                    UserIO.initialsOf(UserId(it.userId).localpart)
-                } ?: ""
-            }
-            else -> "Room"
-        }
-
-    val tag: String?
-        @Ignore
-        get() = roomName.takeIf { it != "Room" }?.let { UserId(it).generateUserTag() }
 
     override fun toString(): String {
         return "{" +
                 "heroes: $heroes, " +
                 "canonicalAlias: $canonicalAlias, " +
-                "tag: $tag, " +
                 "avatar: $avatar, " +
                 "isDirect: $isDirect, " +
                 "invitationMessage: $invitationMessage, " +
-                "members: $members, " +
                 "invitedMemberCount: $invitedMemberCount, " +
                 "joinedMemberCount: $joinedMemberCount, " +
                 "lastMessage: $lastMessage" +

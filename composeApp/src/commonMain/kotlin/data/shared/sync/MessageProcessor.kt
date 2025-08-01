@@ -3,20 +3,28 @@ package data.shared.sync
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.message_alias_change
 import augmy.composeapp.generated.resources.message_avatar_change
+import augmy.composeapp.generated.resources.message_redacted
+import augmy.composeapp.generated.resources.message_room_created
 import augmy.interactive.shared.utils.DateUtils
 import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
+import data.io.user.PresenceData
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
-import io.github.oshai.kotlinlogging.KotlinLogging
+import database.dao.MediaDao
+import database.dao.MessageReactionDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import korlibs.io.util.getOrNullLoggingError
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -32,16 +40,22 @@ import net.folivo.trixnity.core.model.events.ClientEvent
 import net.folivo.trixnity.core.model.events.ClientEvent.RoomEvent
 import net.folivo.trixnity.core.model.events.MessageEventContent
 import net.folivo.trixnity.core.model.events.idOrNull
+import net.folivo.trixnity.core.model.events.m.PresenceEventContent
+import net.folivo.trixnity.core.model.events.m.ReactionEventContent
 import net.folivo.trixnity.core.model.events.m.ReceiptEventContent
+import net.folivo.trixnity.core.model.events.m.ReceiptType
 import net.folivo.trixnity.core.model.events.m.RelatesTo
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationCancelEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationDoneEventContent
 import net.folivo.trixnity.core.model.events.m.key.verification.VerificationStep
 import net.folivo.trixnity.core.model.events.m.room.AvatarEventContent
 import net.folivo.trixnity.core.model.events.m.room.CanonicalAliasEventContent
+import net.folivo.trixnity.core.model.events.m.room.CreateEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedMessageEventContent.MegolmEncryptedMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.EncryptedToDeviceEventContent.OlmEncryptedToDeviceEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
+import net.folivo.trixnity.core.model.events.m.room.Membership
+import net.folivo.trixnity.core.model.events.m.room.RedactionEventContent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent.FileBased
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
@@ -62,23 +76,29 @@ abstract class MessageProcessor {
     protected val dataService: DataService by KoinPlatform.getKoin().inject()
     protected val sharedDataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
+    private val mediaDao: MediaDao by KoinPlatform.getKoin().inject()
+    private val messageReactionDao: MessageReactionDao by KoinPlatform.getKoin().inject()
     private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
+    private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
     protected val decryptionScope = CoroutineScope(Dispatchers.Default)
-    private val logger = KotlinLogging.logger(name = "MessageProcessor")
+    private val logger = Logger(name = "MessageProcessor")
 
     data class SaveEventsResult(
-        val messages: List<ConversationMessageIO>,
+        val messages: List<FullConversationMessage>,
+        val changeInMessages: Boolean,
         val events: Int,
         val members: List<ConversationRoomMember>,
-        val prevBatch: String?
+        val prevBatch: String?,
+        val nextBatch: String? = null,
     )
 
     suspend fun saveEvents(
         events: List<ClientEvent<*>>,
         roomId: String,
-        prevBatch: String?
+        prevBatch: String?,
+        nextBatch: String? = null,
     ): SaveEventsResult {
         return withContext(Dispatchers.IO) {
             val result = processEvents(
@@ -93,51 +113,103 @@ abstract class MessageProcessor {
                     event = encrypted.second,
                     roomId = roomId,
                     receipts = result.receipts
-                )?.let {
-                    decryptedMessages.add(it)
+                )?.let { res ->
+                    res.first?.let { mediaDao.insertReplace(it) }
+                    decryptedMessages.add(res.second)
                 }
             }
-            roomMemberDao.insertAll(result.members)
 
-            val messages = result.messages.plus(decryptedMessages).mapNotNull {
-                if (conversationMessageDao.insertIgnore(it) == -1L) {
-                    conversationMessageDao.insertReplace(it)
+            mediaDao.insertAll(result.media)
+            messageReactionDao.insertAll(result.reactions.toList())
+
+            val messages = result.messages.plus(decryptedMessages).mapNotNull { m ->
+                val message = m.copy(nextBatch = nextBatch, prevBatch = prevBatch)
+
+                if (conversationMessageDao.insertIgnore(message) == -1L) {
+                    conversationMessageDao.insertReplace(message)
                     null
-                } else it
+                }else FullConversationMessage(
+                    data = message,
+                    reactions = result.reactions.filter { it.messageId == message.id },
+                    media = result.media.filter { it.messageId == message.id },
+                )
             }
-            roomMemberDao.insertAll(result.members)
 
-            if (result.messages.isNotEmpty()) {
-                // add the anchor messages
-                val updates = withContext(Dispatchers.Default) {
-                    result.messages.filter { it.anchorMessageId != null }.map {
-                        it.copy(anchorMessage = withContext(Dispatchers.IO) {
-                            conversationMessageDao.get(it.anchorMessageId)?.toAnchorMessage()
-                        })
+            result.receipts.forEach { receipt ->
+                receipt.content.events.forEach { event ->
+                    if (!event.value[ReceiptType.Read].isNullOrEmpty() || !event.value[ReceiptType.FullyRead].isNullOrEmpty()) {
+                        conversationMessageDao.updateState(
+                            id = event.key.full,
+                            state = MessageState.Read
+                        )
                     }
                 }
-                conversationMessageDao.insertAll(updates)
+            }
+
+            if(result.presenceData.isNotEmpty()) {
+                presenceEventDao.insertAll(result.presenceData)
+            }
+
+            val members = result.members.mapNotNull { member ->
+                val existingMember = roomMemberDao.get(member.userId)
+
+                val isNew = existingMember == null
+                val isNewer = (existingMember?.timestamp ?: 0) < (member.timestamp ?: 0)
+
+                if (isNew || isNewer) {
+                    roomMemberDao.insertReplace(member)
+                    member
+                } else null
+            }
+
+            result.redactions.forEach { redaction ->
+                conversationMessageDao.updateMessage(
+                    id = redaction.redacts.full,
+                    message = getString(
+                        Res.string.message_redacted,
+                        redaction.reason ?: ""
+                    )
+                )
+                messageReactionDao.remove(redaction.redacts.full)
+            }
+
+            result.replacements.forEach { replacement ->
+                if (conversationMessageDao.get(replacement.key) != null) {
+                    conversationMessageDao.updateMessage(
+                        id = replacement.key,
+                        message = replacement.value?.content ?: ""
+                    )
+                }else replacement.value?.let {
+                    conversationMessageDao.insertReplace(it)
+                }
             }
 
             SaveEventsResult(
                 messages = messages,
-                members = result.members,
+                members = members.filter { it.membership == Membership.JOIN },
                 events = events.size,
-                prevBatch = prevBatch
+                prevBatch = prevBatch,
+                changeInMessages = !result.isEmpty,
+                nextBatch = nextBatch
             )
         }
     }
 
     @OptIn(ExperimentalUuidApi::class)
     @Suppress("UNCHECKED_CAST")
-    private suspend fun processEvents(
+    suspend fun processEvents(
         events: List<ClientEvent<*>>,
         roomId: String
     ): ProcessedEvents = withContext(Dispatchers.Default) {
         val messages = mutableListOf<ConversationMessageIO>()
+        val media = mutableListOf<MediaIO>()
         val members = mutableListOf<ConversationRoomMember>()
         val receipts = mutableListOf<ClientEvent<ReceiptEventContent>>()
         val encryptedEvents = mutableListOf<Pair<String, RoomEvent.MessageEvent<*>>>()
+        val redactions = mutableListOf<RedactionEventContent>()
+        val replacements = hashMapOf<String, ConversationMessageIO?>()
+        val reactions = mutableSetOf<MessageReactionIO>()
+        val presenceData = mutableListOf<PresenceData>()
 
         events.forEach { event ->
             when (val content = event.content) {
@@ -146,41 +218,58 @@ abstract class MessageProcessor {
                         ?: content.thirdPartyInvite?.signed?.signed?.userId?.full)?.let { userId ->
                         members.add(
                             ConversationRoomMember(
-                                content = content,
                                 roomId = roomId,
                                 timestamp = event.originTimestampOrNull,
                                 sender = event.senderOrNull,
-                                userId = userId
+                                userId = userId,
+                                displayName = content.displayName,
+                                avatarUrl = content.avatarUrl,
+                                isDirect = content.isDirect,
+                                joinAuthorisedViaUsersServer = content.joinAuthorisedViaUsersServer,
+                                thirdPartyInvite = content.thirdPartyInvite,
+                                reason = content.reason,
+                                externalUrl = content.externalUrl,
+                                membership = content.membership
                             )
                         )
                     }
-                    /*if (event is RoomEvent.StateEvent) {
-                        (event as? RoomEvent.StateEvent<MemberEventContent>)?.let {
-                            memberUpdates.add(it)
+                    (content.displayName ?: event.senderOrNull?.localpart)?.let { displayName ->
+                        content.avatarUrl?.let {
+                            event.idOrNull?.full?.let { messageId ->
+                                media.add(
+                                    MediaIO(
+                                        url = it,
+                                        name = event.senderOrNull?.localpart,
+                                        messageId = messageId,
+                                        conversationId = null
+                                    )
+                                )
+                            }
                         }
-                    }*/
-                    content.displayName?.let { displayName ->
                         ConversationMessageIO(
                             content = content.membership.asMessage(
-                                isSelf = content.displayName == sharedDataManager.currentUser.value?.matrixDisplayName,
+                                isSelf = event.senderOrNull?.localpart == sharedDataManager.currentUser.value?.matrixUserId,
                                 displayName = displayName
-                            ),
-                            media = listOf(
-                                MediaIO(url = content.avatarUrl)
                             ),
                             authorPublicId = AUTHOR_SYSTEM
                         )
                     }
                 }
-
                 is ReceiptEventContent -> {
                     (event as? ClientEvent<ReceiptEventContent>)?.let {
-                        // TODO save receipts to DB
                         receipts.add(it)
                     }
                     null
                 }
-
+                is PresenceEventContent -> {
+                    presenceData.add(
+                        PresenceData(
+                            userIdFull = event.senderOrNull?.full ?: "",
+                            content = content
+                        )
+                    )
+                    null
+                }
                 is OlmEncryptedToDeviceEventContent, is MegolmEncryptedMessageEventContent -> {
                     if (event is RoomEvent.MessageEvent) {
                         val id = event.idOrNull?.full ?: Uuid.random().toString()
@@ -190,12 +279,23 @@ abstract class MessageProcessor {
                     null
                 }
                 is AvatarEventContent -> {
+                    content.url?.let {
+                        event.idOrNull?.full?.let { messageId ->
+                            media.add(
+                                MediaIO(
+                                    url = it,
+                                    name = event.senderOrNull?.localpart,
+                                    messageId = messageId,
+                                    conversationId = roomId
+                                )
+                            )
+                        }
+                    }
                     ConversationMessageIO(
                         content = getString(
                             Res.string.message_avatar_change,
-                            event.senderOrNull?.full ?: ""
+                            event.senderOrNull?.localpart ?: ""
                         ),
-                        media = listOf(MediaIO(url = content.url)),
                         authorPublicId = AUTHOR_SYSTEM
                     )
                 }
@@ -203,21 +303,66 @@ abstract class MessageProcessor {
                     ConversationMessageIO(
                         content = getString(
                             Res.string.message_alias_change,
-                            (content.alias ?: content.aliases?.firstOrNull())?.full ?: "",
-                            event.senderOrNull?.full ?: ""
+                            (content.alias ?: content.aliases?.firstOrNull())?.localpart ?: "",
+                            event.senderOrNull?.localpart ?: ""
                         ),
-                        media = listOf(MediaIO(name = event.senderOrNull?.full ?: "")),
                         authorPublicId = AUTHOR_SYSTEM
                     )
                 }
-                is MessageEventContent -> content.process()
+                is ReactionEventContent -> {
+                    content.relatesTo?.eventId?.full?.let { eventId ->
+                        reactions.add(
+                            MessageReactionIO(
+                                eventId = event.idOrNull?.full ?: Uuid.random().toString(),
+                                messageId = eventId,
+                                content = content.relatesTo?.key,
+                                authorPublicId = event.senderOrNull?.full
+                            )
+                        )
+                    }
+                    null
+                }
+                is CreateEventContent -> {
+                    ConversationMessageIO(
+                        content = getString(
+                            Res.string.message_room_created,
+                            event.senderOrNull?.localpart ?: content.creator?.localpart ?: "",
+                        ),
+                        authorPublicId = AUTHOR_SYSTEM
+                    )
+                }
+                is RedactionEventContent -> {
+                    redactions.add(content)
+                    null
+                }
+                is MessageEventContent -> {
+                    val replacement: RelatesTo.Replace? = if (content.relatesTo is RelatesTo.Replace) {
+                        content.relatesTo as RelatesTo.Replace
+                    } else null
+                    (this as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
+                        media.add(
+                            MediaIO(
+                                url = it.url,
+                                mimetype = it.info?.mimeType,
+                                name = it.fileName,
+                                size = it.info?.size,
+                                messageId = event.idOrNull?.full ?: "",
+                                conversationId = roomId
+                            )
+                        )
+                    }
+
+                    if (replacement != null) {
+                        replacements[replacement.eventId.full] = replacement.newContent?.process()
+                        null
+                    }else content.process()
+                }
                 else -> null
                 /*EmptyEventContent -> TODO()
                 is EphemeralDataUnitContent -> TODO()
                 is EphemeralEventContent -> TODO()
                 is GlobalAccountDataEventContent -> TODO()
                 is RoomAccountDataEventContent -> TODO()
-                is MessageEventContent -> TODO()
                 is RedactedEventContent -> TODO()
                 is StateEventContent -> TODO()
                 is UnknownEventContent -> TODO()
@@ -238,7 +383,12 @@ abstract class MessageProcessor {
             messages = messages,
             members = members,
             receipts = receipts,
-            encryptedEvents = encryptedEvents
+            redactions = redactions,
+            presenceData = presenceData,
+            reactions = reactions,
+            replacements = replacements,
+            encryptedEvents = encryptedEvents,
+            media = media
         )
     }
 
@@ -248,7 +398,7 @@ abstract class MessageProcessor {
         receipts: List<ClientEvent<ReceiptEventContent>>,
         event: RoomEvent.MessageEvent<*>,
         save: Boolean = false
-    ): ConversationMessageIO? = withContext(Dispatchers.IO) {
+    ): Pair<MediaIO?, ConversationMessageIO>? = withContext(Dispatchers.IO) {
         val decryptionStart = DateUtils.now.toEpochMilliseconds()
         withTimeoutOrNull(DECRYPTION_TIMEOUT_MS) {
             decryptEvent(event = event)?.let { content ->
@@ -263,23 +413,34 @@ abstract class MessageProcessor {
                         event = event,
                         messageId = messageId
                     )?.let { update ->
-                        val message = conversationMessageDao.get(messageId)?.update(update) ?: update
+                        val media = (content as? FileBased)?.takeIf { it.url?.isBlank() == false }?.let {
+                            MediaIO(
+                                url = it.url,
+                                mimetype = it.info?.mimeType,
+                                name = it.fileName,
+                                size = it.info?.size,
+                                messageId = messageId,
+                                conversationId = roomId
+                            )
+                        }
+                        val message = conversationMessageDao.get(messageId)?.data?.update(update) ?: update
 
-                        message.copy(
+                        media to message.copy(
                             state = if (message.authorPublicId == sharedDataManager.currentUser.value?.matrixUserId) {
                                 MessageState.Sent
                             } else MessageState.Read
                         ).also { decryptedMessage ->
                             if(save) {
+                                media?.let { mediaDao.insertReplace(it) }
                                 conversationMessageDao.insertReplace(decryptedMessage)
-                                conversationRoomDao.getItem(
+                                conversationRoomDao.get(
                                     id = decryptedMessage.conversationId,
                                     ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
                                 ).also { data ->
-                                    if (data?.summary?.lastMessage?.id == decryptedMessage.id) {
+                                    if (data?.data?.summary?.lastMessage?.id == decryptedMessage.id) {
                                         conversationRoomDao.insert(
-                                            data.copy(
-                                                summary = data.summary.copy(lastMessage = decryptedMessage)
+                                            data.data.copy(
+                                                summary = data.data.summary.copy(lastMessage = decryptedMessage)
                                             )
                                         )
                                     }
@@ -302,7 +463,7 @@ abstract class MessageProcessor {
         }.also {
             // the decryption timed-out -> put it to the background
             if(it == null && !save) {
-                logger.debug { "failed to decrypt within given timeout, putting decryption to background" }
+                logger.warn { "failed to decrypt within given timeout, putting decryption to background" }
                 decryptionScope.launch {
                     returnOrSaveEncryptedEvent(
                         messageId = messageId,
@@ -352,21 +513,11 @@ abstract class MessageProcessor {
             }
             else -> {
                 val file = (this as? FileBased)?.takeIf { it.url?.isBlank() == false }
-                val body = (this as? RoomMessageEventContent)?.body?.takeIf {
-                    it != file?.body
+                val formattedBody = (this as? RoomMessageEventContent)?.formattedBody?.takeIf {
+                    body != file?.body
                 }
                 ConversationMessageIO(
-                    content = body,
-                    media = file?.let {
-                        listOf(
-                            MediaIO(
-                                url = it.url,
-                                mimetype = it.info?.mimeType,
-                                name = it.fileName,
-                                size = it.info?.size
-                            )
-                        )
-                    },
+                    content = formattedBody,
                     anchorMessageId = this.relatesTo?.replyTo?.eventId?.full,
                     parentAnchorMessageId = (relatesTo as? RelatesTo.Thread)?.eventId?.full
                 )

@@ -11,6 +11,7 @@ import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
+import utils.SharedLogger
 
 actual fun platformPathsModule(): Module = module {
     single { FileSystem.SYSTEM }
@@ -31,7 +32,7 @@ actual fun PlatformFile.openSinkFromUri(): Sink {
     val fileIOPath = filePath.toPath()
 
     val accessed = startAccessingSecurityScopedResource()
-    println("Security scoped access result: $accessed, uri: $filePath")
+    SharedLogger.logger.debug { "Security scoped access result: $accessed, uri: $filePath" }
 
     val sink = FileSystem.SYSTEM.appendingSink(fileIOPath)
 
@@ -40,7 +41,7 @@ actual fun PlatformFile.openSinkFromUri(): Sink {
             sink.close()
             if (accessed) {
                 stopAccessingSecurityScopedResource()
-                println("Stopped security scoped access")
+                SharedLogger.logger.debug { "Stopped security scoped access" }
             }
         }
     }
@@ -53,7 +54,7 @@ actual fun getDownloadsPath(): String {
         expandTilde = true
     )
     val documentsDir = paths.firstOrNull() as? String
-        ?: error("Unable to locate Documents directory")
+        ?: SharedLogger.logger.error { "Unable to locate Documents directory" }
 
     return "$documentsDir/Downloads"
 }

@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,14 +16,13 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,10 +124,6 @@ fun <T>AddToLauncher(
                                     horizontal = 8.dp,
                                     vertical = 6.dp
                                 )
-                                .background(
-                                    LocalTheme.current.colors.backgroundLight,
-                                    shape = LocalTheme.current.shapes.componentShape
-                                )
                                 .weight(1f),
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Text,
@@ -145,7 +139,6 @@ fun <T>AddToLauncher(
                                     newItemState?.text?.toString()
                                 )
                             },
-                            lineLimits = TextFieldLineLimits.SingleLine,
                             shape = LocalTheme.current.shapes.componentShape
                         )
                         BrandHeaderButton(
@@ -182,19 +175,13 @@ fun <T>AddToLauncher(
                                                 horizontal = 8.dp,
                                                 vertical = 6.dp
                                             )
-                                            .background(
-                                                LocalTheme.current.colors.backgroundDark,
-                                                shape = LocalTheme.current.shapes.componentShape
-                                            )
                                             .weight(1f),
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Text,
                                             imeAction = ImeAction.Done
                                         ),
-                                        showBorders = false,
                                         hint = newItemHint,
                                         state = state,
-                                        lineLimits = TextFieldLineLimits.SingleLine,
                                         shape = LocalTheme.current.shapes.componentShape
                                     )
                                     Checkbox(
@@ -215,7 +202,7 @@ fun <T>AddToLauncher(
                                         .fillMaxWidth(.7f)
                                         .align(Alignment.Center),
                                     text = stringResource(Res.string.invite_new_item_button),
-                                    startIconVector = Icons.Outlined.Add
+                                    endImageVector = Icons.Outlined.Add
                                 ) {
                                     newItem.value = true
                                 }
@@ -228,7 +215,7 @@ fun <T>AddToLauncher(
                 val onCheck = {
                     when {
                         checkedItems.contains(data) -> checkedItems.remove(data)
-                        checkedItems.size == 0 || multiSelect -> checkedItems.add(data)
+                        checkedItems.isEmpty() || multiSelect -> checkedItems.add(data)
                         else -> {
                             newItemState?.setTextAndPlaceCursorAtEnd("")
                             checkedItems.remove(data)

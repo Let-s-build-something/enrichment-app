@@ -3,6 +3,7 @@ package base.global.verification
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,21 +19,22 @@ import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Android
+import androidx.compose.material.icons.outlined.KeyboardCommandKey
+import androidx.compose.material.icons.outlined.LaptopWindows
 import androidx.compose.material.icons.outlined.MarkChatUnread
 import androidx.compose.material.icons.outlined.Pin
-import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -40,14 +42,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import augmy.composeapp.generated.resources.Res
 import augmy.composeapp.generated.resources.accessibility_cancel
+import augmy.composeapp.generated.resources.accessibility_device_android
+import augmy.composeapp.generated.resources.accessibility_device_apple
+import augmy.composeapp.generated.resources.accessibility_device_jvm
 import augmy.composeapp.generated.resources.accessibility_hide_password
 import augmy.composeapp.generated.resources.accessibility_show_password
 import augmy.composeapp.generated.resources.button_confirm
+import augmy.composeapp.generated.resources.button_dismiss
+import augmy.composeapp.generated.resources.button_reject
 import augmy.composeapp.generated.resources.device_verification_bootstrap_title
+import augmy.composeapp.generated.resources.device_verification_canceled
 import augmy.composeapp.generated.resources.device_verification_confirm
+import augmy.composeapp.generated.resources.device_verification_loading
 import augmy.composeapp.generated.resources.device_verification_match
 import augmy.composeapp.generated.resources.device_verification_no_match
 import augmy.composeapp.generated.resources.device_verification_other_device
+import augmy.composeapp.generated.resources.device_verification_other_request
 import augmy.composeapp.generated.resources.device_verification_passphrase
 import augmy.composeapp.generated.resources.device_verification_passphrase_error
 import augmy.composeapp.generated.resources.device_verification_passphrase_hint
@@ -58,71 +68,69 @@ import augmy.composeapp.generated.resources.device_verification_success
 import augmy.composeapp.generated.resources.device_verification_title
 import augmy.composeapp.generated.resources.device_verification_title_decimal
 import augmy.composeapp.generated.resources.device_verification_title_emojis
-import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.components.BrandHeaderButton
 import augmy.interactive.shared.ui.components.MinimalisticIcon
 import augmy.interactive.shared.ui.components.OutlinedButton
-import augmy.interactive.shared.ui.components.SimpleModalBottomSheet
 import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
+import korlibs.io.util.substringBeforeOrNull
+import kotlinx.coroutines.launch
 import net.folivo.trixnity.client.verification.SelfVerificationMethod
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.context.loadKoinModules
-import ui.login.AUGMY_HOME_SERVER
+import ui.login.homeserver_picker.AUGMY_HOMESERVER_IDENTIFIER
 
 /**
  * Bottom sheet for verifying current device
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceVerificationLauncher(
-    modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    ) { value -> value != SheetValue.Hidden || BuildKonfig.isDevelopment }
-) {
+fun DeviceVerificationLauncher(modifier: Modifier = Modifier) {
     loadKoinModules(verificationModule)
-    val model: VerificationModel = koinViewModel()
+    val model: DeviceVerificationModel = koinViewModel()
     val launcherState = model.launcherState.collectAsState()
 
-    if(launcherState.value is LauncherState.Hidden) return
-
-    SimpleModalBottomSheet(
-        modifier = modifier.animateContentSize(),
-        sheetState = sheetState,
-        contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp, bottom = 12.dp
-        ),
-        onDismissRequest = {
-            if(BuildKonfig.isDevelopment) model.cancel(restart = false, manual = false)
-        }
-    ) {
-        Crossfade(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            targetState = launcherState.value
-        ) { state ->
-            when(state) {
-                is LauncherState.SelfVerification -> SelfVerification(
-                    model = model,
-                    state = state
-                )
-                is LauncherState.ComparisonByUser -> ComparisonByUser(
-                    model = model,
-                    launcherState = state
-                )
-                is LauncherState.Success -> Success()
-                is LauncherState.Bootstrap -> Bootstrap(model)
-                else -> {}
+    if (launcherState.value !is LauncherState.Hidden) {
+        Column(
+            modifier = modifier
+                .animateContentSize()
+                .fillMaxWidth()
+                .background(color = LocalTheme.current.colors.backgroundDark)
+        ) {
+            Crossfade(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                targetState = launcherState.value
+            ) { state ->
+                when(state) {
+                    is LauncherState.SelfVerification -> SelfVerification(
+                        model = model,
+                        state = state
+                    )
+                    is LauncherState.ComparisonByUser -> ComparisonByUser(
+                        model = model,
+                        launcherState = state
+                    )
+                    is LauncherState.TheirRequest -> TheirRequestContent(
+                        model = model,
+                        launcherState = state
+                    )
+                    is LauncherState.Success -> SuccessContent(model)
+                    is LauncherState.Canceled -> CanceledContent(model)
+                    is LauncherState.Bootstrap -> BootstrapContent(model)
+                    is LauncherState.Loading -> LoadingContent(model)
+                    else -> {}
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Bootstrap(model: VerificationModel) {
+private fun BootstrapContent(model: DeviceVerificationModel) {
     val isLoading = model.isLoading.collectAsState()
 
     val passphraseState = remember { TextFieldState() }
@@ -156,7 +164,9 @@ private fun Bootstrap(model: VerificationModel) {
                 keyboardType = KeyboardType.NumberPassword,
                 imeAction = ImeAction.Send
             ),
-            onKeyboardAction = { verify() },
+            onKeyboardAction = {
+                if (isLoading.value) model.cancel() else verify()
+            },
             trailingIcon = {
                 Crossfade(
                     targetState = showPassphrase.value
@@ -177,7 +187,7 @@ private fun Bootstrap(model: VerificationModel) {
                 }
             },
             // Augmy has numeric PINs only
-            inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOME_SERVER) {
+            inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOMESERVER_IDENTIFIER) {
                 InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
                     proposed.replace(Regex("[^0-9]"), "")
                 }
@@ -197,48 +207,94 @@ private fun Bootstrap(model: VerificationModel) {
             ),
             isLoading = isLoading.value,
             onClick = {
-                if(isLoading.value) {
-                    model.cancel()
-                }else verify()
+                if (isLoading.value) model.cancel() else verify()
             }
         )
     }
 }
 
 @Composable
-private fun Success() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun SuccessContent(model: DeviceVerificationModel) {
+    Row (
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp, start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Icon(
+            modifier = Modifier.size(60.dp),
+            imageVector = Icons.Outlined.VerifiedUser,
+            tint = LocalTheme.current.colors.brandMain,
+            contentDescription = null
+        )
         Text(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 24.dp),
+            modifier = Modifier.weight(1f),
             text = stringResource(Res.string.device_verification_success),
             style = LocalTheme.current.styles.heading
         )
-        Icon(
-            modifier = Modifier.size(64.dp),
-            imageVector = Icons.Outlined.Verified,
-            tint = LocalTheme.current.colors.brandMainDark,
-            contentDescription = null
+        OutlinedButton(
+            text = stringResource(Res.string.button_confirm),
+            onClick = { model.hide() },
+            activeColor = LocalTheme.current.colors.secondary
+        )
+    }
+}
+
+@Composable
+private fun CanceledContent(model: DeviceVerificationModel) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.device_verification_canceled),
+            style = LocalTheme.current.styles.category
+        )
+        OutlinedButton(
+            text = stringResource(Res.string.button_dismiss),
+            onClick = { model.hide() },
+            activeColor = LocalTheme.current.colors.disabled
+        )
+    }
+}
+
+@Composable
+private fun LoadingContent(model: DeviceVerificationModel) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = stringResource(Res.string.device_verification_loading),
+            style = LocalTheme.current.styles.category
+        )
+        BrandHeaderButton(
+            text = stringResource(Res.string.accessibility_cancel),
+            onClick = { model.cancel(manual = true) },
+            isLoading = true
         )
     }
 }
 
 @Composable
 private fun SelfVerification(
-    model: VerificationModel,
+    model: DeviceVerificationModel,
     state: LauncherState.SelfVerification
 ) {
     val isLoading = model.isLoading.collectAsState()
     val verificationResult = model.verificationResult.collectAsState()
 
-    val selectedMethod = remember(state) {
-        mutableStateOf(
-            state.methods.find { it is SelfVerificationMethod.CrossSignedDeviceVerification } ?: state.methods.firstOrNull()
-        )
+    val selectedMethod = remember(model) {
+        mutableStateOf(state.methods.firstOrNull())
     }
     val passphraseState = remember { TextFieldState() }
     val showPassphrase = remember { mutableStateOf(false) }
@@ -265,31 +321,29 @@ private fun SelfVerification(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (i in state.methods.size.plus(1) downTo 0) {
-                state.methods.getOrNull(i)?.let { method ->
-                    ClickableTile(
-                        text = stringResource(
-                            when(method) {
-                                is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
-                                else -> Res.string.device_verification_passphrase
-                            }
-                        ),
-                        icon = when(method) {
-                            is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
-                            else -> Icons.Outlined.Pin
-                        },
-                        isSelected = selectedMethod.value == method,
-                        onClick = {
-                            selectedMethod.value = method
+            state.methods.forEach { method ->
+                ClickableTile(
+                    text = stringResource(
+                        when(method) {
+                            is SelfVerificationMethod.CrossSignedDeviceVerification -> Res.string.device_verification_other_device
+                            else -> Res.string.device_verification_passphrase
                         }
-                    )
-                }
+                    ),
+                    icon = when(method) {
+                        is SelfVerificationMethod.CrossSignedDeviceVerification -> Icons.Outlined.MarkChatUnread
+                        else -> Icons.Outlined.Pin
+                    },
+                    isSelected = selectedMethod.value == method,
+                    onClick = {
+                        selectedMethod.value = method
+                    }
+                )
             }
         }
 
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            visible = selectedMethod.value?.isVerify() == true
+            visible = selectedMethod.value?.isRecoveryMethod() == true
         ) {
             CustomTextField(
                 modifier = Modifier
@@ -330,7 +384,7 @@ private fun SelfVerification(
                     }
                 },
                 // Augmy has numeric PINs only
-                inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOME_SERVER) {
+                inputTransformation = if(model.currentUser.value?.matrixHomeserver == AUGMY_HOMESERVER_IDENTIFIER) {
                     InputTransformation.maxLength(PASSPHRASE_MAX_LENGTH).byValue { _, proposed ->
                         proposed.replace(Regex("[^0-9]"), "")
                     }
@@ -350,7 +404,7 @@ private fun SelfVerification(
                 text = stringResource(
                     when {
                         isLoading.value -> Res.string.accessibility_cancel
-                        selectedMethod.value?.isVerify() == true -> Res.string.device_verification_confirm
+                        selectedMethod.value?.isRecoveryMethod() == true -> Res.string.device_verification_confirm
                         else -> Res.string.device_verification_send
                     }
                 ),
@@ -361,16 +415,112 @@ private fun SelfVerification(
                     }else verify()
                 }
             )
+            AnimatedVisibility(
+                visible = selectedMethod.value is SelfVerificationMethod.CrossSignedDeviceVerification
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, top = 2.dp)
+                        .animateContentSize(),
+                    text = stringResource(
+                        if(isLoading.value) {
+                            Res.string.device_verification_send_info_2
+                        }else Res.string.device_verification_send_info
+                    ),
+                    style = LocalTheme.current.styles.regular
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TheirRequestContent(
+    model: DeviceVerificationModel,
+    launcherState: LauncherState.TheirRequest
+) {
+    val isLoading = model.isLoading.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val platformType = PlatformType.entries.find {
+        it.name == launcherState.fromDevice.substringBeforeOrNull("_")
+    }
+
+    Row(
+        modifier = Modifier
+            .padding(
+                bottom = 24.dp,
+                start = 16.dp
+            )
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                platformType?.let { platform ->
+                    Icon(
+                        modifier = Modifier.size(32.dp),
+                        imageVector = when(platform) {
+                            PlatformType.Jvm -> Icons.Outlined.LaptopWindows
+                            PlatformType.Native -> Icons.Outlined.KeyboardCommandKey
+                            PlatformType.Android -> Icons.Outlined.Android
+                        },
+                        contentDescription = stringResource(
+                            when(platform) {
+                                PlatformType.Jvm -> Res.string.accessibility_device_jvm
+                                PlatformType.Native -> Res.string.accessibility_device_apple
+                                PlatformType.Android -> Res.string.accessibility_device_android
+                            }
+                        ),
+                        tint = LocalTheme.current.colors.disabled
+                    )
+                }
+                Text(
+                    text = launcherState.fromDevice.let {
+                        if(platformType != null) it.substringAfter("_") else it
+                    },
+                    style = LocalTheme.current.styles.regular.copy(
+                        color = LocalTheme.current.colors.disabled
+                    )
+                )
+            }
             Text(
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, top = 2.dp)
-                    .animateContentSize(),
+                text = stringResource(Res.string.device_verification_other_request),
+                style = LocalTheme.current.styles.subheading
+            )
+        }
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AnimatedVisibility(!isLoading.value) {
+                OutlinedButton(
+                    text = stringResource(Res.string.button_reject),
+                    onClick = { model.cancel(manual = true) },
+                    activeColor = LocalTheme.current.colors.disabled
+                )
+            }
+            BrandHeaderButton(
                 text = stringResource(
-                    if(isLoading.value) {
-                        Res.string.device_verification_send_info_2
-                    }else Res.string.device_verification_send_info
+                    when {
+                        isLoading.value -> Res.string.accessibility_cancel
+                        else -> Res.string.button_confirm
+                    }
                 ),
-                style = LocalTheme.current.styles.regular
+                isLoading = isLoading.value,
+                onClick = {
+                    if(isLoading.value) {
+                        model.cancel()
+                    }else coroutineScope.launch {
+                        launcherState.onReady()
+                    }
+                }
             )
         }
     }
@@ -378,21 +528,21 @@ private fun SelfVerification(
 
 @Composable
 private fun ComparisonByUser(
-    model: VerificationModel,
+    model: DeviceVerificationModel,
     launcherState: LauncherState.ComparisonByUser
 ) {
     val isLoading = model.isLoading.collectAsState()
 
     Column(
         modifier = Modifier
-            .padding(bottom = 24.dp)
+            .padding(bottom = 24.dp, top = 4.dp)
             .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 32.dp),
+                .padding(horizontal = 8.dp)
+                .align(Alignment.CenterHorizontally),
             text = stringResource(
                 if(launcherState.data.emojis.isNotEmpty()) {
                     Res.string.device_verification_title_emojis
@@ -436,9 +586,9 @@ private fun ComparisonByUser(
         }
         Row(
             modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .padding(vertical = 8.dp, horizontal = 16.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             AnimatedVisibility(!isLoading.value) {
@@ -452,9 +602,6 @@ private fun ComparisonByUser(
                 )
             }
             BrandHeaderButton(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
                 isLoading = isLoading.value,
                 text = stringResource(
                     if(isLoading.value) Res.string.accessibility_cancel
@@ -469,7 +616,7 @@ private fun ComparisonByUser(
     }
 }
 
-fun SelfVerificationMethod.isVerify() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
+fun SelfVerificationMethod.isRecoveryMethod() = this is SelfVerificationMethod.AesHmacSha2RecoveryKeyWithPbkdf2Passphrase
         || this is SelfVerificationMethod.AesHmacSha2RecoveryKey
 
 private const val PASSPHRASE_MAX_LENGTH = 8

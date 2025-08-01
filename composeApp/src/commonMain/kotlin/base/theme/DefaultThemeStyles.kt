@@ -16,7 +16,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextDecoration.Companion.Underline
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,14 +138,20 @@ open class DefaultThemeStyles: ThemeStyle {
         get() {
             val style = SpanStyle(
                 color = LocalTheme.current.colors.brandMain,
-                textDecoration = Underline,
+                textDecoration = TextDecoration.None,
                 fontFamily = FontFamily(fontQuicksandMedium)
+            )
+            val styleDark = SpanStyle(
+                color = LocalTheme.current.colors.brandMain,
+                textDecoration = TextDecoration.Underline,
+                fontFamily = FontFamily(fontQuicksandMedium),
+                fontWeight = FontWeight.W900
             )
             return TextLinkStyles(
                 style = style,
                 focusedStyle = style,
-                hoveredStyle = style,
-                pressedStyle = style
+                hoveredStyle = styleDark,
+                pressedStyle = styleDark
             )
         }
 

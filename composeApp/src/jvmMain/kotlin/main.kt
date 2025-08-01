@@ -42,6 +42,7 @@ import io.kamel.image.config.LocalKamelConfig
 import koin.AppSettings
 import koin.commonModule
 import koin.settingsModule
+import korlibs.logger.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -56,6 +57,7 @@ import org.koin.core.context.stopKoin
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.gif.PlatformFileFetcher
+import utils.SharedLogger
 import java.awt.Button
 import java.awt.Dialog
 import java.awt.Dimension
@@ -263,6 +265,8 @@ private fun associateWithDomain() {
     }
 }
 
+private val logger = Logger("JvmRegistry")
+
 private fun initWindowsRegistry() {
     try {
         val exePath = System.getProperty("user.dir") + File.separator + "Augmy.exe"
@@ -279,11 +283,11 @@ private fun initWindowsRegistry() {
             val process = Runtime.getRuntime().exec(arrayOf(cmd))
             process.waitFor()
             if (process.exitValue() != 0) {
-                println("Command failed: $cmd")
+                logger.error { "Command failed: $cmd" }
                 process.errorStream.bufferedReader()
-                    .use { it.lines().forEach { line -> println(line) } }
+                    .use { it.lines().forEach { line -> logger.error { line } } }
             } else {
-                println("Command succeeded: $cmd")
+                logger.debug { "Command succeeded: $cmd" }
             }
         }
     }catch (e: Exception) {
@@ -300,7 +304,7 @@ private fun registerUriSchemeLinux() {
         // Debug: Use the launcher script
         "/home/jacob/StudioProjects/enrichment-app/composeApp/augmy-launcher.sh"
     } else System.getProperty("user.dir") + File.separator + "Augmy"
-    println("execPath: $execPath")
+    logger.debug { "execPath: $execPath" }
 
     val desktopFileContent = """
         [Desktop Entry]
@@ -329,9 +333,11 @@ private fun registerUriSchemeLinux() {
                 .start()
             val output = process.inputStream.bufferedReader().readText()
             val exitCode = process.waitFor()
-            println("Command: $cmd")
-            println("Exit Code: $exitCode")
-            println("Output:\n$output")
+            logger.debug {
+                "Command: $cmd" +
+                        "\nExit Code: $exitCode" +
+                        "\nOutput:\n$output"
+            }
         }
 
         // Optional: Confirm it's registered
@@ -339,11 +345,12 @@ private fun registerUriSchemeLinux() {
             .redirectErrorStream(true)
             .start()
 
+        verify.waitFor()
         val result = verify.inputStream.bufferedReader().readText().trim()
-        println("Verified x-scheme-handler/augmy: $result")
+        logger.debug { "Verified x-scheme-handler/augmy: $result" }
 
     } catch (e: Exception) {
-        println("Failed to register URI scheme:")
+        logger.debug { "Failed to register URI scheme:" }
         e.printStackTrace()
     }
 }
@@ -370,7 +377,7 @@ private fun initializeFirebase(
                     settings.remove(key)
                 }
             }
-            override fun log(msg: String) = println(msg)
+            override fun log(msg: String) = SharedLogger.logger.debug { msg }
         }
     )
 

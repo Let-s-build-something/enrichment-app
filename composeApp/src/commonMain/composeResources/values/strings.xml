@@ -9,13 +9,15 @@
   <string name="screen_network_management">Your social network</string>
   <string name="screen_search_network">Search</string>
   <string name="screen_conversation">Conversation</string>
+  <string name="screen_conversation_search">A time machine</string>
   <string name="screen_conversation_detail">Thread</string>
   <string name="screen_media_detail">Cheese!</string>
   <string name="screen_conversation_info">For the curious</string>
-  <string name="screen_conversation_settings">Mr. Sett Ings</string>
+  <string name="screen_conversation_settings">Mr. Seth Wings</string>
   <string name="screen_search_preferences">Search here</string>
   <string name="screen_network_new">Include another human</string>
   <string name="screen_search_user">Let the manhunt begin</string>
+  <string name="screen_search_room">Wild tribe search</string>
   <string name="screen_user_default">Newfound pirate</string>
 
   <string name="navigate_home">Back</string>
@@ -23,14 +25,21 @@
   <string name="navigate_close">Close</string>
   <string name="navigate_hamburger_menu">Menu</string>
 
+  <string name="screen_home_initial_sync">Postman is on their way with your messages...</string>
+  <string name="screen_home_no_client_title">You need to sign-in to see your messages</string>
+  <string name="screen_home_no_client_action">Okey-dokey, I'll sign-in</string>
+
   <string name="username_change_launcher_title">Hey there, %1$s</string>
-  <string name="username_change_launcher_content">Being authentic makes you unique. There's no one just like you.</string>
+  <string name="username_change_launcher_content">Being authentic makes you unique. There's no one like you.</string>
   <string name="username_change_launcher_hint">Call me…</string>
   <string name="username_change_launcher_confirm">Save</string>
   <string name="login_error_invalid_credential">Some of the info is incorrect 😵. Double check your information and try again 🤞</string>
   <string name="login_error_security">Not sure what you're trying, but it ain't funny.</string>
   <string name="login_password_confirm">Sign me up!</string>
   <string name="login_password_method">Sign in with password</string>
+  <string name="login_identifier_hint">Username or email</string>
+  <string name="login_registration_disabled">Registration on the selected homeserver is disabled, select a different one.</string>
+  <string name="login_username_hint">Unique username</string>
   <string name="login_password_email_hint">Email</string>
   <string name="login_password_password_hint">Password</string>
   <string name="error_general">Even we can fail communicating (with the server), apologies. Try again later.</string>
@@ -40,8 +49,6 @@
   <string name="no_connection_title">The cat's not moving anywhere. Your internet is 😵</string>
   <string name="no_connection_description">You're currently offline. Every action will be performed once you come back online. And you can see only the things you've already seen.</string>
 
-  <string name="login_oidc_disable">Disable OIDC</string>
-  <string name="login_oidc_enable">Enable OIDC</string>
   <string name="login_screen_type_sign_up">I'm new</string>
   <string name="login_screen_type_sign_in">Experienced pirate</string>
   <string name="login_email_error">You call that an email address? Try cereal@mr.grain</string>
@@ -54,14 +61,12 @@
   <string name="login_username_condition_1">Can only contain special characters -, _, ., =, /</string>
   <string name="login_homeserver_heading">Choose where your account is hosted</string>
   <string name="login_homeserver_description">Homeserver is a remote service, that hosts your account and communicates with other homeservers in order to serve your needs.</string>
-  <string name="login_homeserver_address">Homeserver address</string>
   <string name="login_matrix_homeserver">Hosted on %1$s</string>
-  <string name="login_username_hint">Unique username</string>
   <string name="login_username_error">The username is not valid, try a different one.</string>
-  <string name="login_homeserver_address_error">Incorrect address, you can always select existing ones.</string>
   <string name="login_error_duplicate_username">Restroom occupied, try a different one.</string>
   <string name="login_success_snackbar">Welcome, what can I get you?</string>
   <string name="login_success_snackbar_action">Just water, please.</string>
+  <string name="login_password_action_oidc">Login through website</string>
   <string name="login_password_action_go">Here I go!</string>
   <string name="login_agreement">By creating an account, you agree to our Terms of Use and Privacy Policy.</string>
   <string name="login_terms_of_use">Terms of Use</string>
@@ -71,9 +76,12 @@
   <string name="login_email_verification_action">Closest post office</string>
   <string name="login_email_verification_repeat">Try again</string>
   <string name="no_email_client_error">We failed opening an email client. Please, open your preferred client and check for the verification email:-).</string>
+  <string name="homeserver_picker_address_error">Incorrect address, you can always select existing ones.</string>
+  <string name="homeserver_picker_address_hint">homeserver address</string>
+  <string name="homeserver_picker_your_address">Your homeserver</string>
 
 
-  <string name="account_dashboard_theme">Mr. Theme</string>
+  <string name="account_dashboard_theme">50 shades of background</string>
   <string name="account_dashboard_theme_light">Light</string>
   <string name="account_dashboard_theme_dark">Dark</string>
   <string name="account_dashboard_theme_device">System</string>
@@ -104,8 +112,11 @@
   <string name="account_settings_title_offline">You're offline</string>
   <string name="account_settings_content_offline">No interruption and no network is being used.</string>
 
+  <string name="message_media_file">attachment</string>
   <string name="message_decrypting">This message couldn't be decrypted:(</string>
   <string name="message_alias_change">%1$s changed the room name to %2$s.</string>
+  <string name="message_room_created">%1$s wanted to chat</string>
+  <string name="message_redacted">Message redacted (%1$s)</string>
   <string name="message_avatar_change">%1$s changed the room avatar.</string>
   <string name="message_read_more">Read more</string>
   <string name="message_user_verification">%1$s asked for a verification.</string>
@@ -139,7 +150,6 @@
   <string name="network_inclusion_error_blocked">There doesn't seem to be mutual connection, we are sorry.</string>
   <string name="network_inclusion_success">You've successfully included this person into your online world. Consider welcoming them.</string>
   <string name="network_inclusion_success_action">Say hi</string>
-  <string name="network_inclusion_action">Confirm</string>
   <string name="network_inclusion_action_2">Include</string>
   <string name="network_inclusion_description">Include another human being into your social circle. However, if the recipient has set privacy setting to private, a response from the is needed.</string>
   <string name="network_inclusion_proximity_title">Align the person to your social circle</string>
@@ -151,6 +161,11 @@
 
   <string name="network_action_circle_move">Circle move</string>
   <string name="network_action_share">Share your profile, so that others can include you to their social circles.</string>
+  <string name="user_profile_last_active">Last active %1$s ago</string>
+  <string name="user_profile_add_to_circle">Add to circle</string>
+  <string name="user_profile_interact">Chat</string>
+  <string name="user_profile_invalid_link">Couldn't find that user, invalid link :-(</string>
+  <string name="user_profile_not_found">Couldn't find that user.</string>
 
   <string name="network_dialog_title_mute">Mute</string>
   <string name="network_dialog_message_mute">This will deprioritize the selected network connections, so that you don't see them as much. Please, confirm that that is what you want to do.</string>
@@ -173,7 +188,16 @@
   <string name="hard_logout_message">You have been logged out, sorry about that. Try logging in again.</string>
   <string name="hard_logout_action">Log-in</string>
 
+  <string name="room_search_empty_text">Nothing matches that, sorry 🤷</string>
 
+  <string name="conversation_creating_room">Creating conversation...</string>
+  <string name="conversation_create_search_hint">Search for people</string>
+  <string name="conversation_create_helper">The conversation starts the moment you send a message.</string>
+  <string name="conversation_create_title">Create a new conversation</string>
+  <string name="conversation_new_room">New conversation</string>
+  <string name="conversation_selected_users">To be invited</string>
+  <string name="conversation_no_room_title">This is where it began...💭</string>
+  <string name="conversation_no_room_message">Send a message to start this conversation.</string>
   <string name="conversation_attached">Attached media</string>
   <string name="conversation_action_send">Send</string>
   <string name="conversation_action_delete">Delete</string>
@@ -191,6 +215,13 @@
   <string name="conversation_mode_default">Default</string>
   <string name="conversation_mode_experimental">Experimental</string>
   <string name="items_see_more">See %1$s more</string>
+  <string name="conversation_preview_title">Conversation preview</string>
+  <string name="conversation_preview_helper">You haven't joined this conversation yet but you can join by sending a message.</string>
+  <string name="conversation_knock_error">You do not have permission to knock on the room. %1$s</string>
+  <string name="conversation_knock_success">Knock knock! Let's see if they are home.</string>
+  <string name="conversation_knock_title">Knock knock...</string>
+  <string name="conversation_knock_helper">Who's there?\nInvite-only room\nSend a message with your invite request.</string>
+  <string name="conversation_restricted_title">This conversation is restricted :(.\nYou shall not pass.</string>
 
   <string name="message_room_invite">got invited.</string>
   <string name="message_room_join">joined the room.</string>
@@ -205,7 +236,8 @@
   <string name="device_verification_title">You need to verify yourself🗝️👀</string>
   <string name="device_verification_title_passphrase">Create a new PIN</string>
   <string name="device_verification_title_other_device">Use your PIN</string>
-  <string name="device_verification_title_emojis">Do the emoji match the other device, in the same order?</string>
+  <string name="device_verification_loading">Request is being processed...</string>
+  <string name="device_verification_title_emojis">Confirm the emoji below are displayed on both devices, in the same order:</string>
   <string name="device_verification_title_decimal">Do the numbers match the other device, in the same order?</string>
   <string name="device_verification_no_match">They don't match</string>
   <string name="device_verification_match">They are the same</string>
@@ -213,10 +245,12 @@
   <string name="device_verification_send_info">Sends a verification request to your (✅ verified) device 📬</string>
   <string name="device_verification_send_info_2">Please confirm the request on the other device</string>
   <string name="device_verification_send">Send</string>
+  <string name="device_verification_canceled">Device verification request canceled.</string>
   <string name="device_verification_other_device">Verify with other device</string>
+  <string name="device_verification_other_request">A newly signed in device is requesting a confirmation</string>
   <string name="device_verification_passphrase">Enter PIN</string>
   <string name="device_verification_success">Successfully verified! 🥳</string>
-  <string name="device_verification_passphrase_error">I don't think that's your PIN. Just try again 🤷🏼</string>
+  <string name="device_verification_passphrase_error">I don't think that's your PIN. Try again 🤷🏼</string>
 
   <string name="emojis_smileys_and_emotion">Smileys \u0026 emotion</string>
   <string name="emojis_people_body">People and body</string>
@@ -240,6 +274,7 @@
   <string name="button_confirm">Confirm</string>
   <string name="button_yes">Yes</string>
   <string name="button_dismiss">Dismiss</string>
+  <string name="button_reject">Reject</string>
   <string name="button_invite">Invite</string>
   <string name="button_select_all">Select all</string>
   <string name="button_deselect">Deselect</string>
@@ -250,7 +285,12 @@
   <string name="button_search">Search</string>
   <string name="button_tune">Tune</string>
 
+  <string name="action_clear">Clear</string>
   <string name="action_settings">Options</string>
+  <string name="action_create_room">Create a room</string>
+  <string name="action_join_room">Join a room</string>
+  <string name="action_find_user">Find new user</string>
+  <string name="action_remove">Remove</string>
   <string name="action_download_all">Download all</string>
   <string name="action_share">Share</string>
   <string name="action_link_copied">Link successfully copied!</string>
@@ -268,15 +308,24 @@
 
 
   <!--- ============================= ACCESSIBILITY ==================================== -->
+  <string name="accessibility_scroll_up">Scroll up</string>
+  <string name="accessibility_change_homeserver">Change homeserver</string>
+  <string name="accessibility_search_up">Move to previous search match</string>
+  <string name="accessibility_search_down">Move to next search match</string>
+  <string name="accessibility_info_box">Help info box</string>
   <string name="accessibility_sign_up_illustration">Young woman smiling and sitting with a phone in her hands with a cat on her lap.</string>
   <string name="accessibility_sign_in_illustration">A man smiling and sitting with a phone in his hands, there is a galaxy coming out of the phone.</string>
   <string name="accessibility_username_change_launcher_animation">Animation of a person waving</string>
+  <string name="accessibility_device_apple">Apple device</string>
+  <string name="accessibility_device_jvm">Desktop device</string>
+  <string name="accessibility_device_android">Android device</string>
   <string name="accessibility_add_new_member">Add new member</string>
   <string name="accessibility_show_password">Show password</string>
   <string name="accessibility_hide_password">Hide password</string>
   <string name="accessibility_change_avatar">Change avatar</string>
   <string name="accessibility_change_username">Change username</string>
   <string name="accessibility_save">Save</string>
+  <string name="accessibility_add_new">Add new</string>
   <string name="accessibility_message_more_options">More message options</string>
   <string name="accessibility_cancel">Cancel</string>
   <string name="accessibility_upload_files">Upload image</string>

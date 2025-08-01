@@ -49,7 +49,7 @@ import base.navigation.NavIconType
 import base.theme.Colors
 import base.theme.DefaultThemeStyles.Companion.fontQuicksandMedium
 import base.utils.openLink
-import components.UserProfileImage
+import components.AvatarImage
 import components.buildAnnotatedLinkString
 import data.io.base.AppPingType
 import data.io.social.network.conversation.message.MediaIO
@@ -73,15 +73,15 @@ fun MessageDetailScreen(
     conversationId: String?,
     title: String?
 ) {
-    val viewModel: MessageDetailModel = koinViewModel(
+    val model: MessageDetailModel = koinViewModel(
         key = messageId,
         parameters = {
             parametersOf(messageId ?: "", conversationId ?: "")
         }
     )
 
-    val replies = viewModel.replies.collectAsLazyPagingItems()
-    val message = viewModel.message.collectAsState(null)
+    val replies = model.replies.collectAsLazyPagingItems()
+    val message = model.message.collectAsState(null)
 
     val transcribing = rememberSaveable(messageId) {
         mutableStateOf(false)
@@ -91,15 +91,17 @@ fun MessageDetailScreen(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.pingStream.collectLatest { stream ->
+        model.pingStream.collectLatest { stream ->
             stream.forEach {
                 if(it.type == AppPingType.Conversation) {
                     if(it.identifier == messageId) {
                         replies.refresh()
-                        viewModel.consumePing(messageId)
+                        model.consumePing(messageId)
+                        return@forEach
                     }else if(it.identifier == conversationId) {
                         replies.refresh()
-                        viewModel.consumePing(conversationId)
+                        model.consumePing(conversationId)
+                        return@forEach
                     }
                 }
             }
@@ -120,7 +122,7 @@ fun MessageDetailScreen(
     BrandBaseScreen(
         navIconType = NavIconType.CLOSE,
         title = title,
-        subtitle = message.value?.sentAt?.formatAsRelative()
+        subtitle = message.value?.data?.sentAt?.formatAsRelative()
     ) {
         ConversationComponent(
             modifier = Modifier.fillMaxSize(),
@@ -133,11 +135,8 @@ fun MessageDetailScreen(
             verticalArrangement = Arrangement.Top,
             shimmerItemCount = REPLIES_SHIMMER_ITEM_COUNT,
             conversationId = conversationId,
-            model = viewModel,
+            model = model,
             messages = replies,
-            emptyLayout = {
-                // TODO
-            },
             lazyScope = {
                 item {
                     Column(
@@ -153,7 +152,7 @@ fun MessageDetailScreen(
                             .padding(vertical = 16.dp, horizontal = 12.dp)
                             .align(Alignment.TopStart)
                     ) {
-                        val isCurrentUser = viewModel.matrixUserId == message.value?.authorPublicId
+                        val isCurrentUser = model.matrixUserId == message.value?.data?.authorPublicId
 
                         Spacer(Modifier.height(LocalTheme.current.shapes.betweenItemsSpace))
                         if(!isCurrentUser) {
@@ -163,22 +162,22 @@ fun MessageDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    UserProfileImage(
+                                    AvatarImage(
                                         modifier = Modifier
                                             .padding(top = 8.dp)
                                             .size(48.dp),
-                                        media = MediaIO(url = message.value?.user?.content?.avatarUrl),
+                                        media = MediaIO(url = message.value?.author?.avatarUrl),
                                         tag = null,//message.value?.user?.tag,
                                         animate = true,
-                                        name = message.value?.user?.content?.displayName
+                                        name = message.value?.author?.displayName
                                     )
                                     Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
                                     Text(
-                                        text = message.value?.user?.content?.displayName ?: "",
+                                        text = message.value?.author?.displayName ?: "",
                                         style = LocalTheme.current.styles.title
                                     )
                                 }
-                                if(!message.value?.timings.isNullOrEmpty()) {
+                                if(!message.value?.data?.timings.isNullOrEmpty()) {
                                     Crossfade(
                                         modifier = Modifier.padding(start = 8.dp),
                                         targetState = transcribing.value
@@ -210,14 +209,14 @@ fun MessageDetailScreen(
                                 text = buildTempoString(
                                     enabled = transcribing.value,
                                     text = buildAnnotatedLinkString(
-                                        text = message.value?.content ?: "",
+                                        text = message.value?.data?.content ?: "",
                                         onLinkClicked = { openLink(it) }
                                     ),
-                                    style = LocalTheme.current.styles.title.copy(
+                                    spanStyle = LocalTheme.current.styles.title.copy(
                                         color = (if (isCurrentUser) Colors.GrayLight else LocalTheme.current.colors.secondary),
                                         fontFamily = FontFamily(fontQuicksandMedium)
                                     ).toSpanStyle(),
-                                    timings = message.value?.timings.orEmpty(),
+                                    timings = message.value?.data?.timings.orEmpty(),
                                     onFinish = {
                                         transcribing.value = false
                                     }
@@ -249,7 +248,7 @@ fun MessageDetailScreen(
                                             Modifier
                                                 .scalingClickable {
                                                     if ((message.value?.reactions?.size ?: 0) > 1) {
-                                                        showDetailDialogOf.value = message.value?.content to reaction.content
+                                                        showDetailDialogOf.value = message.value?.data?.content to reaction.content
                                                     }
                                                 }
                                                 .width(IntrinsicSize.Min)
@@ -268,7 +267,7 @@ fun MessageDetailScreen(
                                                         textAlign = TextAlign.Center
                                                     )
                                                 )
-                                                if (reaction.user?.userId == viewModel.matrixUserId) {
+                                                if (reaction.user?.userId == model.matrixUserId) {
                                                     Box(
                                                         modifier = Modifier
                                                             .height(2.dp)
@@ -311,12 +310,12 @@ fun MessageDetailScreen(
                             if(isCurrentUser) {
                                 reactionsRow()
                             }
-                            message.value?.state?.imageVector?.let { imgVector ->
+                            message.value?.data?.state?.imageVector?.let { imgVector ->
                                 Icon(
                                     modifier = Modifier.size(16.dp),
                                     imageVector = imgVector,
-                                    contentDescription = message.value?.state?.description,
-                                    tint = if (message.value?.state == MessageState.Failed) {
+                                    contentDescription = message.value?.data?.state?.description,
+                                    tint = if (message.value?.data?.state == MessageState.Failed) {
                                         SharedColors.RED_ERROR
                                     } else LocalTheme.current.colors.disabled
                                 )
@@ -328,7 +327,7 @@ fun MessageDetailScreen(
                             )
                             Text(
                                 modifier = Modifier.padding(start = 6.dp),
-                                text = "${message.value?.state?.description ?: ""} ${message.value?.sentAt?.formatAsRelative()}",
+                                text = "${message.value?.data?.state?.description ?: ""} ${message.value?.data?.sentAt?.formatAsRelative()}",
                                 style = LocalTheme.current.styles.regular
                             )
                             if(!isCurrentUser) {

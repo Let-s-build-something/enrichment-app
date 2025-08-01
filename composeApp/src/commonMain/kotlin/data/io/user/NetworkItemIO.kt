@@ -19,9 +19,13 @@ import kotlin.uuid.Uuid
 @Entity(tableName = AppRoomDatabase.TABLE_NETWORK_ITEM)
 data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     /** username of the current user */
-    @ColumnInfo("display_name")
     @SerialName("display_name")
-    val displayName: String? = null,
+    val copyDisplayName: String? = null,
+
+    /** username of the current user */
+    @ColumnInfo("display_name")
+    @SerialName("displayname")
+    val displayName: String? = copyDisplayName,
 
     /** Public identification of this entity */
     @ColumnInfo("public_id")
@@ -35,18 +39,19 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("user_id")
     val userId: String? = null,
 
-    @ColumnInfo("photo_media")
-    val avatar: MediaIO? = null,
-
     @SerialName("avatar_url")
     @ColumnInfo("avatar_url")
     val avatarUrl: String? = null,
+
+    @ColumnInfo("photo_media")
+    val avatar: MediaIO? = MediaIO(url = avatarUrl),
 
     /** Whether the user is a mutually included */
     @ColumnInfo("is_mutual")
     val isMutual: Boolean? = null,
 
     /** Last message sent within this network item */
+    @Deprecated("Only rooms can have messages")
     @ColumnInfo("last_message")
     val lastMessage: String? = null,
 
@@ -76,5 +81,5 @@ data class NetworkItemIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     val tag: String?
         @Ignore
-        get() = UserId(userId ?: displayName ?: publicId).generateUserTag()
+        get() = UserId(userId ?: publicId).generateUserTag()
 }

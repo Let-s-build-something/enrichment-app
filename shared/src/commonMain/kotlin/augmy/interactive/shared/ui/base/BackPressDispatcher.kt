@@ -29,7 +29,6 @@ interface BackPressDispatcher {
 @Composable
 fun OnBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
     val dispatcher = LocalBackPressDispatcher.current
-    dispatcher
     val lifecycleOwner = LocalLifecycleOwner.current
 
     if (lifecycleOwner.lifecycle.currentState === Lifecycle.State.DESTROYED) {

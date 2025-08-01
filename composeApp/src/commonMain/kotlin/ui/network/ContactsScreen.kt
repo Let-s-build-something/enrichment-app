@@ -29,10 +29,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,7 +59,7 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavIconType
-import components.UserProfileImage
+import components.AvatarImage
 import data.io.user.NetworkItemIO
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -221,7 +221,7 @@ private fun SocialCircleTier(
                     .width(IntrinsicSize.Min),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                UserProfileImage(
+                AvatarImage(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()

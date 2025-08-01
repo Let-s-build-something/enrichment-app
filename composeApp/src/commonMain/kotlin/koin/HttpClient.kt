@@ -6,7 +6,6 @@ import base.utils.speedInMbps
 import data.shared.SharedModel
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService.Companion.SYNC_INTERVAL
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -30,16 +29,17 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.http.encodedPath
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import net.folivo.trixnity.core.MatrixServerException
 import org.koin.mp.KoinPlatform
 import ui.dev.DeveloperConsoleModel
+import utils.DeveloperUtils
+import utils.SharedLogger
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-
-private val log = KotlinLogging.logger {}
 
 internal expect fun httpClient(): HttpClient
 
@@ -74,13 +74,13 @@ internal fun httpClientFactory(
         install(HttpRequestRetry) {
             retryIf { httpRequest, httpResponse ->
                 (httpResponse.status == HttpStatusCode.TooManyRequests)
-                    .also { if (it) log.warn { "rate limit exceeded for ${httpRequest.method} ${httpRequest.url}" } }
+                    .also { if (it) SharedLogger.logger.warn { "rate limit exceeded for ${httpRequest.method} ${httpRequest.url}" } }
             }
             retryOnExceptionIf { _, throwable ->
                 (throwable is MatrixServerException && throwable.statusCode == HttpStatusCode.TooManyRequests)
                     .also {
                         if (it) {
-                            log.warn(if (log.isDebugEnabled()) throwable else null) { "rate limit exceeded" }
+                            SharedLogger.logger.warn { (if(SharedLogger.logger.isDebugEnabled) "${throwable.message} - ${throwable.cause}" else "") + ": rate limit exceeded" }
                         }
                     }
             }
@@ -90,7 +90,12 @@ internal fun httpClientFactory(
         install(HttpSend)
     }.apply {
         plugin(HttpSend).intercept { request ->
-            val isMatrix = request.url.toString().contains(sharedModel.currentUser.value?.matrixHomeserver ?: ".;'][.")
+            val isMatrix = request.url.toString().contains(
+                sharedModel.currentUser.value?.matrixHomeserver?.replace(
+                    """:\d+""".toRegex(),
+                    ""
+                ) ?: ".;'][."
+            )
             if(isMatrix) {
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
@@ -147,18 +152,23 @@ fun HttpClientConfig<*>.httpClientConfig(sharedModel: SharedModel) {
         )
 
         // sync has a very long timeout which would throw off this calculation
-        if(!response.request.url.toString().contains("/sync")) {
-            val speedMbps = response.speedInMbps().roundToInt()
-            sharedModel.updateNetworkConnectivity(
-                networkSpeed = when {
+        val speedMbps = response.speedInMbps().roundToInt()
+        sharedModel.updateNetworkConnectivity(
+            networkSpeed = if (!response.request.url.toString().contains("/sync")) {
+                when {
                     speedMbps <= 1.0 -> NetworkSpeed.VerySlow
                     speedMbps <= 2.0 -> NetworkSpeed.Slow
                     speedMbps <= 5.0 -> NetworkSpeed.Moderate
                     speedMbps <= 10.0 -> NetworkSpeed.Good
                     else -> NetworkSpeed.Fast
-                }.takeIf { speedMbps != 0 },
-                isNetworkAvailable = true
-            )
+                }.takeIf { speedMbps != 0 }
+            } else null,
+            isNetworkAvailable = response.status.value < 500
+        )
+        if (!response.status.isSuccess()) {
+            SharedLogger.logger.warn {
+                "Http call failed: $response"
+            }
         }
     }
     HttpResponseValidator {

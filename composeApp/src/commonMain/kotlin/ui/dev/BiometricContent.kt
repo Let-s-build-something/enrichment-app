@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -80,8 +79,6 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun BiometricContent(model: DeveloperConsoleModel) {
-    StreamingSection(model)
-
     DashboardSection(model)
 }
 
@@ -158,32 +155,38 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
         )
     }
 
-    Text(
-        modifier = Modifier
-            .padding(top = 16.dp)
-            .fillMaxWidth()
-            .background(color = LocalTheme.current.colors.appbarBackground)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        text = "Dashboard",
-        style = LocalTheme.current.styles.subheading.copy(
-            color = LocalTheme.current.colors.appbarContent
-        )
-    )
-
-    Text(
-        text = "${activeSensors.value.size}/${availableSensors.value.size} sensors registered",
-        style = LocalTheme.current.styles.regular
-    )
-
-    ScrollBarProgressIndicator(
-        modifier = Modifier.fillMaxWidth(),
-        state = sensorListState
-    )
     LazyColumn(
         modifier = Modifier.animateContentSize(),
         state = sensorListState,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            Column {
+                StreamingSection(model)
+
+                Text(
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth()
+                        .background(color = LocalTheme.current.colors.appbarBackground)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    text = "Dashboard",
+                    style = LocalTheme.current.styles.subheading.copy(
+                        color = LocalTheme.current.colors.appbarContent
+                    )
+                )
+
+                Text(
+                    text = "${activeSensors.value.size}/${availableSensors.value.size} sensors registered",
+                    style = LocalTheme.current.styles.regular
+                )
+
+                ScrollBarProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    state = sensorListState
+                )
+            }
+        }
         stickyHeader {
             val showDialog = remember {
                 mutableStateOf(false)
@@ -419,18 +422,14 @@ private fun StreamingSection(model: DeveloperConsoleModel) {
             visible = streamingUrlResponse.value !is BaseResponse.Success
         ) {
             CustomTextField(
-                modifier = Modifier.padding(
-                    horizontal = 8.dp,
-                    vertical = 6.dp
-                ),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Done
                 ),
-                lineLimits = TextFieldLineLimits.SingleLine,
                 onKeyboardAction = {
                     model.setupRemoteStream(streamingUrlState.text)
                 },
+                backgroundColor = LocalTheme.current.colors.backgroundLight,
                 hint = "Server url",
                 state = streamingUrlState,
                 shape = LocalTheme.current.shapes.componentShape,

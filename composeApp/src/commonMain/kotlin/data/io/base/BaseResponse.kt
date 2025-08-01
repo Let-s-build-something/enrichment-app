@@ -13,7 +13,7 @@ sealed class BaseResponse<out T> {
 
     data object Loading: BaseResponse<Nothing>()
 
-    data class Success<out T>(val data: T) : BaseResponse<T>()
+    data class Success<out T>(override val data: T) : BaseResponse<T>()
 
     @Serializable
     data class Error(
@@ -41,9 +41,21 @@ sealed class BaseResponse<out T> {
     val success: Success<T>?
         get() = this as? Success<T>
 
+    open val data: T?
+        get() = (this as? Success<T>)?.data
+
     /** returns this object as an error */
-    val error : Error?
+    val error: Error?
         get() = this as? Error
+
+    val isLoading: Boolean
+        get() = this is Loading
+
+    val isSuccess: Boolean
+        get() = this is Success
+
+    val isError: Boolean
+        get() = this is Error
 
     companion object {
         suspend inline fun <reified T> HttpResponse.getResponse(): BaseResponse<T> {
@@ -54,7 +66,7 @@ sealed class BaseResponse<out T> {
                 HttpStatusCode.NonAuthoritativeInformation -> Success(this.body<T>())
                 else -> try {
                     this.body<Error>().apply { httpCode = status.value }
-                }catch (e: Exception) {
+                }catch (_: Exception) {
                     Error().apply { httpCode = status.value }
                 }
             }

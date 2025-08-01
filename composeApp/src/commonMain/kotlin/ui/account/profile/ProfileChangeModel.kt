@@ -78,7 +78,7 @@ class ProfileChangeModel (
                 repository.uploadMedia(
                     mediaByteArray = localFile.readBytes(),
                     mimetype = MimeType.getByExtension(localFile.extension).mime,
-                    homeserver = homeserver,
+                    homeserver = homeserverAddress,
                     fileName = localFile.name
                 ).also { response ->
                     val url = response.success?.data?.contentUri

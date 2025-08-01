@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -42,8 +42,9 @@ import data.io.user.UserIO
 import ui.conversation.components.MediaElement
 
 @Composable
-fun UserProfileImage(
+fun AvatarImage(
     modifier: Modifier = Modifier,
+    shape: Shape = LocalTheme.current.shapes.rectangularActionShape,
     media: MediaIO?,
     name: String?,
     tag: String?,
@@ -60,20 +61,24 @@ fun UserProfileImage(
                 tag = tag,
                 name = name,
                 animate = animate && tag != null,
-                contentDescription = contentDescription
+                contentDescription = contentDescription,
+                shape = shape
             )
         }else {
-            ShimmerLayout()
+            ShimmerLayout(shape = shape)
         }
     }
 }
 
 @Composable
-private fun ShimmerLayout(modifier: Modifier = Modifier) {
+private fun ShimmerLayout(
+    modifier: Modifier = Modifier,
+    shape: Shape
+) {
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .brandShimmerEffect(shape = CircleShape)
+            .brandShimmerEffect(shape = shape)
     )
 }
 
@@ -84,7 +89,8 @@ private fun ContentLayout(
     tag: String?,
     name: String?,
     animate: Boolean = false,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    shape: Shape
 ) {
     if(animate) {
         val density = LocalDensity.current
@@ -122,7 +128,7 @@ private fun ContentLayout(
                     .scale(liveScaleBackground)
                     .background(
                         color = tagToColor(tag) ?: LocalTheme.current.colors.tetrial,
-                        shape = CircleShape
+                        shape = shape
                     )
             )
             ContentElement(
@@ -141,7 +147,8 @@ private fun ContentLayout(
                 contentDescription = contentDescription,
                 media = media,
                 name = name,
-                tag = tag
+                tag = tag,
+                shape = shape
             )
         }
     }else if(tag != null) {
@@ -149,7 +156,7 @@ private fun ContentLayout(
             modifier = modifier
                 .background(
                     color = tagToColor(tag) ?: LocalTheme.current.colors.tetrial,
-                    shape = CircleShape
+                    shape = shape
                 )
                 .height(IntrinsicSize.Max)
                 .width(IntrinsicSize.Max)
@@ -159,7 +166,8 @@ private fun ContentLayout(
                 contentDescription = contentDescription,
                 media = media,
                 name = name,
-                tag = tag
+                tag = tag,
+                shape = shape
             )
         }
     }else {
@@ -168,7 +176,8 @@ private fun ContentLayout(
             contentDescription = contentDescription,
             media = media,
             name = name,
-            tag = tag
+            tag = tag,
+            shape = shape
         )
     }
 }
@@ -176,6 +185,7 @@ private fun ContentLayout(
 @Composable
 private fun ContentElement(
     modifier: Modifier = Modifier,
+    shape: Shape,
     contentDescription: String?,
     media: MediaIO?,
     tag: String?,
@@ -185,27 +195,31 @@ private fun ContentElement(
         if(isValid) {
             MediaElement(
                 modifier = modifier
-                    .clip(CircleShape)
+                    .clip(shape)
+                    .background(
+                        color = LocalTheme.current.colors.backgroundDark,
+                        shape = shape
+                    )
                     .aspectRatio(1f),
                 contentDescription = contentDescription,
                 media = media,
                 contentScale = ContentScale.Crop
             )
-        }else if(name != null) {
+        }else if(name != null || tag != null) {
             val backgroundColor = tagToColor(tag) ?: LocalTheme.current.colors.tetrial
             val textColor = if(backgroundColor.luminance() > .5f) Colors.Coffee else Colors.GrayLight
 
             Box(
                 modifier = modifier
-                    .aspectRatio(1f)
+                    .aspectRatio(1f, true)
                     .background(
                         color = backgroundColor,
-                        shape = CircleShape
-                    ),
+                        shape = shape
+                    )
+                    .padding(6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 AutoResizeText(
-                    modifier = Modifier.padding(vertical = 6.dp),
                     text = UserIO.initialsOf(name),
                     style = LocalTheme.current.styles.subheading.copy(color = textColor),
                     fontSizeRange = FontSizeRange(

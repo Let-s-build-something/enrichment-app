@@ -49,6 +49,7 @@ import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
 import augmy.interactive.shared.ui.base.LocalDeviceType
 import augmy.interactive.shared.ui.base.LocalIsMouseUser
+import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.OnBackHandler
 import augmy.interactive.shared.ui.base.PlatformType
@@ -73,7 +74,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import ui.dev.DeveloperContent
+import ui.dev.DeveloperHolderLayout
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
@@ -152,7 +153,7 @@ private fun AppContent(
     val snackbarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
 
-    val isPhone = LocalDeviceType.current == WindowWidthSizeClass.Compact
+    val isCompact = LocalDeviceType.current == WindowWidthSizeClass.Compact
 
     val modalDeepLink = rememberSaveable(model) {
         mutableStateOf<String?>(null)
@@ -216,8 +217,10 @@ private fun AppContent(
                     scope.launch {
                         if(snackbarHost?.showSnackbar(
                                 message = getString(Res.string.hard_logout_message),
-                                actionLabel = getString(Res.string.hard_logout_action)
-                            ) == SnackbarResult.ActionPerformed) {
+                                actionLabel = getString(Res.string.hard_logout_action),
+                                withDismissAction = true,
+                            ) == SnackbarResult.ActionPerformed
+                        ) {
                             navController.navigate(NavigationNode.Login())
                         }
                     }
@@ -279,32 +282,43 @@ private fun AppContent(
         )
     }
 
-    ModalHost(
-        deepLink = modalDeepLink.value,
-        onDismissRequest = {
-            modalDeepLink.value = null
-        }
-    )
+    CompositionLocalProvider(LocalNavController provides navController) {
+        ModalHost(
+            deepLink = modalDeepLink.value,
+            onDismissRequest = {
+                modalDeepLink.value = null
+            }
+        )
+    }
 
     Column {
-        if(isPhone) {
-            if(BuildKonfig.isDevelopment) DeveloperContent(
-                modifier = Modifier.statusBarsPadding(),
-            )
-            InformationPopUps()
-            InformationLines(sharedModel = model)
-            Box {
-                NavigationHost(navController = navController)
-            }
-        }else {
-            InformationPopUps()
-            InformationLines(sharedModel = model)
-            Row {
-                if(BuildKonfig.isDevelopment) DeveloperContent()
+        if(isCompact) {
+            val content = @Composable {
+                InformationPopUps()
+                InformationLines(sharedModel = model)
                 Box {
                     NavigationHost(navController = navController)
                 }
             }
+
+            if (BuildKonfig.isDevelopment) DeveloperHolderLayout(
+                modifier = Modifier.statusBarsPadding(),
+                appContent = content
+            ) else content()
+        }else {
+            InformationPopUps()
+            InformationLines(sharedModel = model)
+
+
+            val content = @Composable {
+                Box {
+                    NavigationHost(navController = navController)
+                }
+            }
+
+            if(BuildKonfig.isDevelopment) {
+                DeveloperHolderLayout(appContent = content)
+            }else content()
         }
     }
 }

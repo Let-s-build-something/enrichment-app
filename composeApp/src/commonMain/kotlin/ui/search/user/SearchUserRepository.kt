@@ -4,7 +4,7 @@ import data.io.matrix.user.SearchUserRequest
 import data.io.matrix.user.SearchUserResponse
 import data.io.user.NetworkItemIO
 import database.dao.NetworkItemDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -27,7 +27,7 @@ class SearchUserRepository(
     ) = withContext(Dispatchers.IO) {
         val localSearch = withContext(Dispatchers.Default) {
             networkItemDao.searchByPrompt(prompt = prompt)
-                .plus(memberDao.searchByPrompt(prompt = prompt).map { it.toNetworkItem() })
+                .plus(memberDao.query(query = prompt).map { it.toNetworkItem() })
                 .distinctBy { it.userId }
         }
 

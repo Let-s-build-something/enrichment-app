@@ -46,6 +46,7 @@ fun ClickableTile(
             )
             .padding(vertical = 10.dp, horizontal = 12.dp)
             .scalingClickable(
+                key = text,
                 scaleInto = .95f,
                 onHover = { hovered ->
                     isHovered.value = hovered

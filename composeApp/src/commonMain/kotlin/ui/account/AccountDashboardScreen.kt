@@ -1,24 +1,26 @@
 package ui.account
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Handshake
 import androidx.compose.material.icons.outlined.IosShare
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,9 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import augmy.composeapp.generated.resources.Res
@@ -57,15 +56,13 @@ import augmy.composeapp.generated.resources.account_settings_title_offline
 import augmy.composeapp.generated.resources.account_settings_title_online
 import augmy.composeapp.generated.resources.account_sign_out_message
 import augmy.composeapp.generated.resources.account_username_empty
-import augmy.composeapp.generated.resources.action_general_copied
 import augmy.composeapp.generated.resources.action_link_copied
 import augmy.composeapp.generated.resources.button_dismiss
 import augmy.composeapp.generated.resources.button_yes
 import augmy.composeapp.generated.resources.network_action_share
 import augmy.composeapp.generated.resources.screen_account_title
-import augmy.composeapp.generated.resources.screen_network_management
-import augmy.composeapp.generated.resources.screen_search_preferences
 import augmy.interactive.shared.ext.scalingClickable
+import augmy.interactive.shared.ui.base.LocalIsMouseUser
 import augmy.interactive.shared.ui.base.LocalNavController
 import augmy.interactive.shared.ui.base.LocalSnackbarHost
 import augmy.interactive.shared.ui.base.ModalScreenContent
@@ -75,15 +72,14 @@ import augmy.interactive.shared.ui.components.MinimalisticFilledIcon
 import augmy.interactive.shared.ui.components.MultiChoiceSwitch
 import augmy.interactive.shared.ui.components.dialog.AlertDialog
 import augmy.interactive.shared.ui.components.dialog.ButtonState
-import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.BrandBaseScreen
 import base.navigation.NavigationNode
 import base.utils.shareLink
 import base.utils.withPlainText
+import components.AvatarImage
 import components.RowSetting
-import components.UserProfileImage
 import data.io.app.ThemeChoice
 import data.io.social.UserPrivacy
 import data.io.social.UserVisibility
@@ -91,6 +87,7 @@ import data.io.social.network.conversation.message.MediaIO
 import koin.HttpDomain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import net.folivo.trixnity.core.model.UserId
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -113,7 +110,12 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
 
     LaunchedEffect(signOutResponse.value, currentUser.value) {
         if(signOutResponse.value && currentUser.value == null) {
-            navController?.popBackStack(NavigationNode.Home, inclusive = false)
+            navController?.navigate(NavigationNode.Home) {
+                popUpTo(NavigationNode.Home) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
         }
     }
 
@@ -137,14 +139,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
 
     BrandBaseScreen(
         title = stringResource(Res.string.screen_account_title),
-        actionIcons = { isExpanded ->
-            ActionBarIcon(
-                text = if(isExpanded) stringResource(Res.string.screen_search_preferences) else null,
-                imageVector = Icons.Outlined.Search,
-                onClick = {
-                    navController?.navigate(NavigationNode.SearchAccount)
-                }
-            )
+        /*actionIcons = { isExpanded ->
             ActionBarIcon(
                 text = if(isExpanded) stringResource(Res.string.screen_network_management) else null,
                 imageVector = Icons.Outlined.Handshake,
@@ -152,7 +147,7 @@ fun AccountDashboardScreen(model: AccountDashboardModel = koinViewModel()) {
                     navController?.navigate(NavigationNode.NetworkManagement())
                 }
             )
-        }
+        }*/
     ) {
         ModalScreenContent(
             modifier = Modifier
@@ -276,8 +271,8 @@ private fun SettingsSection(viewModel: AccountDashboardModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
-    val currentUser = viewModel.currentUser.collectAsState(null)
+private fun ColumnScope.ProfileSection(model: AccountDashboardModel) {
+    val currentUser = model.currentUser.collectAsState(null)
 
     val showNameChangeLauncher = rememberSaveable {
         mutableStateOf(false)
@@ -290,12 +285,12 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
     val snackbarHostState = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
 
-    if(showNameChangeLauncher.value) {
+    if (showNameChangeLauncher.value) {
         DisplayNameChangeLauncher {
             showNameChangeLauncher.value = false
         }
     }
-    if(showPictureChangeDialog.value) {
+    if (showPictureChangeDialog.value) {
         DialogPictureChange(
             onDismissRequest = {
                 showPictureChangeDialog.value = false
@@ -304,13 +299,16 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
     }
 
     Box {
-        UserProfileImage(
+        AvatarImage(
             modifier = Modifier
                 .zIndex(5f)
-                .fillMaxWidth(.4f),
+                .fillMaxWidth(.4f)
+                .aspectRatio(1f),
             media = MediaIO(url = currentUser.value?.avatarUrl),
             tag = currentUser.value?.tag,
-            name = currentUser.value?.displayName
+            name = (currentUser.value?.displayName ?: "").ifBlank {
+                UserId(currentUser.value?.matrixUserId ?: "").localpart
+            }
         )
         MinimalisticFilledIcon(
             modifier = Modifier
@@ -328,38 +326,47 @@ private fun ColumnScope.ProfileSection(viewModel: AccountDashboardModel) {
         modifier = Modifier.align(Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .scalingClickable(
-                    enabled = currentUser.value?.displayName != null && currentUser.value?.tag != null
-                ) {
-                    coroutineScope.launch {
-                        clipboard.withPlainText(
-                            currentUser.value?.displayName?.plus("#${currentUser.value?.tag}") ?: ""
-                        )
-                        snackbarHostState?.showSnackbar(
-                            message = getString(Res.string.action_general_copied)
-                        )
+        val isMouseUser = LocalIsMouseUser.current
+        val isHovered = remember(model) {
+            mutableStateOf(!isMouseUser)
+        }
+
+        Column {
+            Row(
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .scalingClickable(
+                        onHover = { isHovered.value = it },
+                        enabled = currentUser.value?.matrixUserId != null
+                    ) {
+                        showNameChangeLauncher.value = true
                     }
-                },
-            text = buildAnnotatedString {
-                append(currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty))
-                if(currentUser.value?.tag != null) {
-                    withStyle(SpanStyle(color = LocalTheme.current.colors.disabled)) {
-                        append("#${currentUser.value?.tag}")
-                    }
+                    .animateContentSize(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = currentUser.value?.displayName ?: stringResource(Res.string.account_username_empty),
+                    style = LocalTheme.current.styles.subheading
+                )
+                if (isHovered.value) {
+                    Icon(
+                        modifier = Modifier.size(24.dp),
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = stringResource(Res.string.accessibility_change_username),
+                        tint = LocalTheme.current.colors.secondary
+                    )
                 }
-            },
-            style = LocalTheme.current.styles.subheading
-        )
-        MinimalisticComponentIcon(
-            imageVector = Icons.Outlined.Edit,
-            contentDescription = stringResource(Res.string.accessibility_change_username),
-            onTap = {
-                showNameChangeLauncher.value = true
             }
-        )
+            currentUser.value?.matrixUserId?.let { userId ->
+                Text(
+                    text = userId,
+                    style = LocalTheme.current.styles.regular.copy(
+                        color = LocalTheme.current.colors.disabled
+                    )
+                )
+            }
+        }
         MinimalisticComponentIcon(
             modifier = Modifier.padding(start = 4.dp),
             imageVector = Icons.Outlined.IosShare,

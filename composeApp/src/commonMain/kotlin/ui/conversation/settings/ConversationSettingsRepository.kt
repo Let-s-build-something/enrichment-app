@@ -6,6 +6,7 @@ import androidx.paging.PagingSource
 import data.io.base.BaseResponse
 import data.io.base.paging.MatrixPagingMetaIO
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.ConversationMessagesResponse
 import data.io.user.NetworkItemIO
@@ -13,9 +14,10 @@ import data.shared.sync.DataSyncHandler
 import data.shared.sync.MessageProcessor
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
+import database.dao.MatrixPagingMetaDao
 import database.dao.NetworkItemDao
-import database.dao.matrix.MatrixPagingMetaDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.PresenceEventDao
+import database.dao.RoomMemberDao
 import database.file.FileAccess
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -40,6 +42,7 @@ class ConversationSettingsRepository(
     private val conversationRoomDao: ConversationRoomDao,
     private val conversationMessageDao: ConversationMessageDao,
     private val matrixPagingDao: MatrixPagingMetaDao,
+    private val presenceEventDao: PresenceEventDao,
     mediaDataManager: MediaProcessorDataManager,
     fileAccess: FileAccess
 ): MediaRepository(httpClient, mediaDataManager, fileAccess)  {
@@ -59,7 +62,9 @@ class ConversationSettingsRepository(
         userId: String,
         ownerPublicId: String?
     ): NetworkItemIO? = withContext(Dispatchers.IO) {
-        networkItemDao.get(userId = userId, ownerPublicId = ownerPublicId)
+        networkItemDao.get(userId = userId, ownerPublicId = ownerPublicId)?.copy(
+            presence = presenceEventDao.get(userId)?.content
+        )
     }
 
     suspend fun removeRoom(
@@ -73,6 +78,14 @@ class ConversationSettingsRepository(
         senderUserId: String?
     ) = withContext(Dispatchers.IO) {
         conversationMessageDao.getPendingVerifications(senderUserId = senderUserId)
+    }
+
+    /** Returns a detailed information about a conversation */
+    suspend fun getConversationDetail(
+        conversationId: String,
+        owner: String?
+    ): FullConversationRoom? = withContext(Dispatchers.IO) {
+        conversationRoomDao.get(conversationId, ownerPublicId = owner)
     }
 
     /** Returns a flow of conversation messages */
@@ -113,9 +126,17 @@ class ConversationSettingsRepository(
                                         )
                                     }else null
                                 } ?: if(prevBatch != null || entity == null) {
+                                    // no batch = start of the members remote pagination
+                                    val excludedUsers = withContext(Dispatchers.Default) {
+                                        (if (prevBatch == null) {
+                                            setOf(*roomMemberDao.getAll(conversationId).map { it.userId }.toTypedArray())
+                                        } else setOf()).plus(ignoreUserId ?: "")
+                                    }
+
                                     getAndStoreNewMembers(
                                         limit = config.pageSize,
                                         conversationId = conversationId,
+                                        excludedUsers = excludedUsers,
                                         fromBatch = prevBatch,
                                         homeserver = homeserver()
                                     )?.let { res ->

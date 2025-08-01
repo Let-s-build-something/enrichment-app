@@ -23,7 +23,7 @@ plugins {
 
     kotlin("plugin.serialization") version libs.versions.kotlin
     kotlin("native.cocoapods") version libs.versions.kotlin
-    id("com.codingfeline.buildkonfig") version "0.15.2"
+    id("com.codingfeline.buildkonfig") version libs.versions.buildkonfig
 }
 
 val vCode = libs.versions.version.code.get().toInt()
@@ -104,7 +104,6 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(compose.preview)
 
@@ -118,6 +117,7 @@ kotlin {
             implementation(libs.androidx.security.crypto.ktx)
 
             implementation(libs.coil.gif)
+            implementation(libs.android.installreferrer)
 
             //Credentials
             implementation(libs.androidx.credentials)
@@ -137,6 +137,7 @@ kotlin {
             implementation(libs.firebase.java.sdk)
             implementation(libs.bundles.kamel)
             implementation(libs.credential.store)
+            implementation(libs.java.jwt)
             implementation(libs.logback.classic)
             implementation(libs.oshi.core)
 
@@ -154,7 +155,6 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
-            implementation(libs.oshai.logging)
 
             implementation(libs.compottie.dot)
             implementation(libs.navigation.compose)
@@ -383,4 +383,47 @@ tasks.register("printVersionName") {
     doLast {
         println(vName)
     }
+}
+
+// hotfix to faulty room dao generation for Jvm     https://issuetracker.google.com/issues/352482325?pli=1
+tasks.register("sanitizeDaoImpls") {
+    doLast {
+        val baseDir = "build/generated/ksp/jvm/jvmMain/kotlin/database/dao"
+        val fileNames = listOf(
+            "ConversationMessageDao_Impl.kt",
+            "ConversationRoomDao_Impl.kt"
+            // Add more DAO impls as needed
+        )
+
+        fileNames.forEach { fileName ->
+            val file = file("$baseDir/$fileName")
+
+            if (!file.exists()) {
+                println("No DAO impl found at $file (skipping)")
+                return@forEach
+            }
+
+            val original = file.readText()
+
+            // Remove unwanted import
+            val noImport = original.replace(
+                Regex("""import\s+androidx\.room\.util\.recursiveFetchArrayMap\s*\n"""),
+                ""
+            )
+
+            // Remove the "if (_map.size > 999)" block
+            val patched = noImport.replace(
+                Regex("""(?s)(if\s*\(\s*_map\.size\s*>\s*999\s*\)\s*\{\n.*?return\s*\n\s*\})"""),
+                ""
+            )
+
+            file.writeText(patched)
+            println("Patched $fileName — removed recursiveFetchArrayMap logic")
+        }
+    }
+}
+
+// Run after KSP code generation
+afterEvaluate {
+    tasks.findByName("kspKotlinJvm")?.finalizedBy("sanitizeDaoImpls")
 }

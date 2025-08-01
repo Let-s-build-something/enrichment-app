@@ -52,10 +52,7 @@ class NetworkAddNewRepository(
                         count = takeCount,
                         excludeId = excludeId
                     ).map { conversation ->
-                        NetworkItemIO(
-                            displayName = conversation.summary?.roomName,
-                            avatar = conversation.summary?.avatar
-                        )
+                        conversation.toNetworkItem()
                     } + networkItemDao.getByProximity(
                         ownerPublicId = ownerPublicId,
                         proximityMin = category.range.start,

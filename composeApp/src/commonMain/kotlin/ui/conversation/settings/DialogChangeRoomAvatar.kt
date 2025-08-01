@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Link
@@ -52,7 +51,7 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.global.verification.ClickableTile
 import data.io.base.BaseResponse
-import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -68,7 +67,7 @@ import ui.conversation.components.MediaElement
 
 @Composable
 fun DialogChangeRoomAvatar(
-    detail: ConversationRoomIO?,
+    detail: FullConversationRoom?,
     model: ConversationSettingsModel,
     onDismissRequest: () -> Unit
 ) {
@@ -78,9 +77,9 @@ fun DialogChangeRoomAvatar(
     val ongoingChange = model.ongoingChange.collectAsState()
 
     val urlState = remember { TextFieldState() }
-    val selectedImageUrl = rememberSaveable(detail?.id) {
+    val selectedImageUrl = rememberSaveable(detail?.data?.id) {
         mutableStateOf(
-            urlState.text.ifEmpty { detail?.summary?.avatar?.url }
+            urlState.text.ifEmpty { detail?.data?.summary?.avatar?.url }
         )
     }
     val selectedFile = remember { mutableStateOf<PlatformFile?>(null) }
@@ -100,7 +99,7 @@ fun DialogChangeRoomAvatar(
     ) { file ->
         if(file != null) {
             selectedFile.value = file
-            selectedImageUrl.value = detail?.summary?.avatar?.url
+            selectedImageUrl.value = detail?.data?.summary?.avatar?.url
         }
     }
 
@@ -148,7 +147,7 @@ fun DialogChangeRoomAvatar(
                             color = LocalTheme.current.colors.brandMain,
                             shape = CircleShape
                         ),
-                    media = detail?.summary?.avatar?.copy(url = selectedImageUrl.value.toString()),
+                    media = detail?.data?.summary?.avatar?.copy(url = selectedImageUrl.value.toString()),
                     contentScale = ContentScale.Crop,
                     localMedia = selectedFile.value,
                     onState = { loadState ->
@@ -194,7 +193,6 @@ fun DialogChangeRoomAvatar(
                         hint = stringResource(Res.string.image_field_url_hint),
                         prefixIcon = Icons.Outlined.Link,
                         state = urlState,
-                        lineLimits = TextFieldLineLimits.SingleLine,
                         errorText = if(urlLoadState.value is BaseResponse.Error) {
                             stringResource(Res.string.image_field_url_error_formats)
                         }else null,
@@ -233,8 +231,8 @@ fun DialogChangeRoomAvatar(
                         modifier = Modifier.weight(1f),
                         isLoading = ongoingChange.value?.state is BaseResponse.Loading,
                         text = stringResource(Res.string.username_change_launcher_confirm),
-                        isEnabled = selectedImageUrl.value != detail?.summary?.avatar?.url
-                                || (selectedFile.value != null && selectedFile.value?.name != detail?.summary?.avatar?.name),
+                        isEnabled = selectedImageUrl.value != detail?.data?.summary?.avatar?.url
+                                || (selectedFile.value != null && selectedFile.value?.name != detail?.data?.summary?.avatar?.name),
                         onClick = {
                             model.requestAvatarChange(
                                 selectedFile.value,

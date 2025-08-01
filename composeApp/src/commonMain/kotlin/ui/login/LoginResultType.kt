@@ -5,6 +5,7 @@ enum class LoginResultType {
 
     /** general error, the request failed */
     FAILURE,
+    NO_GOOGLE_CREDENTIALS,
 
     /** the nonce don't match, security check */
     AUTH_SECURITY,

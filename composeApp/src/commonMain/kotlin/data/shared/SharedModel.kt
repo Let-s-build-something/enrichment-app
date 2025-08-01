@@ -10,6 +10,7 @@ import data.io.app.ClientStatus
 import data.io.app.LocalSettings
 import data.io.app.SettingsKeys
 import data.io.app.ThemeChoice
+import data.io.base.AppPingType
 import data.shared.auth.AuthService
 import data.shared.sync.DataSyncService
 import dev.gitlive.firebase.Firebase
@@ -26,11 +27,15 @@ import net.folivo.trixnity.client.MatrixClient
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.mp.KoinPlatform
-import ui.login.AUGMY_HOME_SERVER
+import ui.home.homeModule
+import ui.login.homeserver_picker.AUGMY_HOMESERVER_IDENTIFIER
+import ui.login.homeserver_picker.AUGMY_HOME_SERVER_ADDRESS
+import ui.login.homeserver_picker.HomeserverPickerModel
+import utils.SharedLogger
 
 /** Viewmodel with shared behavior and injections for general purposes */
 open class SharedModel: ViewModel() {
-    protected val dataSyncService = KoinPlatform.getKoin().get<DataSyncService>()
+    protected val syncService = KoinPlatform.getKoin().get<DataSyncService>()
     protected val authService = KoinPlatform.getKoin().get<AuthService>()
 
     /** Singleton data manager to keep session-only data alive */
@@ -47,8 +52,16 @@ open class SharedModel: ViewModel() {
     val matrixClient: MatrixClient?
         get() = sharedDataManager.matrixClient.value
 
-    val homeserver: String
-        get() = currentUser.value?.matrixHomeserver ?: AUGMY_HOME_SERVER
+    val homeserverAddress: String
+        get() = homeserver.address
+
+    val homeserver: HomeserverPickerModel.HomeserverAddress
+        get() = currentUser.value?.matrixHomeserver?.let {
+            HomeserverPickerModel.HomeserverAddress(it, it)
+        } ?: HomeserverPickerModel.HomeserverAddress(
+            AUGMY_HOMESERVER_IDENTIFIER,
+            AUGMY_HOME_SERVER_ADDRESS
+        )
 
     val awaitingAutologin: Boolean
         get() = authService.awaitingAutologin
@@ -69,7 +82,6 @@ open class SharedModel: ViewModel() {
     /** Most recent measure of speed and network connectivity */
     val networkConnectivity = sharedDataManager.networkConnectivity.asStateFlow()
 
-
     //======================================== functions ==========================================
 
     /** Initializes the user and returns whether successful */
@@ -77,6 +89,7 @@ open class SharedModel: ViewModel() {
         authService.setupAutoLogin(forceRefresh = false)
         updateClientSettings()
 
+        SharedLogger.logger.debug { "initUser, user: ${currentUser.value}" }
         return currentUser.value?.accessToken != null && currentUser.value?.matrixHomeserver != null
     }
 
@@ -97,6 +110,14 @@ open class SharedModel: ViewModel() {
         sharedDataManager.pingStream.update { prev ->
             prev.toMutableSet().apply {
                 removeAll { it.identifier == identifier }
+            }
+        }
+    }
+
+    suspend fun consumePing(type: AppPingType) = withContext(Dispatchers.Default) {
+        sharedDataManager.pingStream.update { prev ->
+            prev.toMutableSet().apply {
+                removeAll { it.type == type }
             }
         }
     }
@@ -130,7 +151,6 @@ open class SharedModel: ViewModel() {
             "${SettingsKeys.KEY_NETWORK_COLORS}_$matrixUserId"
         )?.split(",")
             ?: NetworkProximityCategory.entries.map { it.color.asSimpleString() }
-        // Jvm_3b158f7e3e20467681c9ac573ffb9fd6
 
         val update = LocalSettings(
             theme = theme,
@@ -144,16 +164,20 @@ open class SharedModel: ViewModel() {
 
     /** Logs out the currently signed in user */
     open suspend fun logoutCurrentUser() {
-        dataSyncService.stop()
+        SharedLogger.logger.warn { "Logging current user out" }
+        syncService.stop()
         authService.clear()
         secureSettings.clear()
         sharedDataManager.matrixClient.value?.logout()
+        sharedDataManager.matrixClient.value?.close()
         sharedDataManager.currentUser.value = null
         sharedDataManager.localSettings.value = null
         sharedDataManager.matrixClient.value = null
         sharedDataManager.pingStream.value = setOf()
         unloadKoinModules(commonModule)
+        unloadKoinModules(homeModule)
         loadKoinModules(commonModule)
+        loadKoinModules(homeModule)
         updateClientSettings()
     }
 }

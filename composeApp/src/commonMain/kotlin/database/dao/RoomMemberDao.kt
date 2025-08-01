@@ -1,4 +1,4 @@
-package database.dao.matrix
+package database.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -13,12 +13,14 @@ interface RoomMemberDao {
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}")
     suspend fun getAll(): List<ConversationRoomMember>
 
-    @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE user_id IN (:userIds) ")
-    suspend fun get(userIds: List<String>): List<ConversationRoomMember>
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+        WHERE room_id = :roomId
+        """)
+    suspend fun getAll(roomId: String): List<ConversationRoomMember>
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE user_id = :userId ")
+            "WHERE userId = :userId ")
     suspend fun get(userId: String): ConversationRoomMember?
 
     @Query("SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
@@ -27,28 +29,52 @@ interface RoomMemberDao {
 
     @Query("""
         SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+            WHERE (display_name like '%' || :query || '%'
+            OR userId  like '%' || :query || '%')
+            AND id NOT IN (:excludeIds)
+            ORDER BY proximity DESC 
+            LIMIT :limit
+    """)
+    suspend fun query(
+        query: String,
+        excludeIds: List<String> = emptyList(),
+        limit: Int = 100
+    ): List<ConversationRoomMember>
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+            WHERE id NOT IN (:excludeIds)
+            ORDER BY proximity DESC 
+            LIMIT :limit
+    """)
+    suspend fun getSorted(
+        excludeIds: List<String> = emptyList(),
+        limit: Int
+    ): List<ConversationRoomMember>
+
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
             WHERE room_id = :roomId
-            AND user_id != :ignoreUserId
-            ORDER BY timestamp DESC 
+            AND userId != :ignoreUserId
+            AND membership = 'join'
+            ORDER BY proximity DESC, timestamp ASC
             LIMIT :limit
             OFFSET :offset
             """)
     suspend fun getPaginated(
         roomId: String?,
-        limit: Int,
         offset: Int,
         ignoreUserId: String?,
+        limit: Int,
     ): List<ConversationRoomMember>
 
-    @Query("""
-        SELECT * FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
-            WHERE display_name like '%' || :prompt || '%'
-            OR user_id  like '%' || :prompt || '%'
-            """)
-    suspend fun searchByPrompt(prompt: String): List<ConversationRoomMember>
-
-    @Query("SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} " +
-            "WHERE room_id = :roomId ")
+    @Query(
+        """
+         SELECT COUNT(*) FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}   
+         WHERE room_id = :roomId
+         AND membership = 'join'
+        """
+    )
     suspend fun getCount(roomId: String?): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -62,6 +88,16 @@ interface RoomMemberDao {
 
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}")
     suspend fun removeAll()
+
+    @Query("""
+        DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER}
+        WHERE userId = :userId
+        AND room_id = :roomId
+    """)
+    suspend fun remove(
+        userId: String,
+        roomId: String
+    )
 
     @Query("DELETE FROM ${AppRoomDatabase.TABLE_ROOM_MEMBER} WHERE room_id = :roomId")
     suspend fun removeAll(roomId: String)

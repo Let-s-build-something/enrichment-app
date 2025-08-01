@@ -2,10 +2,9 @@ package ui.conversation.message
 
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import data.io.social.network.conversation.message.ConversationMessageIO
+import data.io.social.network.conversation.message.FullConversationMessage
 import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
-import database.dao.matrix.RoomMemberDao
 import database.file.FileAccess
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +17,6 @@ import ui.conversation.components.audio.MediaProcessorDataManager
 
 class MessageDetailRepository(
     private val conversationMessageDao: ConversationMessageDao,
-    roomMemberDao: RoomMemberDao,
     httpClient: HttpClient,
     fileAccess: FileAccess,
     conversationRoomDao: ConversationRoomDao,
@@ -28,12 +26,11 @@ class MessageDetailRepository(
     conversationMessageDao = conversationMessageDao,
     mediaDataManager = mediaDataManager,
     fileAccess = fileAccess,
-    roomMemberDao = roomMemberDao,
     conversationRoomDao = conversationRoomDao
 ) {
 
     /** Retrieves singular message from the local DB */
-    suspend fun getMessage(id: String): ConversationMessageIO? {
+    suspend fun getMessage(id: String): FullConversationMessage? {
         return withContext(Dispatchers.IO) {
             conversationMessageDao.get(id)
         }
@@ -44,7 +41,7 @@ class MessageDetailRepository(
         config: PagingConfig,
         conversationId: String? = null,
         anchorMessageId: String? = null
-    ): Pager<Int, ConversationMessageIO> {
+    ): Pager<Int, FullConversationMessage> {
         return Pager(
             config = config,
             pagingSourceFactory = {

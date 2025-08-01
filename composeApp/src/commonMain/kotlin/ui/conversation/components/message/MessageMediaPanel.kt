@@ -16,14 +16,14 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CrueltyFree
 import androidx.compose.material.icons.outlined.Gif
 import androidx.compose.material.icons.outlined.Mood
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -115,7 +115,7 @@ fun MessageMediaPanel(
             )
             .animateContentSize()
     ) {
-        HorizontalPager(
+        VerticalPager(
             modifier = Modifier
                 .mouseDraggable(pagerState) {
                     mode.value = ConversationKeyboardMode.entries[it].ordinal
@@ -190,8 +190,8 @@ fun MessageMediaPanel(
                             }
                         ),
                         tint = if(pagerState.currentPage == entry.ordinal) {
-                            LocalTheme.current.colors.disabled
-                        } else LocalTheme.current.colors.primary
+                            LocalTheme.current.colors.primary
+                        } else LocalTheme.current.colors.disabled
                     )
                 }
             }

@@ -35,7 +35,7 @@ class SearchUserModel(
         viewModelScope.launch(Dispatchers.Default) {
             _users.value = repository.queryForUsers(
                 limit = ITEMS_COUNT,
-                homeserver = homeserver,
+                homeserver = homeserverAddress,
                 prompt = prompt.toString()
             )?.distinctBy { it.userId }.let { list ->
                 if(excludeUsers.isNotEmpty()) {

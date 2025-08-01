@@ -14,14 +14,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FaceRetouchingOff
-import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.VoiceOverOff
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,7 +36,6 @@ import augmy.composeapp.generated.resources.accessibility_save
 import augmy.composeapp.generated.resources.button_block
 import augmy.composeapp.generated.resources.button_confirm
 import augmy.composeapp.generated.resources.button_dismiss
-import augmy.composeapp.generated.resources.button_invite
 import augmy.composeapp.generated.resources.button_mute
 import augmy.composeapp.generated.resources.network_action_circle_move
 import augmy.composeapp.generated.resources.network_dialog_message_block
@@ -67,8 +65,7 @@ import ui.network.add_new.networkAddNewModule
 fun SocialItemActions(
     key: Any?,
     newItem: NetworkItemIO,
-    requestProximityChange: (proximity: Float) -> Unit,
-    onInvite: () -> Unit
+    requestProximityChange: (proximity: Float) -> Unit
 ) {
     val showActionDialog = remember(key) {
         mutableStateOf<OptionsLayoutAction?>(null)
@@ -79,7 +76,7 @@ fun SocialItemActions(
     val selectedCategory = remember {
         mutableStateOf(NetworkProximityCategory.entries.find {
             it.range.contains(newItem.proximity ?: -1f)
-        })
+        } ?: NetworkProximityCategory.Public)
     }
     val actionsState = rememberScrollState()
 
@@ -126,12 +123,9 @@ fun SocialItemActions(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ProximityPicker(
-                viewModel = koinViewModel(),
-                selectedCategory = selectedCategory.value,
-                newItem = newItem,
-                onSelectionChange = {
-                    selectedCategory.value = it
-                }
+                model = koinViewModel(),
+                selectedCategory = selectedCategory,
+                newItem = newItem
             )
             Row(
                 modifier = Modifier
@@ -150,7 +144,7 @@ fun SocialItemActions(
                     text = stringResource(Res.string.accessibility_save),
                     onClick = {
                         requestProximityChange(
-                            selectedCategory.value?.range?.start ?: newItem.proximity ?: 1f
+                            selectedCategory.value.range.start
                         )
                     },
                     activeColor = LocalTheme.current.colors.brandMain
@@ -202,12 +196,6 @@ fun SocialItemActions(
                 onClick = {
                     showMoveCircleDialog.value = true
                 }
-            )
-            ScalingIcon(
-                color = LocalTheme.current.colors.brandMain,
-                imageVector = Icons.Outlined.GroupAdd,
-                contentDescription = stringResource(Res.string.button_invite),
-                onClick = onInvite
             )
             Spacer(Modifier.width(LocalTheme.current.shapes.betweenItemsSpace))
         }

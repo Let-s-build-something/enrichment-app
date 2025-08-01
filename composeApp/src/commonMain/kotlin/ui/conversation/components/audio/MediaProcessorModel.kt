@@ -8,6 +8,7 @@ import data.io.base.BaseResponse
 import data.io.social.network.conversation.message.MediaIO
 import data.shared.SharedModel
 import database.file.FileAccess
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -24,7 +25,7 @@ internal val mediaProcessorModule = module {
     factory { MediaProcessorDataManager() }
     single { MediaProcessorDataManager() }
     factory { MediaProcessorModel(get(), get()) }
-    factory { MediaProcessorRepository(get<FileAccess>(), get(), get()) }
+    factory { MediaProcessorRepository(get<FileAccess>(), get(), get(), get()) }
     viewModelOf(::MediaProcessorModel)
 }
 
@@ -45,6 +46,7 @@ class MediaProcessorModel(
 ): SharedModel() {
     private val _resultByteArray = MutableStateFlow<ByteArray?>(null)
     private val _resultData = MutableStateFlow<Map<MediaIO, ByteArray>>(mapOf())
+    private val _media = MutableStateFlow(listOf<MediaIO>())
     private val _downloadProgress = MutableStateFlow<MediaHttpProgress?>(null)
     private val _graphProtocol = MutableStateFlow<GraphProtocol?>(null)
 
@@ -62,6 +64,7 @@ class MediaProcessorModel(
 
     /** Resulting graph protocol from a website fetcher */
     val graphProtocol = _graphProtocol.asStateFlow()
+    val media = _media.asStateFlow()
 
     private val awaitingDownloads = MutableStateFlow(listOf<MediaIO>())
     private val schedulerMutex = Mutex()
@@ -111,6 +114,12 @@ class MediaProcessorModel(
         _resultByteArray.value = null
         _resultData.value = mapOf()
         _downloadProgress.value = null
+    }
+
+    fun retrieveMedia(idList: List<String?>) {
+        viewModelScope.launch(Dispatchers.Default) {
+            _media.value = repository.retrieveMedia(idList.filterNotNull())
+        }
     }
 
     /** Attempts to retrieve bytearrays out of urls */

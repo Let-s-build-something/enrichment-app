@@ -2,6 +2,7 @@ package ui.home.utils
 
 import data.io.base.BaseResponse
 import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomSummary
 import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.InvitationResponse
@@ -9,7 +10,7 @@ import data.io.social.network.conversation.RoomInvitationRequest
 import data.io.user.NetworkItemIO
 import database.dao.ConversationRoomDao
 import database.dao.NetworkItemDao
-import database.dao.matrix.RoomMemberDao
+import database.dao.RoomMemberDao
 import io.ktor.client.HttpClient
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
@@ -101,18 +102,15 @@ class NetworkItemRepository(
             }.let { response ->
                 if(newName != null) {
                     response.success?.data?.conversationId?.let { newId ->
-                        conversationRoomDao.insertAll(
-                            listOf(
-                                ConversationRoomIO(
-                                    id = newId,
-                                    summary = RoomSummary(
-                                        canonicalAlias = newName,
-                                        isDirect = false
-                                    ).apply {
-                                        members = roomMemberDao.get(userIds = userPublicIds.orEmpty())
-                                    },
-                                    ownerPublicId = ownerPublicId
-                                )
+                        conversationRoomDao.insert(
+                            ConversationRoomIO(
+                                id = newId,
+                                summary = RoomSummary(
+                                    canonicalAlias = newName,
+                                    isDirect = false
+                                ),
+                                ownerPublicId = ownerPublicId,
+                                type = RoomType.Joined
                             )
                         )
                         BaseResponse.Success(
@@ -128,11 +126,9 @@ class NetworkItemRepository(
     }
 
     /** Retrieves all open rooms */
-    suspend fun getOpenRooms(ownerPublicId: String?): List<ConversationRoomIO> {
+    suspend fun getOpenRooms(ownerPublicId: String?): List<FullConversationRoom> {
         return withContext(Dispatchers.IO) {
-            conversationRoomDao.getNonFiltered(ownerPublicId).filter {
-                it.type == RoomType.Joined && it.summary?.isDirect != true
-            }
+            conversationRoomDao.getOpenRooms(ownerPublicId)
         }
     }
 }

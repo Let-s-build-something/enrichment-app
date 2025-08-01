@@ -5,7 +5,6 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -17,7 +16,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import augmy.interactive.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
-import data.io.social.network.conversation.message.MediaIO
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.core.context.loadKoinModules
 import ui.account.AccountDashboardScreen
@@ -27,12 +25,14 @@ import ui.conversation.ConversationScreen
 import ui.conversation.media.MediaDetailScreen
 import ui.conversation.message.MessageDetailScreen
 import ui.conversation.message.messageDetailModule
+import ui.conversation.search.ConversationSearchScreen
 import ui.conversation.settings.ConversationSettingsScreen
 import ui.home.HomeScreen
 import ui.login.LoginScreen
 import ui.login.loginModule
 import ui.network.NetworkManagementScreen
 import ui.network.received.networkManagementModule
+import ui.search.room.SearchRoomScreen
 import ui.search.user.SearchUserScreen
 import kotlin.jvm.JvmSuppressWildcards
 
@@ -79,9 +79,6 @@ fun NavigationHost(
             composable<NavigationNode.SearchNetwork> {
                 WaterPleaseScreen()
             }
-            composable<NavigationNode.SearchAccount> {
-                WaterPleaseScreen()
-            }
             composable<NavigationNode.Water> {
                 WaterPleaseScreen()
             }
@@ -95,16 +92,7 @@ fun NavigationHost(
             }
             composable<NavigationNode.MediaDetail> { args ->
                 MediaDetailScreen(
-                    media = args.arguments?.getStringArray("encodedMedia").orEmpty().mapNotNull { media ->
-                        media?.split("|||").let {
-                            MediaIO(
-                                name = it?.get(0),
-                                mimetype = it?.get(1),
-                                url = it?.get(2),
-                                path = it?.get(3)
-                            )
-                        }
-                    }.toTypedArray(),
+                    idList = args.arguments?.getStringArray("idList").orEmpty(),
                     selectedIndex = args.arguments?.getInt("selectedIndex") ?: 0,
                     title = args.arguments?.getString("title") ?: "",
                     subtitle = args.arguments?.getString("subtitle") ?: ""
@@ -113,7 +101,17 @@ fun NavigationHost(
             composable<NavigationNode.Conversation> {
                 ConversationScreen(
                     conversationId = it.arguments?.getString("conversationId"),
-                    name = it.arguments?.getString("name")
+                    userId = it.arguments?.getString("userId"),
+                    name = it.arguments?.getString("name"),
+                    scrollTo = it.arguments?.getString("scrollTo"),
+                    searchQuery = it.arguments?.getString("searchQuery"),
+                    joinRule = it.arguments?.getString("joinRule"),
+                )
+            }
+            composable<NavigationNode.ConversationSearch> {
+                ConversationSearchScreen(
+                    conversationId = it.arguments?.getString("conversationId"),
+                    searchQuery = it.arguments?.getString("searchQuery"),
                 )
             }
             composable<NavigationNode.ConversationSettings> {
@@ -124,6 +122,9 @@ fun NavigationHost(
                     awaitingResult = it.arguments?.getBoolean("awaitingResult"),
                     excludeUsers = it.arguments?.getString("excludeUsers")?.split(",")
                 )
+            }
+            composable<NavigationNode.SearchRoom> {
+                SearchRoomScreen()
             }
             composable<NavigationNode.MessageDetail> {
                 loadKoinModules(messageDetailModule)
@@ -138,26 +139,13 @@ fun NavigationHost(
 }
 
 @Composable
-private fun CombinedComposable(
-    contentOne: (@Composable () -> Unit)? = null,
-    contentTwo: @Composable () -> Unit
-) {
-    if(contentOne != null) {
-        Column {
-            contentOne()
-            contentTwo()
-        }
-    }else contentTwo()
-}
-
-@Composable
-fun <T> NavController?.collectResult(
+fun <T> NavController?.CollectResult(
     key: String,
     defaultValue: T,
     listener: (T) -> Unit
 ) {
     LaunchedEffect(Unit) {
-        this@collectResult?.currentBackStackEntry
+        this@CollectResult?.currentBackStackEntry
             ?.savedStateHandle
             ?.run {
                 getStateFlow(key, defaultValue).collectLatest {

@@ -24,6 +24,7 @@ import platform.Foundation.NSOperationQueue
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceProximityStateDidChangeNotification
 import platform.UIKit.UIScreen
+import utils.SharedLogger
 
 
 actual fun getGravityListener(onSensorChanged: (event: SensorEvent?) -> Unit): SensorEventListener? {
@@ -292,16 +293,20 @@ private fun createListener(
                     }
                 }
                 SensorType.Proximity -> {
-                    device.setProximityMonitoringEnabled(true)
-                    NSNotificationCenter.defaultCenter.addObserverForName(
-                        name = UIDeviceProximityStateDidChangeNotification,
-                        `object` = null,
-                        queue = queue
-                    ) { _ ->
-                        val near = if (UIDevice.currentDevice.proximityState) 1f else 0f
-                        onSensorChanged(
-                            SensorEvent(values = listOf(near).toFloatArray())
-                        )
+                    CoroutineScope(Job()).launch {
+                        withContext(Dispatchers.Main) {
+                            device.setProximityMonitoringEnabled(true)
+                            NSNotificationCenter.defaultCenter.addObserverForName(
+                                name = UIDeviceProximityStateDidChangeNotification,
+                                `object` = null,
+                                queue = queue
+                            ) { _ ->
+                                val near = if (UIDevice.currentDevice.proximityState) 1f else 0f
+                                onSensorChanged(
+                                    SensorEvent(values = listOf(near).toFloatArray())
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -375,8 +380,16 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? = withContext(Dis
     if (stepAvailable) {
         available += createListener(SensorType.StepCounter)
     }
-    if (device.isProximityMonitoringEnabled()) {
-        available += createListener(SensorType.Proximity)
+    withContext(Dispatchers.Main) {
+        try {
+            device.setProximityMonitoringEnabled(true)
+
+            if (device.isProximityMonitoringEnabled()) {
+                available += createListener(SensorType.Proximity)
+            }
+        } catch (e: Exception) {
+            SharedLogger.logger.fatal { "proximity sensor caused exception: ${e.message}" }
+        }
     }
     if (getForegroundApp() != null) {
         available += createListener(SensorType.ForegroundApp)

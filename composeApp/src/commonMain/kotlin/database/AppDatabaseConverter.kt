@@ -2,12 +2,11 @@ package database
 
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
+import data.io.experiment.ExperimentIO
+import data.io.experiment.ExperimentSetValue
 import data.io.matrix.room.RoomSummary
-import data.io.matrix.room.event.ConversationRoomMember
-import data.io.social.network.conversation.message.ConversationAnchorMessageIO
 import data.io.social.network.conversation.message.ConversationMessageIO.VerificationRequestInfo
 import data.io.social.network.conversation.message.MediaIO
-import data.io.social.network.conversation.message.MessageReactionIO
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.serialization.json.Json
@@ -16,7 +15,7 @@ import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.Joined
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.KnockedRoom.InviteState
 import net.folivo.trixnity.core.model.UserId
 import net.folivo.trixnity.core.model.events.m.PresenceEventContent
-import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
+import net.folivo.trixnity.core.model.events.m.room.MemberEventContent.Invite
 import net.folivo.trixnity.core.model.keys.EncryptionAlgorithm
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.experimental.gravity.GravityData
@@ -68,16 +67,6 @@ class AppDatabaseConverter {
     }
 
     @TypeConverter
-    fun fromConversationRoomMember(value: ConversationRoomMember): String {
-        return json.encodeToString(value)
-    }
-
-    @TypeConverter
-    fun toConversationRoomMember(value: String): ConversationRoomMember {
-        return json.decodeFromString(value)
-    }
-
-    @TypeConverter
     fun fromGravityData(value: GravityData): String {
         return json.encodeToString(value)
     }
@@ -93,11 +82,11 @@ class AppDatabaseConverter {
     }
     
     @TypeConverter
-    fun toMemberEventContent(value: String): MemberEventContent {
+    fun toInvite(value: String): Invite {
         return json.decodeFromString(value)
     }
     @TypeConverter
-    fun fromMemberEventContent(value: MemberEventContent): String {
+    fun fromInvite(value: Invite): String {
         return json.encodeToString(value)
     }
     
@@ -157,25 +146,35 @@ class AppDatabaseConverter {
     }
     
     @TypeConverter
-    fun fromMediaList(value: List<MediaIO>?): String? {
-        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
+    fun fromDisplayFrequency(value: ExperimentIO.DisplayFrequency?): String? {
+        return if(value == null) null else json.encodeToString(value)
     }
-    
+
     @TypeConverter
-    fun toMediaList(value: String?): List<MediaIO>? {
+    fun toDisplayFrequency(value: String?): ExperimentIO.DisplayFrequency? {
         return if(value == null) null else json.decodeFromString(value)
     }
-    
+
     @TypeConverter
-    fun fromReactionList(value: List<MessageReactionIO>?): String? {
-        return if(value.isNullOrEmpty()) null else json.encodeToString(value)
+    fun fromStringList(value: List<String>): String {
+        return if (value.isEmpty()) "" else value.joinToString(",")
     }
-    
+
     @TypeConverter
-    fun toReactionList(value: String?): List<MessageReactionIO>? {
-        return if(value == null) null else json.decodeFromString(value)
+    fun toStringList(value: String): List<String> {
+        return value.split(",")
     }
-    
+
+    @TypeConverter
+    fun fromExperimentSetValueList(value: List<ExperimentSetValue>): String {
+        return if (value.isEmpty()) "" else json.encodeToString(value)
+    }
+
+    @TypeConverter
+    fun toExperimentSetValueList(value: String): List<ExperimentSetValue> {
+        return json.decodeFromString(value)
+    }
+
     @TypeConverter
     fun fromLocalDateTime(value: LocalDateTime): String {
         return value.format(LocalDateTime.Formats.ISO)
@@ -185,13 +184,4 @@ class AppDatabaseConverter {
     fun toLocalDateTime(value: String): LocalDateTime {
         return LocalDateTime.parse(value, LocalDateTime.Formats.ISO)
     }
-    
-    @TypeConverter
-    fun fromConversationAnchorMessageIO(value: ConversationAnchorMessageIO): String {
-        return json.encodeToString(value)
-    }
-    
-    @TypeConverter
-    fun toConversationAnchorMessageIO(value: String): ConversationAnchorMessageIO? {
-        return json.decodeFromString(value)
-    }}
+}

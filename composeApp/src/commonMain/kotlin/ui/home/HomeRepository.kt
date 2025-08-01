@@ -5,17 +5,22 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import data.io.base.BaseResponse
 import data.io.base.paging.PaginationInfo
-import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
 import data.io.matrix.room.RoomType
 import data.io.social.network.conversation.ConversationListResponse
+import database.dao.ConversationMessageDao
 import database.dao.ConversationRoomDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.MatrixClient
 import net.folivo.trixnity.core.model.RoomId
+import utils.SharedLogger
 
-class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
+class HomeRepository(
+    private val conversationRoomDao: ConversationRoomDao,
+    private val conversationMessageDao: ConversationMessageDao
+) {
 
     private var currentPagingSource: PagingSource<*, *>? = null
 
@@ -27,7 +32,7 @@ class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
     fun getConversationRoomPager(
         config: PagingConfig,
         ownerPublic: () -> String?
-    ): Pager<Int, ConversationRoomIO> {
+    ): Pager<Int, FullConversationRoom> {
         return Pager(
             config = config,
             pagingSourceFactory = {
@@ -74,7 +79,7 @@ class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
                     )
                     invalidateSource()
                 }?.onFailure {
-                    println("kostka_test, ${it.message}")
+                    SharedLogger.logger.debug { "Invitation accept failed: $it" }
                 }
             }else {
                 client?.api?.room?.leaveRoom(roomId = RoomId(roomId))?.onSuccess {
@@ -86,4 +91,26 @@ class HomeRepository(private val conversationRoomDao: ConversationRoomDao) {
             }
         }
     }
+
+    suspend fun queryLocalMessagesOfRoom(
+        roomId: String,
+        query: String,
+        limit: Int
+    ) = withContext(Dispatchers.IO) {
+        conversationMessageDao.queryPaginated(
+            conversationId = roomId,
+            query = query,
+            limit = limit,
+            offset = 0
+        )
+    }
+
+    /*suspend fun queryAndInsertMessages(
+        matrixClient: MatrixClient?,
+        query: String,
+        roomId: String,
+        limit: Int,
+    ) = withContext(Dispatchers.IO) {
+        matrixClient?.api?.server?.search()
+    }*/
 }

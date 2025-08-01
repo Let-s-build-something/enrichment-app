@@ -1,10 +1,13 @@
 package ui.conversation.settings
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import base.global.verification.ComparisonByUserData
+import base.utils.tagToColor
+import data.NetworkProximityCategory
 import data.io.base.BaseResponse
 import data.io.matrix.room.event.ConversationRoomMember
 import data.io.social.network.conversation.message.MediaIO
@@ -16,12 +19,16 @@ import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import korlibs.io.net.MimeType
 import korlibs.io.util.getOrNullLoggingError
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.folivo.trixnity.client.verification
 import net.folivo.trixnity.client.verification.ActiveUserVerification
 import net.folivo.trixnity.client.verification.ActiveVerificationState
@@ -34,23 +41,24 @@ import net.folivo.trixnity.core.model.events.m.room.NameEventContent
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.ConversationDataManager
-import ui.home.utils.NetworkItemUseCase
 
 val conversationSettingsModule = module {
+    factory { ConversationDataManager() }
+    single { ConversationDataManager() }
     factory {
-        ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get(), get())
+        ConversationSettingsRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
     viewModelOf(::ConversationSettingsModel)
 }
 
 class ConversationSettingsModel(
     private val conversationId: String,
-    private val networkItemUseCase: NetworkItemUseCase,
     private val repository: ConversationSettingsRepository,
     private val dataManager: ConversationDataManager
 ): SharedModel() {
     companion object {
-        const val MAX_MEMBERS_COUNT = 8
+        const val SHIMMER_ITEM_COUNT = 4
+        const val MAX_MEMBERS_COUNT = 6
         const val PAGE_ITEM_COUNT = 20
 
         fun ActiveVerificationState.isFinished() = this is ActiveVerificationState.Cancel
@@ -70,13 +78,16 @@ class ConversationSettingsModel(
     }
 
     private val _ongoingChange = MutableStateFlow<ChangeType?>(null)
-    private val _selectedUser = MutableStateFlow<NetworkItemIO?>(null)
+    private val _selectedInvitedUser = MutableStateFlow<NetworkItemIO?>(null)
     private val _verifications = MutableStateFlow<HashMap<String, ActiveUserVerification?>>(hashMapOf())
 
     /** Detailed information about this conversation */
-    val conversation = dataManager.conversations.map { it.second[conversationId] }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _conversation = MutableStateFlow(dataManager.conversations.value.second[conversationId])
+
     val ongoingChange = _ongoingChange.asStateFlow()
-    val selectedUser = _selectedUser.asStateFlow()
+    val conversation = _conversation.asStateFlow()
+    val selectedInvitedUser = _selectedInvitedUser.asStateFlow()
     val verifications = _verifications.asStateFlow()
 
     val members: Flow<PagingData<ConversationRoomMember>> = repository.getMembersListFlow(
@@ -84,10 +95,46 @@ class ConversationSettingsModel(
             pageSize = PAGE_ITEM_COUNT,
             enablePlaceholders = true
         ),
-        homeserver = { homeserver },
+        homeserver = { homeserverAddress },
         ignoreUserId = matrixUserId,
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)
+
+    /** Customized social circle colors */
+    val socialCircleColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
+        withContext(Dispatchers.Default) {
+            settings?.networkColors?.mapIndexedNotNull { index, s ->
+                tagToColor(s)?.let { color ->
+                    NetworkProximityCategory.entries[index] to color
+                }
+            }.orEmpty().toMap()
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            if((conversationId.isNotBlank() && dataManager.conversations.value.second[conversationId] == null)) {
+                withContext(Dispatchers.IO) {
+                    repository.getConversationDetail(
+                        conversationId = conversationId,
+                        owner = matrixUserId
+                    )?.let { data ->
+                        dataManager.updateConversations { it.apply { this[conversationId] = data } }
+                        _conversation.value = data
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            dataManager.conversations.collect { stream ->
+                stream.second[conversationId]?.let {
+                    _conversation.value = it
+                }
+            }
+        }
+    }
+
 
     /** Removes a member out of a conversation */
     fun kickMember(memberId: String) {
@@ -96,23 +143,6 @@ class ConversationSettingsModel(
                 roomId = RoomId(conversationId),
                 userId = UserId(memberId)
             )
-        }
-    }
-
-    /** Makes a request for a change of proximity of a conversation */
-    fun requestProximityChange(
-        publicId: String?,
-        proximity: Float,
-        onOperationDone: () -> Unit = {}
-    ) {
-        viewModelScope.launch {
-            networkItemUseCase.requestProximityChange(
-                conversationId = conversationId,
-                publicId = publicId,
-                proximity = proximity,
-                ownerPublicId = matrixUserId
-            )
-            onOperationDone()
         }
     }
 
@@ -127,11 +157,14 @@ class ConversationSettingsModel(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.copy(
-                                    summary = this[conversationId]?.summary?.copy(canonicalAlias = roomName.toString())
+                                val conversation = this[conversationId]
+                                conversation?.copy(
+                                    data = conversation.data.copy(
+                                        summary = conversation.data.summary?.copy(canonicalAlias = roomName.toString())
+                                    )
                                 )?.let {
                                     set(conversationId, it)
-                                    repository.updateRoom(it)
+                                    repository.updateRoom(it.data)
                                 }
                             }
                         }
@@ -167,9 +200,9 @@ class ConversationSettingsModel(
         }
     }
 
-    fun selectUser(userId: String?) {
+    fun selectInvitedUser(userId: String?) {
         viewModelScope.launch {
-            _selectedUser.value = if(userId == null) null else repository.getUser(userId, matrixUserId)
+            _selectedInvitedUser.value = if(userId == null) null else repository.getUser(userId, matrixUserId)
         }
     }
 
@@ -281,11 +314,14 @@ class ConversationSettingsModel(
                     if(res?.getOrNull() != null) {
                         dataManager.updateConversations { prev ->
                             prev.apply {
-                                this[conversationId]?.copy(
-                                    summary = this[conversationId]?.summary?.copy(avatar = media)
+                                val conversation = this[conversationId]
+                                conversation?.copy(
+                                    data = conversation.data.copy(
+                                        summary = conversation.data.summary?.copy(avatar = media)
+                                    )
                                 )?.let {
                                     set(conversationId, it)
-                                    repository.updateRoom(it)
+                                    repository.updateRoom(it.data)
                                 }
                             }
                         }

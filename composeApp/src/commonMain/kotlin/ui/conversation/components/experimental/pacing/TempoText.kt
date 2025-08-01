@@ -29,7 +29,7 @@ import ui.conversation.components.REGEX_GRAPHEME
 fun buildTempoString(
     key: Any? = null,
     text: AnnotatedString,
-    style: SpanStyle,
+    spanStyle: SpanStyle,
     enabled: Boolean,
     timings: List<Long>,
     onFinish: () -> Unit
@@ -71,17 +71,15 @@ fun buildTempoString(
     }
 
     return when {
-        timings.isEmpty() -> buildAnnotatedString {
-            withStyle(style) { append(text) }
-        }
+        timings.isEmpty() -> text
         !enabled -> {
             buildAnnotatedString {
-                withStyle(style) { append(text) }
+                append(text)
                 graphemes.value?.toList()?.forEachIndexed { index, matchResult ->
                     if (aboveMedianIndexes.value?.contains(index) == true) {
                         val range = matchResult.range
                         addStyle(
-                            style = style.copy(fontWeight = FontWeight.ExtraBold),
+                            style = spanStyle.copy(fontWeight = FontWeight.ExtraBold),
                             start = range.first,
                             end = range.last + 1
                         )
@@ -140,8 +138,8 @@ fun buildTempoString(
                 graphemes.value?.toList()?.forEachIndexed { index, matchResult ->
                     if(index == currentPosition && currentPosition < (graphemes.value?.count() ?: 0)) {
                         withStyle(
-                            style = style.copy(
-                                color = style.color.copy(alpha = if(isTicked.value) 1f else 0f),
+                            style = spanStyle.copy(
+                                color = spanStyle.color.copy(alpha = if(isTicked.value) 1f else 0f),
                                 letterSpacing = 0.sp
                             )
                         ) {
@@ -149,21 +147,26 @@ fun buildTempoString(
                         }
                     }
                     val range = matchResult.range
-                    addStyle(
-                        style = style.copy(
-                            color = when {
-                                index < currentPosition -> style.color
-                                else -> style.color.copy(alpha = .4f)
-                            },
-                            fontWeight = if(index < currentPosition
-                                && aboveMedianIndexes.value?.contains(index) == true
-                            ) {
-                                FontWeight.ExtraBold
-                            }else null
-                        ),
-                        start = range.first,
-                        end = range.last + 1
-                    )
+
+                    if (index < currentPosition && aboveMedianIndexes.value?.contains(index) == true) {
+                        val range = matchResult.range
+                        addStyle(
+                            style = spanStyle.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (index >= currentPosition) spanStyle.color.copy(alpha = .4f) else spanStyle.color,
+                            ),
+                            start = range.first,
+                            end = range.last + 1
+                        )
+                    } else if (index >= currentPosition) {
+                        addStyle(
+                            style = spanStyle.copy(
+                                color = if (index >= currentPosition) spanStyle.color.copy(alpha = .4f) else spanStyle.color,
+                            ),
+                            start = range.first,
+                            end = range.last + 1
+                        )
+                    }
                 }
             }
         }

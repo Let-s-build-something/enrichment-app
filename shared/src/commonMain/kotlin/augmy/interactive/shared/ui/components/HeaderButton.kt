@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.CircularProgressIndicator
@@ -108,7 +109,7 @@ private fun HeaderButton(
             Icon(
                 modifier = Modifier
                     .padding(start = 4.dp)
-                    .requiredSize(
+                    .size(
                         with(density) { textStyle.fontSize.toDp() }
                     ),
                 imageVector = endImageVector ?: Icons.Outlined.Close,
@@ -129,7 +130,7 @@ fun ComponentHeaderButton(
     modifier: Modifier = Modifier,
     text: String = "",
     shape: Shape = LocalTheme.current.shapes.circularActionShape,
-    startIconVector: ImageVector? = null,
+    endImageVector: ImageVector? = null,
     extraContent: @Composable RowScope.() -> Unit = {},
     onClick: () -> Unit = {}
 ) {
@@ -139,7 +140,7 @@ fun ComponentHeaderButton(
         shape = shape,
         onClick = onClick,
         additionalContent = extraContent,
-        endImageVector = startIconVector,
+        endImageVector = endImageVector,
         contentColor = LocalTheme.current.colors.secondary,
         containerColor = LocalTheme.current.colors.backgroundLight
     )
@@ -191,6 +192,7 @@ fun BrandHeaderButton(
         vertical = 10.dp,
         horizontal = 16.dp
     ),
+    shape: Shape = LocalTheme.current.shapes.circularActionShape,
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
     endImageVector: ImageVector? = null,
@@ -208,7 +210,8 @@ fun BrandHeaderButton(
         containerColor = if(isLoading) {
             LocalTheme.current.colors.brandMainDark.copy(alpha = 0.4f)
         }else LocalTheme.current.colors.brandMainDark,
-        endImageVector = endImageVector
+        endImageVector = endImageVector,
+        shape = shape
     )
 }
 

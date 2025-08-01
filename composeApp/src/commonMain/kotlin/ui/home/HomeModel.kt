@@ -6,6 +6,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
+import androidx.paging.map
 import augmy.interactive.shared.utils.PersistentListData
 import base.utils.asSimpleString
 import base.utils.tagToColor
@@ -17,29 +18,35 @@ import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_NETWORK_CATEGORIES
 import data.io.base.BaseResponse
 import data.io.base.BaseResponse.Companion.toResponse
-import data.io.matrix.room.ConversationRoomIO
+import data.io.matrix.room.FullConversationRoom
+import data.io.social.network.conversation.message.FullConversationMessage
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import net.folivo.trixnity.clientserverapi.client.SyncState
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.home.utils.NetworkItemUseCase
 import ui.home.utils.networkItemModule
+import utils.SharedLogger
 
 internal val homeModule = module {
     includes(networkItemModule)
-    factory { HomeRepository(get()) }
+    factory { HomeRepository(get(), get()) }
     factory { HomeModel(get<HomeRepository>(), get()) }
     viewModelOf(::HomeModel)
 }
@@ -53,16 +60,37 @@ class HomeModel(
 
     override val isRefreshing = MutableStateFlow(false)
     override var lastRefreshTimeMillis = 0L
+    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {
+        syncService.restart()
+    }
 
-    override suspend fun onDataRequest(isSpecial: Boolean, isPullRefresh: Boolean) {}
+    enum class UiMode {
+        List,
+        Circle,
+        Loading,
+        NoClient;
 
+        val isFinished: Boolean
+            get() = this == List || this == Circle
+    }
+
+    private val _uiMode = MutableStateFlow<UiMode>(
+        if (authService.awaitingAutologin || matrixClient != null) UiMode.List else UiMode.NoClient
+    )
+    private val _selectedUserId = MutableStateFlow<String?>(null)
     private val _categories = MutableStateFlow(NetworkProximityCategory.entries.toList())
+    private val _searchQuery = MutableStateFlow("")
+    private val _collapsedRooms = MutableStateFlow(listOf<String>())
     private val _requestResponse: MutableStateFlow<HashMap<String, BaseResponse<Any>?>> = MutableStateFlow(
         hashMapOf()
     )
 
-    // firstVisibleItemIndex to firstVisibleItemScrollOffset
+    /** firstVisibleItemIndex to firstVisibleItemScrollOffset */
     var persistentPositionData: PersistentListData? = null
+
+    val collapsedRooms = _collapsedRooms.asStateFlow()
+    val uiMode = _uiMode.asStateFlow()
+    val selectedUserId = _selectedUserId.asStateFlow()
 
     /** Last selected network categories */
     val categories = _categories.transform { categories ->
@@ -85,35 +113,37 @@ class HomeModel(
     }
 
     val requestResponse = _requestResponse.asStateFlow()
-    val openConversations = networkItemUseCase.openConversations
     val isLoading = networkItemUseCase.isLoading
-    val invitationResponse = networkItemUseCase.invitationResponse
-    val networkItems = networkItemUseCase.networkItems.combine(_categories) { networkItems, categories ->
-        withContext(Dispatchers.Default) {
-            networkItems?.filter { item ->
-                categories.any { it.range.contains(item.proximity ?: 1f) }
-            }
-        }
-    }
 
-    /** flow of current requests */
-    val conversationRooms: Flow<PagingData<ConversationRoomIO>> = repository.getConversationRoomPager(
+    private val roomsFlow = repository.getConversationRoomPager(
         PagingConfig(
             pageSize = 20,
             enablePlaceholders = true,
             initialLoadSize = 20
         ),
         ownerPublic = { matrixUserId }
-    ).flow
-        .cachedIn(viewModelScope)
-        .combine(_categories) { pagingData, categories ->
-            withContext(Dispatchers.Default) {
-                pagingData.filter { data ->
-                    categories.any { it.range.contains(data.proximity ?: 1f) }
+    ).flow.cachedIn(viewModelScope)
+
+    /** flow of current requests */
+    val conversationRooms: Flow<PagingData<FullConversationRoom>> = combine(
+        roomsFlow,
+        _collapsedRooms,
+        _searchQuery,
+        _categories
+    ) { rooms, collapsedRooms, query, categories ->
+        withContext(Dispatchers.Default) {
+            rooms.map { room ->
+                room.apply {
+                    messages = if (!collapsedRooms.contains(room.id)) {
+                        queryMessagesOfRoom(query, room)
+                    } else listOf()
                 }
+            }.filter { data ->
+                (query.isBlank() || data.messages.isNotEmpty())
+                        && categories.any { it.range.contains(data.data.proximity ?: 1f) }
             }
         }
-
+    }
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -127,6 +157,39 @@ class HomeModel(
         viewModelScope.launch {
             networkItemUseCase.getNetworkItems(ownerPublicId = matrixUserId)
         }
+
+        viewModelScope.launch {
+            sharedDataManager.matrixClient.shareIn(this, started = SharingStarted.Eagerly).collectLatest { client ->
+                if (client == null) {
+                    _uiMode.value = UiMode.NoClient
+                } else {
+                    viewModelScope.launch {
+                        client.syncState.collect { syncState ->
+                            SharedLogger.logger.debug { "HomeModel, syncState: $syncState" }
+                            if (syncState == SyncState.INITIAL_SYNC) {
+                                _uiMode.value = UiMode.Loading
+                            } else if (syncState == SyncState.RUNNING && !_uiMode.value.isFinished) {
+                                _uiMode.value = UiMode.List
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun selectUser(room: FullConversationRoom?) {
+        viewModelScope.launch {
+            withContext(Dispatchers.Default) {
+                if (room == null || room.data.summary?.isDirect == false) {
+                    _selectedUserId.value = null
+                    return@withContext
+                }
+
+                _selectedUserId.value = room.data.summary?.heroes?.firstOrNull()?.full
+                    ?: room.members.firstOrNull()?.userId
+            }
+        }
     }
 
     /** Filters currently downloaded network items */
@@ -138,6 +201,50 @@ class HomeModel(
                 filter.joinToString(",")
             )
         }
+    }
+
+    fun searchForMessages(query: CharSequence) {
+        _searchQuery.value = query.toString()
+    }
+
+    fun collapseRoom(roomId: String) {
+        _collapsedRooms.update {
+            if (it.contains(roomId)) it.minus(roomId) else it.plus(roomId)
+        }
+    }
+
+    private suspend fun queryMessagesOfRoom(
+        query: String,
+        room: FullConversationRoom
+    ): List<FullConversationMessage> {
+        return withContext(Dispatchers.Default) {
+            val limit = 10
+
+            repository.queryLocalMessagesOfRoom(
+                roomId = room.id,
+                query = query,
+                limit = limit
+            ).let { localMessages ->
+                if (localMessages.size < limit) {
+                    /* TODO repository.queryAndInsertMessages(
+                        matrixClient = matrixClient,
+                        query = query,
+                        roomId = room.id,
+                        limit = limit - localMessages.size
+                    )*/
+
+                    repository.queryLocalMessagesOfRoom(
+                        roomId = room.id,
+                        query = query,
+                        limit = limit
+                    )
+                }else localMessages
+            }
+        }
+    }
+
+    fun swapUiMode(isList: Boolean) {
+        _uiMode.value = if(isList) UiMode.List else UiMode.Circle
     }
 
     /** Updates color preference */

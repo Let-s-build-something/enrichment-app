@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PersonAddAlt
-import androidx.compose.material.icons.outlined.PersonOutline
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -26,9 +26,7 @@ import augmy.interactive.shared.ui.components.DEFAULT_ANIMATION_LENGTH_SHORT
 import augmy.interactive.shared.ui.components.navigation.ActionBarIcon
 import augmy.interactive.shared.ui.theme.LocalTheme
 import base.utils.tagToColor
-import data.io.social.network.conversation.message.MediaIO
 import org.jetbrains.compose.resources.stringResource
-import ui.conversation.components.MediaElement
 
 /**
  * The default layout of action in top action bar
@@ -60,22 +58,24 @@ fun DefaultAppBarActions(
             // lobby destinations
             NavigationNode.Home.route -> {
                 Crossfade(targetState = isUserSignedIn) { showAccount ->
-                    if(showAccount) {
+                    if (showAccount) {
                         val showText = expanded && (avatarUrl == null || !isPhone)
 
                         ActionBarIcon(
-                            text = if(showText) {
+                            text = if (showText) {
                                 stringResource(Res.string.screen_account_title)
                             } else null,
-                            icon = if (avatarUrl != null) {
+                            /*icon = if (avatarUrl != null || (userTag != null && username != null)) { removed due to impression management
                                 { modifier ->
-                                    MediaElement(
+                                    AvatarImage(
                                         modifier = modifier,
-                                        media = MediaIO(url = avatarUrl)
+                                        media = MediaIO(url = avatarUrl),
+                                        tag = userTag,
+                                        name = username
                                     )
                                 }
-                            }else null,
-                            imageVector = Icons.Outlined.PersonOutline,
+                            }else null,*/
+                            imageVector = Icons.Outlined.AccountCircle,
                             onClick = {
                                 navController?.navigate(NavigationNode.AccountDashboard)
                             }
@@ -96,7 +96,7 @@ fun DefaultAppBarActions(
                     }else {
                         ActionBarIcon(
                             text = if(expanded) stringResource(Res.string.screen_login) else null,
-                            imageVector = Icons.Outlined.PersonAddAlt,
+                            imageVector = Icons.Outlined.Fingerprint,
                             onClick = {
                                 navController?.navigate(NavigationNode.Login())
                             }
@@ -110,7 +110,7 @@ fun DefaultAppBarActions(
                     ActionBarIcon(
                         modifier = Modifier,
                         enabled = false,
-                        imageVector = Icons.Outlined.PersonAddAlt,
+                        imageVector = Icons.Outlined.Fingerprint,
                         tint = Color.Transparent,
                         text = ""
                     )

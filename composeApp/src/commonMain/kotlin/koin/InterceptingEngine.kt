@@ -2,7 +2,6 @@ package koin
 
 import base.utils.NetworkSpeed
 import base.utils.speedInMbps
-import ui.dev.DeveloperConsoleModel
 import data.shared.SharedDataManager
 import data.shared.SharedModel
 import data.shared.auth.AuthService
@@ -15,6 +14,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.utils.io.InternalAPI
 import kotlinx.coroutines.CoroutineDispatcher
 import org.koin.mp.KoinPlatform
+import ui.dev.DeveloperConsoleModel
+import utils.DeveloperUtils
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlin.uuid.ExperimentalUuidApi
@@ -67,19 +68,19 @@ class InterceptingEngine(
         )
 
         // sync has a very long timeout which would throw off this calculation
-        if(!interceptedData.url.toString().contains("/sync")) {
-            val speedMbps = response.speedInMbps().roundToInt()
-            sharedModel.updateNetworkConnectivity(
-                networkSpeed = when {
+        val speedMbps = response.speedInMbps().roundToInt()
+        sharedModel.updateNetworkConnectivity(
+            networkSpeed = if (!interceptedData.url.toString().contains("/sync")) {
+                when {
                     speedMbps <= 1.0 -> NetworkSpeed.VerySlow
                     speedMbps <= 2.0 -> NetworkSpeed.Slow
                     speedMbps <= 5.0 -> NetworkSpeed.Moderate
                     speedMbps <= 10.0 -> NetworkSpeed.Good
                     else -> NetworkSpeed.Fast
-                }.takeIf { speedMbps != 0 },
-                isNetworkAvailable = true
-            )
-        }
+                }.takeIf { speedMbps != 0 }
+            } else null,
+            isNetworkAvailable = response.statusCode.value < 500
+        )
 
         // retry for 401 response
         if (response.statusCode == EXPIRED_TOKEN_CODE
