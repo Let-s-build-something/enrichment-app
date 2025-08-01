@@ -1,12 +1,9 @@
 package ui.login
 
 import androidx.lifecycle.viewModelScope
-import augmy.interactive.shared.ui.base.PlatformType
-import augmy.interactive.shared.ui.base.currentPlatform
 import base.navigation.NavigationNode
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.USER_IN_USE
-import base.utils.Matrix.LOGIN_AUGMY_SSO
 import base.utils.Matrix.LOGIN_EMAIL_IDENTITY
 import base.utils.deeplinkHost
 import base.utils.openLink
@@ -17,11 +14,9 @@ import data.io.app.SettingsKeys.KEY_CLIENT_STATUS
 import data.io.base.RecaptchaParams
 import data.io.matrix.auth.AuthenticationCredentials
 import data.io.matrix.auth.AuthenticationData
-import data.io.matrix.auth.MatrixAuthenticationFlow
 import data.io.matrix.auth.MatrixAuthenticationPlan
 import data.io.matrix.auth.MatrixAuthenticationResponse
 import data.io.matrix.auth.MatrixIdentifierData
-import data.io.matrix.auth.MatrixIdentityProvider
 import data.shared.SharedModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,7 +25,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -40,15 +34,12 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import ui.login.homeserver_picker.AUGMY_HOME_SERVER_ADDRESS
-import ui.login.sso.SsoService
-import ui.login.sso.ssoServiceModule
 import utils.SharedLogger
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal fun loginModule() = module {
     factory { LoginRepository(get()) }
-    includes(ssoServiceModule())
     viewModelOf(::LoginModel)
 }
 
@@ -56,7 +47,6 @@ internal fun loginModule() = module {
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginModel(
     private val dataManager: LoginDataManager,
-    private val ssoProvider: SsoService,
     private val repository: LoginRepository
 ): SharedModel() {
     data class HomeServerResponse(
@@ -92,47 +82,7 @@ class LoginModel(
     val loginResult = _loginResult.asSharedFlow()
     val isLoading = _isLoading.asStateFlow()
 
-    val homeServerResponse = dataManager.homeServerResponse.mapLatest {
-        if (it?.address == AUGMY_HOME_SERVER_ADDRESS) {
-            it.copy(
-                plan = MatrixAuthenticationPlan(
-                    session = it.plan?.session,
-                    flows = it.plan?.flows.orEmpty().plus(
-                        when(currentPlatform) {
-                            PlatformType.Jvm -> listOf()
-                            PlatformType.Native -> listOf(
-                                MatrixAuthenticationFlow(
-                                    stages = listOf(LOGIN_AUGMY_SSO),
-                                    identityProviders = listOf(
-                                        MatrixIdentityProvider(
-                                            id = Matrix.Brand.GOOGLE,
-                                            brand = Matrix.Brand.AUGMY
-                                        ),
-                                        MatrixIdentityProvider(
-                                            id = Matrix.Brand.APPLE,
-                                            brand = Matrix.Brand.AUGMY
-                                        )
-                                    )
-                                )
-                            )
-                            PlatformType.Android -> listOf(
-                                MatrixAuthenticationFlow(
-                                    stages = listOf(LOGIN_AUGMY_SSO),
-                                    identityProviders = listOf(
-                                        MatrixIdentityProvider(
-                                            id = Matrix.Brand.GOOGLE,
-                                            brand = Matrix.Brand.AUGMY
-                                        )
-                                    )
-                                )
-                            )
-                        }
-                    ),
-                    params = it.plan?.params
-                )
-            )
-        } else it
-    }
+    val homeServerResponse = dataManager.homeServerResponse.asStateFlow()
 
     val supportsEmail = dataManager.homeServerResponse.mapLatest { res ->
         res?.plan?.flows?.any {
@@ -205,7 +155,6 @@ class LoginModel(
             }else repository.dummyMatrixLogin(address = address)).let { response ->
                 val registrationEnabled = response?.error?.contains("Registration has been disabled.") != true
 
-                SharedLogger.logger.debug { "flows: ${response?.flows}" }
                 if (response != null) {
                     session = response.session ?: session
                     HomeServerResponse(
@@ -474,32 +423,47 @@ class LoginModel(
         }
     }
 
-    fun loginWithCode(nonce: String, code: String) {
+    fun loginWithToken(
+        screenType: LoginScreenType,
+        nonce: String,
+        token: String
+    ) {
         _isLoading.value = true
-        val savedNonceInfo = ssoNonce?.split("_")
-        val savedNonce = savedNonceInfo?.firstOrNull()
-
         viewModelScope.launch {
-            if(nonce != savedNonce) {
+            val savedNonceInfo = ssoNonce?.split("_")
+            val savedNonce = savedNonceInfo?.firstOrNull()
+            val savedHomeserver = savedNonceInfo?.lastOrNull()
+
+            SharedLogger.logger.debug { "loginWithToken, is nonce valid: ${nonce == savedNonce}, savedHomeserver: $savedHomeserver" }
+
+            if(nonce != savedNonce && savedHomeserver != null) {
                 _loginResult.emit(LoginResultType.AUTH_SECURITY)
             }else {
-                if (homeServerResponse.lastOrNull() == null) {
+                if (homeServerResponse.value == null) {
                     dataManager.homeServerResponse.value = HomeServerResponse(
-                        address = homeserverAddress,
+                        address = savedHomeserver ?: homeserverAddress,
                         state = HomeServerState.Valid
                     )
                 }
+                SharedLogger.logger.debug { "loginWithToken, savedHomeserver: $savedHomeserver" }
 
                 authService.loginWithIdentifier(
                     homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
                     identifier = null,
                     password = null,
-                    token = code
+                    token = token
                 ).let {
+                    SharedLogger.logger.debug { "loginWithIdentifier, isSuccess: ${it.isSuccess}, error: ${it.error}" }
                     when {
-                        it.success != null -> initUserObject()
+                        it.isSuccess -> {
+                            _matrixAuthResponse.value = it.success?.data
+                            initUserObject()
+                        }
                         it.error?.code == Matrix.ErrorCode.FORBIDDEN -> _loginResult.emit(LoginResultType.INVALID_CREDENTIAL)
                         else -> _loginResult.emit(LoginResultType.FAILURE)
+                    }
+                    if (!it.isSuccess) {
+                        selectHomeServer(screenType, savedHomeserver ?: "")
                     }
                 }
             }
@@ -518,54 +482,6 @@ class LoginModel(
             _loginResult.emit(
                 if (currentUser.value != null) LoginResultType.SUCCESS else LoginResultType.FAILURE
             )
-        }
-    }
-
-    fun requestGoogleSignIn() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            ssoProvider.requestGoogleSignIn(
-                homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
-                filterAuthorizedAccounts = true
-            ).let { response ->
-                response.data?.let { data ->
-                    val matrixRes = MatrixAuthenticationResponse(
-                        homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
-                        expiresInMs = data.expiresIn,
-                        refreshToken = data.refreshToken,
-                        userId = data.userId,
-                        accessToken = data.accessToken,
-                        deviceId = data.deviceId
-                    )
-                    authService.registerWithIdentifier(
-                        homeserver = dataManager.homeServerResponse.value?.address ?: AUGMY_HOME_SERVER_ADDRESS,
-                        password = null,
-                        response = matrixRes,
-                        identifier = MatrixIdentifierData(
-                            type = Matrix.Id.AUGMY_OIDC,
-                            user = data.userId
-                        )
-                    )
-                    if (data.userId != null || matrixClient != null) {
-                        _matrixAuthResponse.value = matrixRes
-                        clearMatrixProgress()
-                        initUserObject()
-                    }
-                }
-                SharedLogger.logger.debug { "requestGoogleSignIn, data: ${response.data}" }
-                _loginResult.emit(
-                    if(response.isSuccess && response.data?.accessToken != null) {
-                        LoginResultType.SUCCESS
-                    } else LoginResultType.FAILURE
-                )
-            }
-            _isLoading.value = false
-        }
-    }
-
-    fun requestAppleSignIn() {
-        viewModelScope.launch {
-            ssoProvider.requestAppleSignIn()
         }
     }
 }

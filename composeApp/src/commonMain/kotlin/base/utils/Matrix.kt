@@ -23,12 +23,10 @@ object Matrix {
 
     object Id {
         const val THIRD_PARTY = "m.id.thirdparty"
-        const val AUGMY_OIDC = "org.augmy.oidc"
         const val USER = "m.id.user"
     }
 
     object Brand {
-        const val AUGMY = "augmy"
         const val GOOGLE = "google"
         const val GOOGLE_OIDC = "oidc-google"
         const val APPLE = "apple"

@@ -220,9 +220,10 @@ fun LoginScreen(
 
     LaunchedEffect(nonce, loginToken) {
         if(nonce != null && loginToken != null) {
-            model.loginWithCode(
+            model.loginWithToken(
                 nonce = nonce,
-                code = loginToken
+                token = loginToken,
+                screenType = LoginScreenType.entries[screenStateIndex.value]
             )
         }
     }
@@ -672,9 +673,7 @@ private fun ColumnScope.LoginScreenContent(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
-                                    if (identityProvider.brand == Matrix.Brand.AUGMY) {
-                                        model.requestGoogleSignIn()
-                                    } else model.requestSsoRedirect(identityProvider.id)
+                                    model.requestSsoRedirect(identityProvider.id)
                                 },
                             painter = painterResource(LocalTheme.current.icons.googleSignUp),
                             contentDescription = null
@@ -686,9 +685,7 @@ private fun ColumnScope.LoginScreenContent(
                             modifier = Modifier
                                 .height(42.dp)
                                 .scalingClickable {
-                                    if (identityProvider.brand == Matrix.Brand.AUGMY) {
-                                        model.requestAppleSignIn()
-                                    } else model.requestSsoRedirect(identityProvider.id)
+                                    model.requestSsoRedirect(identityProvider.id)
                                 },
                             painter = painterResource(LocalTheme.current.icons.appleSignUp),
                             contentDescription = null
