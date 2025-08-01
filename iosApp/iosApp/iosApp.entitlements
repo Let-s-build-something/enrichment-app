@@ -12,6 +12,8 @@
 	<array>
 		<string>applinks:augmy.org</string>
 		<string>webcredentials:augmy.org</string>
+		<string>augmy.org</string>
+		<string>homeserver.augmy.org</string>
 	</array>
 </dict>
 </plist>
