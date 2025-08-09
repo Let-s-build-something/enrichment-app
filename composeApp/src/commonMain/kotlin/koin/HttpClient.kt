@@ -47,7 +47,7 @@ internal expect fun httpClient(): HttpClient
 @OptIn(ExperimentalUuidApi::class)
 internal fun httpClientFactory(
     sharedModel: SharedModel,
-    developerViewModel: DeveloperConsoleModel?,
+    developerViewModel: () -> DeveloperConsoleModel?,
     authService: AuthService,
     json: Json
 ): HttpClient {
@@ -57,7 +57,7 @@ internal fun httpClientFactory(
         defaultRequest {
             contentType(ContentType.Application.Json)
 
-            host = developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName
+            host = developerViewModel()?.hostOverride ?: BuildKonfig.HttpsHostName
             url {
                 protocol = URLProtocol.HTTPS
             }
@@ -100,7 +100,7 @@ internal fun httpClientFactory(
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[HttpHeaders.Authorization] = "Bearer $accessToken"
                 }
-            }else if(request.url.host == (developerViewModel?.hostOverride ?: BuildKonfig.HttpsHostName)) {
+            }else if(request.url.host == (developerViewModel()?.hostOverride ?: BuildKonfig.HttpsHostName)) {
                 request.headers.append(HttpHeaders.Authorization, "Bearer ${BuildKonfig.BearerToken}")
                 sharedModel.currentUser.value?.accessToken?.let { accessToken ->
                     request.headers[AccessToken] = accessToken
@@ -109,7 +109,7 @@ internal fun httpClientFactory(
 
             request.headers.append(HttpHeaders.XRequestId, Uuid.random().toString())
 
-            developerViewModel?.appendHttpLog(
+            developerViewModel()?.appendHttpLog(
                 DeveloperUtils.processRequest(request)
             )
             val call = execute(request)

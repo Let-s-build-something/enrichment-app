@@ -87,7 +87,7 @@ jobs:
 
       # Windows - Msi
       - name: Build Windows Release
-        run: ./gradlew packageReleaseMsi
+        run: ./gradlew packageReleaseMsi -Pbuildkonfig.flavor=release
 
       - name: Move and rename MSI file
         run: |

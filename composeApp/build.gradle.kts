@@ -354,9 +354,11 @@ buildkonfig {
     val keystoreProperties = Properties()
     keystoreProperties.load(FileInputStream(rootProject.file("local.properties")))
 
+    val flavor = project.findProperty("buildkonfig.flavor")?.toString() ?: "default"
+    println("Building with BuildKonfig flavor: $flavor")
+
     // this is the production setting
     defaultConfigs {
-        buildConfigField(BOOLEAN, "isDevelopment", "false")
         buildConfigField(STRING, "CloudWebApiKey", keystoreProperties["cloudWebApiKey"] as String)
         buildConfigField(STRING, "FirebaseProjectId", keystoreProperties["firebaseProjectId"] as String)
         buildConfigField(STRING, "BearerToken", keystoreProperties["bearerToken"] as String)
@@ -365,13 +367,18 @@ buildkonfig {
         buildConfigField(STRING, "HttpsHostName", releaseHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidReleaseAppId"] as String)
         buildConfigField(STRING, "StorageBucketName", "chat-enrichment.appspot.com")
+        buildConfigField(BOOLEAN, "isDevelopment", "false")
     }
 
     // change the setting just for development
     defaultConfigs("development") {
-        buildConfigField(BOOLEAN, "isDevelopment", "true")
         buildConfigField(STRING, "HttpsHostName", debugHostname)
         buildConfigField(STRING, "AndroidAppId", keystoreProperties["androidDebugAppId"] as String)
+        buildConfigField(BOOLEAN, "isDevelopment", "true")
+    }
+
+    targetConfigs(flavor = flavor) {
+        all {  }
     }
 }
 

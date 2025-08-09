@@ -1,6 +1,5 @@
 package koin
 
-import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ui.base.PlatformType
 import augmy.interactive.shared.ui.base.currentPlatform
 import coil3.annotation.ExperimentalCoilApi
@@ -30,7 +29,6 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ui.conversation.components.audio.mediaProcessorModule
 import ui.dev.DeveloperConsoleModel
-import ui.dev.developerConsoleModule
 import ui.home.homeModule
 import ui.login.LoginDataManager
 
@@ -75,12 +73,18 @@ internal val commonModule = module {
         )
     }
 
-    if(BuildKonfig.isDevelopment) this@module.includes(developerConsoleModule)
-
     single<HttpClient> {
+        var developerModel: DeveloperConsoleModel? = null
+
         httpClientFactory(
             sharedModel = get<SharedModel>(),
-            developerViewModel = if(BuildKonfig.isDevelopment) get<DeveloperConsoleModel>() else null,
+            developerViewModel = {
+                try {
+                    developerModel ?: get<DeveloperConsoleModel>().also {
+                        developerModel = it
+                    }
+                } catch (_: Exception) { null }
+            },
             json = get<Json>(),
             authService = get<AuthService>()
         )

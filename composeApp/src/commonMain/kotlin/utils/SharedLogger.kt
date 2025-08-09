@@ -1,6 +1,5 @@
 package utils
 
-import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.utils.DateUtils
 import korlibs.logger.DefaultLogOutput
 import korlibs.logger.Logger
@@ -24,19 +23,17 @@ object SharedLogger {
             level: Logger.Level,
             msg: Any?
         ) {
-            if(BuildKonfig.isDevelopment) {
-                developerConsoleDataManager?.value?.logs?.update {
-                    it.toMutableList().apply {
-                        add(0, LoggerMessage(level = level, message = "${logger.name}: $msg"))
-                    }
+            developerConsoleDataManager?.value?.logs?.update {
+                it.toMutableList().apply {
+                    add(0, LoggerMessage(level = level, message = "${logger.name}: $msg"))
                 }
-                DefaultLogOutput.output(logger, level, msg)
             }
+            DefaultLogOutput.output(logger, level, msg)
         }
     }
 
-    fun init() {
-        val level = if (BuildKonfig.isDevelopment) Logger.Level.TRACE else Logger.Level.ERROR
+    fun init(isDevelopment: Boolean = false) {
+        val level = if (isDevelopment) Logger.Level.TRACE else Logger.Level.ERROR
         Logger.defaultOutput = output
         Logger.defaultLevel = level
         logger.debug { "Logger initialized at level $level" }
