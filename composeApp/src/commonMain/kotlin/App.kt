@@ -43,7 +43,6 @@ import augmy.composeapp.generated.resources.hard_logout_message
 import augmy.composeapp.generated.resources.leave_app_dialog_message
 import augmy.composeapp.generated.resources.leave_app_dialog_show_again
 import augmy.composeapp.generated.resources.leave_app_dialog_title
-import augmy.interactive.com.BuildKonfig
 import augmy.interactive.shared.ext.ifNull
 import augmy.interactive.shared.ui.base.BaseSnackbarHost
 import augmy.interactive.shared.ui.base.LocalBackPressDispatcher
@@ -292,6 +291,8 @@ private fun AppContent(
     }
 
     Column {
+        val showConsole = model.showDevelopmentConsole.collectAsState()
+
         if(isCompact) {
             val content = @Composable {
                 InformationPopUps()
@@ -301,10 +302,12 @@ private fun AppContent(
                 }
             }
 
-            if (BuildKonfig.isDevelopment) DeveloperHolderLayout(
-                modifier = Modifier.statusBarsPadding(),
-                appContent = content
-            ) else content()
+            if (showConsole.value) {
+                DeveloperHolderLayout(
+                    modifier = Modifier.statusBarsPadding(),
+                    appContent = content
+                )
+            } else content()
         }else {
             InformationPopUps()
             InformationLines(sharedModel = model)
@@ -316,9 +319,11 @@ private fun AppContent(
                 }
             }
 
-            if(BuildKonfig.isDevelopment) {
-                DeveloperHolderLayout(appContent = content)
-            }else content()
+            if (showConsole.value) {
+                DeveloperHolderLayout(
+                    appContent = content,
+                )
+            } else content()
         }
     }
 }
