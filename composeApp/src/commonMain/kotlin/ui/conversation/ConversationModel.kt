@@ -23,7 +23,9 @@ import data.io.social.network.conversation.giphy.GifAsset
 import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.FullConversationMessage
 import data.io.social.network.conversation.message.MediaIO
+import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
+import data.shared.GeneralObserver
 import database.file.FileAccess
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.extension
@@ -572,6 +574,7 @@ open class ConversationModel(
                     }
                     sendMessage(
                         conversationId = conversationId.value,
+                        anchorMessage = anchorMessage,
                         homeserver = homeserverAddress,
                         mediaFiles = mediaFiles,
                         onProgressChange = { progress ->
@@ -629,6 +632,7 @@ open class ConversationModel(
         homeserver: String,
         message: ConversationMessageIO,
         mediaIn: List<MediaIO> = listOf(),
+        anchorMessage: ConversationMessageIO? = null,
         audioByteArray: ByteArray? = null,
         gifAsset: GifAsset? = null,
         onProgressChange: ((MediaHttpProgress) -> Unit)? = null,
@@ -766,6 +770,21 @@ open class ConversationModel(
                             }
                         }
                     }
+
+                    sharedDataManager.observers.forEach { observer ->
+                        if (observer is GeneralObserver.MessageObserver) {
+                            observer.invoke(
+                                FullConversationMessage(
+                                    data = msg,
+                                    anchorMessage = anchorMessage,
+                                    author = ConversationRoomMember(
+                                        userId = matrixUserId ?: "",
+                                        roomId = conversationId
+                                    )
+                                )
+                            )
+                        }
+                    }
                 }
 
                 // save the actual version
@@ -796,7 +815,28 @@ open class ConversationModel(
                     content = forceEmojiPresentation(content),
                     messageId = messageId
                 )
-            )
+            ).data?.let { reaction ->
+                sharedDataManager.observers.forEach { observer ->
+                    if (observer is GeneralObserver.ReactionsObserver) {
+                        observer.invoke(reaction.first.apply {
+                            type = if (reaction.second) MessageReactionIO.ReactionType.Add else MessageReactionIO.ReactionType.Remove
+                        })
+                    }
+                }
+            }
+        }
+    }
+
+    fun onState(type: ConversationStateType) {
+        sharedDataManager.observers.forEach { observer ->
+            if (observer is GeneralObserver.ConversationStateObserver) {
+                observer.invoke(
+                    ConversationState(
+                        type = type,
+                        conversationId = conversationId.value
+                    )
+                )
+            }
         }
     }
 

@@ -15,6 +15,7 @@ import data.io.social.network.conversation.message.MediaIO
 import data.io.social.network.conversation.message.MessageReactionIO
 import data.io.social.network.conversation.message.MessageState
 import data.io.user.PresenceData
+import data.shared.GeneralObserver
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
@@ -119,20 +120,32 @@ abstract class MessageProcessor {
                 }
             }
 
+            val reactionObserver = sharedDataManager.observers.find { it is GeneralObserver.ReactionsObserver }
             mediaDao.insertAll(result.media)
-            messageReactionDao.insertAll(result.reactions.toList())
+            result.reactions.forEach { reaction ->
+                if (messageReactionDao.insertIgnore(reaction) == -1L) {
+                    messageReactionDao.insertReplace(reaction)
+                } else (reactionObserver as GeneralObserver.ReactionsObserver).invoke(reaction)
+            }
 
+            val messageObserver = sharedDataManager.observers.find { it is GeneralObserver.MessageObserver }
             val messages = result.messages.plus(decryptedMessages).mapNotNull { m ->
                 val message = m.copy(nextBatch = nextBatch, prevBatch = prevBatch)
 
-                if (conversationMessageDao.insertIgnore(message) == -1L) {
+                (if (conversationMessageDao.insertIgnore(message) == -1L) {
                     conversationMessageDao.insertReplace(message)
                     null
                 }else FullConversationMessage(
                     data = message,
                     reactions = result.reactions.filter { it.messageId == message.id },
                     media = result.media.filter { it.messageId == message.id },
-                )
+                ))?.also {
+                    messageObserver?.run {
+                        conversationMessageDao.get(message.id)?.let {
+                            (messageObserver as GeneralObserver.MessageObserver).invoke(it)
+                        }
+                    }
+                }
             }
 
             result.receipts.forEach { receipt ->
@@ -170,7 +183,12 @@ abstract class MessageProcessor {
                         redaction.reason ?: ""
                     )
                 )
-                messageReactionDao.remove(redaction.redacts.full)
+                messageReactionDao.get(redaction.redacts.full)?.let {
+                    (reactionObserver as GeneralObserver.ReactionsObserver).invoke(it.apply {
+                        type = MessageReactionIO.ReactionType.Remove
+                    })
+                    messageReactionDao.remove(redaction.redacts.full)
+                }
             }
 
             result.replacements.forEach { replacement ->
@@ -316,7 +334,10 @@ abstract class MessageProcessor {
                                 eventId = event.idOrNull?.full ?: Uuid.random().toString(),
                                 messageId = eventId,
                                 content = content.relatesTo?.key,
-                                authorPublicId = event.senderOrNull?.full
+                                authorPublicId = event.senderOrNull?.full,
+                                sentAt = event.originTimestampOrNull?.let { millis ->
+                                    Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+                                }
                             )
                         )
                     }

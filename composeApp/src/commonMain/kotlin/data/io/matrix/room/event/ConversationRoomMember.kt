@@ -19,21 +19,21 @@ data class ConversationRoomMember(
     val userId: String,
 
     @ColumnInfo("display_name")
-    val displayName: String?,
+    val displayName: String? = null,
 
     @ColumnInfo("room_id")
     val roomId: String,
 
-    val timestamp: Long?,
+    val timestamp: Long? = null,
 
-    val sender: UserId?,
+    val sender: UserId? = null,
 
     val proximity: Float? = null,
 
     @SerialName("avatar_url")
     val avatarUrl: String? = null,
 
-    val membership: Membership,
+    val membership: Membership = Membership.JOIN,
 
     @ColumnInfo("is_direct")
     @SerialName("is_direct")

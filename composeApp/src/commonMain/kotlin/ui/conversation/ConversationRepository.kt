@@ -434,13 +434,14 @@ open class ConversationRepository(
     suspend fun reactToMessage(
         conversationId: String,
         reaction: MessageReactionRequest
-    ): BaseResponse<Any> {
+    ): BaseResponse<Pair<MessageReactionIO, Boolean>> {
         return withContext(Dispatchers.Default) {
             val self = sharedDataManager.currentUser.value?.matrixUserId
             val data = MessageReactionIO(
                 content = reaction.content,
                 authorPublicId = self,
-                messageId = reaction.messageId
+                messageId = reaction.messageId,
+                sentAt = DateUtils.localNow
             )
             conversationMessageDao.get(reaction.messageId)?.let { message ->
                 val existingReaction = message.reactions.find {
@@ -465,7 +466,7 @@ open class ConversationRepository(
 
                         (if (eventId != null) { // replace placeholder with real event
                             messageReactionDao.insertReplace(data.copy(eventId = eventId.full))
-                            BaseResponse.Success(eventId)
+                            BaseResponse.Success(data.copy(eventId = eventId.full) to true)
                         }else BaseResponse.Error()).also {
                             invalidateLocalSource()
                         }
@@ -482,7 +483,7 @@ open class ConversationRepository(
                             messageReactionDao.insertReplace(existingReaction)
                             invalidateLocalSource()
                             BaseResponse.Error()
-                        } else BaseResponse.Success(eventId)
+                        } else BaseResponse.Success(data.copy(eventId = eventId.full) to false)
                     }
                 }
             } ?: BaseResponse.Error()

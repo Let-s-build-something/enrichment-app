@@ -60,8 +60,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.compose.rememberNavController
 import app.cash.paging.compose.collectAsLazyPagingItems
 import augmy.composeapp.generated.resources.Res
@@ -121,11 +120,14 @@ import ui.conversation.prototype.PrototypeConversation
 import ui.conversation.search.ConversationSearchModel
 import ui.conversation.search.conversationSearchModule
 import utils.SharedLogger
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /** Number of network items within one screen to be shimmered */
 private const val MESSAGES_SHIMMER_ITEM_COUNT = 24
 
 /** Screen displaying a conversation */
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun ConversationScreen(
     conversationId: String? = null,
@@ -167,9 +169,14 @@ fun ConversationScreen(
         )
     )
 
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+    LifecycleResumeEffect(keys = arrayOf(conversationId ?: Uuid.random().toString())) {
+        model.onState(ConversationStateType.Enter)
         if(model.persistentPositionData != null) {
             messages.refresh()
+        }
+
+        onPauseOrDispose {
+            model.onState(ConversationStateType.Leave)
         }
     }
 

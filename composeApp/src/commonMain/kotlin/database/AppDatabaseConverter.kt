@@ -172,7 +172,7 @@ class AppDatabaseConverter {
 
     @TypeConverter
     fun toExperimentSetValueList(value: String): List<ExperimentSetValue> {
-        return json.decodeFromString(value)
+        return if (value.isEmpty()) emptyList() else json.decodeFromString(value)
     }
 
     @TypeConverter
