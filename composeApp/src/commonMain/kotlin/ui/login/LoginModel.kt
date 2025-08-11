@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -88,7 +89,7 @@ class LoginModel(
     val supportsEmail = dataManager.loginHomeserverResponse.mapLatest { res ->
         res?.plan?.flows?.any {
             it.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
-        } != false
+        } != false || res.address == AUGMY_HOME_SERVER_ADDRESS
     }
 
     val ssoFlow = dataManager.loginHomeserverResponse.mapLatest { res ->
@@ -314,7 +315,7 @@ class LoginModel(
                         session = it.session
                     }
                 }else {
-                    val requiresEmail = flow?.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
+                    val requiresEmail = supportsEmail.lastOrNull() == true || flow?.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
                     // if flow contains email verification, we should check for duplicity first
                     val check = if(requiresEmail) {
                         repository.requestRegistrationToken(
