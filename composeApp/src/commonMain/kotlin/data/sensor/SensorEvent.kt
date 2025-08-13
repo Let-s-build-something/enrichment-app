@@ -3,7 +3,7 @@ package data.sensor
 import augmy.interactive.shared.utils.DateUtils
 
 data class SensorEvent(
-    val timestamp: Long = DateUtils.now.toEpochMilliseconds(),
+    val timestamp: String = DateUtils.localNow.toString(),
     val values: FloatArray? = null,
     val uiValues: Map<String?, String?>? = null
 ) {

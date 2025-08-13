@@ -15,27 +15,23 @@ actual suspend fun getAllSensors(): List<SensorEventListener>? {
         listOf(
             createRepeatedEventListener(name = "System uptime") {
                 SensorEvent(
-                    timestamp = DateUtils.now.toEpochMilliseconds(),
                     values = floatArrayOf(operatingSystem.systemUptime.toFloat())
                 )
             },
             createRepeatedEventListener(name = "Battery capacity percentage") {
                 SensorEvent(
-                    timestamp = DateUtils.now.toEpochMilliseconds(),
                     values = floatArrayOf(
                         hardware.powerSources.firstOrNull()?.remainingCapacityPercent?.toFloat() ?: 0f)
                 )
             },
             createRepeatedEventListener(name = "Battery charging bool state") {
                 SensorEvent(
-                    timestamp = DateUtils.now.toEpochMilliseconds(),
                     values = floatArrayOf(
                         hardware.powerSources.firstOrNull()?.isCharging?.toInt()?.toFloat() ?: 0f)
                 )
             },
             createRepeatedEventListener(name = "Visible GUI windows") {
                 SensorEvent(
-                    timestamp = DateUtils.now.toEpochMilliseconds(),
                     values = null,
                     uiValues = operatingSystem.getDesktopWindows(true).associate {
                         it.title to it.command

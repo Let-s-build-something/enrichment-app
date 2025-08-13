@@ -708,10 +708,11 @@ private fun MatrixProgressStage(
                 val isSuccess = remember { mutableStateOf(false) }
 
                 val state = rememberWebViewState(
-                    "http://augmy.org/recaptcha.html?site-key=${progress.value?.response?.params?.recaptcha?.publicKey}",
+                    "https://augmy.org/recaptcha.html?site-key=${progress.value?.response?.params?.recaptcha?.publicKey}",
                 )
                 val jsBridge = rememberWebViewJsBridge()
                 val navigator = rememberWebViewNavigator()
+                val dialogBackgroundColor = LocalTheme.current.colors.backgroundDark
 
                 LaunchedEffect(jsBridge) {
                     jsBridge.register(object: IJsMessageHandler {
@@ -735,6 +736,11 @@ private fun MatrixProgressStage(
                     state.webSettings.apply {
                         androidWebSettings.domStorageEnabled = true
                         desktopWebSettings.disablePopupWindows = true
+                        iOSWebSettings.opaque = true
+                        iOSWebSettings.backgroundColor = dialogBackgroundColor
+                        iOSWebSettings.underPageBackgroundColor = dialogBackgroundColor
+                        iOSWebSettings.showVerticalScrollIndicator = false
+                        iOSWebSettings.showHorizontalScrollIndicator = false
                         allowFileAccessFromFileURLs = true
                         allowUniversalAccessFromFileURLs = true
                         customUserAgentString = "use required / intended UA string"
@@ -752,7 +758,7 @@ private fun MatrixProgressStage(
                         WebView(
                             modifier = Modifier
                                 .wrapContentHeight()
-                                .requiredWidth(with(density) { 340f.toDp() })
+                                .requiredWidth(with(density) { 600f.toDp() })
                                 .heightIn(min = 500.dp),
                             navigator = navigator,
                             state = state,

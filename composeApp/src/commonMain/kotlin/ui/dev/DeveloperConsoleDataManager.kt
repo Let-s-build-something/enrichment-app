@@ -31,4 +31,6 @@ class DeveloperConsoleDataManager {
     val experiments = MutableStateFlow(listOf<FullExperiment>())
     val activeExperiments = MutableStateFlow(setOf<String>())
     val experimentsToShow = MutableStateFlow(listOf<FullExperiment>())
+    val observedEntities = MutableStateFlow(listOf<String>())
+    val listensToChats = MutableStateFlow(true)
 }

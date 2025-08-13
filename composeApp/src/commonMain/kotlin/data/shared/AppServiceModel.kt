@@ -2,6 +2,7 @@ package data.shared
 
 import androidx.core.uri.UriUtils
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
@@ -67,6 +68,10 @@ class AppServiceModel(
         }
 
         viewModelScope.launch {
+            showDevelopmentConsole.value = repository.checkIsDeveloper().also {
+                if (it) SharedLogger.init(isDevelopment = true)
+            }
+
             sharedDataManager.pingStream.collect { pings ->
                 if (!showDevelopmentConsole.value && pings.any { it.type == AppPingType.ConversationDashboard }) {
                     showDevelopmentConsole.value = repository.checkIsDeveloper().also {
@@ -103,6 +108,9 @@ class AppServiceModel(
         SharedLogger.logger.debug { "App initialized" }
 
         CoroutineScope(Dispatchers.IO).launch {
+            if (settings.getStringOrNull(SettingsKeys.KEY_DOWNLOAD_TIME) == null) {
+                settings.putString(SettingsKeys.KEY_DOWNLOAD_TIME, DateUtils.localNow.toString())
+            }
             showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) != false
 
             // add missing mimetypes

@@ -49,7 +49,7 @@ import ui.conversation.components.experimental.gravity.GravityValue
         ExperimentSet::class,
         ConversationRoomIO::class
     ],
-    version = 82,
+    version = 83,
     exportSchema = true
 )
 @ConstructedBy(AppDatabaseConstructor::class)

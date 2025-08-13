@@ -7,6 +7,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import data.io.matrix.room.event.ConversationRoomMember
 import database.AppRoomDatabase
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.serializers.LocalDateTimeIso8601Serializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
@@ -41,9 +43,22 @@ data class MessageReactionIO @OptIn(ExperimentalUuidApi::class) constructor(
 
     /** Public id of the author of this message */
     @ColumnInfo("author_public_id")
-    val authorPublicId: String? = null
+    val authorPublicId: String? = null,
+
+    @ColumnInfo("sent_at")
+    @Serializable(with = LocalDateTimeIso8601Serializer::class)
+    val sentAt: LocalDateTime? = null,
 ) {
     @Transient
     @Ignore
     var user: ConversationRoomMember? = null
+
+    @Transient
+    @Ignore
+    var type: ReactionType = ReactionType.Add
+
+    enum class ReactionType {
+        Add,
+        Remove
+    }
 }

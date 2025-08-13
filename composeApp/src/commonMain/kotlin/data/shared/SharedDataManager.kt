@@ -29,4 +29,6 @@ class SharedDataManager {
     var matrixClient = MutableStateFlow<MatrixClient?>(null)
 
     val typingIndicators = MutableStateFlow(-1 to hashMapOf<String, ConversationTypingIndicator>())
+
+    val observers = mutableListOf<GeneralObserver<*>>()
 }

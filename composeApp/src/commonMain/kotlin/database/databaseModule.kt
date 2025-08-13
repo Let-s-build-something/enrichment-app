@@ -1,6 +1,7 @@
 package database
 
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import database.DatabaseMigrations.MIGRATION_82_83
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import org.koin.dsl.module
@@ -8,9 +9,12 @@ import org.koin.dsl.module
 internal val databaseModule = module {
     single<AppRoomDatabase> {
         getDatabaseBuilder()
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            //.fallbackToDestructiveMigration(dropAllTables = true)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
+            .addMigrations(
+                MIGRATION_82_83
+            )
             .addTypeConverter(AppDatabaseConverter())
             .build()
     }
