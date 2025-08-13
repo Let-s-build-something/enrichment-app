@@ -2,6 +2,7 @@ package ui.dev
 
 import androidx.lifecycle.viewModelScope
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.openSinkFromUri
 import base.utils.toSha256
 import data.io.app.SettingsKeys
@@ -486,6 +487,7 @@ class DeveloperConsoleModel(
             put("set", experiment.name)
             customValue?.let { put("customValue", it) }
             put("values", values)
+            put("timestamp", DateUtils.localNow.toString())
         }
         val newLine = json.encodeToString(jsonLine)
 
