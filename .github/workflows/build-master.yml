@@ -38,25 +38,20 @@ jobs:
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
-      - name: Build with Gradle and get VERSION (no pipes)
+      - name: Get VERSION from Gradle
         id: gradle-version
-        shell: bash
         run: |
-          set -euo pipefail
-          VERSION="$(./gradlew -q :composeApp:printVersionName)"
-          VERSION="${VERSION//$'\r'/}"
-          VERSION="${VERSION//$'\n'/}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Computed VERSION: $VERSION"
+          VERSION=$(./gradlew -q :composeApp:printVersionName)
+          VERSION="${VERSION//$'\r'/}"   # remove carriage returns
+          VERSION="${VERSION//$'\n'/}"   # remove newlines
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Create releases/<version> branch if it doesn't exist
-        shell: bash
+      - name: Create releases/${{ env.VERSION }} branch if it doesn't exist
         run: |
           git fetch origin
-          VERSION=${{ steps.gradle-version.outputs.version }}
-          if ! git rev-parse --verify origin/releases/$VERSION >/dev/null 2>&1; then
-            git checkout -b releases/$VERSION origin/master
-            git push origin releases/$VERSION
+          if ! git rev-parse --verify origin/releases/${{ env.VERSION }} >/dev/null 2>&1; then
+            git checkout -b releases/${{ env.VERSION }}
+            git push origin releases/${{ env.VERSION }}
           fi
 
       - name: Force release-version to match master
