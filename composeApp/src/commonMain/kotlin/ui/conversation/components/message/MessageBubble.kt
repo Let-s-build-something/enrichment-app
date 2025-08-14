@@ -223,7 +223,7 @@ private fun ContentLayout(
             highlight = highlight,
             annotatedString = buildTempoString(
                 key = data.id,
-                timings = data.data.timings.orEmpty(),
+                timings = listOf(),//data.data.timings.orEmpty(),
                 text = buildAnnotatedLinkString(
                     text = data.data.content,
                     onLinkClicked = { href ->

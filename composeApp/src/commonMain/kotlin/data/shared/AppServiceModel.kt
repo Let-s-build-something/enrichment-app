@@ -68,13 +68,13 @@ class AppServiceModel(
         }
 
         viewModelScope.launch {
-            showDevelopmentConsole.value = repository.checkIsDeveloper().also {
+            showDevelopmentConsole.value = repository.checkIsDeveloper(matrixUserId).also {
                 if (it) SharedLogger.init(isDevelopment = true)
             }
 
             sharedDataManager.pingStream.collect { pings ->
                 if (!showDevelopmentConsole.value && pings.any { it.type == AppPingType.ConversationDashboard }) {
-                    showDevelopmentConsole.value = repository.checkIsDeveloper().also {
+                    showDevelopmentConsole.value = repository.checkIsDeveloper(matrixUserId).also {
                         if (it) SharedLogger.init(isDevelopment = true)
                     }
                 }

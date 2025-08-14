@@ -38,7 +38,7 @@ class AppServiceRepository(private val httpClient: HttpClient) {
         }
     }
 
-    suspend fun checkIsDeveloper(): Boolean = withContext(Dispatchers.IO) {
-        roomDao.get(AUGMY_INTERNAL_ROOM_ID) != null
+    suspend fun checkIsDeveloper(ownerUserId: String?): Boolean = withContext(Dispatchers.IO) {
+        roomDao.get(id = AUGMY_INTERNAL_ROOM_ID, ownerPublicId = ownerUserId) != null
     }
 }

@@ -206,4 +206,4 @@ fun MatrixHomeserverPicker(
 const val MATRIX_HOME_SERVER = "matrix.org"
 const val AUGMY_HOMESERVER_IDENTIFIER = "augmy.org"
 const val AUGMY_HOME_SERVER_ADDRESS = "homeserver.augmy.org"
-const val AUGMY_INTERNAL_ROOM_ID = "!stOCkAmHhQYsibTiMC:augmy.org"
+const val AUGMY_INTERNAL_ROOM_ID = "!gAnKoCsLRBAAppnYpK:augmy.org"
