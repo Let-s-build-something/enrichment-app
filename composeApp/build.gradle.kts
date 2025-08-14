@@ -355,7 +355,6 @@ buildkonfig {
     keystoreProperties.load(FileInputStream(rootProject.file("local.properties")))
 
     val flavor = project.findProperty("buildkonfig.flavor")?.toString() ?: "default"
-    println("Building with BuildKonfig flavor: $flavor")
 
     // this is the production setting
     defaultConfigs {
