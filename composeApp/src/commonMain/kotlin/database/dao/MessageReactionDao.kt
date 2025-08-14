@@ -25,6 +25,15 @@ interface MessageReactionDao {
         """)
     suspend fun getAll(messageId: String): List<MessageReactionIO>
 
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_MESSAGE_REACTION}
+        WHERE event_id = :eventId
+        """)
+    suspend fun get(eventId: String): MessageReactionIO?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(item: MessageReactionIO): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<MessageReactionIO>)
 

@@ -41,7 +41,7 @@ jobs:
 
       # Linux - Deb
       - name: Build Linux Release
-        run: ./gradlew packageReleaseDeb
+        run: ./gradlew packageReleaseDeb -Pbuildkonfig.flavor=release
 
       - name: List Files
         run: ls -R ${{ github.workspace }}/composeApp/build/compose/binaries/main-release/deb

@@ -46,6 +46,8 @@ object SettingsKeys {
 
     const val KEY_HOMESERVERS = "homeservers"
 
+    const val KEY_DOWNLOAD_TIME = "download_time"
+
 
     // DEV use only
     const val KEY_STREAMING_URL = "streaming_url"

@@ -1,6 +1,7 @@
 package data.sensor
 
 import augmy.interactive.shared.ext.ifNull
+import augmy.interactive.shared.utils.DateUtils
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
@@ -87,7 +88,6 @@ private fun createListener(
                             val yaw = data.attitude.yaw.toFloat()
                             onSensorChanged(
                                 SensorEvent(
-                                    timestamp = data.timestamp.toLong(),
                                     values = floatArrayOf(roll, pitch, yaw)
                                 )
                             )
@@ -127,7 +127,6 @@ private fun createListener(
 
                                 onSensorChanged(
                                     SensorEvent(
-                                        timestamp = NSDate().timeIntervalSinceReferenceDate.toLong(),
                                         values = floatArrayOf(stationary, walking, running, automotive, cycling, unknown)
                                     )
                                 )
@@ -142,7 +141,6 @@ private fun createListener(
                             it.acceleration.useContents {
                                 onSensorChanged(
                                     SensorEvent(
-                                        timestamp = it.timestamp.toLong(),
                                         values = listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
                                     )
                                 )
@@ -158,7 +156,6 @@ private fun createListener(
                             it.rotationRate.useContents {
                                 onSensorChanged(
                                     SensorEvent(
-                                        timestamp = it.timestamp.toLong(),
                                         values = listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
                                     )
                                 )
@@ -174,7 +171,6 @@ private fun createListener(
                             it.magneticField.useContents {
                                 onSensorChanged(
                                     SensorEvent(
-                                        timestamp = it.timestamp.toLong(),
                                         values = listOf(this.x.toFloat(), this.y.toFloat(), this.z.toFloat()).toFloatArray()
                                     )
                                 )
@@ -209,7 +205,7 @@ private fun createListener(
                             }.map { it.toFloat() }.toFloatArray()
 
                             onSensorChanged(
-                                SensorEvent(timestamp = data.timestamp.toLong(), values = values)
+                                SensorEvent(values = values)
                             )
                         }
                     }

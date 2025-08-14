@@ -61,7 +61,6 @@ import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
-import utils.SharedLogger
 
 /** Class for calling APIs and remote work in general */
 open class ConversationRepository(
@@ -229,7 +228,6 @@ open class ConversationRepository(
                 ConversationRoomSource(
                     getMessages = { page ->
                         if(conversationId.isNullOrBlank()) {
-                            SharedLogger.logger.debug { "conversation id is null, can't load messages" }
                             return@ConversationRoomSource GetMessagesResponse(
                                 data = listOf(), hasNext = false
                             )
@@ -259,12 +257,9 @@ open class ConversationRepository(
                                     certainMessageCount = certainMessageCount?.plus(res.messages.size)
                                     GetMessagesResponse(
                                         data = res.messages,
-                                        hasNext = res.prevBatch != null && res.messages.isNotEmpty()
+                                        hasNext = res.prevBatch != null && res.changeInMessages
                                     ).also {
-                                        val newPrevBatch = if(res.messages.isEmpty()
-                                            && res.events == 0
-                                            && res.members.isEmpty()
-                                        )null else res.prevBatch
+                                        val newPrevBatch = if(res.changeInMessages) res.prevBatch else null
 
                                         conversationRoomDao.setPrevBatch(
                                             id = conversationId,
@@ -305,7 +300,7 @@ open class ConversationRepository(
         conversationId: String,
         indicator: ConversationTypingIndicator
     ): BaseResponse<Any> = withContext(Dispatchers.IO) {
-        val userId = sharedDataManager.currentUser.value?.matrixUserId
+        val userId = sharedDataManager.currentUser.value?.userId
         val homeserver = sharedDataManager.currentUser.value?.matrixHomeserver
 
         httpClient.safeRequest<Any> {
@@ -434,13 +429,14 @@ open class ConversationRepository(
     suspend fun reactToMessage(
         conversationId: String,
         reaction: MessageReactionRequest
-    ): BaseResponse<Any> {
+    ): BaseResponse<Pair<MessageReactionIO, Boolean>> {
         return withContext(Dispatchers.Default) {
-            val self = sharedDataManager.currentUser.value?.matrixUserId
+            val self = sharedDataManager.currentUser.value?.userId
             val data = MessageReactionIO(
                 content = reaction.content,
                 authorPublicId = self,
-                messageId = reaction.messageId
+                messageId = reaction.messageId,
+                sentAt = DateUtils.localNow
             )
             conversationMessageDao.get(reaction.messageId)?.let { message ->
                 val existingReaction = message.reactions.find {
@@ -465,7 +461,7 @@ open class ConversationRepository(
 
                         (if (eventId != null) { // replace placeholder with real event
                             messageReactionDao.insertReplace(data.copy(eventId = eventId.full))
-                            BaseResponse.Success(eventId)
+                            BaseResponse.Success(data.copy(eventId = eventId.full) to true)
                         }else BaseResponse.Error()).also {
                             invalidateLocalSource()
                         }
@@ -482,7 +478,7 @@ open class ConversationRepository(
                             messageReactionDao.insertReplace(existingReaction)
                             invalidateLocalSource()
                             BaseResponse.Error()
-                        } else BaseResponse.Success(eventId)
+                        } else BaseResponse.Success(data.copy(eventId = eventId.full) to false)
                     }
                 }
             } ?: BaseResponse.Error()

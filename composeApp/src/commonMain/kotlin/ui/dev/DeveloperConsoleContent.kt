@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.WavingHand
@@ -78,13 +79,15 @@ import ui.dev.experiment.ExperimentContent
 private enum class ConsoleSection(val imageVector: ImageVector) {
     Logger(Icons.AutoMirrored.Outlined.ReceiptLong),
     Biometric(Icons.Outlined.WavingHand),
-    Experiment(Icons.Outlined.Science);
+    Experiment(Icons.Outlined.Science),
+    Conversation(Icons.AutoMirrored.Outlined.Chat);
 
     override fun toString(): String {
         return when(this) {
             Logger -> "Logs"
             Biometric -> "Depth"
             Experiment -> "Experiments"
+            Conversation -> "Chats"
         }
     }
 }
@@ -255,6 +258,7 @@ private fun DeveloperConsoleContent(
                             ConsoleSection.Logger -> LoggerContent(model = model, isCompact = isCompact)
                             ConsoleSection.Biometric -> BiometricContent(model = model)
                             ConsoleSection.Experiment -> ExperimentContent()
+                            ConsoleSection.Conversation -> ChatsContent(model = model)
                         }
                     }
                 }

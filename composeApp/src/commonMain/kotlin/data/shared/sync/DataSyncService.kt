@@ -97,7 +97,7 @@ class DataSyncService {
         client: MatrixClient,
         homeserver: String? = this@DataSyncService.homeserver
     ) {
-        val owner = sharedDataManager.currentUser.value?.matrixUserId
+        val owner = sharedDataManager.currentUser.value?.userId
         if(homeserver == null || owner == null) {
             stop()
             return

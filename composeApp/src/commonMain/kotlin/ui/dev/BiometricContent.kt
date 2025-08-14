@@ -68,13 +68,13 @@ import augmy.interactive.shared.ui.components.input.CustomTextField
 import augmy.interactive.shared.ui.components.rememberMultiChoiceState
 import augmy.interactive.shared.ui.theme.LocalTheme
 import augmy.interactive.shared.ui.theme.SharedColors
-import augmy.interactive.shared.utils.DateUtils
 import augmy.interactive.shared.utils.DateUtils.formatAs
 import components.ScrollBarProgressIndicator
 import data.io.base.BaseResponse
 import data.sensor.SensorDelay
 import data.sensor.SensorEventListener
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -139,7 +139,7 @@ private fun DashboardSection(model: DeveloperConsoleModel) {
                             }
                             SelectionContainer {
                                 Text(
-                                    text = "Timestamp: ${DateUtils.fromMillis(record.timestamp).formatAs("HH:mm:ss")}",
+                                    text = "Timestamp: ${LocalDateTime.parse(record.timestamp).formatAs("HH:mm:ss")}",
                                     style = LocalTheme.current.styles.regular
                                 )
                             }

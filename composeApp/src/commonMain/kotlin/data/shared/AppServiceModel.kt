@@ -2,11 +2,13 @@ package data.shared
 
 import androidx.core.uri.UriUtils
 import androidx.lifecycle.viewModelScope
+import augmy.interactive.shared.utils.DateUtils
 import base.utils.deeplinkHost
 import data.io.app.ClientStatus
 import data.io.app.SettingsKeys
 import data.io.app.SettingsKeys.KEY_REFEREE_USER_ID
 import data.io.app.SettingsKeys.KEY_REFERRER_FINISHED
+import data.io.base.AppPingType
 import korlibs.io.net.MimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +51,8 @@ class AppServiceModel(
     /** current client status */
     val clientStatus = MutableStateFlow<ClientStatus?>(null)
 
+    val showDevelopmentConsole = MutableStateFlow(false)
+
     /** Whether leave dialog should be shown */
     var showLeaveDialog: Boolean = true
 
@@ -59,6 +63,20 @@ class AppServiceModel(
                     it.name == settings.getStringOrNull(SettingsKeys.KEY_CLIENT_STATUS)
                 }.let { status ->
                     clientStatus.emit(status ?: ClientStatus.NEW)
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            showDevelopmentConsole.value = repository.checkIsDeveloper().also {
+                if (it) SharedLogger.init(isDevelopment = true)
+            }
+
+            sharedDataManager.pingStream.collect { pings ->
+                if (!showDevelopmentConsole.value && pings.any { it.type == AppPingType.ConversationDashboard }) {
+                    showDevelopmentConsole.value = repository.checkIsDeveloper().also {
+                        if (it) SharedLogger.init(isDevelopment = true)
+                    }
                 }
             }
         }
@@ -90,6 +108,9 @@ class AppServiceModel(
         SharedLogger.logger.debug { "App initialized" }
 
         CoroutineScope(Dispatchers.IO).launch {
+            if (settings.getStringOrNull(SettingsKeys.KEY_DOWNLOAD_TIME) == null) {
+                settings.putString(SettingsKeys.KEY_DOWNLOAD_TIME, DateUtils.localNow.toString())
+            }
             showLeaveDialog = settings.getBooleanOrNull(SettingsKeys.KEY_SHOW_LEAVE_DIALOG) != false
 
             // add missing mimetypes
@@ -154,7 +175,7 @@ class AppServiceModel(
         viewModelScope.launch {
             repository.updateFCMToken(
                 prevFcmToken = sharedDataManager.localSettings.value?.fcmToken,
-                publicId = sharedDataManager.currentUser.value?.publicId,
+                userId = sharedDataManager.currentUser.value?.userId,
                 newToken = newToken
             )
         }

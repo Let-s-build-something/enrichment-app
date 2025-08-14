@@ -307,7 +307,7 @@ private fun ColumnScope.ProfileSection(model: AccountDashboardModel) {
             media = MediaIO(url = currentUser.value?.avatarUrl),
             tag = currentUser.value?.tag,
             name = (currentUser.value?.displayName ?: "").ifBlank {
-                UserId(currentUser.value?.matrixUserId ?: "").localpart
+                UserId(currentUser.value?.userId ?: "").localpart
             }
         )
         MinimalisticFilledIcon(
@@ -337,7 +337,7 @@ private fun ColumnScope.ProfileSection(model: AccountDashboardModel) {
                     .padding(end = 8.dp)
                     .scalingClickable(
                         onHover = { isHovered.value = it },
-                        enabled = currentUser.value?.matrixUserId != null
+                        enabled = currentUser.value?.userId != null
                     ) {
                         showNameChangeLauncher.value = true
                     }
@@ -358,7 +358,7 @@ private fun ColumnScope.ProfileSection(model: AccountDashboardModel) {
                     )
                 }
             }
-            currentUser.value?.matrixUserId?.let { userId ->
+            currentUser.value?.userId?.let { userId ->
                 Text(
                     text = userId,
                     style = LocalTheme.current.styles.regular.copy(
@@ -374,7 +374,7 @@ private fun ColumnScope.ProfileSection(model: AccountDashboardModel) {
             onTap = {
                 shareProfile(
                     coroutineScope = coroutineScope,
-                    publicId = currentUser.value?.publicId,
+                    publicId = currentUser.value?.userId,
                     clipboard = clipboard,
                     snackbarHostState = snackbarHostState
                 )

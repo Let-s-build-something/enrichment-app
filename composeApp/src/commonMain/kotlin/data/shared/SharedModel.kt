@@ -47,7 +47,7 @@ open class SharedModel: ViewModel() {
     //======================================== public variables ==========================================
 
     val matrixUserId: String?
-        get() = currentUser.value?.matrixUserId ?: authService.userId
+        get() = currentUser.value?.userId ?: authService.userId
 
     val matrixClient: MatrixClient?
         get() = sharedDataManager.matrixClient.value

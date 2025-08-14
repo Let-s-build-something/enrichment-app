@@ -68,6 +68,5 @@ private fun getSensorManager() = getKoin()
     .getSystemService(Context.SENSOR_SERVICE) as? SensorManager
 
 private fun SensorEvent.toSensorEvent() = SensorEvent(
-    timestamp = timestamp,
     values = values
 )
