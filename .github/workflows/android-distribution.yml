@@ -36,26 +36,48 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
       # Prepare the environment
-      - name: Build with Gradle and Print Version
-        id: gradle
+      - name: Build with Gradle and get VERSION (no pipes)
+        id: gradle-version
+        shell: bash
         run: |
-          VERSION=$(./gradlew -q printVersionName)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          set -euo pipefail
+          VERSION="$(./gradlew -q :composeApp:printVersionName)"   # change :app: if your task lives elsewhere
+          VERSION="${VERSION//$'\r'/}"   # remove CR
+          VERSION="${VERSION//$'\n'/}"   # remove LF
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Computed VERSION: $VERSION"
 
       - name: Checkout release branch
         run: |
           git fetch origin
-          git checkout -b releases/${{ env.VERSION }}
+          git fetch origin
+          if git show-ref --quiet refs/heads/releases/${{ env.VERSION }}; then
+            git checkout releases/${{ env.VERSION }}
+          else
+            git checkout -b releases/${{ env.VERSION }}
+          fi
           git pull origin releases/${{ env.VERSION }} --allow-unrelated-histories --no-rebase  # Allow unrelated histories to be merged
 
       - name: Increase version code
         run: awk '/version-code/ {gsub(/[0-9]+/, ++n)} {print}' n=$(awk -F'"' '/version-code/ {print $2}' gradle/libs.versions.toml) gradle/libs.versions.toml > temp && mv temp gradle/libs.versions.toml
 
-      - name: Create whatsnew file
+      - name: Create whatsnew file (max 500 chars)
+        shell: bash
         run: |
           last_increment_commit=$(git log --grep="Increment version code" -n 1 --pretty=format:"%H")
-          mkdir -p ${{ github.workspace }}/whatsnew
-          git log --pretty=format:"%s" $last_increment_commit..HEAD | grep -E "/CU-[a-z0-9]+_[^ ]+" | awk -F'_' '{print $2}' | sort | uniq > ${{ github.workspace }}/whatsnew/whatsnew-en-US
+          mkdir -p "$GITHUB_WORKSPACE/whatsnew"
+          notes=$(git log --pretty=format:"%s" "$last_increment_commit"..HEAD \
+            | grep -E "/CU-[a-z0-9]+_[^ ]+" \
+            | awk -F'_' '{print $2}' \
+            | sort \
+            | uniq \
+            | tr '\n' ' ' \
+            | sed 's/  */ /g')
+
+          # Trim to max 499 characters (safe for UTF-8)
+          notes=$(echo "$notes" | awk '{print substr($0, 1, 499)}')
+
+          echo "$notes" > "$GITHUB_WORKSPACE/whatsnew/whatsnew-en-US"
 
       - name: Commit and push changes
         run: |
@@ -73,7 +95,9 @@ jobs:
 
       - name: Create Pull Request
         run: |
-          gh pr create --title "Release ${{ env.VERSION }}" --body "Automated release of version ${{ env.VERSION }}" --head releases/${{ env.VERSION }} --base master
+          if ! gh pr list --head releases/${{ env.VERSION }} --json id --jq '.[].id' | grep -q .; then
+            gh pr create --title "Release ${{ env.VERSION }}" --body "Automated release of version ${{ env.VERSION }}" --head releases/${{ env.VERSION }} --base master
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
