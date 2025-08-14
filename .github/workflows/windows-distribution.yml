@@ -89,7 +89,7 @@ jobs:
 
       # Windows - Msi
       - name: Build Windows Release
-        run: ./gradlew packageReleaseMsi -Pbuildkonfig.flavor=release
+        run: .\gradlew packageReleaseMsi -Pbuildkonfig.flavor=release
 
       - name: Move and rename MSI file
         shell: pwsh
