@@ -43,7 +43,7 @@ jobs:
         id: gradle-version
         run: |
           VERSION=$(./gradlew -q printVersionName)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Create releases/${{ env.VERSION }} branch if it doesn't exist
         run: |
