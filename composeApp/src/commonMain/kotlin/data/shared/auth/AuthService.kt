@@ -243,8 +243,7 @@ class AuthService {
         val userUpdate = UserIO(
             accessToken = credentials.accessToken ?: dataManager.currentUser.value?.accessToken,
             matrixHomeserver = credentials.homeserver ?: dataManager.currentUser.value?.matrixHomeserver,
-            matrixUserId = credentials.userId ?: dataManager.currentUser.value?.matrixUserId,
-            publicId = credentials.publicId ?: dataManager.currentUser.value?.publicId,
+            userId = credentials.userId ?: dataManager.currentUser.value?.userId,
             configuration = credentials.configuration ?: dataManager.currentUser.value?.configuration,
             displayName = credentials.displayName ?: dataManager.currentUser.value?.displayName,
             avatarUrl = credentials.avatarUrl
@@ -292,7 +291,6 @@ class AuthService {
                 address = identifier?.address ?: previous?.address,
                 pickleKey = pickleKey,
                 displayName = user?.displayName ?: previous?.displayName,
-                publicId = user?.publicId ?: previous?.publicId,
                 configuration = user?.configuration ?: previous?.configuration,
                 databasePassword = previous?.databasePassword,
                 token = token ?: previous?.token
@@ -452,7 +450,7 @@ class AuthService {
 
         if(setupAutoLogin && dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
             (auth ?: retrieveCredentials())?.let { credentials ->
-                if(dataManager.currentUser.value?.matrixUserId == null) {
+                if(dataManager.currentUser.value?.userId == null) {
                     updateUser(credentials = credentials)
                 }
                 delay(DELAY_REFRESH_TOKEN_START)
@@ -503,7 +501,7 @@ class AuthService {
 
                 if(setupAutoLogin && dataManager.networkConnectivity.value?.isNetworkAvailable == false) {
                     (auth ?: retrieveCredentials())?.let { credentials ->
-                        if(dataManager.currentUser.value?.matrixUserId == null) {
+                        if(dataManager.currentUser.value?.userId == null) {
                             updateUser(credentials = credentials)
                         }
                         delay(DELAY_REFRESH_TOKEN_START)
@@ -592,7 +590,7 @@ class AuthService {
         userId: String? = null,
         key: SecretByteArray?
     ) {
-        (userId ?: dataManager.currentUser.value?.matrixUserId)?.let { id ->
+        (userId ?: dataManager.currentUser.value?.userId)?.let { id ->
             when (key) {
                 is SecretByteArray.AesHmacSha2 -> {
                     secureSettings.putString(
@@ -606,7 +604,7 @@ class AuthService {
     }
 
     private fun getDatabasePassword(userId: String? = null): SecretByteArray? {
-        return (userId ?: dataManager.currentUser.value?.matrixUserId)?.let { id ->
+        return (userId ?: dataManager.currentUser.value?.userId)?.let { id ->
             secureSettings.getString(
                 "${SecureSettingsKeys.KEY_DB_PASSWORD}_${id}", ""
             ).takeIf { it.isNotBlank() }?.let {

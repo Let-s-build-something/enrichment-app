@@ -442,7 +442,7 @@ internal fun BoxScope.SendMessagePanel(
                     scrollToMessage(originalMessage)
                 },
                 onRemoveRequest = { replyToMessage.value = null },
-                isCurrentUser = originalMessage.data.authorPublicId == model.currentUser.value?.matrixUserId,
+                isCurrentUser = originalMessage.data.authorPublicId == model.currentUser.value?.userId,
                 removable = true
             )
         }

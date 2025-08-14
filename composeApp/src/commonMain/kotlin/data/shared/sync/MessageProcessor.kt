@@ -266,7 +266,7 @@ abstract class MessageProcessor {
                         }
                         ConversationMessageIO(
                             content = content.membership.asMessage(
-                                isSelf = event.senderOrNull?.localpart == sharedDataManager.currentUser.value?.matrixUserId,
+                                isSelf = event.senderOrNull?.localpart == sharedDataManager.currentUser.value?.userId,
                                 displayName = displayName
                             ),
                             authorPublicId = AUTHOR_SYSTEM
@@ -447,7 +447,7 @@ abstract class MessageProcessor {
                         val message = conversationMessageDao.get(messageId)?.data?.update(update) ?: update
 
                         media to message.copy(
-                            state = if (message.authorPublicId == sharedDataManager.currentUser.value?.matrixUserId) {
+                            state = if (message.authorPublicId == sharedDataManager.currentUser.value?.userId) {
                                 MessageState.Sent
                             } else MessageState.Read
                         ).also { decryptedMessage ->
@@ -456,7 +456,7 @@ abstract class MessageProcessor {
                                 conversationMessageDao.insertReplace(decryptedMessage)
                                 conversationRoomDao.get(
                                     id = decryptedMessage.conversationId,
-                                    ownerPublicId = sharedDataManager.currentUser.value?.matrixUserId
+                                    ownerPublicId = sharedDataManager.currentUser.value?.userId
                                 ).also { data ->
                                     if (data?.data?.summary?.lastMessage?.id == decryptedMessage.id) {
                                         conversationRoomDao.insert(

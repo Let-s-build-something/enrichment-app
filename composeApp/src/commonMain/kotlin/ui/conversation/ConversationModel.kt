@@ -672,7 +672,7 @@ open class ConversationModel(
             id = msgId,
             conversationId = conversationId,
             sentAt = localNow,
-            authorPublicId = currentUser.value?.matrixUserId,
+            authorPublicId = currentUser.value?.userId,
             state = MessageState.Pending
         )
         repository.cacheMessage(msg)
