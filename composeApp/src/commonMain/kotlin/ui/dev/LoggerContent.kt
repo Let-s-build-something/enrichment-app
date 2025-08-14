@@ -281,7 +281,7 @@ private fun GeneralContent(model: DeveloperConsoleModel) {
             text = "User data",
             style = LocalTheme.current.styles.subheading
         )
-        RowInformation(title = "user_id: ", currentUser.value?.matrixUserId)
+        RowInformation(title = "user_id: ", currentUser.value?.userId)
         RowInformation(title = "access_token: ", currentUser.value?.accessToken)
         RowInformation(title = "device_id: ", localSettings.value?.deviceId)
         RowInformation(title = "pickle_key: ", localSettings.value?.pickleKey)

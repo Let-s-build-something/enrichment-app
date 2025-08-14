@@ -175,7 +175,7 @@ class AppServiceModel(
         viewModelScope.launch {
             repository.updateFCMToken(
                 prevFcmToken = sharedDataManager.localSettings.value?.fcmToken,
-                publicId = sharedDataManager.currentUser.value?.publicId,
+                userId = sharedDataManager.currentUser.value?.userId,
                 newToken = newToken
             )
         }

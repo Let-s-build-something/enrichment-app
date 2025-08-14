@@ -197,7 +197,7 @@ class EmojiUseCase(
         withContext(Dispatchers.IO) {
             preferredEmojis.value = list
             settings.putString(
-                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.matrixUserId}",
+                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.userId}",
                 json.encodeToString(list)
             )
         }
@@ -207,7 +207,7 @@ class EmojiUseCase(
     private suspend fun requestPreferredEmojis() {
         withContext(Dispatchers.IO) {
             preferredEmojis.value = settings.getStringOrNull(
-                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.matrixUserId}"
+                "${SettingsKeys.KEY_PREFERRED_EMOJIS}_${sharedDataManager.currentUser.value?.userId}"
             )?.let { jsonString ->
                 json.decodeFromString<List<EmojiData>>(jsonString)
             } ?: DefaultEmojis

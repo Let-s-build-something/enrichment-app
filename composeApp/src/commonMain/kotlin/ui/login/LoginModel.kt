@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -315,7 +314,7 @@ class LoginModel(
                         session = it.session
                     }
                 }else {
-                    val requiresEmail = supportsEmail.lastOrNull() == true || flow?.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
+                    val requiresEmail = flow?.stages?.contains(LOGIN_EMAIL_IDENTITY) == true
                     // if flow contains email verification, we should check for duplicity first
                     val check = if(requiresEmail) {
                         repository.requestRegistrationToken(

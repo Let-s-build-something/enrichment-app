@@ -61,7 +61,6 @@ import net.folivo.trixnity.core.model.events.m.room.RoomMessageEventContent
 import org.koin.mp.KoinPlatform
 import ui.conversation.components.audio.MediaProcessorDataManager
 import ui.login.safeRequest
-import utils.SharedLogger
 
 /** Class for calling APIs and remote work in general */
 open class ConversationRepository(
@@ -229,7 +228,6 @@ open class ConversationRepository(
                 ConversationRoomSource(
                     getMessages = { page ->
                         if(conversationId.isNullOrBlank()) {
-                            SharedLogger.logger.debug { "conversation id is null, can't load messages" }
                             return@ConversationRoomSource GetMessagesResponse(
                                 data = listOf(), hasNext = false
                             )
@@ -259,12 +257,9 @@ open class ConversationRepository(
                                     certainMessageCount = certainMessageCount?.plus(res.messages.size)
                                     GetMessagesResponse(
                                         data = res.messages,
-                                        hasNext = res.prevBatch != null && res.messages.isNotEmpty()
+                                        hasNext = res.prevBatch != null && res.changeInMessages
                                     ).also {
-                                        val newPrevBatch = if(res.messages.isEmpty()
-                                            && res.events == 0
-                                            && res.members.isEmpty()
-                                        )null else res.prevBatch
+                                        val newPrevBatch = if(res.changeInMessages) res.prevBatch else null
 
                                         conversationRoomDao.setPrevBatch(
                                             id = conversationId,
@@ -305,7 +300,7 @@ open class ConversationRepository(
         conversationId: String,
         indicator: ConversationTypingIndicator
     ): BaseResponse<Any> = withContext(Dispatchers.IO) {
-        val userId = sharedDataManager.currentUser.value?.matrixUserId
+        val userId = sharedDataManager.currentUser.value?.userId
         val homeserver = sharedDataManager.currentUser.value?.matrixHomeserver
 
         httpClient.safeRequest<Any> {
@@ -436,7 +431,7 @@ open class ConversationRepository(
         reaction: MessageReactionRequest
     ): BaseResponse<Pair<MessageReactionIO, Boolean>> {
         return withContext(Dispatchers.Default) {
-            val self = sharedDataManager.currentUser.value?.matrixUserId
+            val self = sharedDataManager.currentUser.value?.userId
             val data = MessageReactionIO(
                 content = reaction.content,
                 authorPublicId = self,

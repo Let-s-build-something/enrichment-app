@@ -36,7 +36,7 @@ class NetworkRemoteMediator (
 
     private val dataManager: SharedDataManager by KoinPlatform.getKoin().inject()
     private val ownerUserPublicId: String?
-        get() = dataManager.currentUser.value?.matrixUserId
+        get() = dataManager.currentUser.value?.userId
 
     override suspend fun initialize(): InitializeAction {
         val timeElapsed = Clock.System.now().toEpochMilliseconds().minus(
