@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(./gradlew -q :app:printVersionName)"   # change :app: if your task lives elsewhere
+          VERSION="$(./gradlew -q :composeApp:printVersionName)"   # change :app: if your task lives elsewhere
           VERSION="${VERSION//$'\r'/}"   # remove CR
           VERSION="${VERSION//$'\n'/}"   # remove LF
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

@@ -61,10 +61,12 @@ jobs:
       # Prepare the environment
       - name: Build with Gradle and Print Version
         id: gradle
-        run: |
-          $version = ./gradlew -q printVersionName
-          echo "VERSION=$version" >> $env:GITHUB_ENV
         shell: pwsh
+        run: |
+          $version = (& ./gradlew -q printVersionName).Trim()
+          $version = $version -replace "`r", ""
+          $version = $version -replace "`n", ""
+          echo "VERSION=$version" >> $env:GITHUB_ENV
 
       # Locate signtool.exe and log the output
       - name: Locate signtool.exe
@@ -90,9 +92,14 @@ jobs:
         run: ./gradlew packageReleaseMsi -Pbuildkonfig.flavor=release
 
       - name: Move and rename MSI file
-        run: |
-          move ${{ github.workspace }}\composeApp\build\compose\binaries\main-release\msi\Augmy-${{ env.VERSION }}.msi ${{ github.workspace }}/Augmy.msi
         shell: pwsh
+        run: |
+          $msiFile = Get-ChildItem -Path "${{ github.workspace }}\composeApp\build\compose\binaries" -Filter "*.msi" -Recurse | Select-Object -First 1
+          if (-not $msiFile) {
+            Write-Error "No MSI file found"
+            exit 1
+          }
+          Move-Item $msiFile.FullName "${{ github.workspace }}\Augmy.msi" -Force
 
       # Currently disabled, as there is no recognized PFX certificate available - requires a purchase
       # Sign the MSI file with the PFX certificate
@@ -103,14 +110,19 @@ jobs:
 #          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
 #        shell: pwsh
 
+      - name: Define FTP base options
+        shell: pwsh
+        run: |
+          echo "FTP_OPTS=--ftp-pasv --connect-timeout 30 --max-time 3600 --retry 5 --retry-delay 25 --fail" >> $env:GITHUB_ENV
+
       - name: Generate versioned folder in FTP
         run: |
-          curl ftp://${{ secrets.FTP_USERNAME_ENCODED }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
+          curl ${{ env.FTP_OPTS }} ftp://${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}@${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --ftp-create-dirs
 
       - name: Upload versioned MSI file to FTP
         run: |
-          curl --ftp-pasv --connect-timeout 30 --max-time 3600 --retry 5 --retry-delay 25 --continue-at - -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl ${{ env.FTP_OPTS }} --continue-at - -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/${{ env.VERSION }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
 
       - name: Upload general MSI file to FTP
         run: |
-          curl --connect-timeout 30 --max-time 1800 --retry 5 --retry-delay 25 --continue-at - -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+          curl ${{ env.FTP_OPTS }} --max-time 1800 --continue-at - -T ${{ github.workspace }}/Augmy.msi ftp://${{ secrets.FTP_SERVER_DOMAIN }}/www/downloads/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}

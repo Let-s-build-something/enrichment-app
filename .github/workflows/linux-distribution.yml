@@ -33,11 +33,16 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SERVICES }}" | base64 --decode > ${{ github.workspace }}/composeApp/google-services.json
 
       # Prepare the environment
-      - name: Build with Gradle and Print Version
-        id: gradle
+      - name: Build with Gradle and get VERSION (no pipes)
+        id: gradle-version
+        shell: bash
         run: |
-          VERSION=$(./gradlew -q printVersionName)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          set -euo pipefail
+          VERSION="$(./gradlew -q :composeApp:printVersionName)"   # change :app: if your task lives elsewhere
+          VERSION="${VERSION//$'\r'/}"   # remove CR
+          VERSION="${VERSION//$'\n'/}"   # remove LF
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Computed VERSION: $VERSION"
 
       # Linux - Deb
       - name: Build Linux Release
