@@ -43,9 +43,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(./gradlew -q :composeApp:printVersionName)"   # change :app: if your task lives elsewhere
-          VERSION="${VERSION//$'\r'/}"   # remove CR
-          VERSION="${VERSION//$'\n'/}"   # remove LF
+          VERSION="$(./gradlew -q :composeApp:printVersionName)"
+          VERSION="${VERSION//$'\r'/}"
+          VERSION="${VERSION//$'\n'/}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Computed VERSION: $VERSION"
 
@@ -53,9 +53,10 @@ jobs:
         shell: bash
         run: |
           git fetch origin
-          if ! git rev-parse --verify origin/releases/${{ steps.gradle-version.outputs.version }} >/dev/null 2>&1; then
-            git checkout -b releases/${{ steps.gradle-version.outputs.version }}
-            git push origin releases/${{ steps.gradle-version.outputs.version }}
+          VERSION=${{ steps.gradle-version.outputs.version }}
+          if ! git rev-parse --verify origin/releases/$VERSION >/dev/null 2>&1; then
+            git checkout -b releases/$VERSION origin/master
+            git push origin releases/$VERSION
           fi
 
       - name: Force release-version to match master
