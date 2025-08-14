@@ -6,6 +6,7 @@ import augmy.interactive.shared.utils.DateUtils
 import base.utils.Matrix
 import base.utils.Matrix.ErrorCode.UNKNOWN_TOKEN
 import base.utils.deviceName
+import base.utils.orZero
 import base.utils.toSha256
 import data.io.app.LocalSettings
 import data.io.app.SecureSettingsKeys
@@ -175,7 +176,7 @@ class AuthService {
             retrieveCredentials().also {
                 logger.debug { "setupAutoLogin, credentials: $it" }
             }?.let { credentials ->
-                logger.debug { "expires in: ${(credentials.expiresAtMsEpoch ?: 0) - DateUtils.now.toEpochMilliseconds()}, " +
+                logger.debug { "expires in: ${credentials.expiresAtMsEpoch.orZero() - DateUtils.now.toEpochMilliseconds()}, " +
                         "isFullyValid: ${credentials.isFullyValid}, forceRefresh: $forceRefresh"
                 }
 

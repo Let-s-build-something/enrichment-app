@@ -6,6 +6,7 @@ import augmy.composeapp.generated.resources.message_avatar_change
 import augmy.composeapp.generated.resources.message_redacted
 import augmy.composeapp.generated.resources.message_room_created
 import augmy.interactive.shared.utils.DateUtils
+import base.utils.orZero
 import data.io.base.AppPing
 import data.io.base.AppPingType
 import data.io.matrix.room.event.ConversationRoomMember
@@ -19,7 +20,6 @@ import data.shared.GeneralObserver
 import data.shared.SharedDataManager
 import data.shared.sync.EventUtils.asMessage
 import database.dao.ConversationMessageDao
-import database.dao.ConversationRoomDao
 import database.dao.MediaDao
 import database.dao.MessageReactionDao
 import database.dao.PresenceEventDao
@@ -79,7 +79,6 @@ abstract class MessageProcessor {
     private val conversationMessageDao: ConversationMessageDao by KoinPlatform.getKoin().inject()
     private val mediaDao: MediaDao by KoinPlatform.getKoin().inject()
     private val messageReactionDao: MessageReactionDao by KoinPlatform.getKoin().inject()
-    private val conversationRoomDao: ConversationRoomDao by KoinPlatform.getKoin().inject()
     private val roomMemberDao: RoomMemberDao by KoinPlatform.getKoin().inject()
     private val presenceEventDao: PresenceEventDao by KoinPlatform.getKoin().inject()
 
@@ -167,7 +166,7 @@ abstract class MessageProcessor {
                 val existingMember = roomMemberDao.get(member.userId)
 
                 val isNew = existingMember == null
-                val isNewer = (existingMember?.timestamp ?: 0) < (member.timestamp ?: 0)
+                val isNewer = existingMember?.timestamp.orZero() < member.timestamp.orZero()
 
                 if (isNew || isNewer) {
                     roomMemberDao.insertReplace(member)

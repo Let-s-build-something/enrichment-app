@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import augmy.interactive.shared.ui.base.LocalNavController
 import base.navigation.NavigationNode
+import base.utils.orZero
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.core.context.loadKoinModules
 import ui.account.AccountDashboardScreen
@@ -93,7 +94,7 @@ fun NavigationHost(
             composable<NavigationNode.MediaDetail> { args ->
                 MediaDetailScreen(
                     idList = args.arguments?.getStringArray("idList").orEmpty(),
-                    selectedIndex = args.arguments?.getInt("selectedIndex") ?: 0,
+                    selectedIndex = args.arguments?.getInt("selectedIndex").orZero(),
                     title = args.arguments?.getString("title") ?: "",
                     subtitle = args.arguments?.getString("subtitle") ?: ""
                 )

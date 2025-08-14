@@ -24,6 +24,7 @@ import net.folivo.trixnity.core.model.events.m.room.EncryptionEventContent
 import net.folivo.trixnity.core.model.events.m.room.HistoryVisibilityEventContent
 import net.folivo.trixnity.core.model.events.m.room.MemberEventContent
 import net.folivo.trixnity.core.model.events.m.room.NameEventContent
+import net.folivo.trixnity.core.model.events.m.room.PowerLevelsEventContent
 import net.folivo.trixnity.core.model.events.originTimestampOrNull
 import org.koin.mp.KoinPlatform
 
@@ -67,6 +68,7 @@ class DataSyncHandler: MessageProcessor() {
                 var historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null
                 var algorithm: EncryptionEventContent? = null
                 val members = mutableListOf<Pair<Boolean?, String?>>()
+                var powerLevels: PowerLevelsEventContent? = null
 
                 val events = mutableListOf<ClientEvent<*>>()
                     .apply {
@@ -100,6 +102,7 @@ class DataSyncHandler: MessageProcessor() {
                                     }
                                 }
                             }
+                            is PowerLevelsEventContent -> powerLevels = content
                             else -> {}
                         }
 
@@ -139,7 +142,8 @@ class DataSyncHandler: MessageProcessor() {
                             ?: name
                             ?: room.summary?.canonicalAlias
                             ?: (if (isDirect) room.summary?.heroes?.firstOrNull()?.full ?: members.first { it.first != false }.second else null),
-                        isDirect = isDirect
+                        isDirect = isDirect,
+                        powerLevels = powerLevels
                     ),
                     prevBatch = room.timeline?.previousBatch,
                     ownerPublicId = owner,
