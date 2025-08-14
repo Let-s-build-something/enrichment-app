@@ -424,15 +424,35 @@ private fun ContentLayout(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     preferredEmojis.forEach { emojiData ->
-                                        Text(
+                                        val emoji = emojiData.emoji.firstOrNull() ?: ""
+
+                                        Column(
                                             modifier = Modifier
+                                                .width(IntrinsicSize.Min)
                                                 .scalingClickable(scaleInto = .7f) {
-                                                    model.onReactionChange(emojiData.emoji.firstOrNull() ?: "")
+                                                    model.onReactionChange(emoji)
                                                 }
                                                 .padding(8.dp),
-                                            text = emojiData.emoji.firstOrNull() ?: "",
-                                            style = LocalTheme.current.styles.heading
-                                        )
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                text = emoji,
+                                                style = LocalTheme.current.styles.heading
+                                            )
+                                            if (data.reactions.any {
+                                                    it.authorPublicId == currentUserId && it.content?.replace("\uFE0F", "")?.trim() == emoji
+                                            }) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .height(2.dp)
+                                                        .fillMaxWidth(.6f)
+                                                        .background(
+                                                            color = LocalTheme.current.colors.brandMain,
+                                                            shape = RoundedCornerShape(8.dp)
+                                                        )
+                                                )
+                                            }
+                                        }
                                     }
                                     Icon(
                                         modifier = Modifier
