@@ -7,6 +7,7 @@ import base.utils.Matrix.ErrorCode.USER_IN_USE
 import base.utils.Matrix.LOGIN_EMAIL_IDENTITY
 import base.utils.deeplinkHost
 import base.utils.openLink
+import base.utils.orZero
 import coil3.toUri
 import data.io.app.ClientStatus
 import data.io.app.SecureSettingsKeys
@@ -246,12 +247,12 @@ class LoginModel(
                 ).token
             }else _matrixProgress.value?.recaptcha
             val userAccepts = agreements ?: _matrixProgress.value?.agreements
-            val lastIndex = matrixProgress.value?.response?.flows?.firstOrNull()?.stages?.lastIndex ?: 0
+            val lastIndex = matrixProgress.value?.response?.flows?.firstOrNull()?.stages?.lastIndex.orZero()
 
             _matrixProgress.value = _matrixProgress.value?.copy(
                 recaptcha = recaptcha,
                 agreements = userAccepts,
-                index = _matrixProgress.value?.index?.plus(1)?.coerceAtMost(lastIndex) ?: 0
+                index = _matrixProgress.value?.index?.plus(1)?.coerceAtMost(lastIndex).orZero()
             )?.also { progress ->
                 repository.registerWithUsername(
                     address = homeserverResponseAddress,

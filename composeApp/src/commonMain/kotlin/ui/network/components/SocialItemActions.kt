@@ -239,8 +239,8 @@ fun ScalingIcon(
             )
             Icon(
                 modifier = Modifier
-                    .size(38.dp)
-                    .padding(6.dp),
+                    .size(24.dp)
+                    .padding(4.dp),
                 imageVector = imageVector,
                 contentDescription = null,
                 tint = LocalTheme.current.colors.secondary

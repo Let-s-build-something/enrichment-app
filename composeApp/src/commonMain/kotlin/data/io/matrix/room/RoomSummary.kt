@@ -4,6 +4,7 @@ import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.folivo.trixnity.core.model.UserId
+import net.folivo.trixnity.core.model.events.m.room.PowerLevelsEventContent
 
 /**
  * Information about the room which clients may need to correctly render it to users.
@@ -25,6 +26,8 @@ data class RoomSummary(
 
     /** Whether this room is just one on one. */
     val isDirect: Boolean? = null,
+
+    val powerLevels: PowerLevelsEventContent? = null,
 
     /** Message sent out to invited people by default if not changed. */
     val invitationMessage: String? = null,

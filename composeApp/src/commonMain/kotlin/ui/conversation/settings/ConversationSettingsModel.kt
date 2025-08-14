@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,6 +100,11 @@ class ConversationSettingsModel(
         ignoreUserId = matrixUserId,
         conversationId = conversationId
     ).flow.cachedIn(viewModelScope)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val myPowerLevel = _conversation.mapLatest {
+        it?.data?.summary?.powerLevels?.users?.get(UserId(matrixUserId ?: "")) ?: it?.data?.summary?.powerLevels?.usersDefault
+    }
 
     /** Customized social circle colors */
     val socialCircleColors: Flow<Map<NetworkProximityCategory, Color>> = localSettings.map { settings ->
