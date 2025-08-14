@@ -134,9 +134,11 @@ class HomeModel(
         withContext(Dispatchers.Default) {
             rooms.map { room ->
                 room.apply {
-                    messages = if (!collapsedRooms.contains(room.id)) {
+                    messages = if (!collapsedRooms.contains(room.id) && query.isNotBlank()) {
                         queryMessagesOfRoom(query, room)
                     } else listOf()
+
+                    lastMessage = messages.firstOrNull() ?: getLastMessage(room.id)
                 }
             }.filter { data ->
                 (query.isBlank() || data.messages.isNotEmpty())
@@ -213,11 +215,17 @@ class HomeModel(
         }
     }
 
+    private suspend fun getLastMessage(
+        roomId: String
+    ): FullConversationMessage? = withContext(Dispatchers.IO) {
+        repository.getLatestMessage(roomId)
+    }
+
     private suspend fun queryMessagesOfRoom(
         query: String,
         room: FullConversationRoom
     ): List<FullConversationMessage> {
-        return withContext(Dispatchers.Default) {
+        return withContext(Dispatchers.IO) {
             val limit = 10
 
             repository.queryLocalMessagesOfRoom(

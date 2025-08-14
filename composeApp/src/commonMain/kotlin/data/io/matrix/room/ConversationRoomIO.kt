@@ -6,7 +6,6 @@ import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import database.AppRoomDatabase
-import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.folivo.trixnity.clientserverapi.model.sync.Sync.Response.Rooms.InvitedRoom
@@ -28,7 +27,6 @@ import kotlin.uuid.Uuid
         Index(value = ["owner_public_id"]),
         Index(value = ["type"]),
         Index(value = ["proximity"]),
-        Index(value = ["last_message_timestamp"]),
         Index(value = ["owner_public_id", "type"]),
         Index(value = ["owner_public_id", "id"])
     ]
@@ -73,9 +71,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
     @ColumnInfo("prev_batch")
     var prevBatch: String? = null,
 
-    @ColumnInfo("last_message_timestamp")
-    val lastMessageTimestamp: LocalDateTime? = summary?.lastMessage?.sentAt,
-
     @ColumnInfo("history_visibility")
     val historyVisibility: HistoryVisibilityEventContent.HistoryVisibility? = null,
 
@@ -116,7 +111,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
             ownerPublicId = other.ownerPublicId ?: ownerPublicId,
             primaryKey = other.primaryKey,
             prevBatch = other.prevBatch ?: prevBatch,
-            lastMessageTimestamp = other.lastMessageTimestamp ?: lastMessageTimestamp,
             historyVisibility = other.historyVisibility ?: historyVisibility,
             algorithm = other.algorithm ?: algorithm,
             type = other.type
@@ -134,7 +128,6 @@ data class ConversationRoomIO @OptIn(ExperimentalUuidApi::class) constructor(
                 "ownerPublicId: $ownerPublicId, " +
                 "primaryKey: $primaryKey, " +
                 "prevBatch: $prevBatch, " +
-                "lastMessageTimestamp: $lastMessageTimestamp, " +
                 "historyVisibility: $historyVisibility, " +
                 "algorithm: $algorithm, " +
                 "type: $type" +

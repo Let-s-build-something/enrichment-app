@@ -105,6 +105,10 @@ class HomeRepository(
         )
     }
 
+    suspend fun getLatestMessage(roomId: String) = withContext(Dispatchers.IO) {
+        conversationMessageDao.getLastMessage(conversationId = roomId)
+    }
+
     /*suspend fun queryAndInsertMessages(
         matrixClient: MatrixClient?,
         query: String,

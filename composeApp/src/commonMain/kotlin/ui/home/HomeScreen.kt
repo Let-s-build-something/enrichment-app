@@ -724,15 +724,16 @@ private fun ConversationRoomItem(
 
     Column(modifier = modifier.animateContentSize()) {
         val isSearched = !highlight.isNullOrBlank()
+        val data = room?.toNetworkItem(
+            lastMessage = if (isSearched) null else room.lastMessage?.data?.content
+        )
 
         NetworkItemRow(
             avatarSize = if (isSearched) 32.dp else 48.dp,
             modifier = itemModifier.then(
                 if (isSearched) Modifier.alpha(.6f) else Modifier
             ),
-            data = room?.toNetworkItem().let {
-                it?.copy(lastMessage = if (isSearched) null else it.lastMessage)
-            },
+            data = data,
             isSelected = selectedItem == room?.id,
             indicatorColor = indicatorColor,
             onAvatarClick = onAvatarClick,
@@ -753,7 +754,7 @@ private fun ConversationRoomItem(
             },
             actions = {
                 if (room?.data?.type != RoomType.Invited) {
-                    room?.toNetworkItem()?.let { networkItem ->
+                    data?.let { networkItem ->
                         SocialItemActions(
                             key = room.id,
                             requestProximityChange = requestProximityChange,

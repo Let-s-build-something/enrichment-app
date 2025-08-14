@@ -6,8 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import data.io.matrix.room.ConversationRoomIO
-import data.io.matrix.room.RoomType
 import data.io.matrix.room.FullConversationRoom
+import data.io.matrix.room.RoomType
 import database.AppRoomDatabase
 
 /** Interface for communication with local Room database */
@@ -16,13 +16,19 @@ interface ConversationRoomDao {
 
     /** Returns paginated conversation based on the owner as defined by [ownerPublicId] */
     @Query("""
-        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM}
-        WHERE owner_public_id = :ownerPublicId
-        AND (type == "Joined" OR type == "Invited")
-        ORDER BY proximity DESC, last_message_timestamp DESC
-        LIMIT :limit
-        OFFSET :offset
-        """)
+        SELECT r.*
+        FROM ${AppRoomDatabase.TABLE_CONVERSATION_ROOM} r
+        LEFT JOIN (
+            SELECT conversation_id, MAX(sent_at) AS lastMessageTimestamp
+            FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+            GROUP BY conversation_id
+        ) lm
+        ON lm.conversation_id = r.id
+        WHERE r.owner_public_id = :ownerPublicId
+          AND (r.type = 'Joined' OR r.type = 'Invited')
+        ORDER BY r.proximity DESC, lm.lastMessageTimestamp DESC
+        LIMIT :limit OFFSET :offset
+    """)
     @Transaction
     suspend fun getPaginated(
         ownerPublicId: String?,

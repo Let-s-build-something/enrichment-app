@@ -1,6 +1,5 @@
 package data.io.matrix.room
 
-import data.io.social.network.conversation.message.ConversationMessageIO
 import data.io.social.network.conversation.message.MediaIO
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,10 +35,7 @@ data class RoomSummary(
 
     /** The number of users with membership of join, including the client’s own user ID. */
     @SerialName("m.joined_member_count")
-    val joinedMemberCount: Int? = null,
-
-    /** Last message that happened in this room. */
-    val lastMessage: ConversationMessageIO? = null,
+    val joinedMemberCount: Int? = null
 ) {
 
     fun update(other: RoomSummary?): RoomSummary {
@@ -48,7 +44,6 @@ data class RoomSummary(
             heroes = other.heroes ?: heroes,
             canonicalAlias = other.canonicalAlias ?: canonicalAlias,
             avatar = other.avatar ?: avatar,
-            lastMessage = other.lastMessage ?: lastMessage,
             isDirect = other.isDirect ?: isDirect,
             invitationMessage = other.invitationMessage ?: invitationMessage,
             invitedMemberCount = other.invitedMemberCount ?: invitedMemberCount,
@@ -65,7 +60,6 @@ data class RoomSummary(
                 "invitationMessage: $invitationMessage, " +
                 "invitedMemberCount: $invitedMemberCount, " +
                 "joinedMemberCount: $joinedMemberCount, " +
-                "lastMessage: $lastMessage" +
                 "}"
     }
 }

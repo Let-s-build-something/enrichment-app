@@ -66,6 +66,15 @@ interface ConversationMessageDao {
     ): List<FullConversationMessage>
 
     @Transaction
+    @Query("""
+        SELECT * FROM ${AppRoomDatabase.TABLE_CONVERSATION_MESSAGE}
+        WHERE conversation_id = :conversationId
+        ORDER BY sent_at DESC
+        LIMIT 1
+    """)
+    suspend fun getLastMessage(conversationId: String): FullConversationMessage?
+
+    @Transaction
     @RawQuery
     suspend fun queryPaginatedMimeType(query: RoomRawQuery): List<FullConversationMessage>
 

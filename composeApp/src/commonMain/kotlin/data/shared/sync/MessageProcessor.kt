@@ -454,18 +454,6 @@ abstract class MessageProcessor {
                             if(save) {
                                 media?.let { mediaDao.insertReplace(it) }
                                 conversationMessageDao.insertReplace(decryptedMessage)
-                                conversationRoomDao.get(
-                                    id = decryptedMessage.conversationId,
-                                    ownerPublicId = sharedDataManager.currentUser.value?.userId
-                                ).also { data ->
-                                    if (data?.data?.summary?.lastMessage?.id == decryptedMessage.id) {
-                                        conversationRoomDao.insert(
-                                            data.data.copy(
-                                                summary = data.data.summary.copy(lastMessage = decryptedMessage)
-                                            )
-                                        )
-                                    }
-                                }
 
                                 dataService.appendPing(
                                     AppPing(

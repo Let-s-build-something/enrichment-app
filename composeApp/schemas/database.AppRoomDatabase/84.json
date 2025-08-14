@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 83,
-    "identityHash": "83985669d2a4c9027880e0c72e13faff",
+    "version": 84,
+    "identityHash": "e0ef2f365ee596790fb5b81a5ee34f99",
     "entities": [
       {
         "tableName": "room_network_item_table",
@@ -350,15 +350,6 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_message_table_parent_anchor_message_id` ON `${TABLE_NAME}` (`parent_anchor_message_id`)"
-          },
-          {
-            "name": "index_room_conversation_message_table_conversationId_sent_at",
-            "unique": false,
-            "columnNames": [
-              "sent_at"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_room_conversation_message_table_conversationId_sent_at` ON `${TABLE_NAME}` (`sent_at`)"
           }
         ]
       },
@@ -858,7 +849,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '83985669d2a4c9027880e0c72e13faff')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e0ef2f365ee596790fb5b81a5ee34f99')"
     ]
   }
 }

@@ -29,6 +29,10 @@ data class FullConversationRoom(
 
     @Transient
     @Ignore
+    var lastMessage: FullConversationMessage? = null
+
+    @Transient
+    @Ignore
     val id = data.id
 
     @Transient
@@ -79,11 +83,11 @@ data class FullConversationRoom(
 
     /** Converts this item to a network item representation */
     @Ignore
-    fun toNetworkItem() = NetworkItemIO(
+    fun toNetworkItem(lastMessage: String? = null) = NetworkItemIO(
         publicId = data.id,
         userId = if (isDirect) members.firstOrNull()?.userId ?: data.id else data.id,
         displayName = name,
         avatar = avatar,
-        lastMessage = data.summary?.lastMessage?.content
+        lastMessage = lastMessage
     )
 }
